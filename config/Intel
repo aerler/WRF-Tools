@@ -1,0 +1,19 @@
+# ============================================================================
+# Name        : Intel
+# Author      : Andre R. Erler
+# Version     : 1
+# Copyright   : GPL v3
+# Description : Intel Configuration for Fortran Tools Makefile
+# ============================================================================
+
+FC = ifort -fpp # -\#
+DBGFLAGS = -g -traceback -debug all # don't debug with optimization flags!
+OPTFLAGS = -O3 -xHost -no-prec-div
+OMPFLAGS = -openmp # -parallel -par-threshold50 -par-report3
+GRIB_INC = -I/usr/local/gribapi-1.9.9/include/
+GRIB_LIB = -L/usr/local/gribapi-1.9.9/lib/ -lgrib_api_f90 -lgrib_api -ljasper
+NC_INC = -I/usr/local/include/ -I/usr/local/hdf5-1.8.7/include/ -I/usr/include/
+NC_LIB = -L/usr/local/lib/ -lnetcdff -lnetcdf -L/usr/local/hdf5-1.8.7/lib/ -lhdf5_hl -lhdf5 -lz -lm -L/usr/lib -lcurl
+
+# from 'curl-config --static-libs'
+# CURL = -Wl,-Bsymbolic-functions -L/usr/lib/x86_64-linux-gnu/ -lidn -lgcrypt -llber -lldap -lrt -lgssapi_krb5 -lz -lgnutls -lgcrypt

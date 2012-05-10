@@ -1,0 +1,18 @@
+# ============================================================================
+# Name        : GFortran
+# Author      : Andre R. Erler
+# Version     : 1
+# Copyright   : GPL v3
+# Description : GFortran Configuration for Fortran Tools Makefile
+# ============================================================================
+
+FC = gfortran -cpp # seems to be betterfor debugging...
+DBGFLAGS = -g -Wall # don't debug with optimization flags!
+OPTFLAGS = -O3 
+OMPFLAGS = -fopenmp # -parallel -par-threshold50 -par-report3 
+GRIB_INC = -I/usr/include/
+GRIB_LIB = -L/usr/lib/ -lgrib_api_f90 -lgrib_api -ljasper
+NC_INC = -I/usr/include/ 
+NC_LIB = -L/usr/lib/ -l:libnetcdff.a -l:libnetcdf.a -lhdf5_hl -lhdf5 -lz -lm -lcurl
+# Note: in the current release (11.04) the symbol table of the shared netcdf lib is empty, hence
+#  we can only link to the static lib using '-l:libnetcdf.a' ('-lnetcdf' links to the shared lib)
