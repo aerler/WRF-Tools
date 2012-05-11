@@ -1,0 +1,12 @@
+syntax: glob
+*.orig
+*~
+*.o
+*.so
+*.mod
+
+syntax: regexp
+^.settings$
+^archive$
+^bin$
+^gmon\.out$
