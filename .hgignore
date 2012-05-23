@@ -9,4 +9,5 @@ syntax: regexp
 ^.settings$
 ^archive$
 ^bin$
+^test$
 ^gmon\.out$

@@ -22,21 +22,35 @@ import multiprocessing
 
 ##  determine if we are on SciNet or my local machine
 hostname = socket.gethostname()
-if (hostname=='komputer') or (hostname=='erlkoenig'):
-  # my local machines
+if (hostname=='komputer'):
+  # my local workstation
   lscinet = False
-  Ram = '/media/data/tmp/' # ramdisk/tmpfs folder to be used for temporary storage
+  Ram = '/media/data/tmp/' # ramdisk folder to be used for temporary storage
   Root = '/media/data/DATA/WRF/BC/'
   # use this cmd to mount: sudo mount -t ramfs -o size=100m ramfs /media/data/tmp/
   # followed by: sudo chown me /media/data/tmp/
   # and this to unmount:   sudo umount /media/data/tmp/
   os.putenv('NCARG_ROOT', '/usr/local/ncarg/')
   NCL = '/usr/local/ncarg/bin/ncl'
+  NP = 2
+elif (hostname=='erlkoenig'):
+  # my laptop
+  lscinet = False
+  Ram = '/home/me/Models/Fortran Tools/test/' # tmpfs folder to be used for temporary storage
+  # (leave Ram directory blank if tmpfs will be in test directory)
+  Root = '/home/me/Models/Fortran Tools/test/'
+  # use this cmd to mount: sudo mount -t tmpfs -o size=100m tmpfs /home/me/Models/Fortran\ Tools/test/tmp/
+  # followed by: sudo chown me /home/me/Models/Fortran\ Tools/test/tmp/
+  # and this to unmount:   sudo umount /home/me/Models/Fortran\ Tools/test/tmp/
+  os.putenv('NCARG_ROOT', '/usr/local/ncarg/')
+  NCL = '/usr/local/ncarg/bin/ncl'
+  NP = 1
 else:
   # SciNet
   lscinet = True
   Ram = '/dev/shm/aerler/' # ramdisk/tmpfs folder to be used for temporary storage
   Root = ''
+  NP = 8
   
 ##  Settings
 gcm = 'CESM'
@@ -52,7 +66,7 @@ metsfx = ':00:00.nc'
 geopfx = 'geo_em.d%02.0f'
 data = 'data/' # destination folder
 # parallelization
-np = 2
+# number of processes NP is set above (machine specific)
 pname = 'proc%02.0f'
 pdir = 'proc%02.0f/'  
 ## Commands
@@ -401,11 +415,11 @@ if __name__ == '__main__':
     ## multiprocessing
     # divide domain
     nd = len(dates) # number of dates
-    dpp = nd/np # dates per process 
-    rem = nd - dpp*np # remainder dates
+    dpp = nd/NP # dates per process 
+    rem = nd - dpp*NP # remainder dates
     # create processes
     procs = []; ilo = 0; ihi = 0
-    for id in xrange(np):
+    for id in xrange(NP):
       ilo = ihi # step up to next slice
       if id < rem: ihi = ihi + dpp + 1 # these processes do one more
       else: ihi = ihi + dpp # these processes get off with less work
