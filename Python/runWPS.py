@@ -45,11 +45,13 @@ elif (hostname=='erlkoenig'):
   os.putenv('NCARG_ROOT', '/usr/local/ncarg/')
   NCL = '/usr/local/ncarg/bin/ncl'
   NP = 1
-else:
+elif ('gpc' in hostname):
   # SciNet
   lscinet = True
   Ram = '/dev/shm/aerler/' # ramdisk/tmpfs folder to be used for temporary storage
-  Root = ''
+  Root = '' # use current directory
+  os.putenv('NCARG_ROOT', '/scinet/gpc/Applications/ncl/6.0.0/')
+  NCL = '/scinet/gpc/Applications/ncl/6.0.0/bin/ncl'
   NP = 8
   
 ##  Settings
