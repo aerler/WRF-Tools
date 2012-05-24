@@ -228,6 +228,7 @@ do i = 1,28
       lvl = 1
       ncerr = nf90_get_var(ncid, psl_varid, datafield2d)
     else
+      lvl = NLVLS
       ncerr = nf90_inquire_dimension(ncid, nbvar(3), len = lvl)
       ncerr = nf90_get_var(ncid, psl_varid, datafield3d)
 #ifdef DEBUG

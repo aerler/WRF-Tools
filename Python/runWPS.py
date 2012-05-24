@@ -318,7 +318,7 @@ def processTimesteps(myid, dates):
       writeNamelist(imdate, doms)
       # run metgrid_exe.exe
       print('\n  * '+mytag+' interpolating to WRF grid (metgrid.exe)')
-      subprocess.call([METGRID], stdout=open(os.devnull, 'w')) # metgrid writes a fairly detailed log file
+      subprocess.call([METGRID], stdout=open(os.devnull, 'w')) # metgrid.exe writes a fairly detailed log file
       
       ## finish time-step
       # copy/move data back to disk (one per domain)
