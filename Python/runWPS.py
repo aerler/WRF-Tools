@@ -30,7 +30,8 @@ if (hostname=='komputer'):
   # use this cmd to mount: sudo mount -t ramfs -o size=100m ramfs /media/data/tmp/
   # followed by: sudo chown me /media/data/tmp/
   # and this to unmount:   sudo umount /media/data/tmp/
-  os.putenv('NCARG_ROOT', '/usr/local/ncarg/')
+  Model = '/home/me/Models/'
+  NCARG = '/usr/local/ncarg/'
   NCL = '/usr/local/ncarg/bin/ncl'
   NP = 2
 elif (hostname=='erlkoenig'):
@@ -42,7 +43,8 @@ elif (hostname=='erlkoenig'):
   # use this cmd to mount: sudo mount -t tmpfs -o size=200m tmpfs /home/me/Models/Fortran\ Tools/test/tmp/
   # followed by: sudo chown me /home/me/Models/Fortran\ Tools/test/tmp/
   # and this to unmount: sudo umount /home/me/Models/Fortran\ Tools/test/tmp/
-  os.putenv('NCARG_ROOT', '/usr/local/ncarg/')
+  Model = '/home/me/Models/'
+  NCARG = '/usr/local/ncarg/'
   NCL = '/usr/local/ncarg/bin/ncl'
   NP = 1
 elif ('gpc' in hostname):
@@ -50,7 +52,8 @@ elif ('gpc' in hostname):
   lscinet = True
   Ram = '/dev/shm/aerler/' # ramdisk/tmpfs folder to be used for temporary storage
   Root = '' # use current directory
-  os.putenv('NCARG_ROOT', '/scinet/gpc/Applications/ncl/6.0.0/')
+  Model = '/home/p/peltier/aerler/'
+  NCARG = '/scinet/gpc/Applications/ncl/6.0.0/'
   NCL = '/scinet/gpc/Applications/ncl/6.0.0/bin/ncl'
   NP = 8
   
@@ -74,7 +77,7 @@ pdir = 'proc%02.0f/'
 ## Commands
 eta2p_ncl = 'eta2p.ncl'
 eta2p_log = 'eta2p.log'
-NCL_ETA2P = 'ncl ' + eta2p_ncl
+NCL_ETA2P = NCL + ' ' + eta2p_ncl
 unccsm_exe = 'unccsm.exe'
 unccsm_log = 'unccsm.log'
 UNCCSM = './' + unccsm_exe
@@ -242,8 +245,47 @@ def checkDate(current, start, end):
   else: lmaindom = False
   return lmaindom
 
-## main processing function: workload for each process
+# function to divide a list fairly evenly 
+def divideList(list, n):
+  nlist = len(list) # total number of items
+  items = nlist // n # items per sub-list
+  rem = nlist - items*n
+  # distribute list items
+  listoflists = []; ihi = 0 # initialize
+  for i in xrange(n):
+    ilo = ihi; ihi += items # next interval
+    if i < rem: ihi += 1 # these intervals get one more
+    listoflists.append(list[ilo:ihi]) # append interval to list of lists
+  # return list of sublists
+  return listoflists
+
+## parallel pre-processing function
+# N.B.: this function has some shared variables for folder names and regx'
+# function to process filenames and check dates
+def processFiles(id, filelist, queue):
+  # parse (partial) filelist for atmospheric model (CAM) output
+  files = [atmrgx.match(file) for file in filelist]
+  # list of time steps from atmospheric output
+  atmfiles = [match.group() for match in files if not match is None]
+  files = [dateregx.search(atmfile) for atmfile in atmfiles]
+  dates = [match.group() for match in files if not match is None]
+  okdates = [] # list of valid dates
+  # loop over dates
+  for datestr in dates:
+    # figure out time and date
+    date = splitDateCCSM(datestr)
+    # check date for validity
+    lok = checkDate(date, start, end)
+    # collect valid dates
+    if lok: 
+      okdates.append(datestr)
+  # return list of valid datestrs
+  queue.put(okdates)
+
+
+## primary parallel processing function: workload for each process
 # N.B.: this function has a lot of shared variable for folder and file names etc.
+# this is the actual processing pipeline
 def processTimesteps(myid, dates):
   
   # create process sub-folder
@@ -345,41 +387,7 @@ def processTimesteps(myid, dates):
   for i in maxdoms: # loop over all geogrid domains
     os.remove(geopfx%(i)+ncext)
     
-# function to divide a list fairly evenly 
-def divideList(list, n):
-  nlist = len(list) # total number of items
-  items = nlist // n # items per sub-list
-  rem = nlist - items*n
-  # distribute list items
-  listoflists = []; ihi = 0 # initialize
-  for i in xrange(n):
-    ilo = ihi; ihi += items # next interval
-    if i < rem: ihi += 1 # these intervals get one more
-    listoflists.append(list[ilo:ihi]) # append interval to list of lists
-  # return list of sublists
-  return listoflists
-
-# function to process filenames and check dates
-def processFiles(id, filelist, queue):
-  # parse (partial) filelist for atmospheric model (CAM) output
-  files = [atmrgx.match(file) for file in filelist]
-  # list of time steps from atmospheric output
-  atmfiles = [match.group() for match in files if not match is None]
-  files = [dateregx.search(atmfile) for atmfile in atmfiles]
-  dates = [match.group() for match in files if not match is None]
-  okdates = [] # list of valid dates
-  # loop over dates
-  for datestr in dates:
-    # figure out time and date
-    date = splitDateCCSM(datestr)
-    # check date for validity
-    lok = checkDate(date, start, end)
-    # collect valid dates
-    if lok: 
-      okdates.append(datestr)
-  # return list of valid datestrs
-  queue.put(okdates)
-
+    
 if __name__ == '__main__':
       
     ##  prepare environment
@@ -406,23 +414,32 @@ if __name__ == '__main__':
     if maxdom > 1:
       subdate = splitDateWRF(substart)
       
-    # create temporary storage    
-    if os.path.isdir(tmp) or os.path.islink(tmp[:-1]): # doesn't like the trailing slash
-      # clean, if already exists
-      clean(Tmp, all=True)
-      # also remove meta data
-      if os.path.isdir(tmp+meta): 
-        shutil.rmtree(tmp+meta)
-    else:
-      if Ram: 
-        # check if (personal) folder is present
-        if not os.path.isdir(Ram): 
-          os.mkdir(Ram) 
-        # use RAM for temporary storage if provided
+    # create temporary storage 
+    if Ram: 
+      # use RAM disk when possible (we don't like links here)
+      if os.path.isdir(Ram):
+        # if folder already there, clean
+        clean(Tmp, all=True)
+      else:         
+        # otherwise create folder
+        os.mkdir(Ram) 
+      # provide link to current directory for convenience (unless on SciNet)
+      if not lscinet and not (os.path.isdir(tmp) or os.path.islink(tmp[:-1])):
         os.symlink(Ram, tmp[:-1])
+      # direct temporary storage here
+      Tmp = Ram
+    else:
+      # alternatively just use file system
+      if os.path.isdir(tmp) or os.path.islink(tmp[:-1]): # doesn't like the trailing slash
+        # clean, if already exists
+        clean(Tmp, all=True)
+        # also remove meta data
+        if os.path.isdir(tmp+meta): 
+          shutil.rmtree(tmp+meta)
       else:
-        # alternatively just use file system
         os.mkdir(tmp)
+      # direct temporary storage here
+      Tmp = Root + tmp
     # create/clear destination folder
     if not (os.path.isdir(Data) or os.path.islink(Data[:-1])):
       # create destination folder if not there
@@ -432,20 +449,21 @@ if __name__ == '__main__':
       shutil.rmtree(Data)
       os.mkdir(Data)
         
-    # copy meta data to tmp folder
-    shutil.copytree(meta,tmp+meta)
-    shutil.copy(unccsm_exe, tmp)
-    shutil.copy(eta2p_ncl, tmp)
-    shutil.copy(metgrid_exe, tmp)
-    shutil.copy(namelist, tmp)
+    # copy meta data to temporary folder
+    shutil.copytree(meta,Tmp+meta)
+    shutil.copy(unccsm_exe, Tmp)
+    shutil.copy(eta2p_ncl, Tmp)
+    shutil.copy(metgrid_exe, Tmp)
+    shutil.copy(namelist, Tmp)
     for i in maxdoms: # loop over all geogrid domains
-      shutil.copy(geopfx%(i)+ncext, tmp)
+      shutil.copy(geopfx%(i)+ncext, Tmp)
     # N.B.: shutil.copy copies the actual file that is linked to, not just the link
-    #TODO: parse namelist.wps for correct path
     # change working directory to tmp folder
     os.chdir(Tmp)
-    # set environment variable for NCL (on tmp folder)    
-    os.putenv('NCL_POP_REMAP', Meta)
+    # set environment variable for NCL (on tmp folder)   
+    os.putenv('NCARG_ROOT', NCARG) 
+    os.putenv('NCL_POP_REMAP', meta) # NCL is finicky about space characters in the path statement, so relative path is saver
+    os.putenv('MODEL_ROOT', Model) # also for NCL
     
     ## multiprocessing
     
