@@ -140,7 +140,7 @@ ncerr = nf90_get_var(ncid, lvl_varid, lvls)
   DELTALAT=lats(2)-lats(1)
   DELTALON=lons(2)-lons(1)
 
-#ifdef DEBUG
+#ifdef DIAG
 write(*,*)
 write(*,*) 'Found coordinate variables and pressure levels:'
 write(*,*) 'Latitude: ', lats(1), '/', lats(NY), '/', DELTALAT
@@ -231,7 +231,7 @@ do i = 1,28
       lvl = NLVLS
       ncerr = nf90_inquire_dimension(ncid, nbvar(3), len = lvl)
       ncerr = nf90_get_var(ncid, psl_varid, datafield3d)
-#ifdef DEBUG
+#ifdef DIAG
       write(*,*) lvl, ' levels'
 #endif
     endif ndim
@@ -243,6 +243,7 @@ do i = 1,28
       ! Treat 3D fields level-wise as 2D fields
       if (nbvar(3) .ne. 0) then
       datafield2d=datafield3d(:,:,ilvl)
+      XLVL = lvls(ilvl) ! also save correct pressure level
       endif
 
       ! Begin record in intermediate file (using Fortran WRITE statments)
@@ -250,7 +251,9 @@ do i = 1,28
 
       ! WRITE the second record, common to all projections:
       write (IUNIT) HDATE, XFCST, MAP_SOURCE, FIELD, UNITS, DESC, XLVL, NX, NY, IPROJ
-!      write(*,*) HDATE//"  ", XLVL, FIELD
+#ifdef DEBUG
+      write(*,*) HDATE//"  ", XLVL, FIELD
+#endif
 
       ! WRITE the third record, which depends on the projection:
       projection: &

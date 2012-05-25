@@ -39,12 +39,12 @@ elif (hostname=='erlkoenig'):
   Ram = '/home/me/Models/Fortran Tools/test/tmp/' # tmpfs folder to be used for temporary storage
   # (leave Ram directory blank if tmpfs will be in test directory)
   Root = '/home/me/Models/Fortran Tools/test/'
-  # use this cmd to mount: sudo mount -t tmpfs -o size=100m tmpfs /home/me/Models/Fortran\ Tools/test/tmp/
+  # use this cmd to mount: sudo mount -t tmpfs -o size=200m tmpfs /home/me/Models/Fortran\ Tools/test/tmp/
   # followed by: sudo chown me /home/me/Models/Fortran\ Tools/test/tmp/
   # and this to unmount: sudo umount /home/me/Models/Fortran\ Tools/test/tmp/
   os.putenv('NCARG_ROOT', '/usr/local/ncarg/')
   NCL = '/usr/local/ncarg/bin/ncl'
-  NP = 2
+  NP = 1
 elif ('gpc' in hostname):
   # SciNet
   lscinet = True
@@ -315,7 +315,7 @@ def processTimesteps(myid, dates):
       
       ## run WPS' metgrid_exe.exe on intermediate file
       # rename intermediate file according to WPS convention (by date)
-      imdate = imform%(year,month,day,hour)
+      imdate = imform%date
       imfile = impfx+imdate
       os.rename(preimfile, imfile) # not the same as 'move'
       # update date string in namelist.wps
@@ -471,7 +471,6 @@ if __name__ == '__main__':
     rem = nd - dpp*NP # remainder dates
     # create processes
     procs = []; ilo = 0; ihi = 0
-    NP = 0
     for id in xrange(NP):
       ilo = ihi # step up to next slice
       if id < rem: ihi = ihi + dpp + 1 # these processes do one more
