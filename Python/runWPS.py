@@ -36,15 +36,15 @@ if (hostname=='komputer'):
 elif (hostname=='erlkoenig'):
   # my laptop
   lscinet = False
-  Ram = '/home/me/Models/Fortran Tools/test/' # tmpfs folder to be used for temporary storage
+  Ram = '/home/me/Models/Fortran Tools/test/tmp/' # tmpfs folder to be used for temporary storage
   # (leave Ram directory blank if tmpfs will be in test directory)
   Root = '/home/me/Models/Fortran Tools/test/'
   # use this cmd to mount: sudo mount -t tmpfs -o size=100m tmpfs /home/me/Models/Fortran\ Tools/test/tmp/
   # followed by: sudo chown me /home/me/Models/Fortran\ Tools/test/tmp/
-  # and this to unmount:   sudo umount /home/me/Models/Fortran\ Tools/test/tmp/
+  # and this to unmount: sudo umount /home/me/Models/Fortran\ Tools/test/tmp/
   os.putenv('NCARG_ROOT', '/usr/local/ncarg/')
   NCL = '/usr/local/ncarg/bin/ncl'
-  NP = 1
+  NP = 2
 elif ('gpc' in hostname):
   # SciNet
   lscinet = True
@@ -200,7 +200,7 @@ def splitDateCCSM(datestr, zero=2000):
   else: year = int(year)
   month = int(month); day = int(day)
   hour = int(second)/3600 
-  return year, month, day, hour
+  return (year, month, day, hour)
 
 # unpack date string from WRF
 def splitDateWRF(datestr, zero=2000):
@@ -210,10 +210,14 @@ def splitDateWRF(datestr, zero=2000):
   month = int(month)
   day, hour = day_hour.split('_')
   day = int(day); hour = int(hour[:3]) 
-  return year, month, day, hour  
+  return (year, month, day, hour)  
 
 # check if date is within range
-def checkDate(year,month,day,hour, startyear,startmonth,startday,starthour, endyear,endmonth,endday,endhour):
+def checkDate(current, start, end):
+  # unpack and initialize
+  year, month, day, hour = current
+  startyear, startmonth, startday, starthour = start
+  endyear, endmonth, endday, endhour = end
   lstart = False; lend = False
   # check lower bound
   lstart = False
@@ -264,17 +268,17 @@ def processTimesteps(myid, dates):
   
   ## loop over (atmospheric) time steps
   print('\nLooping over Time-steps:')
-  for date in dates:
+  for datestr in dates:
     
     # figure out time and date
-    year, month, day, hour = splitDateCCSM(date)
+    date = splitDateCCSM(datestr)
     # reset switches
-    lmaindom = checkDate(year,month,day,hour, startyear,startmonth,startday,starthour, endyear,endmonth,endday,endhour)
+    lmaindom = checkDate(date, start, end)
     # handle sub-domains
     lsubdoms = False; doms = onedom  
     if maxdom > 1:
       # only generate data for sub-domains at the initial date/time-step
-      if subyear==year and submonth==month and subday==day and subhour==hour:
+      if subdate == date:
         lsubdoms = True
         doms = maxdoms
 
@@ -283,13 +287,13 @@ def processTimesteps(myid, dates):
       
       # prepare processing 
       # create links to relevant source data (requires full path for linked files)
-      atmfile = atmpfx+date+ncext
+      atmfile = atmpfx+datestr+ncext
       os.symlink(AtmDir+atmfile,atmlnk)
-      lndfile = lndpfx+date+ncext
+      lndfile = lndpfx+datestr+ncext
       os.symlink(LndDir+lndfile,lndlnk)
-      icefile = icepfx+date+ncext
+      icefile = icepfx+datestr+ncext
       os.symlink(IceDir+icefile,icelnk)
-      print('\n '+mytag+' Processing time-step:  '+date+'\n    '+atmfile+'\n    '+lndfile+'\n    '+icefile)
+      print('\n '+mytag+' Processing time-step:  '+datestr+'\n    '+atmfile+'\n    '+lndfile+'\n    '+icefile)
       
       ##  convert data to intermediate files
       # run NCL script (suppressing output)
@@ -340,6 +344,41 @@ def processTimesteps(myid, dates):
   os.remove(metgrid_exe)
   for i in maxdoms: # loop over all geogrid domains
     os.remove(geopfx%(i)+ncext)
+    
+# function to divide a list fairly evenly 
+def divideList(list, n):
+  nlist = len(list) # total number of items
+  items = nlist // n # items per sub-list
+  rem = nlist - items*n
+  # distribute list items
+  listoflists = []; ihi = 0 # initialize
+  for i in xrange(n):
+    ilo = ihi; ihi += items # next interval
+    if i < rem: ihi += 1 # these intervals get one more
+    listoflists.append(list[ilo:ihi]) # append interval to list of lists
+  # return list of sublists
+  return listoflists
+
+# function to process filenames and check dates
+def processFiles(id, filelist, queue):
+  # parse (partial) filelist for atmospheric model (CAM) output
+  files = [atmrgx.match(file) for file in filelist]
+  # list of time steps from atmospheric output
+  atmfiles = [match.group() for match in files if not match is None]
+  files = [dateregx.search(atmfile) for atmfile in atmfiles]
+  dates = [match.group() for match in files if not match is None]
+  okdates = [] # list of valid dates
+  # loop over dates
+  for datestr in dates:
+    # figure out time and date
+    date = splitDateCCSM(datestr)
+    # check date for validity
+    lok = checkDate(date, start, end)
+    # collect valid dates
+    if lok: 
+      okdates.append(datestr)
+  # return list of valid datestrs
+  queue.put(okdates)
 
 if __name__ == '__main__':
       
@@ -359,13 +398,13 @@ if __name__ == '__main__':
     # parse namelist parameters
     imd, maxdom, isd, startdate, substart, ied, enddate = readNamelist()
     # figure out main domain
-    startyear, startmonth, startday, starthour = splitDateWRF(startdate)
-    endyear, endmonth, endday, endhour = splitDateWRF(enddate)
+    start = splitDateWRF(startdate)
+    end = splitDateWRF(enddate)
     onedom = [1]
     # figure out sub-domains
     maxdoms = range(1,maxdom+1) # domain list
     if maxdom > 1:
-      subyear, submonth, subday, subhour = splitDateWRF(substart)
+      subdate = splitDateWRF(substart)
       
     # create temporary storage    
     if os.path.isdir(tmp) or os.path.islink(tmp[:-1]): # doesn't like the trailing slash
@@ -408,19 +447,31 @@ if __name__ == '__main__':
     # set environment variable for NCL (on tmp folder)    
     os.putenv('NCL_POP_REMAP', Meta)
     
-    files = [atmrgx.match(atmfile) for atmfile in os.listdir(AtmDir)]
-    # list of time steps from atmospheric output
-    atmfiles = [match.group() for match in files if not match is None]
-    files = [dateregx.search(atmfile) for atmfile in atmfiles]
-    dates = [match.group() for match in files if not match is None]
-    
     ## multiprocessing
-    # divide domain
+    
+    # search for files and check dates for validity
+    listoffilelists = divideList(os.listdir(AtmDir), NP)
+    dates = [] # make new date list with valid dates only
+    # divide file processing among processes
+    procs = []; queues = []
+    for id in xrange(NP):
+      q = multiprocessing.Queue()
+      queues.append(q)
+      p = multiprocessing.Process(name=pname%id, target=processFiles, args=(id, listoffilelists[id], q))
+      procs.append(p)
+      p.start() 
+    # terminate sub-processes
+    for id in xrange(NP):
+      dates += queues[id].get()
+      procs[id].join()
+    
+    # divide up dates and process time-steps
     nd = len(dates) # number of dates
     dpp = nd/NP # dates per process 
     rem = nd - dpp*NP # remainder dates
     # create processes
     procs = []; ilo = 0; ihi = 0
+    NP = 0
     for id in xrange(NP):
       ilo = ihi # step up to next slice
       if id < rem: ihi = ihi + dpp + 1 # these processes do one more
@@ -428,11 +479,11 @@ if __name__ == '__main__':
       mydates = dates[ilo:ihi]
       p = multiprocessing.Process(name=pname%id, target=processTimesteps, args=(id, mydates))
       procs.append(p)
-      p.start()
-     
+      p.start()     
     # terminate sub-processes
     for p in procs:
       p.join()
+      
     # clean up files
     os.chdir(Tmp)
     os.remove(eta2p_ncl)
