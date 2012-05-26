@@ -69,11 +69,17 @@ imform = '%04.0f-%02.0f-%02.0f_%02.0f'
 metpfx = 'met_em.d%02.0f.'
 metsfx = ':00:00.nc'
 geopfx = 'geo_em.d%02.0f'
-data = 'data/' # destination folder
 # parallelization
 # number of processes NP is set above (machine specific)
 pname = 'proc%02.0f'
 pdir = 'proc%02.0f/'  
+# destination folder(s)
+ramlnk = 'ram' # automatically generated link to ramdisk (if applicable)
+data = 'data/' # data folder in ram
+ldata = True # whether or not to keep data in memory  
+disk = 'data/' # destination folder on hard disk
+Disk = '' # default: Root + disk
+ldisk = True # whether or not to store data on hard disk
 ## Commands
 eta2p_ncl = 'eta2p.ncl'
 eta2p_log = 'eta2p.log'
@@ -120,7 +126,6 @@ def clean(folder, filelist=None, all=False):
     if os.path.exists(folder+lndlnk): os.remove(folder+lndlnk)
     if os.path.exists(folder+icelnk): os.remove(folder+icelnk)
     if os.path.exists(folder+nclfile): os.remove(folder+nclfile)
-#    if os.path.exists(folder+imfile): os.remove(folder+imfile)
     # remove other stuff
     if filelist is not None:
       for file in filelist:
@@ -367,12 +372,17 @@ def processTimesteps(myid, dates):
       subprocess.call([METGRID], stdout=open(os.devnull, 'w')) # metgrid.exe writes a fairly detailed log file
       
       ## finish time-step
-      # copy/move data back to disk (one per domain)
+      # copy/move data back to disk (one per domain) and/or keep in memory
       tmpstr = '\n '+mytag+' Writing output to disk: ' # gather output for later display
       for i in doms:
         metfile = metpfx%(i)+imdate+metsfx
         tmpstr += '\n                           '+metfile
-        shutil.move(metfile,Data+metfile)      
+        if ldisk: 
+          shutil.copy(metfile,Disk+metfile)
+        if ldata:
+          shutil.move(metfile,Data+metfile)      
+        else:
+          os.remove(metfile)
       tmpstr += '\n\n   ============================== finished '+imdate+' ==============================   \n'
       print(tmpstr)
       # clean up (also renamed intermediate file)
@@ -391,15 +401,45 @@ def processTimesteps(myid, dates):
 if __name__ == '__main__':
       
     ##  prepare environment
+    # figure out root folder
     if Root:
-      Root = Root + gcm + '/'
-      os.chdir(Root)
+      Root = Root + gcm + '/' # assume GCM name as subdirectory
+      os.chdir(Root) # change to Root directory
     else:
-      Root = os.getcwd() + '/'    
+      Root = os.getcwd() + '/' # use current directory
+    # direct temporary storage
+    if Ram:       
+      Tmp = Ram + tmp # direct temporary storage to ram disk
+      if ldata: Data = Ram + data # temporary data storage (in memory)
+      # provide link to ram disk directory for convenience (unless on SciNet)      
+      if not lscinet and not (os.path.isdir(ramlnk) or os.path.islink(ramlnk[:-1])):
+        os.symlink(Ram, ramlnk)
+    else:      
+      Tmp = Root + tmp # use local directory
+      if ldata: Data = Root + data # temporary data storage (just moves here, no copy)      
+    # create temporary storage  (file system or ram disk alike)
+    if os.path.isdir(Tmp):        
+      clean(Tmp, all=True) # if folder already there, clean
+    else:                 
+      os.mkdir(Tmp) # otherwise create folder 
+    # create temporary data collection folder
+    if ldata:
+      if os.path.isdir(Data) or os.path.islink(Data[:-1]):
+        # remove directory if already there
+        shutil.rmtree(Data)
+      os.mkdir(Data) # create data folder in temporary storage
+    # create/clear destination folder
+    if ldisk:
+      if not Disk: 
+        Disk = Root + disk
+      if os.path.isdir(Disk) or os.path.islink(Disk[:-1]):
+        # remove directory if already there
+        shutil.rmtree(Disk)
+      # create new destination folder
+      os.mkdir(Disk)
+      
     # directory shortcuts
-    Tmp = Root + tmp
     Meta = Tmp + meta
-    Data = Root + data
     AtmDir = Root + atmdir
     LndDir = Root + lnddir
     IceDir = Root + icedir
@@ -413,41 +453,6 @@ if __name__ == '__main__':
     maxdoms = range(1,maxdom+1) # domain list
     if maxdom > 1:
       subdate = splitDateWRF(substart)
-      
-    # create temporary storage 
-    if Ram: 
-      # use RAM disk when possible (we don't like links here)
-      if os.path.isdir(Ram):
-        # if folder already there, clean
-        clean(Tmp, all=True)
-      else:         
-        # otherwise create folder
-        os.mkdir(Ram) 
-      # provide link to current directory for convenience (unless on SciNet)
-      if not lscinet and not (os.path.isdir(tmp) or os.path.islink(tmp[:-1])):
-        os.symlink(Ram, tmp[:-1])
-      # direct temporary storage here
-      Tmp = Ram
-    else:
-      # alternatively just use file system
-      if os.path.isdir(tmp) or os.path.islink(tmp[:-1]): # doesn't like the trailing slash
-        # clean, if already exists
-        clean(Tmp, all=True)
-        # also remove meta data
-        if os.path.isdir(tmp+meta): 
-          shutil.rmtree(tmp+meta)
-      else:
-        os.mkdir(tmp)
-      # direct temporary storage here
-      Tmp = Root + tmp
-    # create/clear destination folder
-    if not (os.path.isdir(Data) or os.path.islink(Data[:-1])):
-      # create destination folder if not there
-      os.mkdir(Data)
-    else:
-      # remove directory if already there
-      shutil.rmtree(Data)
-      os.mkdir(Data)
         
     # copy meta data to temporary folder
     shutil.copytree(meta,Tmp+meta)
@@ -463,7 +468,7 @@ if __name__ == '__main__':
     # set environment variable for NCL (on tmp folder)   
     os.putenv('NCARG_ROOT', NCARG) 
     os.putenv('NCL_POP_REMAP', meta) # NCL is finicky about space characters in the path statement, so relative path is saver
-    os.putenv('MODEL_ROOT', Model) # also for NCL
+    os.putenv('MODEL_ROOT', Model) # also for NCL (where personal function libs are)
     
     ## multiprocessing
     
