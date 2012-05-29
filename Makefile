@@ -49,10 +49,10 @@ all:
 unccsm: unccsm.exe
 
 unccsm.exe: bin/nc2im.o
-	$(FC) -convert big_endian $(FCFLAGS) -o bin/$@ $^ $(NC_LIB)
+	$(FC) $(FCFLAGS) -o bin/$@ $^ $(NC_LIB)
 	
 bin/nc2im.o: src/nc2im.f90
-	$(FC) -convert big_endian $(FCFLAGS) $(NC_INC) -c $^
+	$(FC) $(FCFLAGS) $(NC_INC) -c $^
 	mv nc2im.o bin/
 
 ## build convert_spectra to convert spherical harmonic coefficients from ECMWF

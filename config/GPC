@@ -6,7 +6,7 @@
 # Description : P7 (SciNet) Configuration for Fortran Tools Makefile
 # ============================================================================
 
-FC = ifort -fpp # -\#
+FC = ifort -fpp -convert big_endian # respect Fortran comments for pre-processing
 DBGFLAGS = -g -traceback -debug all # don't debug with optimization flags!
 OPTFLAGS = -O3 -xHost -no-prec-div
 OMPFLAGS = -openmp # -parallel -par-threshold50 -par-report3
