@@ -30,6 +30,10 @@ endif
 ifeq ($(SYSTEM), GPC)
 include config/GPC # Intel Compiler
 endif
+# P7, SciNet
+ifeq ($(SYSTEM), P7)
+include config/P7 # IBM Linux Compiler
+endif
 
 ## Assemble Flags
 ifeq ($(MODE), Debug)

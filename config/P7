@@ -1,15 +1,15 @@
 # ============================================================================
-# Name        : P7
+# Name        : GPC
 # Author      : Andre R. Erler
 # Version     : 1
 # Copyright   : GPL v3
-# Description : P7 (SciNet) Configuration for Fortran Tools Makefile
+# Description : GPC (SciNet) Configuration for Fortran Tools Makefile
 # ============================================================================
 
-FC = ifort -fpp # -\#
-DBGFLAGS = -g -traceback -debug all # don't debug with optimization flags!
-OPTFLAGS = -O3 -xHost -no-prec-div
-OMPFLAGS = -openmp # -parallel -par-threshold50 -par-report3
+FC = xlf90_r -qfpp # respect Fortran comments for pre-processing
+DBGFLAGS = -qnoopt # don't debug with optimization flags!
+OPTFLAGS = -q64 -O4 -qarch=pwr7 -qtune=pwr7 # -qnohot -qsimd=auto -qaltivec 
+OMPFLAGS = -qsmp=noauto # -qsmp=omp
 NC_INC = -I$(SCINET_NETCDF_INC)
 # N.B.: The first line is sufficient for linking to the serial NetCDF library,
 # the rest is required for linking to the parallel NetCDF library used in WPS.
