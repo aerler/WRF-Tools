@@ -6,14 +6,19 @@
 # Description : GPC (SciNet) Configuration for Fortran Tools Makefile
 # ============================================================================
 
-FC = xlf90_r -qfpp # respect Fortran comments for pre-processing
+FC = mpfort -compiler xlf90_r -WF,-qfpp -qsuffix=cpp=f90 # for proper CPP pre-processing
 DBGFLAGS = -qnoopt # don't debug with optimization flags!
 OPTFLAGS = -q64 -O4 -qarch=pwr7 -qtune=pwr7 # -qnohot -qsimd=auto -qaltivec 
 OMPFLAGS = -qsmp=noauto # -qsmp=omp
 NC_INC = -I$(SCINET_NETCDF_INC)
 # N.B.: The first line is sufficient for linking to the serial NetCDF library,
 # the rest is required for linking to the parallel NetCDF library used in WPS.
-NC_LIB = -L$(SCINET_NETCDF_LIB) -lnetcdff -lnetcdf \
-         -L$(SCINET_HDF5_LIB) -L$(SCINET_SZIP_LIB) -L$(SCINET_ZLIB_LIB) -L$(SCINET_MPI_LIB) \
-         -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lm -lz -lsz -lgpfs -lmpi
+NC_LIB = -L/opt/ibmcmp/xlmass/6.1/lib64 -lmass_64 -lmassvp7_64 \
+         -L$(WRF_SRC_ROOT_DIR)/external/io_netcdf -L$(SCINET_NETCDF_LIB) -lnetcdff -lnetcdf \
+         -L$(SCINET_HDF5_LIB) -L$(SCINET_SZIP_LIB) -L$(SCINET_ZLIB_LIB) \
+         -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lm -lz -lsz -lgpfs \
+         -L/usr/lib64 -lcurl -lidn
+#NC_LIB = -L$(SCINET_NETCDF_LIB) -lnetcdff -lnetcdf \
+#         -L$(SCINET_HDF5_LIB) -L$(SCINET_SZIP_LIB) -L$(SCINET_ZLIB_LIB) -L$(SCINET_MPI_LIB) \
+#         -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lm -lz -lsz -lgpfs -lmpi
 # all this is only necessary for the parallel version

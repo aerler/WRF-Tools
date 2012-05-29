@@ -67,7 +67,7 @@ bin/gribSpectra.o: src/gribSpectra.f90
 	mv gribSpectra.o bin/ 
 
 clean:
-	rm -f bin/* *.mod *.o *.so 
+	rm -f bin/*.exe *.mod *.o *.so 
 	
 ### F2Py Flags (for reference)
 #F2PYCC = intelem

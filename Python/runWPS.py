@@ -56,6 +56,15 @@ elif ('gpc' in hostname):
   NCARG = '/scinet/gpc/Applications/ncl/6.0.0/'
   NCL = '/scinet/gpc/Applications/ncl/6.0.0/bin/ncl'
   NP = 8
+elif ('p7' in hostname):
+  # SciNet
+  lscinet = True
+  Ram = '/dev/shm/aerler/' # ramdisk/tmpfs folder to be used for temporary storage
+  Root = '' # use current directory
+  Model = '/home/p/peltier/aerler/'
+  NCARG = ''
+  NCL = ''
+  NP = 32
   
 ##  Settings
 gcm = 'CESM'
@@ -314,7 +323,9 @@ def processTimesteps(myid, dates):
     os.symlink(Tmp+geoname, geoname)
   
   ## loop over (atmospheric) time steps
-  print('\nLooping over Time-steps:')
+  if dates: print('\n '+mytag+' Looping over Time-steps:')
+  else: print('\n '+mytag+' Nothing to do!')
+
   for datestr in dates:
     
     # figure out time and date
