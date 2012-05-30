@@ -55,7 +55,7 @@ elif ('gpc' in hostname):
   Model = '/home/p/peltier/aerler/'
   NCARG = '/scinet/gpc/Applications/ncl/6.0.0/'
   NCL = '/scinet/gpc/Applications/ncl/6.0.0/bin/ncl'
-  NP = 8
+  NP = 16 # either hyperthreading or largemem nodes
 elif ('p7' in hostname):
   # SciNet
   lscinet = True
@@ -485,7 +485,6 @@ if __name__ == '__main__':
     
     # search for files and check dates for validity
     listoffilelists = divideList(os.listdir(AtmDir), NP)
-    dates = [] # make new date list with valid dates only
     # divide file processing among processes
     procs = []; queues = []
     for id in xrange(NP):
@@ -494,23 +493,18 @@ if __name__ == '__main__':
       p = multiprocessing.Process(name=pname%id, target=processFiles, args=(id, listoffilelists[id], q))
       procs.append(p)
       p.start() 
-    # terminate sub-processes
+    # terminate sub-processes and collect results    
+    dates = [] # new date list with valid dates only
     for id in xrange(NP):
       dates += queues[id].get()
       procs[id].join()
     
     # divide up dates and process time-steps
-    nd = len(dates) # number of dates
-    dpp = nd/NP # dates per process 
-    rem = nd - dpp*NP # remainder dates
+    listofdates = divideList(dates, NP)    
     # create processes
     procs = []; ilo = 0; ihi = 0
     for id in xrange(NP):
-      ilo = ihi # step up to next slice
-      if id < rem: ihi = ihi + dpp + 1 # these processes do one more
-      else: ihi = ihi + dpp # these processes get off with less work
-      mydates = dates[ilo:ihi]
-      p = multiprocessing.Process(name=pname%id, target=processTimesteps, args=(id, mydates))
+      p = multiprocessing.Process(name=pname%id, target=processTimesteps, args=(id, listofdates[id]))
       procs.append(p)
       p.start()     
     # terminate sub-processes
