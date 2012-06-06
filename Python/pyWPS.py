@@ -159,10 +159,9 @@ def readNamelist():
   imd = 0 # line index of maxdom
   maxdom = 0 # max number of domains
   isd = 0 # line index of start_date parameter
-  startdate = '' # start date of main domain
-  substart = '' # start date of sub-domains 
+  #startdates = [] # list of start dates for each domain 
   ied = 0 # line index of end_date parameter
-  enddate = '' # start date of main domain
+  #enddates = [] # list of end dates for each domain
   # open namelist file for reading 
   file = fileinput.FileInput([namelist], mode='r')
   # loop over entries/lines
@@ -175,30 +174,34 @@ def readNamelist():
       isd = file.filelineno()
       # extract start time of main and sub-domains
       dates = extractValueList(line)
-      startdate = dates[0][1:14] # strip quotes and cut off after hours
-      if maxdom > 1: substart = dates[1][1:14] 
+      startdates = [date[1:14] for date in dates] # strip quotes and cut off after hours 
     elif ied==0 and 'end_date' in line:
       ied = file.filelineno()
       # extract end time of main domain (sub-domains irrelevant)
       dates = extractValueList(line)
-      enddate = dates[0][1:14] # strip quotes and cut off after hours
+      enddates = [date[1:14] for date in dates] # strip quotes and cut off after hours
     if imd>0 and isd>0 and ied>0:
       break # exit as soon as all are found
+  # trim date lists to number of domains and cast into tuples
+  # N.B.: do after loop, so that order doesn't matter
+  startdates = tuple(startdates[:maxdom])
+  enddates = tuple(enddates[:maxdom])
   # return values
-  return imd, maxdom, isd, startdate, substart, ied, enddate
+  return imd, maxdom, isd, startdates, ied, enddates
         
 # write new namelist file
-def writeNamelist(imdate, doms):
+def writeNamelist(imdate, ldoms):
   # assemble date string (':00:00' not necessary for hourly output)
-  datestr = ''; imdate = "'"+imdate + "',"  # mind the single quotes! 
-  for i in doms:
-    datestr = datestr + imdate
+  datestr = ''; imdate = "'"+imdate + "',"  # mind the single quotes!
+  ndoms = len(ldoms) # (effective) number of domains for this time step
+  while not ldoms[ndoms-1]: ndoms -= 1 # cut of unused domains at the end
+  datestr = datestr + imdate*ndoms
   # read file and loop over lines
   file = fileinput.FileInput([namelist], inplace=True)
   for line in file:
     if file.filelineno()==imd:
       # write maximum number of domains
-      print(' max_dom = %2.0f,'%len(doms))
+      print(' max_dom = %2.0f,'%ndoms)
     elif file.filelineno()==isd:
       # write new start date
       print(' start_date = '+datestr)
@@ -288,8 +291,8 @@ def processFiles(id, filelist, queue):
   for datestr in dates:
     # figure out time and date
     date = splitDateCCSM(datestr)
-    # check date for validity
-    lok = checkDate(date, start, end)
+    # check date for validity (only need to check first/master domain)
+    lok = checkDate(date, starts[0], ends[0])
     # collect valid dates
     if lok: 
       okdates.append(datestr)
@@ -318,7 +321,7 @@ def processTimesteps(myid, dates):
   os.symlink(Tmp+unccsm_exe, unccsm_exe)
   os.symlink(Tmp+eta2p_ncl, eta2p_ncl)
   os.symlink(Tmp+metgrid_exe, metgrid_exe)
-  for i in maxdoms: # loop over all geogrid domains
+  for i in doms: # loop over all geogrid domains
     geoname = geopfx%(i)+ncext
     os.symlink(Tmp+geoname, geoname)
   
@@ -328,65 +331,58 @@ def processTimesteps(myid, dates):
 
   for datestr in dates:
     
-    # figure out time and date
+    # convert time and date
     date = splitDateCCSM(datestr)
-    # reset switches
-    lmaindom = checkDate(date, start, end)
-    # handle sub-domains
-    lsubdoms = False; doms = onedom  
-    if maxdom > 1:
-      # only generate data for sub-domains at the initial date/time-step
-      if subdate == date:
-        lsubdoms = True
-        doms = maxdoms
-
-    # run processing if any domains are to be computed          
-    if lmaindom or lsubdoms:
+    # figure out sub-domains
+    ldoms = [True,]*maxdom # first domain is always computed
+    for i in xrange(1,maxdom): # check sub-domains
+      ldoms[i] = checkDate(date, starts[i], ends[i])
       
-      # prepare processing 
-      # create links to relevant source data (requires full path for linked files)
-      atmfile = atmpfx+datestr+ncext
-      os.symlink(AtmDir+atmfile,atmlnk)
-      lndfile = lndpfx+datestr+ncext
-      os.symlink(LndDir+lndfile,lndlnk)
-      icefile = icepfx+datestr+ncext
-      os.symlink(IceDir+icefile,icelnk)
-      print('\n '+mytag+' Processing time-step:  '+datestr+'\n    '+atmfile+'\n    '+lndfile+'\n    '+icefile)
-      
-      ##  convert data to intermediate files
-      # run NCL script (suppressing output)
-      print('\n  * '+mytag+' interpolating to pressure levels (eta2p.ncl)')
-      if lscinet:
-        # On SciNet we have to pass this command through the shell, so that the NCL module is loaded.
-        subprocess.call(NCL_ETA2P, shell=True, stdout=open(eta2p_log, 'w'))
-      else:
-        # otherwise we don't need the shell and it's a security risk
-        subprocess.call([NCL,eta2p_ncl], stdout=open(eta2p_log, 'w'))        
-      # run unccsm_exe.exe
-      print('\n  * '+mytag+' writing to WRF IM format (unccsm.exe)')
-      subprocess.call([UNCCSM], stdout=open(unccsm_log, 'w'))   
-      # N.B.: in case the stack size limit causes segmentation faults, here are some workarounds
-      # subprocess.call(r'ulimit -s unlimited; ./unccsm_exe.exe', shell=True)
-      # import resource
-      # subprocess.call(['./unccsm_exe.exe'], preexec_fn=resource.setrlimit(resource.RLIMIT_STACK,(-1,-1)))
-      # print resource.getrlimit(resource.RLIMIT_STACK)
-      
-      ## run WPS' metgrid_exe.exe on intermediate file
-      # rename intermediate file according to WPS convention (by date)
-      imdate = imform%date
-      imfile = impfx+imdate
-      os.rename(preimfile, imfile) # not the same as 'move'
-      # update date string in namelist.wps
-      writeNamelist(imdate, doms)
-      # run metgrid_exe.exe
-      print('\n  * '+mytag+' interpolating to WRF grid (metgrid.exe)')
-      subprocess.call([METGRID], stdout=open(os.devnull, 'w')) # metgrid.exe writes a fairly detailed log file
-      
-      ## finish time-step
-      # copy/move data back to disk (one per domain) and/or keep in memory
-      tmpstr = '\n '+mytag+' Writing output to disk: ' # gather output for later display
-      for i in doms:
-        metfile = metpfx%(i)+imdate+metsfx
+    # prepare processing 
+    # create links to relevant source data (requires full path for linked files)
+    atmfile = atmpfx+datestr+ncext
+    os.symlink(AtmDir+atmfile,atmlnk)
+    lndfile = lndpfx+datestr+ncext
+    os.symlink(LndDir+lndfile,lndlnk)
+    icefile = icepfx+datestr+ncext
+    os.symlink(IceDir+icefile,icelnk)
+    print('\n '+mytag+' Processing time-step:  '+datestr+'\n    '+atmfile+'\n    '+lndfile+'\n    '+icefile)
+    
+    ##  convert data to intermediate files
+    # run NCL script (suppressing output)
+    print('\n  * '+mytag+' interpolating to pressure levels (eta2p.ncl)')
+    if lscinet:
+      # On SciNet we have to pass this command through the shell, so that the NCL module is loaded.
+      subprocess.call(NCL_ETA2P, shell=True, stdout=open(eta2p_log, 'w'))
+    else:
+      # otherwise we don't need the shell and it's a security risk
+      subprocess.call([NCL,eta2p_ncl], stdout=open(eta2p_log, 'w'))        
+    # run unccsm.exe
+    print('\n  * '+mytag+' writing to WRF IM format (unccsm.exe)')
+    subprocess.call([UNCCSM], stdout=open(unccsm_log, 'w'))   
+    # N.B.: in case the stack size limit causes segmentation faults, here are some workarounds
+    # subprocess.call(r'ulimit -s unlimited; ./unccsm.exe', shell=True)
+    # import resource
+    # subprocess.call(['./unccsm.exe'], preexec_fn=resource.setrlimit(resource.RLIMIT_STACK,(-1,-1)))
+    # print resource.getrlimit(resource.RLIMIT_STACK)
+    
+    ## run WPS' metgrid.exe on intermediate file
+    # rename intermediate file according to WPS convention (by date)
+    imdate = imform%date
+    imfile = impfx+imdate
+    os.rename(preimfile, imfile) # not the same as 'move'
+    # update date string in namelist.wps
+    writeNamelist(imdate, ldoms)
+    # run metgrid_exe.exe
+    print('\n  * '+mytag+' interpolating to WRF grid (metgrid.exe)')
+    subprocess.call([METGRID], stdout=open(os.devnull, 'w')) # metgrid.exe writes a fairly detailed log file
+    
+    ## finish time-step
+    # copy/move data back to disk (one per domain) and/or keep in memory
+    tmpstr = '\n '+mytag+' Writing output to disk: ' # gather output for later display
+    for i in xrange(maxdom):
+      metfile = metpfx%(i+1)+imdate+metsfx
+      if ldoms[i]:
         tmpstr += '\n                           '+metfile
         if ldisk: 
           shutil.copy(metfile,Disk+metfile)
@@ -394,10 +390,14 @@ def processTimesteps(myid, dates):
           shutil.move(metfile,Data+metfile)      
         else:
           os.remove(metfile)
-      tmpstr += '\n\n   ============================== finished '+imdate+' ==============================   \n'
-      print(tmpstr)
-      # clean up (also renamed intermediate file)
-      clean(MyDir, filelist=[imfile])
+      else:
+        if os.path.exists(metfile): 
+          os.remove(metfile) # metgrid.exe may create more files than needed
+    # finish time-step
+    tmpstr += '\n\n   ============================== finished '+imdate+' ==============================   \n'
+    print(tmpstr)
+    # clean up (also renamed intermediate file)
+    clean(MyDir, filelist=[imfile])
       
   ## clean up after all time-steps
   # link other source files
@@ -405,7 +405,7 @@ def processTimesteps(myid, dates):
   os.remove(unccsm_exe)
   os.remove(eta2p_ncl)
   os.remove(metgrid_exe)
-  for i in maxdoms: # loop over all geogrid domains
+  for i in doms: # loop over all geogrid domains
     os.remove(geopfx%(i)+ncext)
     
     
@@ -455,15 +455,11 @@ if __name__ == '__main__':
     LndDir = Root + lnddir
     IceDir = Root + icedir
     # parse namelist parameters
-    imd, maxdom, isd, startdate, substart, ied, enddate = readNamelist()
-    # figure out main domain
-    start = splitDateWRF(startdate)
-    end = splitDateWRF(enddate)
-    onedom = [1]
-    # figure out sub-domains
-    maxdoms = range(1,maxdom+1) # domain list
-    if maxdom > 1:
-      subdate = splitDateWRF(substart)
+    imd, maxdom, isd, startdates, ied, enddates = readNamelist()
+    # figure out domains
+    starts = [splitDateWRF(sd) for sd in startdates]
+    ends = [splitDateWRF(ed) for ed in enddates]
+    doms = range(1,maxdom+1) # list of domain indices
         
     # copy meta data to temporary folder
     shutil.copytree(meta,Tmp+meta)
@@ -471,7 +467,7 @@ if __name__ == '__main__':
     shutil.copy(eta2p_ncl, Tmp)
     shutil.copy(metgrid_exe, Tmp)
     shutil.copy(namelist, Tmp)
-    for i in maxdoms: # loop over all geogrid domains
+    for i in doms: # loop over all geogrid domains
       shutil.copy(geopfx%(i)+ncext, Tmp)
     # N.B.: shutil.copy copies the actual file that is linked to, not just the link
     # change working directory to tmp folder
