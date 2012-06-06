@@ -79,7 +79,9 @@ metpfx = 'met_em.d%02.0f.'
 metsfx = ':00:00.nc'
 geopfx = 'geo_em.d%02.0f'
 # parallelization
-# number of processes NP is set above (machine specific)
+# number of processes NP 
+if os.environ.has_key('PYWPS_THREADS'):
+  NP = os.environ['PYWPS_THREADS'] # default is set above (machine specific)
 pname = 'proc%02.0f'
 pdir = 'proc%02.0f/'  
 # destination folder(s)
