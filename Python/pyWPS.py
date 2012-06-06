@@ -99,7 +99,7 @@ unccsm_exe = 'unccsm.exe'
 unccsm_log = 'unccsm.log'
 UNCCSM = './' + unccsm_exe
 metgrid_exe = 'metgrid.exe'
-metgrid_log = 'metgrid.log'
+metgrid_log = 'metgrid.err'
 METGRID = './' + metgrid_exe
 namelist = 'namelist.wps'
 ##  data sources
@@ -353,15 +353,19 @@ def processTimesteps(myid, dates):
     ##  convert data to intermediate files
     # run NCL script (suppressing output)
     print('\n  * '+mytag+' interpolating to pressure levels (eta2p.ncl)')
+    fncl = open(eta2p_log, 'a') # NCL output and error log
     if lscinet:
       # On SciNet we have to pass this command through the shell, so that the NCL module is loaded.
-      subprocess.call(NCL_ETA2P, shell=True, stdout=open(eta2p_log, 'w'))
+      subprocess.call(NCL_ETA2P, shell=True, stdout=fncl, stderr=fncl)
     else:
       # otherwise we don't need the shell and it's a security risk
-      subprocess.call([NCL,eta2p_ncl], stdout=open(eta2p_log, 'w'))        
+      subprocess.call([NCL,eta2p_ncl], stdout=fncl, stderr=fncl)  
+    fncl.close()      
     # run unccsm.exe
     print('\n  * '+mytag+' writing to WRF IM format (unccsm.exe)')
-    subprocess.call([UNCCSM], stdout=open(unccsm_log, 'w'))   
+    funccsm = open(unccsm_log, 'a') # unccsm.exe output and error log
+    subprocess.call([UNCCSM], stdout=funccsm, stderr=funccsm)   
+    funccsm.close()
     # N.B.: in case the stack size limit causes segmentation faults, here are some workarounds
     # subprocess.call(r'ulimit -s unlimited; ./unccsm.exe', shell=True)
     # import resource
@@ -377,7 +381,9 @@ def processTimesteps(myid, dates):
     writeNamelist(imdate, ldoms)
     # run metgrid_exe.exe
     print('\n  * '+mytag+' interpolating to WRF grid (metgrid.exe)')
-    subprocess.call([METGRID], stdout=open(os.devnull, 'w')) # metgrid.exe writes a fairly detailed log file
+    fmetgrid = open(metgrid_log, 'a') # metgrid.exe standard out and error log    
+    subprocess.call([METGRID], stdout=fmetgrid, stderr=fmetgrid) # metgrid.exe writes a fairly detailed log file
+    fmetgrid.close()
     
     ## finish time-step
     # copy/move data back to disk (one per domain) and/or keep in memory
