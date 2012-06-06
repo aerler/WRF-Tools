@@ -7,8 +7,8 @@
 # ============================================================================
 
 FC = mpfort -compiler xlf90_r -WF,-qfpp -qsuffix=cpp=f90 # for proper CPP pre-processing
-DBGFLAGS = -qnoopt # don't debug with optimization flags!
-OPTFLAGS = -q64 -O4 -qarch=pwr7 -qtune=pwr7 # -qnohot -qsimd=auto -qaltivec 
+DBGFLAGS = -qnoopt -qsmp=noauto # don't debug with optimization flags!
+OPTFLAGS = -q64 -O3 -qsmp=noauto # -qarch=pwr7 -qtune=pwr7 -qnohot # -qsimd=auto -qaltivec 
 OMPFLAGS = -qsmp=noauto # -qsmp=omp
 NC_INC = -I$(SCINET_NETCDF_INC)
 # N.B.: The first line is sufficient for linking to the serial NetCDF library,

@@ -62,8 +62,8 @@ elif ('p7' in hostname):
   Ram = '/dev/shm/aerler/' # ramdisk/tmpfs folder to be used for temporary storage
   Root = '' # use current directory
   Model = '/home/p/peltier/aerler/'
-  NCARG = ''
-  NCL = ''
+  NCARG = '/scinet/p7/Applications/ncl/6.0.0/'
+  NCL = '/scinet/p7/Applications/ncl/6.0.0/bin/ncl'
   NP = 32
   
 ##  Settings
@@ -81,7 +81,7 @@ geopfx = 'geo_em.d%02.0f'
 # parallelization
 # number of processes NP 
 if os.environ.has_key('PYWPS_THREADS'):
-  NP = os.environ['PYWPS_THREADS'] # default is set above (machine specific)
+  NP = int(os.environ['PYWPS_THREADS']) # default is set above (machine specific)
 pname = 'proc%02.0f'
 pdir = 'proc%02.0f/'  
 # destination folder(s)
