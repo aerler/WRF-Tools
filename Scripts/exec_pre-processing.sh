@@ -53,6 +53,7 @@ cp namelist.wps $WORKDIR # configuration file
 # run and time main pre-processing script (Python)
 cd $WORKDIR # using current working directory
 time -p python pyWPS.py
+wait
 
 # copy log files to disk
 rm $RAMDISK/tmp/*.nc $RAMDISK/tmp/meta/*.nc # remove data files
@@ -107,6 +108,7 @@ echo
 echo Writing output to $REALDIR
 echo
 time -p $HYBRIDRUN ./real.exe
+wait
 
 # clean-up output folder on hard disk
 #rm met_em.*.nc real.exe # remove met file links
