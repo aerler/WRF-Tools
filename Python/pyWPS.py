@@ -37,12 +37,13 @@ if (hostname=='komputer'):
 elif (hostname=='erlkoenig'):
   # my laptop
   lscinet = False
-  Ram = '/home/me/Models/Fortran Tools/test/tmp/' # tmpfs folder to be used for temporary storage
+  Ram = '/media/tmp/' # tmpfs folder to be used for temporary storage
   # (leave Ram directory blank if tmpfs will be in test directory)
-  Root = '/home/me/Models/Fortran Tools/test/'
-  # use this cmd to mount: sudo mount -t tmpfs -o size=200m tmpfs /home/me/Models/Fortran\ Tools/test/tmp/
-  # followed by: sudo chown me /home/me/Models/Fortran\ Tools/test/tmp/
-  # and this to unmount: sudo umount /home/me/Models/Fortran\ Tools/test/tmp/
+  Root = '' # '/media/data/DATA/WRF/test/WPS/'
+  # use this cmd to mount: 
+  # sudo mount -t tmpfs -o size=200m tmpfs /media/tmp/ && chown me /media/tmp/
+  # followed by: sudo chown me /media/tmp/
+  # and this to unmount: sudo umount /media/tmp/
   Model = '/home/me/Models/'
   NCARG = '/usr/local/ncarg/'
   NCL = '/usr/local/ncarg/bin/ncl'
@@ -422,7 +423,7 @@ if __name__ == '__main__':
     ##  prepare environment
     # figure out root folder
     if Root:
-      Root = Root + gcm + '/' # assume GCM name as subdirectory
+      Root = Root + '/' # assume GCM name as subdirectory
       os.chdir(Root) # change to Root directory
     else:
       Root = os.getcwd() + '/' # use current directory
