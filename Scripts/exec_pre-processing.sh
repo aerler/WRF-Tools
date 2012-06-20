@@ -3,7 +3,7 @@
 ## prepare environment
 
 # variable defined in driver script: 
-# $TASKS, $THREADS, $INIDIR, $WORKDIR
+# $TASKS, $THREADS, $HYBRIDRUN, $INIDIR, $WORKDIR
 
 # RAM disk
 RAMDISK=/dev/shm/aerler/ # also set in Python script
@@ -12,7 +12,7 @@ RAMDATA=$RAMDISK/data/ # data folder used by Python script
 if [ ! $RUNPYWPS ]; then RUNPYWPS=1; fi # whether to run runWPS.py
 METDATA=$WORKDIR/data/ # also set in Python script
 PYWPSLOG=$WORKDIR/pyWPS/ # log folder for Python script
-ALTSRC=$INIDIR/data/  # alternate data source (if runWPS.py is not run)
+ALTSRC=$INIDIR/metgrid/  # alternate data source (if runWPS.py is not run)
 # real.exe
 if [ ! $RUNREAL ]; then RUNREAL=1; fi # whether to run real.exe
 if [ ! $REALRAM ]; then REALRAM=1; fi # run real.exe in RAM or on disk
@@ -46,8 +46,9 @@ echo
 # ´mkdir $METDATA´ is actually done by Python script
 cd $INIDIR 
 # copy links to source data (or create links)
-cp -P atm lnd ice meta pyWPS.py eta2p.ncl unccsm.exe metgrid.exe $WORKDIR
-ln -s $INIDIR/geo_em.d??.nc $WORKDIR # link to geogrid files
+cp -P atm lnd ice pyWPS.py eta2p.ncl unccsm.exe metgrid.exe $WORKDIR
+cp -r meta/ $WORKDIR
+cp -P geo_em.d??.nc $WORKDIR # copy or link to geogrid files
 cp namelist.wps $WORKDIR # configuration file
 
 # run and time main pre-processing script (Python)

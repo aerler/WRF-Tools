@@ -69,7 +69,7 @@ elif ('p7' in hostname):
   
 ##  Settings
 gcm = 'CESM'
-prefix = 'cesmpdwrf1x1'
+prefix = 'cesmpdwrf1x1' # 'cesm19752000v2', 'cesmpdwrf1x1'
 tmp = 'tmp/'
 meta = 'meta/'
 nclfile = 'intermed.nc'
@@ -348,8 +348,11 @@ def processTimesteps(myid, dates):
     lndfile = lndpfx+datestr+ncext
     os.symlink(LndDir+lndfile,lndlnk)
     icefile = icepfx+datestr+ncext
-    os.symlink(IceDir+icefile,icelnk)
-    print('\n '+mytag+' Processing time-step:  '+datestr+'\n    '+atmfile+'\n    '+lndfile+'\n    '+icefile)
+    if os.path.exists(IceDir+icefile):
+      os.symlink(IceDir+icefile,icelnk)
+      print('\n '+mytag+' Processing time-step:  '+datestr+'\n    '+atmfile+'\n    '+lndfile+'\n    '+icefile)
+    else:
+      print('\n '+mytag+' Processing time-step:  '+datestr+'\n    '+atmfile+'\n    '+lndfile)
     
     ##  convert data to intermediate files
     # run NCL script (suppressing output)
