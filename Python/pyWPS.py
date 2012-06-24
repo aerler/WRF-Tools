@@ -9,16 +9,15 @@ in order to generate input data for WRF/real.exe.
 @author: Andre R. Erler
 '''
 
-##  Imports
-import socket 
-import os
-import subprocess
-import re
-import shutil
-import time
-import fileinput
-import sys
-import multiprocessing
+##  imports
+import socket # recognizing host 
+import os # directory operations
+import shutil # copy and move
+import re # regular expressions
+import sys # writing to stdout
+import subprocess # launching external programs
+import fileinput # reading and writing config files
+import multiprocessing # parallelization
 
 ##  determine if we are on SciNet or my local machine
 hostname = socket.gethostname()

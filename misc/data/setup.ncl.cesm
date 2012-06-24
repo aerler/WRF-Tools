@@ -1,0 +1,17 @@
+;------------------------------------------------------------------
+;  Specific settings and meta data for CESM data
+;------------------------------------------------------------------
+
+; Type of data
+GCM = "CESM"
+
+; Grid parameters for POP (ocean model)
+grid = "gx1v6"
+res = "fv0.9x1.25"
+date = "090309" 
+
+;------------------------------------------------------------------
+;  For SEAICE: define environment variable $NCL_POP_REMAP 
+;  (http://www.ncl.ucar.edu/Document/Functions/Pop_remap/PopLatLon.shtml)
+;  CESM: 'export NCL_POP_REMAP=/media/data/DATA/WRF/BC/CESM/cpl/'
+;------------------------------------------------------------------  

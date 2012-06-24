@@ -1,0 +1,11 @@
+&meta  
+  HDATE = '2001:01:01_00:00:00', 
+  MAP_SOURCE = "CESM"
+/
+
+&grid
+  IPROJ = 0, 
+  NLONS = 288, 
+  NLATS = 192, 
+  NLVLS = 26
+/
