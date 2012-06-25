@@ -40,8 +40,7 @@ elif (hostname=='erlkoenig'):
   # (leave Ram directory blank if tmpfs will be in test directory)
   Root = '' # '/media/data/DATA/WRF/test/WPS/'
   # use this cmd to mount: 
-  # sudo mount -t tmpfs -o size=200m tmpfs /media/tmp/ && chown me /media/tmp/
-  # followed by: sudo chown me /media/tmp/
+  # sudo mount -t tmpfs -o size=200m tmpfs /media/tmp/ && sudo chown me /media/tmp/
   # and this to unmount: sudo umount /media/tmp/
   Model = '/home/me/Models/'
   NCARG = '/usr/local/ncarg/'
