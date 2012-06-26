@@ -24,11 +24,12 @@ hostname = socket.gethostname()
 if (hostname=='komputer'):
   # my local workstation
   lscinet = False
-  Ram = '/media/data/tmp/' # ramdisk folder to be used for temporary storage
-  Root = '/media/data/DATA/WRF/BC/'
-  # use this cmd to mount: sudo mount -t ramfs -o size=100m ramfs /media/data/tmp/
-  # followed by: sudo chown me /media/data/tmp/
-  # and this to unmount:   sudo umount /media/data/tmp/
+  Ram = '/media/tmp/' # ramdisk folder to be used for temporary storage
+  Root = ''
+  # use this cmd to mount: sudo mount -t ramfs -o size=100m ramfs /media/tmp/
+  # followed by: sudo chown me /media/tmp/
+    # sudo mount -t ramfs -o size=100m ramfs /media/tmp/ && sudo chown me /media/tmp/
+  # and this to unmount:   sudo umount /media/tmp/
   Model = '/home/me/Models/'
   NCARG = '/usr/local/ncarg/'
   NCL = '/usr/local/ncarg/bin/ncl'
