@@ -28,7 +28,7 @@ if (hostname=='komputer'):
   Root = ''
   # use this cmd to mount: sudo mount -t ramfs -o size=100m ramfs /media/tmp/
   # followed by: sudo chown me /media/tmp/
-    # sudo mount -t ramfs -o size=100m ramfs /media/tmp/ && sudo chown me /media/tmp/
+  # sudo mount -t ramfs -o size=100m ramfs /media/tmp/ && sudo chown me /media/tmp/
   # and this to unmount:   sudo umount /media/tmp/
   Model = '/home/me/Models/'
   NCARG = '/usr/local/ncarg/'
