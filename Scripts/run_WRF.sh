@@ -18,7 +18,7 @@ export INIDIR="${HOME}/Models/WRF Tools/test" # "$PWD"
 export WORKDIR="${INIDIR}/${NAME}/"
 
 # optional arguments
-export RUNREAL=1
+export RUNREAL=0
 export RUNWRF=1
 # folders: $METDATA, $REALIN, $RAMIN, $REALOUT, $RAMOUT
 export RAMIN=0

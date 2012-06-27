@@ -176,7 +176,7 @@ time -p ${HYBRIDRUN} ./wrf.exe
 wait
 
 # clean-up and move output to destination
-mkdir "${WRFLOG}" # make folder for log files locally
+mkdir -p "${WRFLOG}" # make folder for log files locally
 #cd "$WORKDIR"
 # save log files and meta data
 mv $RADTAB $LSMTAB rsl.*.???? namelist.input namelist.output wrf.exe "${WRFLOG}"
