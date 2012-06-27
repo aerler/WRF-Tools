@@ -13,17 +13,17 @@
 RAMDATA="${RAMDISK}/data/" # data folder used by Python script
 RAMTMP="${RAMDISK}/tmp/" # temporary folder used by Python script
 # pyWPS.py
-if [ -z "$RUNPYWPS" ]; then RUNPYWPS=1; fi # whether to run runWPS.py
+RUNPYWPS=${RUNPYWPS:-1} # whether to run runWPS.py
 PYDATA="${WORKDIR}/data/" # data folder used by Python script
 PYLOG="pyWPS" # log folder for Python script (use relative path for tar) 
 PYTGZ="${NAME}_${PYLOG}.tgz" # archive for log folder
-if [ -z "$METDATA" ]; then METDATA="${INIDIR}/metgrid/"; fi # final destination for metgrid data 
+METDATA=${METDATA:-"${INIDIR}/metgrid/"} # final destination for metgrid data 
 # real.exe
-if [ -z "$RUNREAL" ]; then RUNREAL=1; fi # whether to run real.exe
-if [ -z "$REALIN" ]; then REALIN="${METDATA}"; fi
-if [ -z "$RAMIN" ]; then RAMIN=1; fi # copy input data to ramdisk or read from HD
-if [ -z "$REALOUT" ]; then REALOUT="${WORKDIR}"; fi # output folder for WRF input data
-if [ -z "$RAMOUT" ]; then RAMOUT=1; fi # write output data to ramdisk or directly to HD
+RUNREAL=${RUNREAL:-1} # whether to run real.exe
+REALIN=${REALIN:-"${METDATA}"} # location of metgrid files
+RAMIN=${RAMIN:-1} # copy input data to ramdisk or read from HD
+REALOUT=${REALOUT:-"${WORKDIR}"} # output folder for WRF input data
+RAMOUT=${RAMOUT:-1} # write output data to ramdisk or directly to HD
 REALLOG="real" # log folder for real.exe
 REALTGZ="${NAME}_${REALLOG}.tgz" # archive for log folder
 
@@ -54,7 +54,16 @@ cp namelist.wps "${WORKDIR}" # configuration file
 
 # run and time main pre-processing script (Python)
 cd "${WORKDIR}" # using current working directory
-time -p python pyWPS.py
+OMP_NUM_THREADS=1 # set OpenMP environment
+PYWPS_THREADS=$(( TASKS*THREADS ))
+echo
+echo "OMP_NUM_THREADS=${OMP_NUM_THREADS}"
+echo "PYWPS_THREADS=${PYWPS_THREADS}"
+echo "python pyWPS.py"
+echo
+echo "Writing output to ${METDATA}"
+echo
+${TIMING} python pyWPS.py
 wait
 
 # copy log files to disk
@@ -79,7 +88,7 @@ elif [[ $RAMIN == 1 ]]; then
 	echo
 	echo ' Copying source data to ramdisk.'
 	echo
-		cp "${REALIN}"/*.nc "${RAMDATA}" # copy alternate data to ramdisk
+	${TIMING} cp "${REALIN}"/*.nc "${RAMDATA}" # copy alternate data to ramdisk
 fi # if RUNPYWPS
 
 
@@ -120,14 +129,15 @@ fi
 
 ## run and time hybrid (mpi/openmp) job
 cd "$REALDIR" # so that output is written here
+OMP_NUM_THREADS=${THREADS} # set OpenMP environment
 echo
-echo OMP_NUM_THREADS=$THREADS
-echo $HYBRIDRUN ./real.exe
+echo "OMP_NUM_THREADS=${OMP_NUM_THREADS}"
+echo "${HYBRIDRUN} ./real.exe"
 echo
-echo Writing output to $REALDIR
+echo "Writing output to ${REALDIR}"
 echo
-time -p $HYBRIDRUN ./real.exe
-wait
+${TIMING} ${HYBRIDRUN} ./real.exe
+wait # wait for all threads to finish
 
 # clean-up and move output to hard disk
 mkdir "${REALLOG}" # make folder for log files locally
@@ -141,7 +151,7 @@ fi
 # copy/move date to output directory (hard disk) if necessary
 if [[ ! "$REALDIR" == "$REALOUT" ]]; then 
 	echo "Copying data to ${REALOUT}"
-	time -p mv wrf* $REALTGZ "$REALOUT"
+	${TIMING} mv wrf* $REALTGZ "$REALOUT"
 fi
 
 # finish

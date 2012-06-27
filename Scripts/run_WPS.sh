@@ -3,11 +3,11 @@
 # created 25/06/2012 by Andre R. Erler, GPL v3
 
 # parallelization
-export THREADS=2 # ${OMP_NUM_THREADS}
-export OMP_GET_MAX_THREADS=$THREADS
+export THREADS=1 # ${OMP_NUM_THREADS}
 # OpenMP-only settings
-export TASKS=2
+export TASKS=4
 export HYBRIDRUN="mpirun -np $TASKS"
+export TIMING="time -p"
 
 # RAM disk (also set in Python script)
 export RAMDISK="/media/tmp/" # my local machines
