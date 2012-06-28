@@ -54,16 +54,18 @@ cp namelist.wps "${WORKDIR}" # configuration file
 
 # run and time main pre-processing script (Python)
 cd "${WORKDIR}" # using current working directory
-OMP_NUM_THREADS=1 # set OpenMP environment
-PYWPS_THREADS=$(( TASKS*THREADS ))
+export OMP_NUM_THREADS=1 # set OpenMP environment
+export PYWPS_THREADS=$(( TASKS*THREADS ))
 echo
 echo "OMP_NUM_THREADS=${OMP_NUM_THREADS}"
 echo "PYWPS_THREADS=${PYWPS_THREADS}"
+echo
 echo "python pyWPS.py"
 echo
 echo "Writing output to ${METDATA}"
 echo
 ${TIMING} python pyWPS.py
+echo
 wait
 
 # copy log files to disk
@@ -129,14 +131,16 @@ fi
 
 ## run and time hybrid (mpi/openmp) job
 cd "$REALDIR" # so that output is written here
-OMP_NUM_THREADS=${THREADS} # set OpenMP environment
+export OMP_NUM_THREADS=${THREADS} # set OpenMP environment
 echo
 echo "OMP_NUM_THREADS=${OMP_NUM_THREADS}"
+echo
 echo "${HYBRIDRUN} ./real.exe"
 echo
 echo "Writing output to ${REALDIR}"
 echo
 ${TIMING} ${HYBRIDRUN} ./real.exe
+echo
 wait # wait for all threads to finish
 
 # clean-up and move output to hard disk

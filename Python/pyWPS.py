@@ -66,9 +66,8 @@ elif ('p7' in hostname):
   NCL = '/scinet/p7/Applications/ncl/6.0.0/bin/ncl'
   NP = 32
   
-##  Settings
-gcm = 'CESM'
-prefix = 'cesmpdwrf1x1' # 'cesm19752000v2', 'cesmpdwrf1x1'
+##  Default Settings (may be overwritten by in meta/namelist.py)
+prefix = '' # 'cesm19752000v2', 'cesmpdwrf1x1'
 tmp = 'tmp/'
 meta = 'meta/'
 nclfile = 'intermed.nc'
@@ -79,9 +78,6 @@ metpfx = 'met_em.d%02.0f.'
 metsfx = ':00:00.nc'
 geopfx = 'geo_em.d%02.0f'
 # parallelization
-# number of processes NP 
-if os.environ.has_key('PYWPS_THREADS'):
-  NP = int(os.environ['PYWPS_THREADS']) # default is set above (machine specific)
 pname = 'proc%02.0f'
 pdir = 'proc%02.0f/'  
 # destination folder(s)
@@ -94,33 +90,50 @@ ldisk = True # whether or not to store data on hard disk
 ## Commands
 eta2p_ncl = 'eta2p.ncl'
 eta2p_log = 'eta2p.log'
-NCL_ETA2P = NCL + ' ' + eta2p_ncl
 unccsm_exe = 'unccsm.exe'
 unccsm_log = 'unccsm.log'
-UNCCSM = './' + unccsm_exe
 metgrid_exe = 'metgrid.exe'
 metgrid_log = 'metgrid.err'
-METGRID = './' + metgrid_exe
 namelist = 'namelist.wps'
 ##  data sources
 ncext = '.nc'
 dateform = '\d\d\d\d-\d\d-\d\d-\d\d\d\d\d'
-dateregx = re.compile(dateform)
 # atmosphere
 atmdir = 'atm/'
-atmpfx = prefix+'.cam2.h1.'
-atmrgx = re.compile(atmpfx+dateform+ncext+'$')
+atmpfx = '.cam2.h1.'
 atmlnk = 'atmfile.nc'
 # land
 lnddir = 'lnd/'
-lndpfx = prefix+'.clm2.h1.'
-lndrgx = re.compile(lndpfx+dateform+ncext+'$')
+lndpfx = '.clm2.h1.'
 lndlnk = 'lndfile.nc'
 # ice
 icedir = 'ice/'
-icepfx = prefix+'.cice.h1_inst.'
-icergx = re.compile(icepfx+dateform+ncext+'$')
+icepfx = '.cice.h1_inst.'
 icelnk = 'icefile.nc'
+
+## import local settings from file
+sys.path.append(os.getcwd()+'/meta')
+from namelist import * 
+
+# number of processes NP 
+if os.environ.has_key('PYWPS_THREADS'):
+  NP = int(os.environ['PYWPS_THREADS']) # default is set above (machine specific)
+# dependent variables 
+NCL_ETA2P = NCL + ' ' + eta2p_ncl
+UNCCSM = './' + unccsm_exe
+METGRID = './' + metgrid_exe
+dateregx = re.compile(dateform)
+# atmosphere
+if prefix: atmpfx = prefix+'.cam2.h1.'
+atmrgx = re.compile(atmpfx+dateform+ncext+'$')
+# land
+if prefix: lndpfx = prefix+'.clm2.h1.'
+lndrgx = re.compile(lndpfx+dateform+ncext+'$')
+# ice
+if prefix: icepfx = prefix+'.cice.h1_inst.'
+icergx = re.compile(icepfx+dateform+ncext+'$')
+
+## subroutines
 
 # remove tmp files and links
 def clean(folder, filelist=None, all=False):
@@ -422,6 +435,7 @@ def processTimesteps(myid, dates):
     
 if __name__ == '__main__':
       
+        
     ##  prepare environment
     # figure out root folder
     if Root:

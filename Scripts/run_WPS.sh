@@ -21,8 +21,8 @@ export WORKDIR="${INIDIR}/${NAME}/"
 export RUNPYWPS=1
 export RUNREAL=1
 # folders: $METDATA, $REALIN, $RAMIN, $REALOUT, $RAMOUT
-export RAMIN=0
-export RAMOUT=0
+export RAMIN=1
+export RAMOUT=1
 export METDATA="${INIDIR}/metgrid/"
 #export REALOUT="${INIDIR}/wrfinput/"
 

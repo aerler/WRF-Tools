@@ -82,7 +82,7 @@ fi
 
 ## run and time hybrid (mpi/openmp) job
 cd "$REALDIR" # so that output is written here
-OMP_NUM_THREADS=${THREADS} # set OpenMP environment
+export OMP_NUM_THREADS=${THREADS} # set OpenMP environment
 echo
 echo "OMP_NUM_THREADS=${OMP_NUM_THREADS}"
 echo "${HYBRIDRUN} ./real.exe"
@@ -90,6 +90,7 @@ echo
 echo "Writing output to ${REALDIR}"
 echo
 ${TIMING} ${HYBRIDRUN} ./real.exe
+echo
 wait # wait for all threads to finish
 
 # clean-up and move output to hard disk
@@ -199,13 +200,14 @@ if [[ ! "${WRFIN}" == "${WRFDIR}" ]]; then
 	done 
 fi
 ## run and time hybrid (mpi/openmp) job
-OMP_NUM_THREADS=${THREADS} # set OpenMP environment
+export OMP_NUM_THREADS=${THREADS} # set OpenMP environment
 echo
 echo "OMP_NUM_THREADS=${OMP_NUM_THREADS}"
 echo "${HYBRIDRUN} ./wrf.exe"
 echo
 # launch
 ${TIMING} ${HYBRIDRUN} ./wrf.exe
+echo
 wait # wait for all threads to finish
 
 # clean-up and move output to destination
@@ -232,4 +234,8 @@ if [[ ! "$WRFDIR" == "$WRFOUT" ]]; then
 	${TIMING} mv wrfout* $WRFTGZ "$WRFOUT"
 fi
 
+# finish
+echo
+echo ' >>> WRF finished <<< '
+echo
 fi # if RUNWRF
