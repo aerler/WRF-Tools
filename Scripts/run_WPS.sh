@@ -13,9 +13,9 @@ export TIMING="time -p"
 export RAMDISK="/media/tmp/" # my local machines
 #export RAMDISK="/dev/shm/aerler/" # SciNet (GPC & P7 only)
 # working directories
-export NAME="test"
+export JOBNAME="test"
 export INIDIR="${HOME}/Models/WRF Tools/test" # "$PWD"
-export WORKDIR="${INIDIR}/${NAME}/"
+export WORKDIR="${INIDIR}/${JOBNAME}/"
 
 # optional arguments
 export RUNPYWPS=1
@@ -34,4 +34,5 @@ mkdir -p "${WORKDIR}"
 ./execWPS.sh
 
 # copy driver script into work dir
+cp "${INIDIR}/execWPS.sh" "${WORKDIR}"
 cp "${INIDIR}/$0" "${WORKDIR}" 

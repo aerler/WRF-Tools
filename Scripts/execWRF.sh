@@ -17,7 +17,7 @@ RAMIN=${RAMIN:-1} # copy input data to ramdisk or read from HD
 REALOUT=${REALOUT:-"${WORKDIR}"} # output folder for WRF input data
 RAMOUT=${RAMOUT:-1} # write output data to ramdisk or directly to HD
 REALLOG="real" # log folder for real.exe
-REALTGZ="${NAME}_${REALLOG}.tgz" # archive for log folder
+REALTGZ="${JOBNAME}_${REALLOG}.tgz" # archive for log folder
 # WRF
 RUNWRF=${RUNWRF:-1} # whether to run WRF
 if [[ -z "$WRFIN" ]]; then # location of wrfinput_d?? files etc. 
@@ -29,7 +29,7 @@ TABLES=${TABLES:-"${INIDIR}/tables/"} # folder for WRF data tables
 #RAD=${RAD:-'CAM'} # folder for WRF input data
 #LSM=${LSM:-'Noah'} # output folder for WRF
 WRFLOG="wrf" # log folder for wrf.exe
-WRFTGZ="${NAME}_${WRFLOG}.tgz" # archive for log folder
+WRFTGZ="${JOBNAME}_${WRFLOG}.tgz" # archive for log folder
 
 
 ## run WRF pre-processor: real.exe

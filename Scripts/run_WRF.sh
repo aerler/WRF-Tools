@@ -3,20 +3,20 @@
 # created 25/06/2012 by Andre R. Erler, GPL v3
 
 # parallelization
-export THREADS=1 # ${OMP_NUM_THREADS}
-export OMP_NUM_THREADS=$THREADS
-# OpenMP-only settings
+export NODES=1
 export TASKS=4
-export HYBRIDRUN="mpirun -np $TASKS"
+export THREADS=1 # ${OMP_NUM_THREADS}
+#export OMP_NUM_THREADS=$THREADS
+export HYBRIDRUN="mpirun -ppn $TASKS -np $((TASKS*NODES))"
 export TIMING="time -p"
 
 # RAM disk (for real.exe)
 export RAMDISK="/media/tmp/" # my local machines
 #export RAMDISK="/dev/shm/aerler/" # SciNet (GPC & P7 only)
 # working directories
-export NAME="test"
+export JOBNAME="test"
 export INIDIR="${HOME}/Models/WRF Tools/test" # "$PWD"
-export WORKDIR="${INIDIR}/${NAME}/"
+export WORKDIR="${INIDIR}/${JOBNAME}/"
 
 # optional arguments
 export RUNREAL=1
@@ -42,4 +42,5 @@ mkdir -p "${WORKDIR}" # but make sure it exists
 ./execWRF.sh
 
 # copy driver script into work dir
+cp "${INIDIR}/execWRF.sh" "${WORKDIR}"
 cp "${INIDIR}/$0" "${WORKDIR}" 

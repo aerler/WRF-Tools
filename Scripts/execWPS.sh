@@ -16,7 +16,7 @@ RAMTMP="${RAMDISK}/tmp/" # temporary folder used by Python script
 RUNPYWPS=${RUNPYWPS:-1} # whether to run runWPS.py
 PYDATA="${WORKDIR}/data/" # data folder used by Python script
 PYLOG="pyWPS" # log folder for Python script (use relative path for tar) 
-PYTGZ="${NAME}_${PYLOG}.tgz" # archive for log folder
+PYTGZ="${JOBNAME}_${PYLOG}.tgz" # archive for log folder
 METDATA=${METDATA:-"${INIDIR}/metgrid/"} # final destination for metgrid data 
 # real.exe
 RUNREAL=${RUNREAL:-1} # whether to run real.exe
@@ -25,7 +25,7 @@ RAMIN=${RAMIN:-1} # copy input data to ramdisk or read from HD
 REALOUT=${REALOUT:-"${WORKDIR}"} # output folder for WRF input data
 RAMOUT=${RAMOUT:-1} # write output data to ramdisk or directly to HD
 REALLOG="real" # log folder for real.exe
-REALTGZ="${NAME}_${REALLOG}.tgz" # archive for log folder
+REALTGZ="${JOBNAME}_${REALLOG}.tgz" # archive for log folder
 
 
 # remove and recreate temporary folder (ramdisk)
