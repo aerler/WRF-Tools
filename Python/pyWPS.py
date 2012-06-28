@@ -11,6 +11,7 @@ in order to generate input data for WRF/real.exe.
 
 ##  imports
 import socket # recognizing host 
+import imp # to import namelist variables
 import os # directory operations
 import shutil # copy and move
 import re # regular expressions
@@ -94,7 +95,7 @@ unccsm_exe = 'unccsm.exe'
 unccsm_log = 'unccsm.log'
 metgrid_exe = 'metgrid.exe'
 metgrid_log = 'metgrid.err'
-namelist = 'namelist.wps'
+nmlstwps = 'namelist.wps'
 ##  data sources
 ncext = '.nc'
 dateform = '\d\d\d\d-\d\d-\d\d-\d\d\d\d\d'
@@ -112,8 +113,18 @@ icepfx = '.cice.h1_inst.'
 icelnk = 'icefile.nc'
 
 ## import local settings from file
-sys.path.append(os.getcwd()+'/meta')
-from namelist import * 
+#sys.path.append(os.getcwd()+'/meta')
+#from namelist import *
+print('\n Loading namelist parameters from '+meta+'/namelist.py:')
+nmlstpy = imp.load_source('namelist',meta+'/namelist.py')
+localvars = locals()
+# loop over variables defined in module/namelist  
+for var in dir(nmlstpy):
+  if ( var[0:2] != '__' ) and ( var[-2:] != '__' ):
+    # overwrite local variables
+    localvars[var] = nmlstpy.__dict__[var]
+    print('   '+var+' = '+str(localvars[var]))
+print('')
 
 # number of processes NP 
 if os.environ.has_key('PYWPS_THREADS'):
@@ -178,7 +189,7 @@ def readNamelist():
   ied = 0 # line index of end_date parameter
   #enddates = [] # list of end dates for each domain
   # open namelist file for reading 
-  file = fileinput.FileInput([namelist], mode='r')
+  file = fileinput.FileInput([nmlstwps], mode='r')
   # loop over entries/lines
   for line in file: 
     # search for relevant entries
@@ -212,7 +223,7 @@ def writeNamelist(imdate, ldoms):
   while not ldoms[ndoms-1]: ndoms -= 1 # cut of unused domains at the end
   datestr = datestr + imdate*ndoms
   # read file and loop over lines
-  file = fileinput.FileInput([namelist], inplace=True)
+  file = fileinput.FileInput([nmlstwps], inplace=True)
   for line in file:
     if file.filelineno()==imd:
       # write maximum number of domains
@@ -328,7 +339,7 @@ def processTimesteps(myid, dates):
     shutil.rmtree(mydir)
   os.mkdir(mydir)
   # copy namelist
-  shutil.copy(namelist, mydir)
+  shutil.copy(nmlstwps, mydir)
   # change working directory to process sub-folder
   os.chdir(mydir)
   # link other source files
@@ -491,7 +502,7 @@ if __name__ == '__main__':
     shutil.copy(unccsm_exe, Tmp)
     shutil.copy(eta2p_ncl, Tmp)
     shutil.copy(metgrid_exe, Tmp)
-    shutil.copy(namelist, Tmp)
+    shutil.copy(nmlstwps, Tmp)
     for i in doms: # loop over all geogrid domains
       shutil.copy(geopfx%(i)+ncext, Tmp)
     # N.B.: shutil.copy copies the actual file that is linked to, not just the link
