@@ -1,0 +1,62 @@
+#!/bin/bash
+#MOAB/Torque submission script for SciNet GPC
+
+## queue/PBS settings
+#PBS -l nodes=16:qdr:ppn=8
+#PBS -l walltime=8:00:00
+#PBS -W x=nodesetisoptional:false
+# std and error output
+# #PBS -j oe
+#PBS -o $PBS_JOBNAME.$PBS_JOBID.out
+#PBS -e $PBS_JOBNAME.$PBS_JOBID.err
+# send email if abort (nbae)
+#PBS -M aerler@atmosp.physics.utoronto.ca
+#PBS -m ae
+# assemble job name
+#PBS -N long_16x16
+## submit to queue (NB: this has to be the last PBS line!)
+# batch (default), debug, largemem
+#PBS -q batch 
+
+## *** job settings ***
+nodes=16
+tasks=16 # per node
+threads=1 # per task
+
+
+## prepare environment
+
+# load modules
+module purge
+module load intel intelmpi hdf5/187-v18-serial-intel netcdf/4.1.3_hdf5_serial-intel
+# unlimit stack size to prevent segmentation faults
+ulimit -s unlimited
+
+# create working directory and enter
+cd $PBS_O_WORKDIR 
+mkdir $PBS_JOBNAME
+cp namelist.input GENPARM.TBL LANDUSE.TBL SOILPARM.TBL VEGPARM.TBL $PBS_JOBNAME
+#cp RRTMG* $PBS_JOBNAME # RRTMG radiation scheme
+cp CAM* ozone* $PBS_JOBNAME # CAM radiation scheme
+cd $PBS_JOBNAME
+
+# copy links to input/boundary data and executable
+for file in ../wrf*
+	do cp -P $file .
+done
+
+
+## start job
+# set up envionment: OpenMP and MPI (Intel)
+export OMP_NUM_THREADS=${threads}
+#export KMP_AFFINITY=verbose,granularity=thread,compact
+#export I_MPI_PIN_DOMAIN=omp
+#export I_MPI_FABRICS=shm:tcp  # ofa:shm
+export I_MPI_DEBUG=1 
+# run and time Intel hybrid (mpi/openmp) job
+time -p mpirun -ppn ${tasks} -np $((tasks*nodes)) ./wrf.exe
+wait
+
+# copy run-script and output files from parent directory
+cp ../run_$PBS_JOBNAME.pbs .
+#cp ../${job_name}.* .
