@@ -12,20 +12,20 @@
 #PBS -M aerler@atmosp.physics.utoronto.ca
 #PBS -m ae
 # job name
-#PBS -N test 
+#PBS -N test_WPS
 ## submit to queue (NB: this has to be the last PBS line!)
 # batch (default), debug, largemem
 #PBS -q largemem
 
 ## job settings
-SCRIPTNAME="run_${PBS_JOBNAME}_WPS.pbs"
+SCRIPTNAME="run_${PBS_JOBNAME}.pbs" # WPS suffix assumed
 # run configuration
 export NODES=1 # only one node for WPS
 export TASKS=16 # number of MPI task
 export THREADS=1 # number of OpenMP threads
 # directory setup
 export INIDIR="${PBS_O_WORKDIR}"
-export JOBNAME="${PBS_JOBNAME}"
+export JOBNAME="${PBS_JOBNAME%_*}" # strip WPS suffix
 export WORKDIR="${INIDIR}/${JOBNAME}/"
 export RAMDISK="/dev/shm/aerler/"
 
@@ -40,8 +40,13 @@ export REALOUT="${WORKDIR}"
 
 
 ## setup job environment
+echo
 hostname
 uname
+echo
+echo "   ***   ${PBS_JOBNAME}   ***   "
+echo
+
 
 # load modules
 module purge
@@ -66,7 +71,7 @@ export HYBRIDRUN="mpirun -ppn ${TASKS} -np $((NODES*TASKS))" # only one node for
 
 # start timing
 echo
-echo ' *** Start Time *** '
+echo '   ***   Start Time    ***   '
 date
 echo 
 
@@ -83,6 +88,6 @@ cd "${WORKDIR}"
  
 # end timing
 echo
-echo ' *** End Time *** '
+echo '    ***    End Time    *** '
 date
 echo
