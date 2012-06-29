@@ -11,13 +11,13 @@
 
 # real.exe
 RAMDATA=/dev/shm/aerler/data/ # RAM disk data folder
-RUNREAL=${RUNREAL:-1} # whether to run real.exe
+RUNREAL=${RUNREAL:-0} # whether to run real.exe
 REALIN=${REALIN:-"${INIDIR}/metgrid/"} # location of metgrid files
-RAMIN=${RAMIN:-1} # copy input data to ramdisk or read from HD
+RAMIN=${RAMIN:-0} # copy input data to ramdisk or read from HD
 REALOUT=${REALOUT:-"${WORKDIR}"} # output folder for WRF input data
-RAMOUT=${RAMOUT:-1} # write output data to ramdisk or directly to HD
+RAMOUT=${RAMOUT:-0} # write output data to ramdisk or directly to HD
 REALLOG="real" # log folder for real.exe
-REALTGZ="${JOBNAME}_${REALLOG}.tgz" # archive for log folder
+REALTGZ="${RUNNAME}_${REALLOG}.tgz" # archive for log folder
 # WRF
 RUNWRF=${RUNWRF:-1} # whether to run WRF
 if [[ -z "$WRFIN" ]]; then # location of wrfinput_d?? files etc. 
@@ -29,7 +29,7 @@ TABLES=${TABLES:-"${INIDIR}/tables/"} # folder for WRF data tables
 #RAD=${RAD:-'CAM'} # folder for WRF input data
 #LSM=${LSM:-'Noah'} # output folder for WRF
 WRFLOG="wrf" # log folder for wrf.exe
-WRFTGZ="${JOBNAME}_${WRFLOG}.tgz" # archive for log folder
+WRFTGZ="${RUNNAME}_${WRFLOG}.tgz" # archive for log folder
 
 
 ## run WRF pre-processor: real.exe
@@ -89,7 +89,7 @@ echo "${HYBRIDRUN} ./real.exe"
 echo
 echo "Writing output to ${REALDIR}"
 echo
-${TIMING} ${HYBRIDRUN} ./real.exe
+time -p ${HYBRIDRUN} ./real.exe
 echo
 wait # wait for all threads to finish
 
@@ -106,7 +106,7 @@ fi
 # copy/move date to output directory (hard disk) if necessary
 if [[ ! "$REALDIR" == "$REALOUT" ]]; then 
 	echo "Copying data to ${REALOUT}"
-	${TIMING} mv wrf* $REALTGZ "$REALOUT"
+	time -p mv wrf* $REALTGZ "$REALOUT"
 fi
 # clean-up RAM disk
 if [[ $RAMIN == 1 ]] || [[ $RAMOUT == 1 ]]; then
@@ -164,7 +164,7 @@ if [[ -z "$LSM" ]]; then # read from namelist if not defined (need to be in $WRF
 	echo "Determining land-surface scheme from namelist: LSM=$LSM"
 fi
 # select scheme and print confirmation
-if [[ $RAD == 'Diff' ]] || [[ $LSM == 1 ]]; then
+if [[ $LSM == 'Diff' ]] || [[ $LSM == 1 ]]; then
 	echo "Using diffusive land-surface scheme." 
     LSMTAB="LANDUSE.TBL"
 elif [[ $LSM == 'Noah' ]] || [[ $LSM == 2 ]]; then
@@ -206,7 +206,7 @@ echo "OMP_NUM_THREADS=${OMP_NUM_THREADS}"
 echo "${HYBRIDRUN} ./wrf.exe"
 echo
 # launch
-${TIMING} ${HYBRIDRUN} ./wrf.exe
+time -p ${HYBRIDRUN} ./wrf.exe
 echo
 wait # wait for all threads to finish
 
@@ -231,7 +231,7 @@ if [[ ! "$WRFDIR" == "$WRFOUT" ]]; then
 		echo "  (including ${REALTGZ})"
 		mv $REALTGZ "$WRFOUT"
 	fi	
-	${TIMING} mv wrfout* $WRFTGZ "$WRFOUT"
+	time -p mv wrfout* $WRFTGZ "$WRFOUT"
 fi
 
 # finish
