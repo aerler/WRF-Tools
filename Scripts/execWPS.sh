@@ -64,7 +64,7 @@ echo "python pyWPS.py"
 echo
 echo "Writing output to ${METDATA}"
 echo
-${TIMING} python pyWPS.py
+time -p python pyWPS.py
 echo
 wait
 
@@ -90,7 +90,7 @@ elif [[ $RAMIN == 1 ]]; then
 	echo
 	echo ' Copying source data to ramdisk.'
 	echo
-	${TIMING} cp "${REALIN}"/*.nc "${RAMDATA}" # copy alternate data to ramdisk
+	time -p cp "${REALIN}"/*.nc "${RAMDATA}" # copy alternate data to ramdisk
 fi # if RUNPYWPS
 
 
@@ -139,7 +139,7 @@ echo "${HYBRIDRUN} ./real.exe"
 echo
 echo "Writing output to ${REALDIR}"
 echo
-${TIMING} ${HYBRIDRUN} ./real.exe
+time -p ${HYBRIDRUN} ./real.exe
 echo
 wait # wait for all threads to finish
 
@@ -155,7 +155,7 @@ fi
 # copy/move date to output directory (hard disk) if necessary
 if [[ ! "$REALDIR" == "$REALOUT" ]]; then 
 	echo "Copying data to ${REALOUT}"
-	${TIMING} mv wrf* $REALTGZ "$REALOUT"
+	time -p mv wrf* $REALTGZ "$REALOUT"
 fi
 
 # finish
@@ -169,4 +169,4 @@ fi # if RUNREAL
 ## finish / clean-up
 
 # delete temporary data
-rm -r "$RAMDATA"
+rm -rf "$RAMDATA"
