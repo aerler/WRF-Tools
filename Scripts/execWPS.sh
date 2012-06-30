@@ -29,13 +29,13 @@ REALTGZ="${RUNNAME}_${REALLOG}.tgz" # archive for log folder
 
 
 # remove and recreate temporary folder (ramdisk)
-rm -rf "$RAMDATA"
-mkdir -p "$RAMDATA" # create data folder on ramdisk
+rm -rf "${RAMDATA}"
+mkdir -p "${RAMDATA}" # create data folder on ramdisk
 
 
 ## run WPS driver script: pyWPS.py
 
-if [[ $RUNPYWPS == 1 ]]
+if [[ ${RUNPYWPS} == 1 ]]
   then
 
 # launch feedback
@@ -70,15 +70,15 @@ wait
 
 # copy log files to disk
 rm "${RAMTMP}"/*.nc "${RAMTMP}"/*/*.nc # remove data files
-cp -r "$RAMTMP" "${WORKDIR}/${PYLOG}/" # copy entire folder and rename
-rm -rf "$RAMTMP"
+cp -r "${RAMTMP}" "${WORKDIR}/${PYLOG}/" # copy entire folder and rename
+rm -rf "${RAMTMP}"
 # archive log files 
-tar czf $PYTGZ "${PYLOG}/"
+tar czf ${PYTGZ} "${PYLOG}/"
 # move metgrid data to final destination
-mkdir -p "$METDATA"
-mv $PYTGZ "$METDATA"
-mv "${PYDATA}"/* "$METDATA"
-rm -r "$PYDATA"
+mkdir -p "${METDATA}"
+mv ${PYTGZ} "${METDATA}"
+mv "${PYDATA}"/* "${METDATA}"
+rm -r "${PYDATA}"
 
 # finish
 echo
@@ -86,7 +86,7 @@ echo ' >>> WPS finished <<< '
 echo
 
 # if not running Python script, get data from disk
-elif [[ $RAMIN == 1 ]]; then 
+elif [[ ${RAMIN} == 1 ]]; then 
 	echo
 	echo ' Copying source data to ramdisk.'
 	echo
@@ -100,7 +100,7 @@ echo
 
 ## run WRF pre-processor: real.exe
 
-if [[ $RUNREAL == 1 ]]
+if [[ ${RUNREAL} == 1 ]]
   then
 
 # launch feedback
@@ -109,28 +109,28 @@ echo ' >>> Running real.exe <<< '
 echo
 
 # resolve working directory for real.exe
-if [[ $RAMOUT == 1 ]]; then
-	REALDIR="$RAMDATA" # write data to RAM and copy to HD later
+if [[ ${RAMOUT} == 1 ]]; then
+	REALDIR="${RAMDATA}" # write data to RAM and copy to HD later
 else
-	REALDIR="$REALOUT" # write data directly to hard disk
+	REALDIR="${REALOUT}" # write data directly to hard disk
 fi
 # specific environment for real.exe
-mkdir -p "$REALOUT" # make sure data destination folder exists
+mkdir -p "${REALOUT}" # make sure data destination folder exists
 # copy namelist and link to real.exe into working director
-cp -P "${INIDIR}/real.exe" "$REALDIR" # link to executable real.exe
-cp "${INIDIR}/namelist.input" "$REALDIR" # copy namelists
+cp -P "${INIDIR}/real.exe" "${REALDIR}" # link to executable real.exe
+cp "${INIDIR}/namelist.input" "${REALDIR}" # copy namelists
 
 # change input directory in namelist.input
-cd "$REALDIR" # so that output is written here
+cd "${REALDIR}" # so that output is written here
 sed -i '/.*auxinput1_inname.*/d' namelist.input # remove and input directories
-if [[ $RAMIN == 1 ]]; then
+if [[ ${RAMIN} == 1 ]]; then
 	sed -i '/\&time_control/ a\ auxinput1_inname = "'"${RAMDATA}"'/met_em.d<domain>.<date>"' namelist.input
 else
 	sed -i '/\&time_control/ a\ auxinput1_inname = "'"${REALIN}"'/met_em.d<domain>.<date>"' namelist.input
 fi
 
 ## run and time hybrid (mpi/openmp) job
-cd "$REALDIR" # so that output is written here
+cd "${REALDIR}" # so that output is written here
 export OMP_NUM_THREADS=${THREADS} # set OpenMP environment
 echo
 echo "OMP_NUM_THREADS=${OMP_NUM_THREADS}"
@@ -145,17 +145,17 @@ wait # wait for all threads to finish
 
 # clean-up and move output to hard disk
 mkdir "${REALLOG}" # make folder for log files locally
-#cd "$REALDIR"
+#cd "${REALDIR}"
 # save log files and meta data
 mv rsl.*.???? namelist.input namelist.output real.exe "${REALLOG}"
-tar czf $REALTGZ "$REALLOG" # archive logs with data
-if [[ ! "$REALDIR" == "$WORKDIR" ]]; then 
-	mv "$REALLOG" "$WORKDIR" # move log folder to working directory
+tar czf ${REALTGZ} "${REALLOG}" # archive logs with data
+if [[ ! "${REALDIR}" == "$WORKDIR" ]]; then 
+	mv "${REALLOG}" "$WORKDIR" # move log folder to working directory
 fi
 # copy/move date to output directory (hard disk) if necessary
-if [[ ! "$REALDIR" == "$REALOUT" ]]; then 
+if [[ ! "${REALDIR}" == "${REALOUT}" ]]; then 
 	echo "Copying data to ${REALOUT}"
-	time -p mv wrf* $REALTGZ "$REALOUT"
+	time -p mv wrf* ${REALTGZ} "${REALOUT}"
 fi
 
 # finish
@@ -169,4 +169,4 @@ fi # if RUNREAL
 ## finish / clean-up
 
 # delete temporary data
-rm -rf "$RAMDATA"
+rm -rf "${RAMDATA}"
