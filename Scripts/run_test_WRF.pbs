@@ -3,10 +3,10 @@
 
 ## queue/PBS settings
 #PBS -l nodes=16:qdr:ppn=8
-#PBS -l walltime=8:00:00
+#PBS -l walltime=4:00:00
 #PBS -W x=nodesetisoptional:false
 # std and error output
-# #PBS -j oe
+#PBS -j oe
 #PBS -o $PBS_JOBNAME.$PBS_JOBID.out
 ##PBS -e $PBS_JOBNAME.$PBS_JOBID.err
 # send email if abort (nbae)
@@ -38,7 +38,8 @@ export RAMDISK="/dev/shm/aerler/"
 ## WRF settings
 # optional arguments: $RUNWRF, $GHG ($RAD, $LSM) 
 export GHG='A2' # GHG emission scenario
-# folders: $WRFIN, $WRFOUT, $TABLES 
+# folders: $WRFIN, $WRFOUT, $TABLES
+WRFIN="${WORKDIR}" 
 
 ## setup job environment
 echo
@@ -79,9 +80,12 @@ echo '   ***   Start Time    ***   '
 date
 echo 
 
-# create job folder
-rm -rf "${WORKDIR}"
-mkdir "${WORKDIR}"
+# clear and (re-)create job folder if neccessary
+if [[ $RUNREAL == 1 ]] || [[ "${WRFIN}" != "${WORKDIR}" ]]; then
+	# only delete folder if we are running real.exe or input data is coming from elsewhere
+	rm -rf "${WORKDIR}"
+	mkdir -p "${WORKDIR}"
+fi
 # copy driver script into work dir
 cp "${INIDIR}/$SCRIPTNAME" "${WORKDIR}"
 cp "${INIDIR}/execWRF.sh" "${WORKDIR}"

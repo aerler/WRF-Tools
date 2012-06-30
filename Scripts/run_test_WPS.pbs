@@ -79,7 +79,7 @@ echo
 
 # create job folder
 rm -rf "${WORKDIR}"
-mkdir "${WORKDIR}"
+mkdir -p "${WORKDIR}"
 # copy driver script into work dir
 cp "${INIDIR}/$SCRIPTNAME" "${WORKDIR}"
 cp "${INIDIR}/execWPS.sh" "${WORKDIR}"
