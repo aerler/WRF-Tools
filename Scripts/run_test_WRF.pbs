@@ -41,7 +41,7 @@ export RAMDISK="/dev/shm/aerler/"
 # optional arguments: $RUNWRF, $GHG ($RAD, $LSM) 
 export GHG='A2' # GHG emission scenario
 # folders: $WRFIN, $WRFOUT, $TABLES
-WRFIN="${WORKDIR}" 
+export WRFIN="${WORKDIR}" 
 
 ## setup job environment
 echo
@@ -87,10 +87,13 @@ echo
 if [[ $RUNREAL == 1 ]] || [[ "${WRFIN}" != "${WORKDIR}" ]]; then
 	# only delete folder if we are running real.exe or input data is coming from elsewhere
 	echo 'Removing old working directory:' 
-	echo "${WORKDIR}"
 	rm -rf "${WORKDIR}"
 	mkdir -p "${WORKDIR}"
+else
+	echo 'Using existing working directory:'
 fi
+	echo "${WORKDIR}"
+	echo
 # copy driver script into work dir
 cp "${INIDIR}/$SCRIPTNAME" "${WORKDIR}"
 cp "${INIDIR}/execWRF.sh" "${WORKDIR}"
