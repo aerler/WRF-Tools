@@ -194,10 +194,14 @@ fi
 
 # link to input data, if necessary
 cd "${WRFDIR}"
-if [[ "${WRFIN}" != "${WRFDIR}" ]]; then 
+if [[ "${WRFIN}" != "${WRFDIR}" ]]; then
+	echo 
+	echo "Linking input data from location:"
+	echo "${WRFIN}"
 	for INPUT in "${WRFIN}"/wrf*_d??; do
 		ln -s "${INPUT}"
 	done 
+	echo
 fi
 ## run and time hybrid (mpi/openmp) job
 export OMP_NUM_THREADS=${THREADS} # set OpenMP environment
