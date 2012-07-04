@@ -28,8 +28,9 @@ export METDATA="${INIDIR}/metgrid/"
 
 ## start execution
 # remove existing work dir and create new
-rm -rf "${WORKDIR}"
+#rm -rf "${WORKDIR}"
 mkdir -p "${WORKDIR}"
+# N.B.: don't remove namelist files in working directory
 # run script
 ./execWPS.sh
 

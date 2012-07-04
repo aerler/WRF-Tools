@@ -68,8 +68,8 @@ fi
 # specific environment for real.exe
 mkdir -p "${REALOUT}" # make sure data destination folder exists
 # copy namelist and link to real.exe into working director
-cp -P "${INIDIR}/real.exe" "${REALDIR}" # link to executable real.exe
-cp "${INIDIR}/namelist.input" "${REALDIR}" # copy namelists
+cp -Pn "${INIDIR}/real.exe" "${REALDIR}" # link to executable real.exe
+cp -n "${INIDIR}/namelist.input" "${REALDIR}" # copy namelists
 
 # change input directory in namelist.input
 cd "${REALDIR}" # so that output is written here
@@ -137,7 +137,7 @@ WRFDIR="${WORKDIR}" # could potentially be executed in RAM disk as well...
 mkdir -p "${WRFOUT}" # make sure data destination folder exists 
 # essentials
 cd "${INIDIR}" # folder containing input files
-cp -P namelist.input wrf.exe "${WRFDIR}"
+cp -Pn namelist.input wrf.exe "${WRFDIR}"
 cd "${WRFDIR}"
 # radiation scheme
 if [[ -z "${RAD}" ]]; then # read from namelist if not defined (need to be in ${RAD})
@@ -178,13 +178,13 @@ else
 fi
 # copy appropriate tables for physics options 
 cd "${TABLES}"
-cp ${RADTAB} ${LSMTAB} "${WRFDIR}"
+cp -n ${RADTAB} ${LSMTAB} "${WRFDIR}"
 # copy data file for emission scenario, if applicable
 if [[ -n "${GHG}" ]]; then # only if $GHG is defined!
 	echo
 	if [[ ${RAD} == 'CAM' ]] || [[ ${RAD} == 3 ]]; then				 
 		echo "GHG emission scenario: ${GHG}"    	
-		cp "CAMtr_volume_mixing_ratio.${GHG}" "${WRFDIR}/CAMtr_volume_mixing_ratio"
+		cp -n "CAMtr_volume_mixing_ratio.${GHG}" "${WRFDIR}/CAMtr_volume_mixing_ratio"
 	else
 		echo "WARNING: variable GHG emission scenarios not available with the ${RAD} scheme!"
 		unset GHG # for later use

@@ -47,10 +47,10 @@ echo
 # N.B.: ´mkdir $RAMTMP´ is actually done by Python script
 # copy links to source data (or create links)
 cd "${INIDIR}" 
-cp -P atm lnd ice pyWPS.py eta2p.ncl unccsm.exe metgrid.exe "${WORKDIR}"
-cp -r meta/ "${WORKDIR}"
-cp -P geo_em.d??.nc "${WORKDIR}" # copy or link to geogrid files
-cp namelist.wps "${WORKDIR}" # configuration file
+cp -Pn atm lnd ice pyWPS.py eta2p.ncl unccsm.exe metgrid.exe "${WORKDIR}"
+cp -rn meta/ "${WORKDIR}"
+cp -Pn geo_em.d??.nc "${WORKDIR}" # copy or link to geogrid files
+cp -n namelist.wps "${WORKDIR}" # configuration file
 
 # run and time main pre-processing script (Python)
 cd "${WORKDIR}" # using current working directory
@@ -70,7 +70,7 @@ wait
 
 # copy log files to disk
 rm "${RAMTMP}"/*.nc "${RAMTMP}"/*/*.nc # remove data files
-cp -r "${RAMTMP}" "${WORKDIR}/${PYLOG}/" # copy entire folder and rename
+cp -rn "${RAMTMP}" "${WORKDIR}/${PYLOG}/" # copy entire folder and rename
 rm -rf "${RAMTMP}"
 # archive log files 
 tar czf ${PYTGZ} "${PYLOG}/"
@@ -117,8 +117,8 @@ fi
 # specific environment for real.exe
 mkdir -p "${REALOUT}" # make sure data destination folder exists
 # copy namelist and link to real.exe into working director
-cp -P "${INIDIR}/real.exe" "${REALDIR}" # link to executable real.exe
-cp "${INIDIR}/namelist.input" "${REALDIR}" # copy namelists
+cp -Pn "${INIDIR}/real.exe" "${REALDIR}" # link to executable real.exe
+cp -n "${INIDIR}/namelist.input" "${REALDIR}" # copy namelists
 
 # change input directory in namelist.input
 cd "${REALDIR}" # so that output is written here
