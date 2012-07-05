@@ -63,6 +63,8 @@ rm -rf "${RAMDISK}"
 mkdir -p "${RAMDISK}"
 # whether or not to clear job folder (default: yes)
 if [[ -z "$CLEARWDIR" ]]; then CLEARWDIR=1; fi
+# cp-flag to prevent overwriting existing content
+export NOCLOBBER='-n'
 
 
 # set up hybrid envionment: OpenMP and MPI (Intel)

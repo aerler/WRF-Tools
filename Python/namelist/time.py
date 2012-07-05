@@ -23,7 +23,7 @@ def extractValueList(linestring):
   return values
   
 # function to read namelist
-def readNamelist():
+def readNamelist(nmlstwps):
   # values to read
   imd = 0 # line index of maxdom
   maxdom = 0 # max number of domains
@@ -59,7 +59,7 @@ def readNamelist():
   return imd, maxdom, isd, startdates, ied, enddates
         
 # write new namelist file
-def writeNamelist(imdate, ldoms):
+def writeNamelist(nmlstwps, ldoms, imdate, imd, isd, ied):
   # assemble date string (':00:00' not necessary for hourly output)
   datestr = ''; imdate = "'"+imdate + "',"  # mind the single quotes!
   ndoms = len(ldoms) # (effective) number of domains for this time step

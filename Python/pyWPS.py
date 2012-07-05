@@ -17,6 +17,8 @@ import shutil # copy and move
 import re # regular expressions
 import subprocess # launching external programs
 import multiprocessing # parallelization
+# my modules
+from namelist import time
 
 ##  determine if we are on SciNet or my local machine
 hostname = socket.gethostname()
@@ -189,7 +191,6 @@ def checkDate(current, start, end):
   year, month, day, hour = current
   startyear, startmonth, startday, starthour = start
   endyear, endmonth, endday, endhour = end
-  lstart = False; lend = False
   # check lower bound
   lstart = False
   if startyear < year: lstart = True
@@ -330,7 +331,7 @@ def processTimesteps(myid, dates):
     imfile = impfx+imdate
     os.rename(preimfile, imfile) # not the same as 'move'
     # update date string in namelist.wps
-    writeNamelist(imdate, ldoms)
+    time.writeNamelist(nmlstwps, ldoms, imdate, imd, isd, ied)
     # run metgrid_exe.exe
     print('\n  * '+mytag+' interpolating to WRF grid (metgrid.exe)')
     fmetgrid = open(metgrid_log, 'a') # metgrid.exe standard out and error log    
@@ -416,7 +417,7 @@ if __name__ == '__main__':
     LndDir = Root + lnddir
     IceDir = Root + icedir
     # parse namelist parameters
-    imd, maxdom, isd, startdates, ied, enddates = readNamelist()
+    imd, maxdom, isd, startdates, ied, enddates = time.readNamelist(nmlstwps)
     # figure out domains
     starts = [splitDateWRF(sd) for sd in startdates]
     ends = [splitDateWRF(ed) for ed in enddates]

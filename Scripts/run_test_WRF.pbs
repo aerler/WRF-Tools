@@ -61,16 +61,12 @@ module list
 # unlimit stack size (unfortunately necessary with WRF to prevent segmentation faults)
 ulimit -s unlimited
 # clear and (re-)create RAM disk folder
-if [[ $RUNREAL == 1 ]] && [[ $RAMIN == 1 || $RAMOUT == 1 ]];then
-	# N.B.: this only works, because default for all variables is 0 = "false".
-	echo 'Creating RAM disk.'
-	rm -rf "${RAMDISK}"
-	mkdir -p "${RAMDISK}"
-fi
 # whether or not to clear job folder (default: depends...)
 if [[ -z "$CLEARWDIR" ]] && [[ $RUNREAL == 1 || "${WRFIN}" != "${WORKDIR}" ]]; then
 	CLEARWDIR=1
 fi
+# cp-flag to prevent overwriting existing content
+export NOCLOBBER='-n'
 	
 
 # set up hybrid envionment: OpenMP and MPI (Intel)

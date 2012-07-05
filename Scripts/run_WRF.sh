@@ -14,7 +14,7 @@ export TIMING="time -p"
 export RAMDISK="/media/tmp/" # my local machines
 #export RAMDISK="/dev/shm/aerler/" # SciNet (GPC & P7 only)
 # working directories
-export JOBNAME="test"
+export RUNNAME="test"
 export INIDIR="${HOME}/Models/WRF Tools/test" # "$PWD"
 export WORKDIR="${INIDIR}/${JOBNAME}/"
 
@@ -34,6 +34,7 @@ export GHG='A1B' # GHG emission scenario for CAM/ClWRF
 #LSM='Noah'
 
 ## start execution
+export NOCLOBBER='' # overwrite existing content
 # remove existing work dir and create new
 #rm -rf "${WORKDIR}"
 mkdir -p "${WORKDIR}" # but make sure it exists

@@ -3,19 +3,18 @@
 # created 25/06/2012 by Andre R. Erler, GPL v3
 
 # parallelization
-export THREADS=1 # ${OMP_NUM_THREADS}
-# OpenMP-only settings
+export NODES=1
 export TASKS=4
+export THREADS=1 # ${OMP_NUM_THREADS}
 export HYBRIDRUN="mpirun -np $TASKS"
-export TIMING="time -p"
 
 # RAM disk (also set in Python script)
 export RAMDISK="/media/tmp/" # my local machines
 #export RAMDISK="/dev/shm/aerler/" # SciNet (GPC & P7 only)
 # working directories
-export JOBNAME="test"
+export RUNNAME="test"
 export INIDIR="${HOME}/Models/WRF Tools/test" # "$PWD"
-export WORKDIR="${INIDIR}/${JOBNAME}/"
+export WORKDIR="${INIDIR}/${RUNNAME}/"
 
 # optional arguments
 export RUNPYWPS=1
@@ -27,6 +26,7 @@ export METDATA="${INIDIR}/metgrid/"
 #export REALOUT="${INIDIR}/wrfinput/"
 
 ## start execution
+export NOCLOBBER='-n' # overwrite existing content
 # remove existing work dir and create new
 #rm -rf "${WORKDIR}"
 mkdir -p "${WORKDIR}"

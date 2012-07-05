@@ -71,7 +71,9 @@ module list
 if [[ -z "$CLEARWDIR" ]] && [[ $RUNREAL == 1 || "${WRFIN}" != "${WORKDIR}" ]]; then
 	CLEARWDIR=1
 fi
-	
+# cp-flag to prevent overwriting existing content
+export NOCLOBBER='-i --reply=no' 
+		
 
 # set up hybrid envionment: OpenMP and MPI (Intel)
 export TARGET_CPU_RANGE=-1

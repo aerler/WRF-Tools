@@ -8,7 +8,7 @@
 # $RUNPYWPS, $METDATA, $RUNREAL, $REALIN, $RAMIN, $REALOUT, $RAMOUT
 
 ## prepare environment
-
+NOCLOBBER=${NOCLOBBER:-'-n'} # prevent 'cp' from overwriting existing files
 # RAM disk
 RAMDATA="${RAMDISK}/data/" # data folder used by Python script
 RAMTMP="${RAMDISK}/tmp/" # temporary folder used by Python script
@@ -47,10 +47,10 @@ echo
 # N.B.: ´mkdir $RAMTMP´ is actually done by Python script
 # copy links to source data (or create links)
 cd "${INIDIR}" 
-cp -Pn atm lnd ice pyWPS.py eta2p.ncl unccsm.exe metgrid.exe "${WORKDIR}"
-cp -rn meta/ "${WORKDIR}"
-cp -Pn geo_em.d??.nc "${WORKDIR}" # copy or link to geogrid files
-cp -n namelist.wps "${WORKDIR}" # configuration file
+cp "${NOCLOBBER}" -P atm lnd ice pyWPS.py eta2p.ncl unccsm.exe metgrid.exe "${WORKDIR}"
+cp "${NOCLOBBER}" -r meta/ "${WORKDIR}"
+cp "${NOCLOBBER}" -P geo_em.d??.nc "${WORKDIR}" # copy or link to geogrid files
+cp "${NOCLOBBER}" namelist.wps "${WORKDIR}" # configuration file
 
 # run and time main pre-processing script (Python)
 cd "${WORKDIR}" # using current working directory
@@ -70,7 +70,8 @@ wait
 
 # copy log files to disk
 rm "${RAMTMP}"/*.nc "${RAMTMP}"/*/*.nc # remove data files
-cp -rn "${RAMTMP}" "${WORKDIR}/${PYLOG}/" # copy entire folder and rename
+rm -rf "${WORKDIR}/${PYLOG}/" # remove existing logs, just in case
+cp -r "${RAMTMP}" "${WORKDIR}/${PYLOG}/" # copy entire folder and rename
 rm -rf "${RAMTMP}"
 # archive log files 
 tar czf ${PYTGZ} "${PYLOG}/"
@@ -117,8 +118,8 @@ fi
 # specific environment for real.exe
 mkdir -p "${REALOUT}" # make sure data destination folder exists
 # copy namelist and link to real.exe into working director
-cp -Pn "${INIDIR}/real.exe" "${REALDIR}" # link to executable real.exe
-cp -n "${INIDIR}/namelist.input" "${REALDIR}" # copy namelists
+cp "${NOCLOBBER}" -P "${INIDIR}/real.exe" "${REALDIR}" # link to executable real.exe
+cp "${NOCLOBBER}" "${INIDIR}/namelist.input" "${REALDIR}" # copy namelists
 
 # change input directory in namelist.input
 cd "${REALDIR}" # so that output is written here
@@ -149,8 +150,9 @@ mkdir "${REALLOG}" # make folder for log files locally
 # save log files and meta data
 mv rsl.*.???? namelist.input namelist.output real.exe "${REALLOG}"
 tar czf ${REALTGZ} "${REALLOG}" # archive logs with data
-if [[ ! "${REALDIR}" == "$WORKDIR" ]]; then 
-	mv "${REALLOG}" "$WORKDIR" # move log folder to working directory
+if [[ ! "${REALDIR}" == "${WORKDIR}" ]]; then
+	rm -rf "${WORKDIR}/${REALLOG}" # remove existing logs, just in case 
+	mv "${REALLOG}" "${WORKDIR}" # move log folder to working directory
 fi
 # copy/move date to output directory (hard disk) if necessary
 if [[ ! "${REALDIR}" == "${REALOUT}" ]]; then 
