@@ -94,6 +94,7 @@ if [[ $CLEARWDIR == 1 ]]; then
 else
 	echo 'Using existing working directory:'
 	# N.B.: the execWPS-script does not clobber, i.e. config files in the work dir are used
+	mkdir -p "${WORKDIR}"
 fi
 	echo "${WORKDIR}"
 	echo

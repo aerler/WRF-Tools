@@ -2,8 +2,8 @@
 # Specifies the name of the shell to use for the job 
 # @ shell = /usr/bin/bash
 # @ job_name = test_WRF
-# @ wall_clock_limit = 01:00:00
-# @ node = 1 
+# @ wall_clock_limit = 04:00:00
+# @ node = 4 
 # @ tasks_per_node = 64
 # @ environment = COPY_ALL; MEMORY_AFFINITY=MCM; MP_SYNC_QP=YES; \
 #                MP_RFIFO_SIZE=16777216; MP_SHM_ATTACH_THRESH=500000; \
@@ -27,10 +27,10 @@
 # @ queue
 
 ## job settings
-SCRIPTNAME="run_${LOADL_JOB_NAME}.pbs" # WRF suffix assumed
+SCRIPTNAME="run_${LOADL_JOB_NAME}.ll" # WRF suffix assumed
 CLEARWDIR=0 # do not clear working director
 # run configuration
-export NODES=${LOADL_BG_SIZE} # set in LL section
+export NODES=4 # also has to be set in LL section
 export TASKS=64 # number of MPI task per node (Hpyerthreading!)
 export THREADS=1 # number of OpenMP threads
 # directory setup
@@ -41,6 +41,7 @@ export RAMDISK="" # no RAM disk on TCS!
 
 ## real.exe settings
 # optional arguments: $RUNREAL, $RAMIN, $RAMOUT
+export RUNREAL=0
 export RAMIN=0 # no RAM disk on TCS!
 export RAMOUT=0
 # folders: $REALIN, $REALOUT
@@ -50,7 +51,7 @@ export RAMOUT=0
 # optional arguments: $RUNWRF, $GHG ($RAD, $LSM) 
 export GHG='A2' # GHG emission scenario
 # folders: $WRFIN, $WRFOUT, $TABLES
-export WRFIN="${WORKDIR}" 
+export WRFIN="${INIDIR}/wrfinput/" 
 
 
 ## setup job environment
@@ -72,7 +73,7 @@ if [[ -z "$CLEARWDIR" ]] && [[ $RUNREAL == 1 || "${WRFIN}" != "${WORKDIR}" ]]; t
 	CLEARWDIR=1
 fi
 # cp-flag to prevent overwriting existing content
-export NOCLOBBER='-i --reply=no' 
+export NOCLOBBER='-i --reply=no'
 		
 
 # set up hybrid envionment: OpenMP and MPI (Intel)
@@ -107,6 +108,7 @@ if [[ $CLEARWDIR == 1 ]]; then
 else
 	echo 'Using existing working directory:'
 	# N.B.: the execWPS-script does not clobber, i.e. config files in the work dir are used
+	mkdir -p "${WORKDIR}"
 fi
 	echo "${WORKDIR}"
 	echo
