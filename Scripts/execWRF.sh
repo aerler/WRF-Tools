@@ -1,6 +1,6 @@
 #!/bin/bash
-
-## prepare environment
+# driver script to run WRF itself: runs real.exe and wrf.exe
+# created 25/06/2012 by Andre R. Erler, GPL v3
 
 # variable defined in driver script: 
 # $TASKS, $THREADS, $HYBRIDRUN, $INIDIR, $WORKDIR
@@ -9,6 +9,8 @@
 # for WRF
 # $RUNWRF, $WRFIN, $WRFOUT, $RAD, $LSM
 
+## prepare environment
+NOCLOBBER=${NOCLOBBER:-'-n'} # prevent 'cp' from overwriting existing files
 # real.exe
 RAMDATA=/dev/shm/aerler/data/ # RAM disk data folder
 RUNREAL=${RUNREAL:-0} # whether to run real.exe
@@ -68,8 +70,8 @@ fi
 # specific environment for real.exe
 mkdir -p "${REALOUT}" # make sure data destination folder exists
 # copy namelist and link to real.exe into working director
-cp -Pn "${INIDIR}/real.exe" "${REALDIR}" # link to executable real.exe
-cp -n "${INIDIR}/namelist.input" "${REALDIR}" # copy namelists
+cp "${NOCLOBBER}" -P "${INIDIR}/real.exe" "${REALDIR}" # link to executable real.exe
+cp "${NOCLOBBER}" "${INIDIR}/namelist.input" "${REALDIR}" # copy namelists
 
 # change input directory in namelist.input
 cd "${REALDIR}" # so that output is written here
@@ -100,7 +102,8 @@ cd "$REALDIR"
 # save log files and meta data
 mv rsl.*.???? namelist.input namelist.output real.exe "${REALLOG}"
 tar czf ${REALTGZ} "${REALLOG}" # archive logs with data
-if [[ ! "$REALDIR" == "${WORKDIR}" ]]; then 
+if [[ ! "$REALDIR" == "${WORKDIR}" ]]; then
+	rm -rf "${WORKDIR}/${REALLOG}" # remove existing logs, just in case 
 	mv "${REALLOG}" "${WORKDIR}" # move log folder to working directory
 fi
 # copy/move date to output directory (hard disk) if necessary

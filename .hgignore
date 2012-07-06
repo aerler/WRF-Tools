@@ -4,6 +4,7 @@ syntax: glob
 *.o
 *.so
 *.mod
+*.pyc
 
 syntax: regexp
 ^.settings$
