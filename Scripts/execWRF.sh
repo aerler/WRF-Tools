@@ -140,7 +140,7 @@ WRFDIR="${WORKDIR}" # could potentially be executed in RAM disk as well...
 mkdir -p "${WRFOUT}" # make sure data destination folder exists 
 # essentials
 cd "${INIDIR}" # folder containing input files
-cp -Pn namelist.input wrf.exe "${WRFDIR}"
+cp "${NOCLOBBER}" -P namelist.input wrf.exe "${WRFDIR}"
 cd "${WRFDIR}"
 # radiation scheme
 if [[ -z "${RAD}" ]]; then # read from namelist if not defined (need to be in ${RAD})
@@ -181,13 +181,13 @@ else
 fi
 # copy appropriate tables for physics options 
 cd "${TABLES}"
-cp -n ${RADTAB} ${LSMTAB} "${WRFDIR}"
+cp "${NOCLOBBER}" ${RADTAB} ${LSMTAB} "${WRFDIR}"
 # copy data file for emission scenario, if applicable
 if [[ -n "${GHG}" ]]; then # only if $GHG is defined!
 	echo
 	if [[ ${RAD} == 'CAM' ]] || [[ ${RAD} == 3 ]]; then				 
 		echo "GHG emission scenario: ${GHG}"    	
-		cp -n "CAMtr_volume_mixing_ratio.${GHG}" "${WRFDIR}/CAMtr_volume_mixing_ratio"
+		cp "${NOCLOBBER}" "CAMtr_volume_mixing_ratio.${GHG}" "${WRFDIR}/CAMtr_volume_mixing_ratio"
 	else
 		echo "WARNING: variable GHG emission scenarios not available with the ${RAD} scheme!"
 		unset GHG # for later use
