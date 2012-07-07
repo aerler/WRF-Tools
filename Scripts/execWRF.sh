@@ -70,8 +70,8 @@ fi
 # specific environment for real.exe
 mkdir -p "${REALOUT}" # make sure data destination folder exists
 # copy namelist and link to real.exe into working director
-cp "${NOCLOBBER}" -P "${INIDIR}/real.exe" "${REALDIR}" # link to executable real.exe
-cp "${NOCLOBBER}" "${INIDIR}/namelist.input" "${REALDIR}" # copy namelists
+cp ${NOCLOBBER} -P "${INIDIR}/real.exe" "${REALDIR}" # link to executable real.exe
+cp ${NOCLOBBER} "${INIDIR}/namelist.input" "${REALDIR}" # copy namelists
 
 # change input directory in namelist.input
 cd "${REALDIR}" # so that output is written here
