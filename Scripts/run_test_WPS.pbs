@@ -44,6 +44,7 @@ if [[ -z "$CLEARWDIR" ]]; then CLEARWDIR=1; fi
 
 
 ## setup environment
+cd "${INIDIR}"
 source setupGPC.sh # load machine-specific stuff
 
 
@@ -60,7 +61,7 @@ cd "${INIDIR}"
 ./prepWorkDir.sh
 
 # run script
-cd "${WORKDIR}"
+cd "${INIDIR}"
 ./execWPS.sh
 
 # end timing

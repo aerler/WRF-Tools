@@ -61,6 +61,7 @@ fi
 
 
 ## setup job environment
+cd "${INIDIR}"
 source setupTCS.sh # load machine-specific stuff
 
 
@@ -77,7 +78,7 @@ cd "${INIDIR}"
 ./prepWorkDir.sh
 
 # run script
-cd "${WORKDIR}"
+cd "${INIDIR}"
 ./execWRF.sh
  
 # end timing
