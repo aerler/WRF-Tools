@@ -28,6 +28,7 @@ ln -s "${WRFTOOLS}/misc/data/namelist.data.${DATA}" namelist.data
 ln -s "${WRFTOOLS}/misc/data/setup.ncl.${DATA}" setup.ncl
 # WPS scripts and executables
 cd "${RUNDIR}"
+ln -s "${WRFTOOLS}/Scripts/prepWorkDir.sh"
 ln -s "${WRFTOOLS}/Scripts/execWPS.sh"
 ln -s "${WRFTOOLS}/Python/pyWPS.py"
 ln -s "${WRFTOOLS}/NCL/eta2p.ncl"
@@ -46,6 +47,7 @@ cp "${WRFTOOLS}/misc/namelists/namelist.input.${CASE}" namelist.input
 
 ## link in WRF stuff
 cd "${RUNDIR}"
+#ln -s "${WRFTOOLS}/Scripts/prepWorkDir.sh"
 ln -s "${WRFTOOLS}/Scripts/execWRF.sh"
 ln -s "${WRFTOOLS}/misc/tables/"
 # WRF on GPC

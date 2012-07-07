@@ -33,6 +33,9 @@ TABLES=${TABLES:-"${INIDIR}/tables/"} # folder for WRF data tables
 WRFLOG="wrf" # log folder for wrf.exe
 WRFTGZ="${RUNNAME}_${WRFLOG}.tgz" # archive for log folder
 
+# assuming working directory is already present
+cp "${INIDIR}/execWRF.sh" "${WORKDIR}"
+
 
 ## run WRF pre-processor: real.exe
 

@@ -17,6 +17,7 @@
 # batch (default), debug, largemem
 #PBS -q largemem
 
+
 ## job settings
 SCRIPTNAME="run_${PBS_JOBNAME}.pbs" # WPS suffix assumed
 CLEARWDIR=0 # do not clear working director
@@ -28,7 +29,6 @@ export THREADS=1 # number of OpenMP threads
 export INIDIR="${PBS_O_WORKDIR}"
 export RUNNAME="${PBS_JOBNAME%_*}" # strip WPS suffix
 export WORKDIR="${INIDIR}/${RUNNAME}/"
-export RAMDISK="/dev/shm/aerler/"
 
 # optional arguments $RUNPYWPS, $RUNREAL, $RAMIN, $RAMOUT
 export RUNPYWPS=1
@@ -39,40 +39,12 @@ export RAMOUT=1
 export METDATA="${INIDIR}/metgrid/"
 export REALOUT="${WORKDIR}"
 
-
-## setup job environment
-echo
-hostname
-uname
-echo
-echo "   ***   ${PBS_JOBNAME}   ***   "
-echo
-
-
-# load modules
-module purge
-module load intel intelmpi hdf5/187-v18-serial-intel netcdf/4.1.3_hdf5_serial-intel
-module load gcc centos5-compat/lib64 ncl python # pyWPS.py specific modules
-#module load intel/12.1.3 intelmpi/4.0.3.008 hdf5/187-v18-serial-intel netcdf/4.1.3_hdf5_serial-intel
-#module load gcc/4.6.1 centos5-compat/lib64 ncl/6.0.0 python/2.7.2 
-module list
-# unlimit stack size (unfortunately necessary with WRF to prevent segmentation faults)
-ulimit -s unlimited
-# clear and (re-)create RAM disk folder
-rm -rf "${RAMDISK}"
-mkdir -p "${RAMDISK}"
 # whether or not to clear job folder (default: yes)
 if [[ -z "$CLEARWDIR" ]]; then CLEARWDIR=1; fi
-# cp-flag to prevent overwriting existing content
-export NOCLOBBER='-n'
 
 
-# set up hybrid envionment: OpenMP and MPI (Intel)
-#export KMP_AFFINITY=verbose,granularity=thread,compact
-#export I_MPI_PIN_DOMAIN=omp
-export I_MPI_DEBUG=1 # less output (currently no problems) 
-# launch Intel hybrid (mpi/openmp) job
-export HYBRIDRUN="mpirun -ppn ${TASKS} -np $((NODES*TASKS))" # only one node for WPS!
+## setup environment
+source setupGPC.sh # load machine-specific stuff
 
 
 ## begin job
@@ -83,21 +55,9 @@ echo '   ***   Start Time    ***   '
 date
 echo 
 
-# clear and (re-)create job folder if neccessary
-if [[ $CLEARWDIR == 1 ]]; then
-	# only delete folder if we are running real.exe or input data is coming from elsewhere
-	echo 'Removing old working directory:' 
-	rm -rf "${WORKDIR}"
-	mkdir -p "${WORKDIR}"
-else
-	echo 'Using existing working directory:'
-	# N.B.: the execWPS-script does not clobber, i.e. config files in the work dir are used  
-fi
-	echo "${WORKDIR}"
-	echo
-# copy driver script into work dir
-cp "${INIDIR}/$SCRIPTNAME" "${WORKDIR}"
-cp "${INIDIR}/execWPS.sh" "${WORKDIR}"
+# prepare directory
+cd "${INIDIR}"
+./prepWorkDir.sh
 
 # run script
 cd "${WORKDIR}"

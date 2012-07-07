@@ -27,7 +27,8 @@ RAMOUT=${RAMOUT:-1} # write output data to ramdisk or directly to HD
 REALLOG="real" # log folder for real.exe
 REALTGZ="${RUNNAME}_${REALLOG}.tgz" # archive for log folder
 
-
+# assuming working directory is already present
+cp "${INIDIR}/execWPS.sh" "${WORKDIR}"
 # remove and recreate temporary folder (ramdisk)
 rm -rf "${RAMDATA}"
 mkdir -p "${RAMDATA}" # create data folder on ramdisk
