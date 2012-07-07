@@ -28,8 +28,8 @@
 
 
 ## job settings
-SCRIPTNAME="run_${LOADL_JOB_NAME}.ll" # WRF suffix assumed
-CLEARWDIR=0 # do not clear working director
+export SCRIPTNAME="run_${LOADL_JOB_NAME}.ll" # WRF suffix assumed
+export CLEARWDIR=0 # do not clear working director
 # run configuration
 export NODES=4 # also has to be set in LL section
 export TASKS=64 # number of MPI task per node (Hpyerthreading!)
