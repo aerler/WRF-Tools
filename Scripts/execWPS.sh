@@ -110,6 +110,11 @@ echo
 echo ' >>> Running real.exe <<< '
 echo
 
+# copy namelist and link to real.exe into working directory
+cp ${NOCLOBBER} -P "${INIDIR}/real.exe" "${WORKDIR}" # link to executable real.exe
+cp ${NOCLOBBER} "${INIDIR}/namelist.input" "${WORKDIR}" # copy namelists
+# N.B.: this is necessary so that already existing files in $WORKDIR are used 
+
 # resolve working directory for real.exe
 if [[ ${RAMOUT} == 1 ]]; then
 	REALDIR="${RAMDATA}" # write data to RAM and copy to HD later
@@ -118,9 +123,11 @@ else
 fi
 # specific environment for real.exe
 mkdir -p "${REALOUT}" # make sure data destination folder exists
-# copy namelist and link to real.exe into working director
-cp ${NOCLOBBER} -P "${INIDIR}/real.exe" "${REALDIR}" # link to executable real.exe
-cp ${NOCLOBBER} "${INIDIR}/namelist.input" "${REALDIR}" # copy namelists
+# copy namelist and link to real.exe into actual working directory
+if [[ ! "${REALDIR}" == "${WORKDIR}" ]]; then
+	cp -P "${WORKDIR}/real.exe" "${REALDIR}" # link to executable real.exe
+	cp "${WORKDIR}/namelist.input" "${REALDIR}" # copy namelists
+fi
 
 # change input directory in namelist.input
 cd "${REALDIR}" # so that output is written here

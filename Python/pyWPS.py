@@ -116,7 +116,7 @@ icelnk = 'icefile.nc'
 #sys.path.append(os.getcwd()+'/meta')
 #from namelist import *
 print('\n Loading namelist parameters from '+meta+'/namelist.py:')
-nmlstpy = imp.load_source('namelist',meta+'/namelist.py')
+nmlstpy = imp.load_source('namelist_py',meta+'/namelist.py') # avoid conflict with module 'namelist'
 localvars = locals()
 # loop over variables defined in module/namelist  
 for var in dir(nmlstpy):

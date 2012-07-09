@@ -5,13 +5,31 @@
 
 # settings
 set -e # abort if anything goes wrong
-export STEPFILE='stepfile.daily' # file in $INIDIR
-export INIDIR="${PWD}" # current directory 
+export STEPFILE='stepfile.hourly' # file in $INIDIR
+export INIDIR="${PWD}" # current directory
+
+# launch feedback
+echo
+echo "   ***   Starting Cycle  ***   "
+echo
+echo "   Stepfile: ${STEPFILE}"
+echo "   Root Dir: ${INIDIR}"
+echo 
+
+# clear some folders
+export METDATA="${INIDIR}/metgrid/"
+export WRFOUT="${INIDIR}/wrfout/"
+echo "   Clearing Output Folders:"
+echo "${METDATA}"
+echo "${WRFOUT}"
+rm -rf "${METDATA}" "${WRFOUT}" 
 
 # read first entry in stepfile 
-STEP=$(python cycling.py)
-export STEP
-echo $STEP
+NEXTSTEP=$(python cycling.py)
+export NEXTSTEP
+echo
+echo "   First Step: ${NEXTSTEP}"
+echo
 
 # launch first WPS instance
 ./run_cycling_WPS.sh
