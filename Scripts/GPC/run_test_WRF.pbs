@@ -1,0 +1,79 @@
+#!/bin/bash
+#MOAB/Torque submission script for SciNet GPC
+
+## queue/PBS settings
+#PBS -l nodes=16:qdr:ppn=8
+#PBS -l walltime=4:00:00
+#PBS -W x=nodesetisoptional:false
+# std and error output
+#PBS -j oe
+#PBS -o $PBS_JOBNAME.$PBS_JOBID.out
+##PBS -e $PBS_JOBNAME.$PBS_JOBID.err
+# send email if abort (nbae)
+#PBS -M aerler@atmosp.physics.utoronto.ca
+#PBS -m ae
+# assemble job name
+#PBS -N test_WRF
+# job dependency (this ${PBS_JOBNAME%_WRF}_WPS does not work)
+#PBS -W depend:afterok:test_WPS
+## submit to queue (NB: this has to be the last PBS line!)
+# batch (default), debug, largemem
+#PBS -q batch 
+
+
+## job settings
+export SCRIPTNAME="run_${PBS_JOBNAME}.pbs" # WRF suffix assumed
+export CLEARWDIR=0 # do not clear working director
+# run configuration
+export NODES=${PBS_NUM_NODES} # set in PBS section
+export TASKS=16 # number of MPI task per node (Hpyerthreading!)
+export THREADS=1 # number of OpenMP threads
+# directory setup
+export INIDIR="${PBS_O_WORKDIR}"
+export RUNNAME="${PBS_JOBNAME%_*}" # strip WRF suffix
+export WORKDIR="${INIDIR}/${RUNNAME}/"
+export RAMDISK="/dev/shm/aerler/"
+
+## real.exe settings
+# optional arguments: $RUNREAL, $RAMIN, $RAMOUT
+# folders: $REALIN, $REALOUT
+# N.B.: RAMIN/OUT only works within a single node!
+
+## WRF settings
+# optional arguments: $RUNWRF, $GHG ($RAD, $LSM) 
+export GHG='A2' # GHG emission scenario
+# folders: $WRFIN, $WRFOUT, $TABLES
+export WRFIN="${WORKDIR}" 
+
+# whether or not to clear job folder (default: depends...)
+if [[ -z "$CLEARWDIR" ]] && [[ $RUNREAL == 1 || "${WRFIN}" != "${WORKDIR}" ]]; then
+	CLEARWDIR=1
+fi
+
+
+## setup environment
+cd "${INIDIR}"
+source setupGPC.sh # load machine-specific stuff
+
+
+## begin job
+
+# start timing
+echo
+echo '   ***   Start Time    ***   '
+date
+echo 
+
+# prepare directory
+cd "${INIDIR}"
+./prepWorkDir.sh
+
+# run script
+cd "${INIDIR}"
+./execWRF.sh
+ 
+# end timing
+echo
+echo '    ***    End Time    *** '
+date
+echo

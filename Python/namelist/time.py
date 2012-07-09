@@ -9,6 +9,57 @@ Python module to read and write dates in Fortran namelists.
 import fileinput # reading and writing config files
 import sys # writing to stdout
 
+
+# unpack date string from CCSM/CESM
+def splitDateCCSM(datestr, zero=2000):
+  year, month, day, second = datestr.split('-')
+  if year[0] == '0': year = int(year)+zero # start at year 2000 (=0000)
+  else: year = int(year)
+  month = int(month); day = int(day)
+  hour = int(second)/3600 
+  return (year, month, day, hour)
+
+# unpack date string from WRF
+def splitDateWRF(datestr, zero=2000):
+  year, month, day_hour = datestr.split('-')
+  if year[0] == '0': year = int(year)+zero # start at year 2000 (=0000)
+  else: year = int(year)
+  month = int(month)
+  day, hour = day_hour.split('_')
+  day = int(day); hour = int(hour[:2]) 
+  return (year, month, day, hour)  
+
+
+# check if date is within range
+def checkDate(current, start, end):
+  # unpack and initialize
+  year, month, day, hour = current
+  startyear, startmonth, startday, starthour = start
+  endyear, endmonth, endday, endhour = end
+  # check lower bound
+  lstart = False
+  if startyear < year: lstart = True
+  elif startyear == year: 
+    if startmonth < month: lstart = True
+    elif startmonth == month:
+      if startday < day: lstart = True
+      elif startday == day: 
+        if starthour <= hour: lstart = True
+  # check upper bound
+  lend = False
+  if year < endyear: lend = True
+  elif year == endyear:
+    if month < endmonth: lend = True
+    elif month == endmonth:
+      if day < endday: lend = True
+      elif day == endday: 
+        if hour <= endhour: lend = True
+  # determine validity of time-step for main domain
+  if lstart and lend: lmaindom = True 
+  else: lmaindom = False
+  return lmaindom
+
+
 # helper function for readNamelist
 def extractValueList(linestring):
   # chunks separated by spaces

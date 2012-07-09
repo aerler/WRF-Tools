@@ -13,6 +13,8 @@ import os # directory operations
 import fileinput # reading and writing config files
 import shutil # file operations
 import sys # writing to stdout
+# my modules
+from namelist import time
 
 # setup
 #if os.environ.has_key('STEP'):
@@ -69,8 +71,10 @@ if __name__ == '__main__':
   else:
     # extract information
     nextstep = linesplit[0] # next step name
-    startdate = linesplit[1] # next start date
-    enddate = linesplit[2] # next end date
+    startdatestr = linesplit[1] # next start date
+    startdate = time.splitDateWRF(startdatestr[1:-1])
+    enddatestr = linesplit[2] # next end date
+    enddate = time.splitDateWRF(enddatestr[1:-1])
     # create next step folder
     StepFolder = IniDir + '/' + nextstep + '/'
     if os.path.isdir(StepFolder):            
@@ -89,31 +93,63 @@ if __name__ == '__main__':
       if 'max_dom' in line: # search for relevant entries
         maxdom = int(line.split()[2].strip(','))
         break; fileinput.close()    
+
+    # WPS namelist
     # construct date strings
     startstr = ' start_date = '; endstr = ' end_date   = '
     for i in xrange(maxdom):
-      startstr = startstr + startdate + ','
-      endstr = endstr + enddate + ','
+      startstr = startstr + startdatestr + ','
+      endstr = endstr + enddatestr + ','
     startstr = startstr + '\n'; endstr = endstr + '\n'
-    # loop over namelists
-    for nmlst in (nmlstwps, nmlstwrf):
-      # write namelists
-      file = fileinput.FileInput([StepFolder+nmlst], inplace=True)
-      lstart = False; lend = False    
-      for line in file: # loop over entries/lines
-        # rewrite date-related entries
-        if 'start_' in line:
-          if not lstart:
+    # write namelists
+    file = fileinput.FileInput([StepFolder+nmlstwps], inplace=True)
+    lstart = False; lend = False    
+    for line in file: # loop over entries/lines
+      # rewrite date-related entries
+      if 'start_date' in line:
+        if not lstart:
+          # write start date and time
+          sys.stdout.write(startstr)
+          lstart = True # else omit line            
+      elif 'end_date' in line:
+        if not lend:
+          # write end date and time
+          sys.stdout.write(endstr)
+          lend = True # else omit line
+      else:
+        # write original file contents
+        sys.stdout.write(line)
+    # close file
+    fileinput.close()
+    
+    # WRF namelist
+    datecats = ('year', 'month', 'day', 'hour')
+    # construct date strings
+    ldc = len(datecats); startcats = ['',]*ldc; endcats = ['',]*ldc
+    for i in xrange(ldc):
+      # startcat, endcat, datecat, start, end 
+      startcat = ' start_'+datecats[i]+' ='; endcat = ' end_'+datecats[i]+'   ='
+      for j in xrange(maxdom):
+        startcat = startcat + ' ' + str(startdate[i]) + ','
+        endcat = endcat + ' ' + str(enddate[i]) + ','
+      startcats[i] = startcat + '\n'; endcats[i] = endcat + '\n'
+    # write namelist
+    file = fileinput.FileInput([StepFolder+nmlstwrf], inplace=True)
+    for line in file: # loop over entries/lines
+      ldate = False
+      # rewrite date-related entries
+      for startcat, endcat, datecat in zip(startcats, endcats, datecats):
+        if datecat in line:             
+          if 'start_' in line:
             # write start date and time
-            sys.stdout.write(startstr)
-            lstart = True # else omit line            
-        elif 'end_' in line:
-          if not lend:
+            sys.stdout.write(startcat)    
+            ldate = True        
+          elif 'end_' in line:
             # write end date and time
-            sys.stdout.write(endstr)
-            lend = True # else omit line
-        else:
-          # write original file contents
-          sys.stdout.write(line)
-      # close file
-      fileinput.close()
+            sys.stdout.write(endcat)
+            ldate = True
+      # write original file contents
+      if not ldate:
+        sys.stdout.write(line)
+    # close file
+    fileinput.close() 

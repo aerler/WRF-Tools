@@ -166,53 +166,6 @@ def clean(folder, filelist=None, all=False):
       for file in filelist:
         if os.path.exists(folder+file): os.remove(folder+file)     
 
-# unpack date string from CCSM/CESM
-def splitDateCCSM(datestr, zero=2000):
-  year, month, day, second = datestr.split('-')
-  if year[0] == '0': year = int(year)+zero # start at year 2000 (=0000)
-  else: year = int(year)
-  month = int(month); day = int(day)
-  hour = int(second)/3600 
-  return (year, month, day, hour)
-
-# unpack date string from WRF
-def splitDateWRF(datestr, zero=2000):
-  year, month, day_hour = datestr.split('-')
-  if year[0] == '0': year = int(year)+zero # start at year 2000 (=0000)
-  else: year = int(year)
-  month = int(month)
-  day, hour = day_hour.split('_')
-  day = int(day); hour = int(hour[:3]) 
-  return (year, month, day, hour)  
-
-# check if date is within range
-def checkDate(current, start, end):
-  # unpack and initialize
-  year, month, day, hour = current
-  startyear, startmonth, startday, starthour = start
-  endyear, endmonth, endday, endhour = end
-  # check lower bound
-  lstart = False
-  if startyear < year: lstart = True
-  elif startyear == year: 
-    if startmonth < month: lstart = True
-    elif startmonth == month:
-      if startday < day: lstart = True
-      elif startday == day: 
-        if starthour <= hour: lstart = True
-  # check upper bound
-  lend = False
-  if year < endyear: lend = True
-  elif year == endyear:
-    if month < endmonth: lend = True
-    elif month == endmonth:
-      if day < endday: lend = True
-      elif day == endday: 
-        if hour <= endhour: lend = True
-  # determine validity of time-step for main domain
-  if lstart and lend: lmaindom = True 
-  else: lmaindom = False
-  return lmaindom
 
 # function to divide a list fairly evenly 
 def divideList(list, n):
@@ -242,9 +195,9 @@ def processFiles(id, filelist, queue):
   # loop over dates
   for datestr in dates:
     # figure out time and date
-    date = splitDateCCSM(datestr)
+    date = time.splitDateCCSM(datestr)
     # check date for validity (only need to check first/master domain)
-    lok = checkDate(date, starts[0], ends[0])
+    lok = time.checkDate(date, starts[0], ends[0])
     # collect valid dates
     if lok: 
       okdates.append(datestr)
@@ -284,11 +237,11 @@ def processTimesteps(myid, dates):
   for datestr in dates:
     
     # convert time and date
-    date = splitDateCCSM(datestr)
+    date = time.splitDateCCSM(datestr)
     # figure out sub-domains
     ldoms = [True,]*maxdom # first domain is always computed
     for i in xrange(1,maxdom): # check sub-domains
-      ldoms[i] = checkDate(date, starts[i], ends[i])
+      ldoms[i] = time.checkDate(date, starts[i], ends[i])
       
     # prepare processing 
     # create links to relevant source data (requires full path for linked files)
@@ -419,8 +372,8 @@ if __name__ == '__main__':
     # parse namelist parameters
     imd, maxdom, isd, startdates, ied, enddates = time.readNamelist(nmlstwps)
     # figure out domains
-    starts = [splitDateWRF(sd) for sd in startdates]
-    ends = [splitDateWRF(ed) for ed in enddates]
+    starts = [time.splitDateWRF(sd) for sd in startdates]
+    ends = [time.splitDateWRF(ed) for ed in enddates]
     doms = range(1,maxdom+1) # list of domain indices
         
     # copy meta data to temporary folder

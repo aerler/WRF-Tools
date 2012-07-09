@@ -34,8 +34,8 @@ ln -s "${WRFTOOLS}/Python/pyWPS.py"
 ln -s "${WRFTOOLS}/NCL/eta2p.ncl"
 # WPS GPC-specific stuff (for largemem-nodes)
 if [[ "$WPSSYS" == "GPC" ]]; then
-	ln -s "${WRFTOOLS}/Scripts/setupGPC.sh"
-	ln -s "${WRFTOOLS}/Scripts/run_test_WPS.pbs"
+	ln -s "${WRFTOOLS}/Scripts/GPC/setupGPC.sh"
+	ln -s "${WRFTOOLS}/Scripts/GPC/run_test_WPS.pbs"
 	ln -s "${WRFTOOLS}/bin/GPC-lm/unccsm.exe"
 	ln -s "${WPSSRC}/GPC-MPI/O3xSSSE3/geogrid.exe"
 	ln -s "${WPSSRC}/GPC-MPI/O3xSSSE3/metgrid.exe"
@@ -53,14 +53,14 @@ ln -s "${WRFTOOLS}/Scripts/execWRF.sh"
 ln -s "${WRFTOOLS}/misc/tables/"
 # WRF on GPC
 if [[ "$WRFSYS" == "GPC" ]]; then
-	#ln -s "${WRFTOOLS}/Scripts/setupGPC.sh"
-	ln -s "${WRFTOOLS}/Scripts/run_test_WRF.pbs"
+	#ln -s "${WRFTOOLS}/Scripts/GPC/setupGPC.sh"
+	ln -s "${WRFTOOLS}/Scripts/GPC/run_test_WRF.pbs"
 	ln -s "${WRFSRC}/GPC-MPI/O3xHost/wrf.exe"
 fi
 # WRF on TCS
 if [[ "$WRFSYS" == "GPC" ]]; then
-	ln -s "${WRFTOOLS}/Scripts/setupTCS.sh"
-	ln -s "${WRFTOOLS}/Scripts/run_test_WRF.ll"
+	ln -s "${WRFTOOLS}/Scripts/TCS/setupTCS.sh"
+	ln -s "${WRFTOOLS}/Scripts/TCS/run_test_WRF.ll"
 	ln -s "${WRFSRC}/TCS-MPI/O3/wrf.exe"
 fi
 
