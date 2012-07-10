@@ -76,11 +76,13 @@ cp -r "${RAMTMP}" "${WORKDIR}/${PYLOG}/" # copy entire folder and rename
 rm -rf "${RAMTMP}"
 # archive log files 
 tar czf ${PYTGZ} "${PYLOG}/"
-# move metgrid data to final destination
-mkdir -p "${METDATA}"
-mv ${PYTGZ} "${METDATA}"
-mv "${PYDATA}"/* "${METDATA}"
-rm -r "${PYDATA}"
+# move metgrid data to final destination (if pyWPS wrote data to disk)
+if [[ -e "${PYDATA}" ]] && [[ ! "${METDATA}" == "${WORKDIR}" ]]; then
+	mkdir -p "${METDATA}"
+	mv ${PYTGZ} "${METDATA}"
+	mv "${PYDATA}"/* "${METDATA}"
+	rm -r "${PYDATA}"
+fi
 
 # finish
 echo
@@ -156,7 +158,8 @@ wait # wait for all threads to finish
 mkdir "${REALLOG}" # make folder for log files locally
 #cd "${REALDIR}"
 # save log files and meta data
-mv rsl.*.???? namelist.input namelist.output real.exe "${REALLOG}"
+mv rsl.*.???? namelist.output "${REALLOG}"
+cp -P namelist.input real.exe "${REALLOG}" # leave namelist in place
 tar czf ${REALTGZ} "${REALLOG}" # archive logs with data
 if [[ ! "${REALDIR}" == "${WORKDIR}" ]]; then
 	rm -rf "${WORKDIR}/${REALLOG}" # remove existing logs, just in case 

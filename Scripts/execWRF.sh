@@ -32,6 +32,7 @@ TABLES=${TABLES:-"${INIDIR}/tables/"} # folder for WRF data tables
 #LSM=${LSM:-'Noah'} # output folder for WRF
 WRFLOG="wrf" # log folder for wrf.exe
 WRFTGZ="${RUNNAME}_${WRFLOG}.tgz" # archive for log folder
+# N.B.: tgz-extension also used later in cp *.tgz $WRFOUT 
 
 # assuming working directory is already present
 cp "${INIDIR}/execWRF.sh" "${WORKDIR}"
@@ -226,7 +227,8 @@ rm -rf "${WORKDIR}/${WRFLOG}" # remove old logs
 mkdir -p "${WRFLOG}" # make folder for log files locally
 #cd "${WORKDIR}"
 # save log files and meta data
-mv ${RADTAB} ${LSMTAB} rsl.*.???? namelist.input namelist.output wrf.exe "${WRFLOG}"
+mv ${RADTAB} ${LSMTAB} rsl.*.???? namelist.output "${WRFLOG}"
+cp -P namelist.input wrf.exe "${WRFLOG}" # leave namelist in place
 if [[ -n "${GHG}" ]]; then # also add emission scenario to log
 	mv 'CAMtr_volume_mixing_ratio' "${WRFLOG}/CAMtr_volume_mixing_ratio.${GHG}"
 fi
@@ -236,13 +238,10 @@ if [[ ! "${WRFDIR}" == "${WORKDIR}" ]]; then
 fi
 # copy/move date to output directory (hard disk) if necessary
 if [[ ! "${WRFDIR}" == "${WRFOUT}" ]]; then 
-	echo "Moving data to ${WRFOUT}"
+	echo "Moving data and log-files (*.tgz) to ${WRFOUT}"
+	time -p mv wrfout* "${WRFOUT}"
 	# copy real.exe log files to wrf output
-	if [[ "${WRFIN}" == "${WORKDIR}" ]] && [[ "${REALOUT}" == "${WORKDIR}" ]]; then
-		echo "  (including ${REALTGZ})"
-		mv ${REALTGZ} "${WRFOUT}"
-	fi	
-	time -p mv wrfout* ${WRFTGZ} "${WRFOUT}"
+	mv "${WORKDIR}"/*.tgz "${WRFOUT}"
 fi
 
 # finish

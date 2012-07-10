@@ -28,8 +28,9 @@ export RUNREAL=1
 # folders: $METDATA, $REALIN, $RAMIN, $REALOUT, $RAMOUT
 export RAMIN=1
 export RAMOUT=1
-export METDATA="${INIDIR}/metgrid/"
+export METDATA="${WORKDIR}" # actually we don't output metgrid data anyway
 export REALOUT="${WORKDIR}"
+# N.B.: this should actually all be default anyway...
 
 ## start execution
 # work in existing work dir, created by caller instance
