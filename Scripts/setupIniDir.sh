@@ -9,11 +9,13 @@ mkdir -p "${RUNDIR}"
 # WPS
 WPSSYS="GPC"
 WRFTOOLS="${MODEL_ROOT}/WRF Tools/"
+# data
 GEOGRID="FLAKE"
 METGRID="CESM"
 DATA="cesm"
-DATATAG="marc"
 POPMAP="map_gx1v6_to_fv0.9x1.25_aave_da_090309.nc"
+DATATAG="marc"
+DATADIR="/scratch/p/peltier/marcdo/archive/tb20trcn1x1/"
 CASE="clim"
 # WRF
 WRFSYS="GPC"
@@ -28,6 +30,10 @@ ln -sf "${WRFTOOLS}/misc/data/METGRID.TBL.${METGRID}" METGRID.TBL
 ln -sf "${WRFTOOLS}/misc/data/namelist.data.${DATA}" namelist.data
 ln -sf "${WRFTOOLS}/misc/data/namelist.py.${DATATAG}" namelist.py
 ln -sf "${WRFTOOLS}/misc/data/setup.ncl.${DATA}" setup.ncl
+# data
+ln -sf "${DATADIR}/atm/hist/" "atm" # atmosphere
+ln -sf "${DATADIR}/lnd/hist/" "lnd" # land surface
+ln -sf "${DATADIR}/ice/hist/" "ice" # sea ice
 # WPS scripts and executables
 cd "${RUNDIR}"
 ln -sf "${WRFTOOLS}/Scripts/prepWorkDir.sh"
