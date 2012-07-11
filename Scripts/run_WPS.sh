@@ -26,7 +26,7 @@ export METDATA="${INIDIR}/metgrid/"
 #export REALOUT="${INIDIR}/wrfinput/"
 
 ## start execution
-export NOCLOBBER='-n' # overwrite existing content
+export NOCLOBBER=' ' # overwrite existing content
 # remove existing work dir and create new
 #rm -rf "${WORKDIR}"
 mkdir -p "${WORKDIR}"

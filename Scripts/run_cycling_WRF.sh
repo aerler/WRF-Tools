@@ -65,11 +65,28 @@ echo
 echo "   ***   Launching WRF for current step: ${CURRENTSTEP}   ***   "
 echo
 ./execWRF.sh
+# mock restart files for testing (correct linking)
+#if [[ -n "${NEXTSTEP}" ]]; then  
+#	touch "${WORKDIR}/wrfrst_d01_${NEXTSTEP}_00"
+#	touch "${WORKDIR}/wrfrst_d01_${NEXTSTEP}_01" 
+#fi 
 wait # wait for WRF and WPS to finish
 
 # launch WRF for next step (if $NEXTSTEP is not empty)
 if [[ -n "${NEXTSTEP}" ]]
  then
+	NEXTDIR="${INIDIR}/${NEXTSTEP}" # next $WORKDIR
+	cd "${NEXTDIR}"
+	# link restart files
+	echo 
+	echo "Linking restart files to next working directory:"
+	echo "${NEXTDIR}"
+	# N.B.: find is necessary to avoid linking all the linked restart files again
+	find "${WORKDIR}" -maxdepth 1 -type f -name "wrfrst_d??_*" -exec ln -fs {} \;
+	#for RESTART in "$(find "${WORKDIR}" -maxdepth 1 -type f -name "wrfrst_d??_*")"; do ln -s "${RESTART}"; done 
+	echo		
+	# start next cycle
+	cd "${INIDIR}"
 	./run_cycling_WRF.sh &
 fi
 exit

@@ -149,7 +149,7 @@ cp ${NOCLOBBER} -P namelist.input wrf.exe "${WRFDIR}"
 cd "${WRFDIR}"
 # radiation scheme
 if [[ -z "${RAD}" ]]; then # read from namelist if not defined (need to be in ${RAD})
-	RAD=`sed -n '/ra_lw_physics/ s/.*= *\(.\),.*/\1/p' namelist.input`
+	RAD=`sed -n '/ra_lw_physics/ s/^\s*ra_lw_physics\s*=\s*\(.\),.*$/\1/p' namelist.input` # \s = space
 	echo "Determining radiation scheme from namelist: RAD=${RAD}"
 fi
 # select scheme and print confirmation
@@ -168,7 +168,7 @@ else
 fi
 # land-surface scheme
 if [[ -z "${LSM}" ]]; then # read from namelist if not defined (need to be in $WRFDIR)
-	LSM=`sed -n '/sf_surface_physics/ s/.*= *\(.\),.*/\1/p' namelist.input`
+	LSM=`sed -n '/sf_surface_physics/ s/^\s*sf_surface_physics\s*=\s*\(.\),.*$/\1/p' namelist.input` # \s = space
 	echo "Determining land-surface scheme from namelist: LSM=${LSM}"
 fi
 # select scheme and print confirmation
@@ -181,6 +181,9 @@ elif [[ ${LSM} == 'Noah' ]] || [[ ${LSM} == 2 ]]; then
 elif [[ ${LSM} == 'RUC' ]] || [[ ${LSM} == 3 ]]; then 
 	echo "Using RUC land-surface scheme."
     LSMTAB="SOILPARM.TBL VEGPARM.TBL GENPARM.TBL LANDUSE.TBL"
+elif [[ ${LSM} == 'Noah-MP' ]] || [[ ${LSM} == 4 ]]; then 
+	echo "Using Noah-MP land-surface scheme."
+    LSMTAB="SOILPARM.TBL VEGPARM.TBL GENPARM.TBL LANDUSE.TBL MPTABLE.TBL"    
 else
     echo 'WARNING: no land-surface model selected!'
 fi

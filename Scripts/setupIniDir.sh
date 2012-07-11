@@ -74,6 +74,5 @@ fi
 
 ## prompt user to create data links
 echo "Remainign tasks:"
-echo " * link to data folders: atm, lnd, ice"
 echo " * review meta data (meta/) and edit namelists"
 echo " * adapt run scripts" 

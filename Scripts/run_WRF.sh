@@ -34,7 +34,7 @@ export GHG='A1B' # GHG emission scenario for CAM/ClWRF
 #LSM='Noah'
 
 ## start execution
-export NOCLOBBER='' # overwrite existing content
+export NOCLOBBER=' ' # overwrite existing content
 # remove existing work dir and create new
 #rm -rf "${WORKDIR}"
 mkdir -p "${WORKDIR}" # but make sure it exists

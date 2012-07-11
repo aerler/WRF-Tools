@@ -31,6 +31,19 @@ echo
 echo "   First Step: ${NEXTSTEP}"
 echo
 
+# prepare first working directory
+# set restart to False for first step
+sed -i '/restart\s/ s/restart\s*=\s*\.true\..*$/restart = .false.,/' \
+ "${INIDIR}/${NEXTSTEP}/namelist.input"  
+# and make sure the rest is on restart
+sed -i '/restart\s/ s/restart\s*=\s*\.false\..*$/restart = .true.,/' \
+ "${INIDIR}/namelist.input"
+echo 
+echo "  Setting restart option in namelist."
+echo
+
+#TODO: only write initial output file in first step!
+
 # launch first WPS instance
 ./run_cycling_WPS.sh
 wait
