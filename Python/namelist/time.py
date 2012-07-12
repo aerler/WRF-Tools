@@ -55,9 +55,7 @@ def checkDate(current, start, end):
       elif day == endday: 
         if hour <= endhour: lend = True
   # determine validity of time-step for main domain
-  if lstart and lend: lmaindom = True 
-  else: lmaindom = False
-  return lmaindom
+  return (lstart and lend)
 
 
 # helper function for readNamelist

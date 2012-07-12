@@ -3,6 +3,7 @@
 # created 08/07/2012 by Andre R. Erler, GPL v3
 
 # check if $STEP is set, and exit, if not
+set -e # abort if anything goes wrong
 if [[ -z "${NEXTSTEP}" ]]; then exit 1; fi
 CURRENTSTEP="${NEXTSTEP}" # $NEXTSTEP will be overwritten
 

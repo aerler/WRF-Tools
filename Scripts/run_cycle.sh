@@ -42,8 +42,6 @@ echo
 echo "  Setting restart option in namelist."
 echo
 
-#TODO: only write initial output file in first step!
-
 # launch first WPS instance
 ./run_cycling_WPS.sh
 wait

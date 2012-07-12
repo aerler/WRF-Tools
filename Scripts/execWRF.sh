@@ -22,10 +22,7 @@ REALLOG="real" # log folder for real.exe
 REALTGZ="${RUNNAME}_${REALLOG}.tgz" # archive for log folder
 # WRF
 RUNWRF=${RUNWRF:-1} # whether to run WRF
-if [[ -z "${WRFIN}" ]]; then # location of wrfinput_d?? files etc. 
-	if [[ ${RUNREAL} == 1 ]]; then  WRFIN="${REALOUT}"; 
-	else WRFIN="${INIDIR}"; fi; 
-fi
+WRFIN=${WRFIN:-"${WORKDIR}"} # location of wrfinput_d?? files etc.
 WRFOUT=${WRFOUT:-"${WORKDIR}"} # final destination of WRF output
 TABLES=${TABLES:-"${INIDIR}/tables/"} # folder for WRF data tables
 #RAD=${RAD:-'CAM'} # folder for WRF input data
@@ -242,7 +239,8 @@ fi
 # copy/move date to output directory (hard disk) if necessary
 if [[ ! "${WRFDIR}" == "${WRFOUT}" ]]; then 
 	echo "Moving data and log-files (*.tgz) to ${WRFOUT}"
-	time -p mv wrfout* "${WRFOUT}"
+	time -p mv wrfout_d??_* wrfxtrm_d??_* wrfflake_d??_* "${WRFOUT}" 
+	# N.B.: don't move restart files! 
 	# copy real.exe log files to wrf output
 	mv "${WORKDIR}"/*.tgz "${WRFOUT}"
 fi

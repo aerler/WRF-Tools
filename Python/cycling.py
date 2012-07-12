@@ -13,6 +13,7 @@ import os # directory operations
 import fileinput # reading and writing config files
 import shutil # file operations
 import sys # writing to stdout
+import datetime # to compute run time
 # my modules
 from namelist import time
 
@@ -123,8 +124,26 @@ if __name__ == '__main__':
     fileinput.close()
     
     # WRF namelist
-    datecats = ('year', 'month', 'day', 'hour')
+    # compute run time
+    startdt = datetime.datetime(year=startdate[0], month=startdate[1], day=startdate[2], hour=startdate[3])
+    enddt = datetime.datetime(year=enddate[0], month=enddate[1], day=enddate[2], hour=enddate[3])
+    rtdelta = enddt - startdt # timedelta object
+    rtdays = rtdelta.days
+    rtmins, rtsecs = divmod(rtdelta.seconds, 60)
+    rthours, rtmins = divmod(rtmins, 60)
+#    rthours = rtdelta.seconds // 3600; rmndr = rtdelta.seconds - rthours*3600
+#    rtmins = rmndr // 60; rtsecs = rmndr - rtmins*60
+    runtime = (rtdays, rthours, rtmins, rtsecs)
+    # make restart interval equal to run time
+    rstmins = rtdelta.days*1440 + rtdelta.seconds//60 # restart interval in minutes
+    rststr = ' restart_interval = '+str(rstmins)+',\n'
+    # construct run time strings
+    timecats = ('days', 'hours', 'minutes', 'seconds')
+    ltc = len(timecats); runcats = ['',]*ltc
+    for i in xrange(ltc):
+      runcats[i] = ' run_'+timecats[i]+' = '+str(runtime[i])+',\n'
     # construct date strings
+    datecats = ('year', 'month', 'day', 'hour')
     ldc = len(datecats); startcats = ['',]*ldc; endcats = ['',]*ldc
     for i in xrange(ldc):
       # startcat, endcat, datecat, start, end 
@@ -136,20 +155,28 @@ if __name__ == '__main__':
     # write namelist
     file = fileinput.FileInput([StepFolder+nmlstwrf], inplace=True)
     for line in file: # loop over entries/lines
-      ldate = False
       # rewrite date-related entries
-      for startcat, endcat, datecat in zip(startcats, endcats, datecats):
-        if datecat in line:             
-          if 'start_' in line:
+      if 'run_' in line:
+        for runcat, timecat in zip(runcats, timecats):
+          if timecat in line:             
+            # write run time
+            sys.stdout.write(runcat)
+      elif 'restart_interval' in line:
+        # write restart interval (minutes)
+        sys.stdout.write(rststr)
+        # N.B.: check before 'start_' because it is a subset
+      elif 'start_' in line:
+        for startcat, datecat in zip(startcats, datecats):
+          if datecat in line:             
             # write start date and time
             sys.stdout.write(startcat)    
-            ldate = True        
-          elif 'end_' in line:
+      elif 'end_' in line:
+        for endcat, datecat in zip(endcats, datecats):
+          if datecat in line:             
             # write end date and time
             sys.stdout.write(endcat)
-            ldate = True
       # write original file contents
-      if not ldate:
+      else:
         sys.stdout.write(line)
     # close file
     fileinput.close() 
