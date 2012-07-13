@@ -43,6 +43,7 @@ echo "  Setting restart option in namelist."
 echo
 
 # submit first WPS instance
-qsub ./run_cycling_WPS.pbs -v NEXTSTEP=${NEXTSTEP}"  
+qsub ./run_cycling_WPS.pbs -v NEXTSTEP="${NEXTSTEP}"  
 
 # submit first WRF instance
+qsub ./run_cycling_WRF.pbs -v NEXTSTEP="${NEXTSTEP}"

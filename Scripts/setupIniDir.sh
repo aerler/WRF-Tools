@@ -51,8 +51,9 @@ if [[ "$WPSSYS" == "GPC" ]]; then
 	ln -sf "${WRFSRC}/GPC-MPI/O3xSSSE3/real.exe"
 	if [[ -n "${CYCLING}" ]]; then
 		ln -sf "${WRFTOOLS}/Scripts/GPC/run_cycle_pbs.sh"
-		ln -sf "${WRFTOOLS}/Scripts/GPC/run_cycling_WPS.pbs"
+		ln -sf "${WRFTOOLS}/Python/cycling.py"
 		cp "${WRFTOOLS}/misc/namelists/stepfile.${CYCLING}" 'stepfile' 
+		ln -sf "${WRFTOOLS}/Scripts/GPC/run_cycling_WPS.pbs"
 	else
 		ln -sf "${WRFTOOLS}/Scripts/GPC/run_test_WPS.pbs"
 	fi		
@@ -71,7 +72,11 @@ ln -sf "/home/p/peltier/aerler/WRF/WRFV3/run/" 'tables' # WRF default tables
 # WRF on GPC
 if [[ "$WRFSYS" == "GPC" ]]; then
 	ln -sf "${WRFTOOLS}/Scripts/GPC/setupGPC.sh"
-	ln -sf "${WRFTOOLS}/Scripts/GPC/run_test_WRF.pbs"
+	if [[ -n "${CYCLING}" ]]; then
+		ln -sf "${WRFTOOLS}/Scripts/GPC/run_cycling_WRF.pbs"
+	else
+		ln -sf "${WRFTOOLS}/Scripts/GPC/run_test_WRF.pbs"
+	fi
 	ln -sf "${WRFSRC}/GPC-MPI/O3xHost/wrf.exe"
 fi
 # WRF on TCS
