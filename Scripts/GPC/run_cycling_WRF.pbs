@@ -2,9 +2,11 @@
 #MOAB/Torque submission script for SciNet GPC
 
 ## queue/PBS settings
-#PBS -l nodes=2:qdr:ppn=8
-#PBS -l walltime=1:00:00
-#PBS -W x=nodesetisoptional:false
+##PBS -l nodes=1:ppn=8 
+##PBS -l walltime=0:15:00
+#PBS -l nodes=16:qdr:ppn=8
+#PBS -l walltime=1:30:00
+##PBS -W x=nodesetisoptional:false 
 # std and error output
 #PBS -j oe
 #PBS -o $PBS_JOBNAME.$PBS_JOBID.out
@@ -70,7 +72,7 @@ if [[ -n "${NEXTSTEP}" ]]
 	echo "   ***   Launching WPS for next step: ${NEXTSTEP}   ***   "
 	echo
 	# submitting independent WPS job
-	ssh gpc01 "cd ${INIDIR}; qsub ./run_cycling_WPS.pbs -v NEXTSTEP="${NEXTSTEP}"
+	ssh gpc01 "cd ${INIDIR}; qsub ./run_cycling_WPS.pbs -v NEXTSTEP=${NEXTSTEP}"
 fi
 
 
@@ -113,5 +115,5 @@ if [[ -n "${NEXTSTEP}" ]]
 	echo		
 	# start next cycle
 	cd "${INIDIR}"
-	ssh gpc01 "cd ${INIDIR}; qsub ./run_cycling_WPS.pbs -v NEXTSTEP="${NEXTSTEP}"
+	ssh gpc01 "cd ${INIDIR}; qsub ./run_cycling_WRF.pbs -v NEXTSTEP=${NEXTSTEP}"
 fi
