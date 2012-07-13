@@ -19,6 +19,8 @@ DATADIR="/scratch/p/peltier/marcdo/archive/tb20trcn1x1/"
 CASE="clim"
 # WRF
 WRFSYS="GPC"
+# cycling
+CYCLING="daily"
 
 ## link in WPS stuff
 # meta data
@@ -43,11 +45,17 @@ ln -sf "${WRFTOOLS}/NCL/eta2p.ncl"
 # WPS GPC-sfpecific stuff (for largemem-nodes)
 if [[ "$WPSSYS" == "GPC" ]]; then
 	ln -sf "${WRFTOOLS}/Scripts/GPC/setupGPC.sh"
-	ln -sf "${WRFTOOLS}/Scripts/GPC/run_test_WPS.pbs"
 	ln -sf "${WRFTOOLS}/bin/GPC-lm/unccsm.exe"
 	ln -sf "${WPSSRC}/GPC-MPI/O3xSSSE3/geogrid.exe"
 	ln -sf "${WPSSRC}/GPC-MPI/O3xSSSE3/metgrid.exe"
 	ln -sf "${WRFSRC}/GPC-MPI/O3xSSSE3/real.exe"
+	if [[ -n "${CYCLING}" ]]; then
+		ln -sf "${WRFTOOLS}/Scripts/GPC/run_cycle_pbs.sh"
+		ln -sf "${WRFTOOLS}/Scripts/GPC/run_cycling_WPS.pbs"
+		cp "${WRFTOOLS}/misc/namelists/stepfile.${CYCLING}" 'stepfile' 
+	else
+		ln -sf "${WRFTOOLS}/Scripts/GPC/run_test_WPS.pbs"
+	fi		
 fi
 
 ## WPS/WRF namelists
