@@ -12,10 +12,10 @@
 # send email if abort (nbae)
 #PBS -M aerler@atmosp.physics.utoronto.ca
 #PBS -m ae
-# assemble job name
-#PBS -N test_WRF
+# job name
+#PBS -N cycling_WRF
 # job dependency (this ${PBS_JOBNAME%_WRF}_WPS does not work)
-#PBS -W depend:afterok:test_WPS
+#PBS -W depend:afterok:cycling_WPS
 ## submit to queue (NB: this has to be the last PBS line!)
 # batch (default), debug, largemem
 #PBS -q batch 

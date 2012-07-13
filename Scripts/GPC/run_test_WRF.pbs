@@ -12,7 +12,7 @@
 # send email if abort (nbae)
 #PBS -M aerler@atmosp.physics.utoronto.ca
 #PBS -m ae
-# assemble job name
+# job name
 #PBS -N test_WRF
 # job dependency (this ${PBS_JOBNAME%_WRF}_WPS does not work)
 #PBS -W depend:afterok:test_WPS
