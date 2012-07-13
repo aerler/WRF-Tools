@@ -33,11 +33,11 @@ ln -sf "${WRFTOOLS}/misc/data/namelist.data.${DATA}" namelist.data
 ln -sf "${WRFTOOLS}/misc/data/namelist.py.${DATATAG}" namelist.py
 ln -sf "${WRFTOOLS}/misc/data/setup.ncl.${DATA}" setup.ncl
 # data
+cd "${RUNDIR}"
 ln -sf "${DATADIR}/atm/hist/" "atm" # atmosphere
 ln -sf "${DATADIR}/lnd/hist/" "lnd" # land surface
 ln -sf "${DATADIR}/ice/hist/" "ice" # sea ice
 # WPS scripts and executables
-cd "${RUNDIR}"
 ln -sf "${WRFTOOLS}/Scripts/prepWorkDir.sh"
 ln -sf "${WRFTOOLS}/Scripts/execWPS.sh"
 ln -sf "${WRFTOOLS}/Python/pyWPS.py"

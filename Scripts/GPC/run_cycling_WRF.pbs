@@ -70,8 +70,7 @@ if [[ -n "${NEXTSTEP}" ]]
 	echo "   ***   Launching WPS for next step: ${NEXTSTEP}   ***   "
 	echo
 	# submitting independent WPS job
-	cd "${INIDIR}"
-	qsub ./run_cycling_WPS.pbs -v NEXTSTEP="${NEXTSTEP}"  
+	ssh gpc01 "cd ${INIDIR}; qsub ./run_cycling_WPS.pbs -v NEXTSTEP="${NEXTSTEP}"
 fi
 
 
@@ -114,5 +113,5 @@ if [[ -n "${NEXTSTEP}" ]]
 	echo		
 	# start next cycle
 	cd "${INIDIR}"
-	qsub ./run_cycling_WRF.pbs -v NEXTSTEP="${NEXTSTEP}"
+	ssh gpc01 "cd ${INIDIR}; qsub ./run_cycling_WPS.pbs -v NEXTSTEP="${NEXTSTEP}"
 fi

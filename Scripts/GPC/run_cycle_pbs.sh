@@ -38,8 +38,7 @@ sed -i '/restart\s/ s/restart\s*=\s*\.true\..*$/restart = .false.,/' \
 # and make sure the rest is on restart
 sed -i '/restart\s/ s/restart\s*=\s*\.false\..*$/restart = .true.,/' \
  "${INIDIR}/namelist.input"
-echo 
-echo "  Setting restart option in namelist."
+echo "  Setting restart option and interval in namelist."
 echo
 
 # submit first WPS instance
