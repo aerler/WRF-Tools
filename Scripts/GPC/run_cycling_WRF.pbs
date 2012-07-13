@@ -5,7 +5,7 @@
 ##PBS -l nodes=1:ppn=8 
 ##PBS -l walltime=0:15:00
 #PBS -l nodes=16:qdr:ppn=8
-#PBS -l walltime=1:30:00
+#PBS -l walltime=2:00:00
 ##PBS -W x=nodesetisoptional:false 
 # std and error output
 #PBS -j oe
@@ -86,12 +86,12 @@ echo
 cd "${INIDIR}"
 ./prepWorkDir.sh # don't remove working directory ($CLEARWDIR=0)
 # run script
-#./execWRF.sh
+./execWRF.sh
 # mock restart files for testing (correct linking)
-if [[ -n "${NEXTSTEP}" ]]; then	  
-	touch "${WORKDIR}/wrfrst_d01_${NEXTSTEP}_00"
-	touch "${WORKDIR}/wrfrst_d01_${NEXTSTEP}_01" 
-fi 
+#if [[ -n "${NEXTSTEP}" ]]; then	  
+#	touch "${WORKDIR}/wrfrst_d01_${NEXTSTEP}_00"
+#	touch "${WORKDIR}/wrfrst_d01_${NEXTSTEP}_01" 
+#fi 
 wait # wait for WRF and WPS to finish
 
 # end timing
