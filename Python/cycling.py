@@ -156,21 +156,21 @@ if __name__ == '__main__':
     file = fileinput.FileInput([StepFolder+nmlstwrf], inplace=True)
     for line in file: # loop over entries/lines
       # rewrite date-related entries
-      if 'run_' in line:
+      if ' run_' in line:
         for runcat, timecat in zip(runcats, timecats):
           if timecat in line:             
             # write run time
             sys.stdout.write(runcat)
-      elif 'restart_interval' in line:
+      elif ' restart_interval' in line:
         # write restart interval (minutes)
         sys.stdout.write(rststr)
         # N.B.: check before 'start_' because it is a subset
-      elif 'start_' in line:
+      elif ' start_' in line:
         for startcat, datecat in zip(startcats, datecats):
           if datecat in line:             
             # write start date and time
             sys.stdout.write(startcat)    
-      elif 'end_' in line:
+      elif ' end_' in line:
         for endcat, datecat in zip(endcats, datecats):
           if datecat in line:             
             # write end date and time

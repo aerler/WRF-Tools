@@ -66,6 +66,7 @@ echo
 echo "Writing output to ${METDATA}"
 echo
 time -p python pyWPS.py
+PYERR=$? # save WRF error code and pass on to exit
 echo
 wait
 
@@ -151,6 +152,7 @@ echo
 echo "Writing output to ${REALDIR}"
 echo
 time -p ${HYBRIDRUN} ./real.exe
+REALERR=$? # save WRF error code and pass on to exit
 echo
 wait # wait for all threads to finish
 
@@ -183,3 +185,6 @@ fi # if RUNREAL
 
 # delete temporary data
 rm -rf "${RAMDATA}"
+
+# exit code handling
+exit $(( PYERR + REALERR ))

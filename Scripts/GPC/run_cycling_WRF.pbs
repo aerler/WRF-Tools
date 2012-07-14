@@ -5,7 +5,7 @@
 ##PBS -l nodes=1:ppn=8 
 ##PBS -l walltime=0:15:00
 #PBS -l nodes=16:qdr:ppn=8
-#PBS -l walltime=2:00:00
+#PBS -l walltime=1:30:00
 ##PBS -W x=nodesetisoptional:false 
 # std and error output
 #PBS -j oe
@@ -52,6 +52,7 @@ export GHG='A2' # GHG emission scenario
 # folders: $WRFIN, $WRFOUT, $TABLES
 export REALOUT="${WORKDIR}" # this should be default anyway
 export WRFIN="${WORKDIR}" # same as $REALOUT
+export WRFOUT="${INIDIR}/wrfout/" # output directory
 
 
 ## setup environment
@@ -112,8 +113,14 @@ if [[ -n "${NEXTSTEP}" ]]
 	# N.B.: find is necessary to avoid linking all the linked restart files again
 	find "${WORKDIR}" -maxdepth 1 -type f -name "wrfrst_d??_*" -exec ln -fs {} \;
 	#for RESTART in "$(find "${WORKDIR}" -maxdepth 1 -type f -name "wrfrst_d??_*")"; do ln -s "${RESTART}"; done 
-	echo		
+	#find "${NEXTDIR}" -maxdepth 1 -type f -name "wrfrst_d??_????-02-29-00:00:00" -exec mv {}   \;
+	if [[ -e 'wrfrst_d01_1976-02-29_00:00:00' ]]; then 
+		mv wrfrst_d01_1976-02-29_00:00:00 wrfrst_d01_1976-03-01_00:00:00
+	fi
 	# start next cycle
 	cd "${INIDIR}"
+	echo
+	echo "   ***   Launching WPS for next step: ${NEXTSTEP}   ***   "
+	echo
 	ssh gpc01 "cd ${INIDIR}; qsub ./run_cycling_WRF.pbs -v NEXTSTEP=${NEXTSTEP}"
 fi

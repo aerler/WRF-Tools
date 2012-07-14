@@ -94,6 +94,7 @@ echo
 echo "Writing output to ${REALDIR}"
 echo
 time -p ${HYBRIDRUN} ./real.exe
+REALERR=$? # save WRF error code and pass on to exit
 echo
 wait # wait for all threads to finish
 
@@ -219,6 +220,7 @@ echo "${HYBRIDRUN} ./wrf.exe"
 echo
 # launch
 time -p ${HYBRIDRUN} ./wrf.exe
+WRFERR=$? # save WRF error code and pass on to exit
 echo
 wait # wait for all threads to finish
 
@@ -250,3 +252,6 @@ echo
 echo ' >>> WRF finished <<< '
 echo
 fi # if RUNWRF
+
+# handle exit code
+exit $(( REALERR + WRFERR ))
