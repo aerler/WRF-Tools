@@ -16,6 +16,7 @@
  end_minute                          = 00,  00,  00,  00,  00,
  end_second                          = 00,  00,  00,  00,  00,
  restart                             = .true.,
+ override_restart_timers             = .true.,
  restart_interval                    = 2678400,
  interval_seconds                    = 21600,
  input_from_file                     = .true.,.true.,.true.,.true.,.true.,
