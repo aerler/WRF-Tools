@@ -14,6 +14,7 @@ import fileinput # reading and writing config files
 import shutil # file operations
 import sys # writing to stdout
 import datetime # to compute run time
+import calendar # to locate leap years
 # my modules
 from namelist import time
 
@@ -27,7 +28,9 @@ else: laststep = ''
 if os.environ.has_key('STEPFILE'):
   stepfile = os.environ['STEPFILE'] # name of file with step listing
 else: stepfile = 'stepfile' # default name
-IniDir = os.environ['INIDIR'] # where the step file is found
+if os.environ.has_key('INIDIR'):
+  IniDir = os.environ['INIDIR'] # where the step file is found
+else: IniDir = os.getcwd() + '/' # current directory
 nmlstwps = 'namelist.wps' # WPS namelist file
 nmlstwrf = 'namelist.input' # WRF namelist file
 
@@ -76,6 +79,11 @@ if __name__ == '__main__':
     startdate = time.splitDateWRF(startdatestr[1:-1])
     enddatestr = linesplit[2] # next end date
     enddate = time.splitDateWRF(enddatestr[1:-1])
+    # screen for leap days (treat Feb. 29th as 28th)
+    if calendar.isleap(startdate[0]) and startdate[2]==29 and startdate[1]==2:
+      startdate = (startdate[0], startdate[1], 28, startdate[3])
+    if calendar.isleap(enddate[0]) and enddate[2]==29 and enddate[1]==2:
+      enddate = (enddate[0], enddate[1], 28, enddate[3])        
     # create next step folder
     StepFolder = IniDir + '/' + nextstep + '/'
     if os.path.isdir(StepFolder):            
@@ -128,14 +136,29 @@ if __name__ == '__main__':
     startdt = datetime.datetime(year=startdate[0], month=startdate[1], day=startdate[2], hour=startdate[3])
     enddt = datetime.datetime(year=enddate[0], month=enddate[1], day=enddate[2], hour=enddate[3])
     rtdelta = enddt - startdt # timedelta object
-    rtdays = rtdelta.days
+    # handle leap days
+    leapdays = 0 # counter for leap days in timedelta
+    # if start and end are in the same year
+    if (startdate[0] == enddate[0]) and calendar.isleap(enddate[0]):
+      if (startdate[1] < 3) and (enddate[1] > 2): 
+        leapdays += 1 # only count if timedelta crosses leap day
+    # if start and end are in different years
+    else:
+      if calendar.isleap(startdate[0]) and (startdate[1] < 3): 
+        leapdays += 1 # first year only if start before March
+      # add leap days in between start and end years
+      leapdays += calendar.leapdays(startdate[0]+1, enddate[0])
+      if calendar.isleap(enddate[0]) and (enddate[1] > 2): 
+        leapdays += 1 # last year only if end after February
+    # figure out actual duration in days, hours, and minutes
+    rtdays = rtdelta.days - leapdays
     rtmins, rtsecs = divmod(rtdelta.seconds, 60)
     rthours, rtmins = divmod(rtmins, 60)
 #    rthours = rtdelta.seconds // 3600; rmndr = rtdelta.seconds - rthours*3600
 #    rtmins = rmndr // 60; rtsecs = rmndr - rtmins*60
     runtime = (rtdays, rthours, rtmins, rtsecs)
     # make restart interval equal to run time
-    rstmins = rtdelta.days*1440 + rtdelta.seconds//60 # restart interval in minutes
+    rstmins = rtdays*1440 + rthours*60 + rtmins # restart interval in minutes
     rststr = ' restart_interval = '+str(rstmins)+',\n'
     # construct run time strings
     timecats = ('days', 'hours', 'minutes', 'seconds')
