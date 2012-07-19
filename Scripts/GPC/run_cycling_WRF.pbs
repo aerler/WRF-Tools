@@ -4,8 +4,8 @@
 ## queue/PBS settings
 ##PBS -l nodes=1:ppn=8 
 ##PBS -l walltime=0:15:00
-#PBS -l nodes=16:qdr:ppn=8
-#PBS -l walltime=1:30:00
+#PBS -l nodes=8:ppn=8
+#PBS -l walltime=0:30:00
 ##PBS -W x=nodesetisoptional:false 
 # std and error output
 #PBS -j oe
@@ -111,16 +111,20 @@ if [[ -n "${NEXTSTEP}" ]]
 	echo "Linking restart files to next working directory:"
 	echo "${NEXTDIR}"
 	# N.B.: find is necessary to avoid linking all the linked restart files again
-	find "${WORKDIR}" -maxdepth 1 -type f -name "wrfrst_d??_*" -exec ln -fs {} \;
-	#for RESTART in "$(find "${WORKDIR}" -maxdepth 1 -type f -name "wrfrst_d??_*")"; do ln -s "${RESTART}"; done 
-	#find "${NEXTDIR}" -maxdepth 1 -type f -name "wrfrst_d??_????-02-29-00:00:00" -exec mv {}   \;
-	if [[ -e 'wrfrst_d01_1976-02-29_00:00:00' ]]; then 
-		mv wrfrst_d01_1976-02-29_00:00:00 wrfrst_d01_1976-03-01_00:00:00
-	fi
+	#find "${WORKDIR}" -maxdepth 1 -type f -name "wrfrst_d??_*" -exec ln -fs {} \;
+	for RESTART in "${WORKDIR}"/wrfrst_d??_*; do
+		if [[ ! -h "${RESTART}" ]]; then ln -sf "${RESTART}"; fi
+	done
+	# reset restart output timer manually ('override_restart_time' does not seem to work)
+	#module load udunits/2.1.11 nco/4.0.8-intel-nocxx 	
+	#for RESTART in wrfrst_d??_*; do 
+	#	ncatted -O -a 'WRF_ALARM_SECS_TIL_NEXT_RING_51,global,o,l,0' "${RESTART}"
+	#	ncatted -O -a 'WRF_ALARM_SECS_TIL_NEXT_RING_55,global,o,l,0' "${RESTART}"
+	#done 
 	# start next cycle
 	cd "${INIDIR}"
 	echo
-	echo "   ***   Launching WPS for next step: ${NEXTSTEP}   ***   "
+	echo "   ***   Launching WRF for next step: ${NEXTSTEP}   ***   "
 	echo
 	ssh gpc01 "cd ${INIDIR}; qsub ./run_cycling_WRF.pbs -v NEXTSTEP=${NEXTSTEP}"
 fi
