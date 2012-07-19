@@ -18,6 +18,10 @@ module load xlf vacpp hdf5/187-v18-serial-xlc netcdf/4.1.3_hdf5_serial-xlc
 module list
 echo
 
+# no RAM disk on TCS!
+export RAMIN=0 
+export RAMOUT=0
+
 # cp-flag to prevent overwriting existing content
 export NOCLOBBER='-i --reply=no'
 		

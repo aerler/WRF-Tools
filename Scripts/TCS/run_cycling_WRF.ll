@@ -1,23 +1,30 @@
-#!/bin/bash
-#MOAB/Torque submission script for SciNet GPC
-
-## queue/PBS settings
-#PBS -l nodes=8:ppn=8
-#PBS -l walltime=0:30:00
-# std and error output
-#PBS -j oe
-#PBS -o $PBS_JOBNAME.$PBS_JOBID.out
-# send email if abort (nbae)
-#PBS -M aerler@atmosp.physics.utoronto.ca
-#PBS -m ae
-# job name
-#PBS -N cycling_WRF
-# job dependency 
-#PBS -W depend:afterok:cycling_WPS
-# N.B.: this ${PBS_JOBNAME%_WRF}_WPS does not work
-## submit to queue (NB: this has to be the last PBS line!)
-# batch (default), debug, largemem
-#PBS -q batch 
+#!/usr/bin/bash
+# Specifies the name of the shell to use for the job 
+# @ shell = /usr/bin/bash
+# @ job_name = test_WRF
+# @ wall_clock_limit = 04:00:00
+# @ node = 4 
+# @ tasks_per_node = 64
+# @ environment = COPY_ALL; MEMORY_AFFINITY=MCM; MP_SYNC_QP=YES; \
+#                MP_RFIFO_SIZE=16777216; MP_SHM_ATTACH_THRESH=500000; \
+#                MP_EUIDEVELOP=min; MP_USE_BULK_XFER=yes; \
+#                MP_RDMA_MTU=4K; MP_BULK_MIN_MSG_SIZE=64k; MP_RC_MAX_QP=8192; \
+#                PSALLOC=early; NODISCLAIM=true
+# @ job_type = parallel
+# @ class = verylong
+# @ node_usage = not_shared
+# @ output = $(job_name).$(jobid).out
+# @ error = $(job_name).$(jobid).err
+#=====================================
+## this is necessary in order to avoid core dumps for batch files
+## which can cause the system to be overloaded
+# ulimits
+# @ core_limit = 0
+#=====================================
+## necessary to force use of infiniband network for MPI traffic
+# @ network.MPI = sn_all,not_shared,US,HIGH
+#=====================================
+# @ queue
 
 # check if $NEXTSTEP is set, and exit, if not
 set -e # abort if anything goes wrong
@@ -26,18 +33,17 @@ CURRENTSTEP="${NEXTSTEP}" # $NEXTSTEP will be overwritten
 
 
 ## job settings
-export SCRIPTNAME="run_${PBS_JOBNAME}.pbs" # WRF suffix assumed
-export DEPENDENCY="run_${PBS_JOBNAME%_WRF}_WPS.pbs" # WRF suffix assumed, WPS suffix substituted
+export SCRIPTNAME="run_${LOADL_JOB_NAME}.ll" # WRF suffix assumed
+export DEPENDENCY="run_${LOADL_JOB_NAME%_WRF}_WPS.pbs" # run WPS on GPC (WPS suffix substituted for WRF)
 export CLEARWDIR=0 # do not clear working director
 # run configuration
-export NODES=${PBS_NUM_NODES} # set in PBS section
-export TASKS=16 # number of MPI task per node (Hpyerthreading!)
+export NODES=4 # also has to be set in LL section
+export TASKS=64 # number of MPI task per node (Hpyerthreading!)
 export THREADS=1 # number of OpenMP threads
 # directory setup
-export INIDIR="${PBS_O_WORKDIR}"
-export RUNNAME="${CURRENTSTEP}" # strip WRF suffix
+export INIDIR="${LOADL_STEP_INITDIR}" # launch directory
+export RUNNAME="${LOADL_JOB_NAME%_*}" # strip WRF suffix
 export WORKDIR="${INIDIR}/${RUNNAME}/"
-export RAMDISK="/dev/shm/aerler/"
 
 ## real.exe settings
 # optional arguments: $RUNREAL, $RAMIN, $RAMOUT
@@ -53,9 +59,9 @@ export WRFIN="${WORKDIR}" # same as $REALOUT
 export WRFOUT="${INIDIR}/wrfout/" # output directory
 
 
-## setup environment
+## setup job environment
 cd "${INIDIR}"
-source setupGPC.sh # load machine-specific stuff
+source setupTCS.sh # load machine-specific stuff
 
 
 ## start execution
@@ -70,7 +76,7 @@ if [[ -n "${NEXTSTEP}" ]]
  then
 	echo "   ***   Launching WPS for next step: ${NEXTSTEP}   ***   "
 	echo
-	# submitting independent WPS job
+	# submitting independent WPS job to GPC (not TCS!)
 	ssh gpc01 "cd ${INIDIR}; qsub ./${DEPENDENCY} -v NEXTSTEP=${NEXTSTEP}"
 fi
 
@@ -83,7 +89,7 @@ echo
 
 # prepare directory
 cd "${INIDIR}"
-./prepWorkDir.sh # don't remove working directory ($CLEARWDIR=0)
+./prepWorkDir.sh
 # run script
 ./execWRF.sh
 # mock restart files for testing (correct linking)
@@ -117,21 +123,6 @@ if [[ -n "${NEXTSTEP}" ]]
 	echo
 	echo "   ***   Launching WRF for next step: ${NEXTSTEP}   ***   "
 	echo
-	ssh gpc01 "cd ${INIDIR}; qsub ./${SCRIPTNAME} -v NEXTSTEP=${NEXTSTEP}"
+	# submit next job to LoadLeveler (TCS)
+	ssh tcs01 "cd ${INIDIR}; llsubmit ./${SCRIPTNAME} -v NEXTSTEP=${NEXTSTEP}"
 fi
-
-## alternative PBS settings
-##PBS -l nodes=1:ppn=8 
-##PBS -l walltime=0:15:00
-##PBS -W x=nodesetisoptional:false 
-##PBS -e $PBS_JOBNAME.$PBS_JOBID.err
-
-## old code fragments that may be useful later...
-	# N.B.: find is necessary to avoid linking all the linked restart files again
-	#find "${WORKDIR}" -maxdepth 1 -type f -name "wrfrst_d??_*" -exec ln -fs {} \;
-	# reset restart output timer manually ('override_restart_time' does not seem to work)
-	#module load udunits/2.1.11 nco/4.0.8-intel-nocxx 	
-	#for RESTART in wrfrst_d??_*; do 
-	#	ncatted -O -a 'WRF_ALARM_SECS_TIL_NEXT_RING_51,global,o,l,0' "${RESTART}"
-	#	ncatted -O -a 'WRF_ALARM_SECS_TIL_NEXT_RING_55,global,o,l,0' "${RESTART}"
-	#done 
