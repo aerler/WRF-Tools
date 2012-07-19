@@ -17,12 +17,23 @@ echo "   Root Dir: ${INIDIR}"
 echo 
 
 # clear some folders
+cd "${INIDIR}"
 export METDATA="${INIDIR}/metgrid/"
 export WRFOUT="${INIDIR}/wrfout/"
 echo "   Clearing Output Folders:"
 echo "${METDATA}"
 echo "${WRFOUT}"
 rm -rf "${METDATA}" "${WRFOUT}" 
+
+# run geogrid
+# clear files
+cd "${INIDIR}"
+rm geo_em.d??.nc geogrid.log*
+# run with parallel processes
+echo
+echo "   Running geogrid.exe"
+echo
+mpirun -n 4 ./geogrid.exe
 
 # read first entry in stepfile 
 NEXTSTEP=$(python cycling.py)

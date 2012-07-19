@@ -21,7 +21,6 @@
 set -e # abort if anything goes wrong
 if [[ -z "${NEXTSTEP}" ]]; then exit 1; fi
 CURRENTSTEP="${NEXTSTEP}" # $NEXTSTEP will be overwritten
-# N.B.: the calling script should also set the job name to ${NEXTSTEP}_WPS
 
 ## job settings
 export SCRIPTNAME="run_${PBS_JOBNAME}.pbs" # WPS suffix assumed

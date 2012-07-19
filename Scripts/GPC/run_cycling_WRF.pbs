@@ -2,22 +2,19 @@
 #MOAB/Torque submission script for SciNet GPC
 
 ## queue/PBS settings
-##PBS -l nodes=1:ppn=8 
-##PBS -l walltime=0:15:00
 #PBS -l nodes=8:ppn=8
 #PBS -l walltime=0:30:00
-##PBS -W x=nodesetisoptional:false 
 # std and error output
 #PBS -j oe
 #PBS -o $PBS_JOBNAME.$PBS_JOBID.out
-##PBS -e $PBS_JOBNAME.$PBS_JOBID.err
 # send email if abort (nbae)
 #PBS -M aerler@atmosp.physics.utoronto.ca
 #PBS -m ae
 # job name
 #PBS -N cycling_WRF
-# job dependency (this ${PBS_JOBNAME%_WRF}_WPS does not work)
+# job dependency 
 #PBS -W depend:afterok:cycling_WPS
+# N.B.: this ${PBS_JOBNAME%_WRF}_WPS does not work
 ## submit to queue (NB: this has to be the last PBS line!)
 # batch (default), debug, largemem
 #PBS -q batch 
@@ -30,6 +27,7 @@ CURRENTSTEP="${NEXTSTEP}" # $NEXTSTEP will be overwritten
 
 ## job settings
 export SCRIPTNAME="run_${PBS_JOBNAME}.pbs" # WRF suffix assumed
+export DEPENDENCY="run_${PBS_JOBNAME%_WRF}_WPS.pbs" # WRF suffix assumed, WPS suffix substituted
 export CLEARWDIR=0 # do not clear working director
 # run configuration
 export NODES=${PBS_NUM_NODES} # set in PBS section
@@ -73,7 +71,7 @@ if [[ -n "${NEXTSTEP}" ]]
 	echo "   ***   Launching WPS for next step: ${NEXTSTEP}   ***   "
 	echo
 	# submitting independent WPS job
-	ssh gpc01 "cd ${INIDIR}; qsub ./run_cycling_WPS.pbs -v NEXTSTEP=${NEXTSTEP}"
+	ssh gpc01 "cd ${INIDIR}; qsub ./${DEPENDENCY} -v NEXTSTEP=${NEXTSTEP}"
 fi
 
 
@@ -110,21 +108,29 @@ if [[ -n "${NEXTSTEP}" ]]
 	echo 
 	echo "Linking restart files to next working directory:"
 	echo "${NEXTDIR}"
+	for RESTART in "${WORKDIR}"/wrfrst_d??_*; do
+		if [[ ! -h "${RESTART}" ]]; then ln -sf "${RESTART}"; fi # if not a link itself
+	done
+	# start next cycle
+	cd "${INIDIR}"
+	echo
+	echo "   ***   Launching WRF for next step: ${NEXTSTEP}   ***   "
+	echo
+	ssh gpc01 "cd ${INIDIR}; qsub ./${SCRIPTNAME} -v NEXTSTEP=${NEXTSTEP}"
+fi
+
+## alternative PBS settings
+##PBS -l nodes=1:ppn=8 
+##PBS -l walltime=0:15:00
+##PBS -W x=nodesetisoptional:false 
+##PBS -e $PBS_JOBNAME.$PBS_JOBID.err
+
+## old code fragments that may be useful later...
 	# N.B.: find is necessary to avoid linking all the linked restart files again
 	#find "${WORKDIR}" -maxdepth 1 -type f -name "wrfrst_d??_*" -exec ln -fs {} \;
-	for RESTART in "${WORKDIR}"/wrfrst_d??_*; do
-		if [[ ! -h "${RESTART}" ]]; then ln -sf "${RESTART}"; fi
-	done
 	# reset restart output timer manually ('override_restart_time' does not seem to work)
 	#module load udunits/2.1.11 nco/4.0.8-intel-nocxx 	
 	#for RESTART in wrfrst_d??_*; do 
 	#	ncatted -O -a 'WRF_ALARM_SECS_TIL_NEXT_RING_51,global,o,l,0' "${RESTART}"
 	#	ncatted -O -a 'WRF_ALARM_SECS_TIL_NEXT_RING_55,global,o,l,0' "${RESTART}"
 	#done 
-	# start next cycle
-	cd "${INIDIR}"
-	echo
-	echo "   ***   Launching WRF for next step: ${NEXTSTEP}   ***   "
-	echo
-	ssh gpc01 "cd ${INIDIR}; qsub ./run_cycling_WRF.pbs -v NEXTSTEP=${NEXTSTEP}"
-fi
