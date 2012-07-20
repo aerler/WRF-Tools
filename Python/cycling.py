@@ -40,7 +40,7 @@ if __name__ == '__main__':
 
 
   # read step file
-  file = fileinput.FileInput([IniDir + '/' + stepfile], mode='r')
+  file = fileinput.FileInput([IniDir + '/' + stepfile]) # , mode='r' # AIX doesn't like this
   nextline = -1 # flag for last step not found 
   if laststep:
     # either loop over lines
@@ -97,7 +97,7 @@ if __name__ == '__main__':
     sys.stdout.write(nextstep)
     
     # determine number of domains
-    file = fileinput.FileInput([StepFolder+nmlstwps], mode='r')    
+    file = fileinput.FileInput([StepFolder+nmlstwps]) # , mode='r' # AIX doesn't like this
     for line in file: # loop over entries/lines
       if 'max_dom' in line: # search for relevant entries
         maxdom = int(line.split()[2].strip(','))

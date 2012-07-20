@@ -1,9 +1,9 @@
 #!/usr/bin/bash
 # Specifies the name of the shell to use for the job 
 # @ shell = /usr/bin/bash
-# @ job_name = test_WRF
-# @ wall_clock_limit = 04:00:00
-# @ node = 4 
+# @ job_name = cycling_WRF
+# @ wall_clock_limit = 01:00:00
+# @ node = 1 
 # @ tasks_per_node = 64
 # @ environment = COPY_ALL; MEMORY_AFFINITY=MCM; MP_SYNC_QP=YES; \
 #                MP_RFIFO_SIZE=16777216; MP_SHM_ATTACH_THRESH=500000; \
@@ -37,7 +37,7 @@ export SCRIPTNAME="run_${LOADL_JOB_NAME}.ll" # WRF suffix assumed
 export DEPENDENCY="run_${LOADL_JOB_NAME%_WRF}_WPS.pbs" # run WPS on GPC (WPS suffix substituted for WRF)
 export CLEARWDIR=0 # do not clear working director
 # run configuration
-export NODES=4 # also has to be set in LL section
+export NODES=1 # also has to be set in LL section
 export TASKS=64 # number of MPI task per node (Hpyerthreading!)
 export THREADS=1 # number of OpenMP threads
 # directory setup
@@ -77,7 +77,7 @@ if [[ -n "${NEXTSTEP}" ]]
 	echo "   ***   Launching WPS for next step: ${NEXTSTEP}   ***   "
 	echo
 	# submitting independent WPS job to GPC (not TCS!)
-	ssh gpc01 "cd ${INIDIR}; qsub ./${DEPENDENCY} -v NEXTSTEP=${NEXTSTEP}"
+	ssh gpc-f104n084 "cd ${INIDIR}; qsub ./${DEPENDENCY} -v NEXTSTEP=${NEXTSTEP}"
 fi
 
 

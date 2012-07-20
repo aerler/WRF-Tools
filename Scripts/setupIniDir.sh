@@ -46,7 +46,7 @@ ln -sf "${WRFTOOLS}/NCL/eta2p.ncl"
 if [[ "$WPSSYS" == "GPC" ]]; then
 	ln -sf "${WRFTOOLS}/Scripts/GPC/setupGPC.sh"
 	ln -sf "${WRFTOOLS}/bin/GPC-lm/unccsm.exe"
-	ln -sf "${WPSSRC}/GPC-MPI/O3xSSSE3/geogrid.exe"
+	ln -sf "${WPSSRC}/GPC-MPI/O3xHost/geogrid.exe"
 	ln -sf "${WPSSRC}/GPC-MPI/O3xSSSE3/metgrid.exe"
 	ln -sf "${WRFSRC}/GPC-MPI/O3xSSSE3/real.exe"
 	if [[ -n "${CYCLING}" ]]; then
@@ -54,6 +54,10 @@ if [[ "$WPSSYS" == "GPC" ]]; then
 	else
 		ln -sf "${WRFTOOLS}/Scripts/GPC/run_test_WPS.pbs"
 	fi		
+fi
+# Some modifications if WRF is running on TCS
+if [[ "$WRFSYS" == "TCS" ]]; then
+	ln -sf "${WPSSRC}/TCS-MPI/NoOptO3/geogrid.exe"
 fi
 
 ## WPS/WRF namelists
@@ -84,7 +88,7 @@ if [[ "$WRFSYS" == "TCS" ]]; then
 	ln -sf "${WRFTOOLS}/Scripts/TCS/setupTCS.sh"
 	ln -sf "${WRFTOOLS}/Scripts/TCS/run_test_WRF.ll"
     if [[ -n "${CYCLING}" ]]; then
-        ln -sf "${WRFTOOLS}/Scripts/GPC/run_cycle_ll.sh"
+        ln -sf "${WRFTOOLS}/Scripts/TCS/run_cycle_ll.sh"
         ln -sf "${WRFTOOLS}/Python/cycling.py"
         cp "${WRFTOOLS}/misc/namelists/stepfile.${CYCLING}" 'stepfile' 
         ln -sf "${WRFTOOLS}/Scripts/TCS/run_cycling_WRF.ll"

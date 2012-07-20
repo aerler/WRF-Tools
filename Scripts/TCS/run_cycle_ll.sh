@@ -7,6 +7,7 @@
 set -e # abort if anything goes wrong
 export STEPFILE='stepfile' # file in $INIDIR
 export INIDIR="${PWD}" # current directory
+CASENAME='cycling' # name tag
 
 # launch feedback
 echo
@@ -28,12 +29,12 @@ rm -rf "${METDATA}" "${WRFOUT}"
 # run geogrid
 # clear files
 cd "${INIDIR}"
-rm geo_em.d??.nc geogrid.log*
+rm -f geo_em.d??.nc geogrid.log*
 # run with parallel processes
 echo
 echo "   Running geogrid.exe"
 echo
-mpirun -n 4 ./geogrid.exe
+mpiexec -n 4 ./geogrid.exe
 
 # read first entry in stepfile 
 NEXTSTEP=$(python cycling.py)
@@ -49,11 +50,11 @@ sed -i '/restart\s/ s/restart\s*=\s*\.true\..*$/restart = .false.,/' \
 # and make sure the rest is on restart
 sed -i '/restart\s/ s/restart\s*=\s*\.false\..*$/restart = .true.,/' \
  "${INIDIR}/namelist.input"
-echo "  Setting restart option and interval in namelist."
+echo "   Setting restart option and interval in namelist."
 echo
 
 # submit first independent WPS job to GPC (not TCS!)
-ssh gpc01 "cd ${INIDIR}; qsub ./${DEPENDENCY} -v NEXTSTEP=${NEXTSTEP}"
+ssh gpc-f104n084 "cd ${INIDIR}; qsub ./run_${CASENAME}_WPS.pbs -v NEXTSTEP=${NEXTSTEP}"
 
 # wait until WPS job is completed: check presence of wrfinput files
 echo
@@ -67,4 +68,4 @@ echo
 
 # submit first WRF instance on TCS
 export NEXTSTEP # this is how env vars are passed to LL
-llsubmit ./run_cycling_WRF.pbs
+llsubmit ./run_${CASENAME}_WRF.ll
