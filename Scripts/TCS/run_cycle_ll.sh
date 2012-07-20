@@ -33,9 +33,7 @@ rm geo_em.d??.nc geogrid.log*
 echo
 echo "   Running geogrid.exe"
 echo
-mpirun -n $OMP_NUM_THREADS ./geogrid.exe
-# N.B.: $OMP_NUM_THREADS is used as a proxy for # cores
-  
+mpirun -n 4 ./geogrid.exe
 
 # read first entry in stepfile 
 NEXTSTEP=$(python cycling.py)
@@ -54,10 +52,19 @@ sed -i '/restart\s/ s/restart\s*=\s*\.false\..*$/restart = .true.,/' \
 echo "  Setting restart option and interval in namelist."
 echo
 
-# launch first WPS instance
-./run_cycling_WPS.sh
-wait
+# submit first independent WPS job to GPC (not TCS!)
+ssh gpc01 "cd ${INIDIR}; qsub ./${DEPENDENCY} -v NEXTSTEP=${NEXTSTEP}"
 
-# launch first WRF instance
-./run_cycling_WRF.sh
-wait
+# wait until WPS job is completed: check presence of wrfinput files
+echo
+echo "   Waiting for WPS job on GPC to complete..."
+while [ ! -e "${INIDIR}/${NEXTSTEP}/wrfinput_d01" ]
+  do
+    sleep 30
+done
+echo "   ... WPS completed. Submitting WRF job to LoadLeveler."
+echo
+
+# submit first WRF instance on TCS
+export NEXTSTEP # this is how env vars are passed to LL
+llsubmit ./run_cycling_WRF.pbs

@@ -18,9 +18,9 @@ DATATAG="marc"
 DATADIR="/scratch/p/peltier/marcdo/archive/tb20trcn1x1/"
 CASE="clim"
 # WRF
-WRFSYS="GPC"
+WRFSYS="TCS"
 # cycling
-CYCLING="daily"
+CYCLING="monthly"
 
 ## link in WPS stuff
 # meta data
@@ -50,9 +50,6 @@ if [[ "$WPSSYS" == "GPC" ]]; then
 	ln -sf "${WPSSRC}/GPC-MPI/O3xSSSE3/metgrid.exe"
 	ln -sf "${WRFSRC}/GPC-MPI/O3xSSSE3/real.exe"
 	if [[ -n "${CYCLING}" ]]; then
-		ln -sf "${WRFTOOLS}/Scripts/GPC/run_cycle_pbs.sh"
-		ln -sf "${WRFTOOLS}/Python/cycling.py"
-		cp "${WRFTOOLS}/misc/namelists/stepfile.${CYCLING}" 'stepfile' 
 		ln -sf "${WRFTOOLS}/Scripts/GPC/run_cycling_WPS.pbs"
 	else
 		ln -sf "${WRFTOOLS}/Scripts/GPC/run_test_WPS.pbs"
@@ -73,6 +70,9 @@ ln -sf "/home/p/peltier/aerler/WRF/WRFV3/run/" 'tables' # WRF default tables
 if [[ "$WRFSYS" == "GPC" ]]; then
 	ln -sf "${WRFTOOLS}/Scripts/GPC/setupGPC.sh"
 	if [[ -n "${CYCLING}" ]]; then
+        ln -sf "${WRFTOOLS}/Scripts/GPC/run_cycle_pbs.sh"
+        ln -sf "${WRFTOOLS}/Python/cycling.py"
+        cp "${WRFTOOLS}/misc/namelists/stepfile.${CYCLING}" 'stepfile' 
 		ln -sf "${WRFTOOLS}/Scripts/GPC/run_cycling_WRF.pbs"
 	else
 		ln -sf "${WRFTOOLS}/Scripts/GPC/run_test_WRF.pbs"
@@ -83,10 +83,18 @@ fi
 if [[ "$WRFSYS" == "TCS" ]]; then
 	ln -sf "${WRFTOOLS}/Scripts/TCS/setupTCS.sh"
 	ln -sf "${WRFTOOLS}/Scripts/TCS/run_test_WRF.ll"
+    if [[ -n "${CYCLING}" ]]; then
+        ln -sf "${WRFTOOLS}/Scripts/GPC/run_cycle_ll.sh"
+        ln -sf "${WRFTOOLS}/Python/cycling.py"
+        cp "${WRFTOOLS}/misc/namelists/stepfile.${CYCLING}" 'stepfile' 
+        ln -sf "${WRFTOOLS}/Scripts/TCS/run_cycling_WRF.ll"
+    else
+        ln -sf "${WRFTOOLS}/Scripts/TCS/run_test_WRF.ll"
+    fi
 	ln -sf "${WRFSRC}/TCS-MPI/O3/wrf.exe"
 fi
 
 ## prompt user to create data links
 echo "Remainign tasks:"
-echo " * review meta data (meta/) and edit namelists"
-echo " * adapt run scripts" 
+echo " * review meta data (meta/ and tables/) and edit namelists"
+echo " * adapt run scripts, if necessary" 

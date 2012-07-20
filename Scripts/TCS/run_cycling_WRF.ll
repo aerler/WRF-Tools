@@ -124,5 +124,5 @@ if [[ -n "${NEXTSTEP}" ]]
 	echo "   ***   Launching WRF for next step: ${NEXTSTEP}   ***   "
 	echo
 	# submit next job to LoadLeveler (TCS)
-	ssh tcs01 "cd ${INIDIR}; llsubmit ./${SCRIPTNAME} -v NEXTSTEP=${NEXTSTEP}"
+	ssh tcs01 "cd ${INIDIR};export NEXTSTEP=${NEXTSTEP}; llsubmit ./${SCRIPTNAME}"
 fi
