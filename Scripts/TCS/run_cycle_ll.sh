@@ -34,7 +34,7 @@ rm -f geo_em.d??.nc geogrid.log*
 echo
 echo "   Running geogrid.exe"
 echo
-mpiexec -n 4 ./geogrid.exe
+#mpiexec -n 8 ./geogrid.exe
 
 # read first entry in stepfile 
 NEXTSTEP=$(python cycling.py)
@@ -54,12 +54,15 @@ echo "   Setting restart option and interval in namelist."
 echo
 
 # submit first independent WPS job to GPC (not TCS!)
+echo
+echo "   Submitting first WPS job to GPC queue:"
 ssh gpc-f104n084 "cd ${INIDIR}; qsub ./run_${CASENAME}_WPS.pbs -v NEXTSTEP=${NEXTSTEP}"
+echo
 
 # wait until WPS job is completed: check presence of wrfinput files
 echo
 echo "   Waiting for WPS job on GPC to complete..."
-while [ ! -e "${INIDIR}/${NEXTSTEP}/wrfinput_d01" ]
+while [[ ! -e "${INIDIR}/${NEXTSTEP}/wrfinput_d01" ]]
   do
     sleep 30
 done
@@ -67,5 +70,8 @@ echo "   ... WPS completed. Submitting WRF job to LoadLeveler."
 echo
 
 # submit first WRF instance on TCS
+echo
+echo "   Submitting first WRF job to TCS queue:"
 export NEXTSTEP # this is how env vars are passed to LL
 llsubmit ./run_${CASENAME}_WRF.ll
+echo

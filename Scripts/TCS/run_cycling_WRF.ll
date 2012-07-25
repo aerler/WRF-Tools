@@ -14,7 +14,7 @@
 # @ class = verylong
 # @ node_usage = not_shared
 # @ output = $(job_name).$(jobid).out
-# @ error = $(job_name).$(jobid).err
+# @ error = $(job_name).$(jobid).out
 #=====================================
 ## this is necessary in order to avoid core dumps for batch files
 ## which can cause the system to be overloaded
@@ -42,7 +42,7 @@ export TASKS=64 # number of MPI task per node (Hpyerthreading!)
 export THREADS=1 # number of OpenMP threads
 # directory setup
 export INIDIR="${LOADL_STEP_INITDIR}" # launch directory
-export RUNNAME="${LOADL_JOB_NAME%_*}" # strip WRF suffix
+export RUNNAME="${CURRENTSTEP}" # step name, not job name!
 export WORKDIR="${INIDIR}/${RUNNAME}/"
 
 ## real.exe settings
@@ -78,6 +78,7 @@ if [[ -n "${NEXTSTEP}" ]]
 	echo
 	# submitting independent WPS job to GPC (not TCS!)
 	ssh gpc-f104n084 "cd ${INIDIR}; qsub ./${DEPENDENCY} -v NEXTSTEP=${NEXTSTEP}"
+	#cho '   >>>   Skip WPS for now.   <<<'
 fi
 
 
@@ -118,11 +119,22 @@ if [[ -n "${NEXTSTEP}" ]]
 	for RESTART in "${WORKDIR}"/wrfrst_d??_*; do
 		if [[ ! -h "${RESTART}" ]]; then ln -sf "${RESTART}"; fi # if not a link itself
 	done
+	# check for WRF input files (in next working directory)
+	if [[ ! -e "${INIDIR}/${NEXTSTEP}/wrfinput_d01" ]]
+		echo
+		echo "   ***   Waiting for WPS to complete...   ***"
+		echo
+		while [[ ! -e "${INIDIR}/${NEXTSTEP}/wrfinput_d01" ]]; do
+			sleep 5 # need faster turnover tosubmit next step
+		done
+	fi
 	# start next cycle
 	cd "${INIDIR}"
 	echo
 	echo "   ***   Launching WRF for next step: ${NEXTSTEP}   ***   "
 	echo
 	# submit next job to LoadLeveler (TCS)
-	ssh tcs01 "cd ${INIDIR};export NEXTSTEP=${NEXTSTEP}; llsubmit ./${SCRIPTNAME}"
+	#ssh tcs-f11n06 "cd ${INIDIR};export NEXTSTEP=${NEXTSTEP}; llsubmit ./${SCRIPTNAME}"
+	export NEXTSTEP=${NEXTSTEP}
+	llsubmit ./${SCRIPTNAME}
 fi

@@ -13,7 +13,7 @@ echo
 
 # load modules
 module purge
-module load xlf vacpp hdf5/187-v18-serial-xlc netcdf/4.1.3_hdf5_serial-xlc 
+module load xlf vacpp hdf5/187-v18-serial-xlc netcdf/4.1.3_hdf5_serial-xlc python 
 #module load xlf/13.1 vacpp/11.1 hdf5/187-v18-serial-xlc netcdf/4.1.3_hdf5_serial-xlc
 module list
 echo
