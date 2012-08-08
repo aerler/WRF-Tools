@@ -56,7 +56,7 @@ echo
 # submit first independent WPS job to GPC (not TCS!)
 echo
 echo "   Submitting first WPS job to GPC queue:"
-ssh gpc-f104n084 "cd ${INIDIR}; qsub ./run_${CASENAME}_WPS.pbs -v NEXTSTEP=${NEXTSTEP}"
+ssh gpc-f104n084 "cd \"${INIDIR}\"; qsub ./run_${CASENAME}_WPS.pbs -v NEXTSTEP=${NEXTSTEP}"
 echo
 
 # wait until WPS job is completed: check presence of wrfinput files

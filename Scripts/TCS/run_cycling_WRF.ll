@@ -77,7 +77,7 @@ if [[ -n "${NEXTSTEP}" ]]
 	echo "   ***   Launching WPS for next step: ${NEXTSTEP}   ***   "
 	echo
 	# submitting independent WPS job to GPC (not TCS!)
-	ssh gpc-f104n084 "cd ${INIDIR}; qsub ./${DEPENDENCY} -v NEXTSTEP=${NEXTSTEP}"
+	ssh gpc-f104n084 "cd \"${INIDIR}\"; qsub ./${DEPENDENCY} -v NEXTSTEP=${NEXTSTEP}"
 	#cho '   >>>   Skip WPS for now.   <<<'
 fi
 
@@ -134,7 +134,7 @@ if [[ -n "${NEXTSTEP}" ]]
 	echo "   ***   Launching WRF for next step: ${NEXTSTEP}   ***   "
 	echo
 	# submit next job to LoadLeveler (TCS)
-	#ssh tcs-f11n06 "cd ${INIDIR};export NEXTSTEP=${NEXTSTEP}; llsubmit ./${SCRIPTNAME}"
+	#ssh tcs-f11n06 "cd \"${INIDIR}\"; export NEXTSTEP=${NEXTSTEP}; llsubmit ./${SCRIPTNAME}"
 	export NEXTSTEP=${NEXTSTEP}
 	llsubmit ./${SCRIPTNAME}
 fi
