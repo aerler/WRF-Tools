@@ -5,4 +5,4 @@
 
 # general settings
 prefix = 'tb20trcn1x1' # file prefix for CESM output
-ldisk = FALSE # don't write metgrid files to hard disk
+ldisk = False # don't write metgrid files to hard disk
