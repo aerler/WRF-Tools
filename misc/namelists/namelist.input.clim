@@ -24,7 +24,6 @@
  history_interval                    = 360, 360, 360, 360, 360, 
  frames_per_outfile                  = 1, 1, 1, 1, 1, 
  write_hist_at_0h_rst                = .false.,
- override_restart_timers      	     = .false.,
  io_form_history                     = 2,
  io_form_restart                     = 2,
  io_form_input                       = 2,

@@ -240,11 +240,14 @@ tar czf ${WRFTGZ} "${WRFLOG}" # archive logs with data
 if [[ ! "${WRFDIR}" == "${WORKDIR}" ]]; then 
 	mv "${WRFLOG}" "${WORKDIR}" # move log folder to working directory
 fi
-# copy/move date to output directory (hard disk) if necessary
+# copy/move data to output directory (hard disk) if necessary
 if [[ ! "${WRFDIR}" == "${WRFOUT}" ]]; then 
 	echo "Moving data and log-files (*.tgz) to ${WRFOUT}"
-	time -p mv wrfout_d??_* wrfxtrm_d??_* wrfflake_d??_* "${WRFOUT}" 
+	time -p mv wrfout_d??_* "${WRFOUT}" 
+	mv wrfxtrm_d??_* "${WRFOUT}" 
+	mv wrfflake_d??_* "${WRFOUT}" 
 	# N.B.: don't move restart files! 
+	# N.B.: move separately to avoid "too long argument list" error
 	# copy real.exe log files to wrf output
 	mv "${WORKDIR}"/*.tgz "${WRFOUT}"
 fi

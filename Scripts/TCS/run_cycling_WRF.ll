@@ -2,8 +2,8 @@
 # Specifies the name of the shell to use for the job 
 # @ shell = /usr/bin/bash
 # @ job_name = cycling_WRF
-# @ wall_clock_limit = 01:00:00
-# @ node = 1 
+# @ wall_clock_limit = 06:00:00
+# @ node = 4 
 # @ tasks_per_node = 64
 # @ environment = COPY_ALL; MEMORY_AFFINITY=MCM; MP_SYNC_QP=YES; \
 #                MP_RFIFO_SIZE=16777216; MP_SHM_ATTACH_THRESH=500000; \
@@ -37,7 +37,7 @@ export SCRIPTNAME="run_${LOADL_JOB_NAME}.ll" # WRF suffix assumed
 export DEPENDENCY="run_${LOADL_JOB_NAME%_WRF}_WPS.pbs" # run WPS on GPC (WPS suffix substituted for WRF)
 export CLEARWDIR=0 # do not clear working director
 # run configuration
-export NODES=1 # also has to be set in LL section
+export NODES=5 # also has to be set in LL section
 export TASKS=64 # number of MPI task per node (Hpyerthreading!)
 export THREADS=1 # number of OpenMP threads
 # directory setup
@@ -109,7 +109,7 @@ echo
 
 ## launch WRF for next step (if $NEXTSTEP is not empty)
 if [[ -n "${NEXTSTEP}" ]]
- then
+  then
 	NEXTDIR="${INIDIR}/${NEXTSTEP}" # next $WORKDIR
 	cd "${NEXTDIR}"
 	# link restart files
@@ -121,11 +121,12 @@ if [[ -n "${NEXTSTEP}" ]]
 	done
 	# check for WRF input files (in next working directory)
 	if [[ ! -e "${INIDIR}/${NEXTSTEP}/wrfinput_d01" ]]
+	  then
 		echo
 		echo "   ***   Waiting for WPS to complete...   ***"
 		echo
 		while [[ ! -e "${INIDIR}/${NEXTSTEP}/wrfinput_d01" ]]; do
-			sleep 5 # need faster turnover tosubmit next step
+			sleep 5 # need faster turnover to submit next step
 		done
 	fi
 	# start next cycle
