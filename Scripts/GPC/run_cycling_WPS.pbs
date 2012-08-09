@@ -2,8 +2,8 @@
 #MOAB/Torque submission script for SciNet GPC
 
 ## queue/PBS settings
-#PBS -l nodes=1:m32g:ppn=8
-##PBS -l nodes=1:m128g:ppn=16
+##PBS -l nodes=1:m32g:ppn=8
+#PBS -l nodes=1:m128g:ppn=16
 #PBS -l walltime=0:15:00
 # merge standard error and output stream
 #PBS -j oe
@@ -15,7 +15,7 @@
 #PBS -N cycling_WPS
 ## submit to queue (NB: this has to be the last PBS line!)
 # batch (default), debug, largemem
-#PBS -q batch
+#PBS -q largemem
 
 # check if $NEXTSTEP is set, and exit, if not
 set -e # abort if anything goes wrong
@@ -40,7 +40,7 @@ export RUNREAL=1
 export RAMIN=1
 export RAMOUT=1
 # folders: $METDATA, $REALIN, $REALOUT
-export METDATA="${INIDIR}/metgrid/" # actually we don't output metgrid data anyway
+export METDATA="${INIDIR}/metgrid/" # to output metgrid data set "ldisk = True" in meta/namelist.py
 export REALOUT="${WORKDIR}" # this should be default anyway
 
 

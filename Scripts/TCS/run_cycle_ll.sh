@@ -34,7 +34,7 @@ rm -f geo_em.d??.nc geogrid.log*
 echo
 echo "   Running geogrid.exe"
 echo
-#mpiexec -n 8 ./geogrid.exe
+mpiexec -n 8 ./geogrid.exe
 
 # read first entry in stepfile 
 NEXTSTEP=$(python cycling.py)
