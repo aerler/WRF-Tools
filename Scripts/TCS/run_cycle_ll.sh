@@ -29,12 +29,12 @@ rm -rf "${METDATA}" "${WRFOUT}"
 # run geogrid
 # clear files
 cd "${INIDIR}"
-rm -f geo_em.d??.nc geogrid.log*
 # run with parallel processes
 echo
 echo "   Running geogrid.exe"
 echo
-mpiexec -n 8 ./geogrid.exe
+#rm -f geo_em.d??.nc geogrid.log*
+#mpiexec -n 8 ./geogrid.exe
 
 # read first entry in stepfile 
 NEXTSTEP=$(python cycling.py)

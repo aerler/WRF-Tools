@@ -45,8 +45,8 @@ if __name__ == '__main__':
   if laststep:
     # either loop over lines
     for line in file:
-      if (nextline == -1) and (laststep in line):
-        # scan for current/last step    
+      if (nextline == -1) and (laststep in line.split()[0]):
+        # scan for current/last step (in first column)   
         nextline = file.filelineno() + 1
       elif nextline == file.filelineno():
         # read next line
