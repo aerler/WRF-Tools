@@ -2,8 +2,8 @@
 #MOAB/Torque submission script for SciNet GPC
 
 ## queue/PBS settings
-#PBS -l nodes=8:ppn=8
-#PBS -l walltime=0:30:00
+#PBS -l nodes=16:ppn=8
+#PBS -l walltime=6:00:00
 # std and error output
 #PBS -j oe
 #PBS -o $PBS_JOBNAME.$PBS_JOBID.out
@@ -26,8 +26,8 @@ CURRENTSTEP="${NEXTSTEP}" # $NEXTSTEP will be overwritten
 
 
 ## job settings
-export SCRIPTNAME="run_${PBS_JOBNAME}.pbs" # WRF suffix assumed
-export DEPENDENCY="run_${PBS_JOBNAME%_WRF}_WPS.pbs" # WRF suffix assumed, WPS suffix substituted
+export SCRIPTNAME="run_cycling_WRF.pbs" # WRF suffix assumed
+export DEPENDENCY="run_cycling_WPS.pbs" # WRF suffix assumed, WPS suffix substituted: ${JOBNAME%_WRF}_WPS
 export CLEARWDIR=0 # do not clear working director
 # run configuration
 export NODES=${PBS_NUM_NODES} # set in PBS section

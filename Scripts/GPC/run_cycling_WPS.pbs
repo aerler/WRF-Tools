@@ -23,7 +23,7 @@ if [[ -z "${NEXTSTEP}" ]]; then exit 1; fi
 CURRENTSTEP="${NEXTSTEP}" # $NEXTSTEP will be overwritten
 
 ## job settings
-export SCRIPTNAME="run_${PBS_JOBNAME}.pbs" # WPS suffix assumed
+export SCRIPTNAME="run_cycling_WPS.pbs" # WPS suffix assumed
 export CLEARWDIR=0 # do not clear working director
 # run configuration
 export NODES=1 # only one for WPS!

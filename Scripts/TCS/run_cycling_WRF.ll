@@ -33,11 +33,11 @@ CURRENTSTEP="${NEXTSTEP}" # $NEXTSTEP will be overwritten
 
 
 ## job settings
-export SCRIPTNAME="run_${LOADL_JOB_NAME}.ll" # WRF suffix assumed
-export DEPENDENCY="run_${LOADL_JOB_NAME%_WRF}_WPS.pbs" # run WPS on GPC (WPS suffix substituted for WRF)
+export SCRIPTNAME="run_cycling_WRF.ll" # WRF suffix assumed
+export DEPENDENCY="run_cycling_WPS.pbs" # run WPS on GPC (WPS suffix substituted for WRF): ${LOADL_JOB_NAME%_WRF}_WPS
 export CLEARWDIR=0 # do not clear working director
 # run configuration
-export NODES=5 # also has to be set in LL section
+export NODES=4 # also has to be set in LL section
 export TASKS=64 # number of MPI task per node (Hpyerthreading!)
 export THREADS=1 # number of OpenMP threads
 # directory setup
