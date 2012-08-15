@@ -48,7 +48,7 @@ if [[ "$WPSSYS" == "GPC" ]]; then
 	ln -sf "${WRFTOOLS}/bin/GPC-lm/unccsm.exe"
 	ln -sf "${WPSSRC}/GPC-MPI/O3xHost/geogrid.exe"
 	ln -sf "${WPSSRC}/GPC-MPI/O3xSSSE3/metgrid.exe"
-	ln -sf "${WRFSRC}/GPC-MPI/O3xSSSE3/real.exe"
+	ln -sf "${WRFSRC}/GPC-MPI-Clim/O3xSSSE3/real.exe"
 	if [[ -n "${CYCLING}" ]]; then
 		ln -sf "${WRFTOOLS}/Scripts/GPC/run_cycling_WPS.pbs"
 	else
@@ -81,7 +81,7 @@ if [[ "$WRFSYS" == "GPC" ]]; then
 	else
 		ln -sf "${WRFTOOLS}/Scripts/GPC/run_test_WRF.pbs"
 	fi
-	ln -sf "${WRFSRC}/GPC-MPI/O3xHost/wrf.exe"
+	ln -sf "${WRFSRC}/GPC-MPI-Clim/O3xHost/wrf.exe"
 fi
 # WRF on TCS
 if [[ "$WRFSYS" == "TCS" ]]; then
@@ -95,7 +95,7 @@ if [[ "$WRFSYS" == "TCS" ]]; then
     else
         ln -sf "${WRFTOOLS}/Scripts/TCS/run_test_WRF.ll"
     fi
-	ln -sf "${WRFSRC}/TCS-MPI/O3/wrf.exe"
+	ln -sf "${WRFSRC}/TCS-MPI-Clim/O3/wrf.exe"
 fi
 
 ## prompt user to create data links
