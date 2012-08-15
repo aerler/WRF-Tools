@@ -62,7 +62,7 @@ echo
 # wait until WPS job is completed: check presence of wrfinput files
 echo
 echo "   Waiting for WPS job on GPC to complete..."
-while [[ ! -e "${INIDIR}/${NEXTSTEP}/wrfinput_d01" ]]
+while [[ ! -e "${INIDIR}/${NEXTSTEP}/wrfinput_d02" ]]
   do
     sleep 30
 done
