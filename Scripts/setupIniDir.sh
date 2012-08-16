@@ -50,9 +50,9 @@ if [[ "$WPSSYS" == "GPC" ]]; then
 	ln -sf "${WPSSRC}/GPC-MPI/O3xSSSE3/metgrid.exe"
 	ln -sf "${WRFSRC}/GPC-MPI-Clim/O3xSSSE3/real.exe"
 	if [[ -n "${CYCLING}" ]]; then
-		ln -sf "${WRFTOOLS}/Scripts/GPC/run_cycling_WPS.pbs"
+		cp "${WRFTOOLS}/Scripts/GPC/run_cycling_WPS.pbs" .
 	else
-		ln -sf "${WRFTOOLS}/Scripts/GPC/run_test_WPS.pbs"
+		cp "${WRFTOOLS}/Scripts/GPC/run_test_WPS.pbs" .
 	fi		
 fi
 # Some modifications if WRF is running on TCS
@@ -77,25 +77,25 @@ if [[ "$WRFSYS" == "GPC" ]]; then
         ln -sf "${WRFTOOLS}/Scripts/GPC/run_cycle_pbs.sh"
         ln -sf "${WRFTOOLS}/Python/cycling.py"
         cp "${WRFTOOLS}/misc/namelists/stepfile.${CYCLING}" 'stepfile' 
-		ln -sf "${WRFTOOLS}/Scripts/GPC/run_cycling_WRF.pbs"
+		cp "${WRFTOOLS}/Scripts/GPC/run_cycling_WRF.pbs" .
 	else
-		ln -sf "${WRFTOOLS}/Scripts/GPC/run_test_WRF.pbs"
+		cp "${WRFTOOLS}/Scripts/GPC/run_test_WRF.pbs" .
 	fi
 	ln -sf "${WRFSRC}/GPC-MPI-Clim/O3xHost/wrf.exe"
 fi
 # WRF on TCS
 if [[ "$WRFSYS" == "TCS" ]]; then
 	ln -sf "${WRFTOOLS}/Scripts/TCS/setupTCS.sh"
-	ln -sf "${WRFTOOLS}/Scripts/TCS/run_test_WRF.ll"
+	cp "${WRFTOOLS}/Scripts/TCS/run_test_WRF.ll" .
     if [[ -n "${CYCLING}" ]]; then
         ln -sf "${WRFTOOLS}/Scripts/TCS/run_cycle_ll.sh"
         ln -sf "${WRFTOOLS}/Python/cycling.py"
         cp "${WRFTOOLS}/misc/namelists/stepfile.${CYCLING}" 'stepfile' 
-        ln -sf "${WRFTOOLS}/Scripts/TCS/run_cycling_WRF.ll"
+        cp "${WRFTOOLS}/Scripts/TCS/run_cycling_WRF.ll" .
     else
-        ln -sf "${WRFTOOLS}/Scripts/TCS/run_test_WRF.ll"
+        cp "${WRFTOOLS}/Scripts/TCS/run_test_WRF.ll" .
     fi
-	ln -sf "${WRFSRC}/TCS-MPI-Clim/O3/wrf.exe"
+	ln -sf "${WRFSRC}/TCS-MPI-Clim/O3q64/wrf.exe"
 fi
 
 ## prompt user to create data links

@@ -1,7 +1,7 @@
 #!/usr/bin/bash
 # Specifies the name of the shell to use for the job 
 # @ shell = /usr/bin/bash
-# @ job_name = cycling_WRF
+# @ job_name = WC05_WRF
 # @ wall_clock_limit = 06:00:00
 # @ node = 4 
 # @ tasks_per_node = 64

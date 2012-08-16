@@ -8,6 +8,8 @@ set -e # abort if anything goes wrong
 export STEPFILE='stepfile' # file in $INIDIR
 export INIDIR="${PWD}" # current directory
 CASENAME='cycling' # name tag
+WPSSCRIPT="run_${CASENAME}_WPS.pbs"
+WRFSCRIPT="run_${CASENAME}_WRF.ll"
 
 # launch feedback
 echo
@@ -33,8 +35,8 @@ cd "${INIDIR}"
 echo
 echo "   Running geogrid.exe"
 echo
-#rm -f geo_em.d??.nc geogrid.log*
-#mpiexec -n 8 ./geogrid.exe
+rm -f geo_em.d??.nc geogrid.log*
+mpiexec -n 8 ./geogrid.exe
 
 # read first entry in stepfile 
 NEXTSTEP=$(python cycling.py)
@@ -56,13 +58,13 @@ echo
 # submit first independent WPS job to GPC (not TCS!)
 echo
 echo "   Submitting first WPS job to GPC queue:"
-ssh gpc-f104n084 "cd \"${INIDIR}\"; qsub ./run_${CASENAME}_WPS.pbs -v NEXTSTEP=${NEXTSTEP}"
+ssh gpc-f104n084 "cd \"${INIDIR}\"; qsub ./${WPSSCRIPT} -v NEXTSTEP=${NEXTSTEP}"
 echo
 
 # wait until WPS job is completed: check presence of wrfinput files
 echo
 echo "   Waiting for WPS job on GPC to complete..."
-while [[ ! -e "${INIDIR}/${NEXTSTEP}/wrfinput_d02" ]]
+while [[ ! -e "${INIDIR}/${NEXTSTEP}/${WPSSCRIPT}" ]]
   do
     sleep 30
 done
@@ -73,5 +75,5 @@ echo
 echo
 echo "   Submitting first WRF job to TCS queue:"
 export NEXTSTEP # this is how env vars are passed to LL
-llsubmit ./run_${CASENAME}_WRF.ll
+llsubmit ./${WRFSCRIPT}
 echo

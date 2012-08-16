@@ -4,25 +4,23 @@
 
 # settings
 set -e # abort if anything goes wrong
-export NEXTSTEP='1980-04' # step name/folder 
+export NEXTSTEP='1979-01' # step name/folder 
 export INIDIR="${PWD}" # current directory
 CASENAME='cycling' # name tag
 WPSSCRIPT="run_${CASENAME}_WPS.pbs"
 
 # launch feedback
 echo
-echo "   ***   Starting Cycle  ***   "
-echo
 echo "   Next Step: ${NEXTSTEP}"
 echo "   Root Dir: ${INIDIR}"
 echo 
 
 # submit first independent WPS job to GPC (not TCS!)
-echo
-echo "   Submitting first WPS job to GPC queue:"
+#echo
+#echo "   Submitting first WPS job to GPC queue:"
 #ssh gpc-f104n084 "cd \"${INIDIR}\"; qsub ./run_${CASENAME}_WPS.pbs -v NEXTSTEP=${NEXTSTEP}"
-echo "   WARNING: WPS disabled!"
-echo
+#echo "   WARNING: WPS disabled!"
+#echo
 
 # wait until WPS job is completed: check presence of WPS script as signal of completion
 echo
