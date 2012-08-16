@@ -74,14 +74,14 @@ NEXTSTEP=$(python cycling.py ${CURRENTSTEP})
 # launch WPS for next step (if $NEXTSTEP is not empty)
 if [[ -n "${NEXTSTEP}" ]] && [[ ! $NOWPS == 1 ]]
  then 
-	# this is only for the first instance; unset for next
-	unset NOWPS
 	echo "   ***   Launching WPS for next step: ${NEXTSTEP}   ***   "
 	echo
 	# submitting independent WPS job to GPC (not TCS!)
 	ssh gpc-f104n084 "cd \"${INIDIR}\"; qsub ./${DEPENDENCY} -v NEXTSTEP=${NEXTSTEP}"
 	#cho '   >>>   Skip WPS for now.   <<<'
 fi
+# this is only for the first instance; unset for next
+unset NOWPS
 
 
 ## run WRF for this step

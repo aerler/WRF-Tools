@@ -75,6 +75,8 @@ if [[ -n "${NEXTSTEP}" ]] && [[ ! $NOWPS == 1 ]]
 	# submitting independent WPS job
 	ssh gpc01 "cd ${INIDIR}; qsub ./${DEPENDENCY} -v NEXTSTEP=${NEXTSTEP}"
 fi
+# this is only for the first instance; unset for next
+unset NOWPS
 
 
 ## run WRF for this step
