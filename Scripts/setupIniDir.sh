@@ -68,7 +68,7 @@ cp "${WRFTOOLS}/misc/namelists/namelist.input.${CASE}" namelist.input
 cd "${RUNDIR}"
 ln -sf "${WRFTOOLS}/Scripts/prepWorkDir.sh"
 ln -sf "${WRFTOOLS}/Scripts/execWRF.sh"
-ln -sf "/home/p/peltier/aerler/WRF/WRFV3/run/" 'tables' # WRF default tables
+ln -sf "${WRFTOOLS}/misc/tables" 'tables' # WRF default tables
 #ln -sf "${WRFTOOLS}/misc/tables/" # new tables includign Noah-MP stuff 
 # WRF on GPC
 if [[ "$WRFSYS" == "GPC" ]]; then
