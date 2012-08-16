@@ -72,8 +72,10 @@ source setupTCS.sh # load machine-specific stuff
 NEXTSTEP=$(python cycling.py ${CURRENTSTEP})
 
 # launch WPS for next step (if $NEXTSTEP is not empty)
-if [[ -n "${NEXTSTEP}" ]]
- then
+if [[ -n "${NEXTSTEP}" ]] && [[ ! $NOWPS == 1 ]]
+ then 
+	# this is only for the first instance; unset for next
+	unset NOWPS
 	echo "   ***   Launching WPS for next step: ${NEXTSTEP}   ***   "
 	echo
 	# submitting independent WPS job to GPC (not TCS!)
