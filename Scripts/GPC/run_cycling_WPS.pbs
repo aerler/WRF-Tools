@@ -65,6 +65,9 @@ cd "${INIDIR}"
 cd "${INIDIR}"
 ./execWPS.sh
 
+# copy driver script into work dir to signal completion
+cp "${INIDIR}/${SCRIPTNAME}" "${WORKDIR}"
+
 # end timing
 echo
 echo '    ***    End Time    *** '

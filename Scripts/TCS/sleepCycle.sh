@@ -4,9 +4,10 @@
 
 # settings
 set -e # abort if anything goes wrong
-export NEXTSTEP='1980-02' # step name/folder 
+export NEXTSTEP='1980-04' # step name/folder 
 export INIDIR="${PWD}" # current directory
 CASENAME='cycling' # name tag
+WPSSCRIPT="run_${CASENAME}_WPS.pbs"
 
 # launch feedback
 echo
@@ -23,10 +24,10 @@ echo "   Submitting first WPS job to GPC queue:"
 echo "   WARNING: WPS disabled!"
 echo
 
-# wait until WPS job is completed: check presence of wrfinput files
+# wait until WPS job is completed: check presence of WPS script as signal of completion
 echo
 echo "   Waiting for WPS job on GPC to complete..."
-while [[ ! -e "${INIDIR}/${NEXTSTEP}/wrfinput_d02" ]]
+while [[ ! -e "${INIDIR}/${NEXTSTEP}/${WPSSCRIPT}" ]]
   do
     sleep 30
 done

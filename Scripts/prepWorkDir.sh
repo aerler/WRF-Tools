@@ -19,6 +19,3 @@ else
 fi
 	echo "${WORKDIR}"
 	echo
-	
-# copy driver script into work dir
-cp "${INIDIR}/${SCRIPTNAME}" "${WORKDIR}"

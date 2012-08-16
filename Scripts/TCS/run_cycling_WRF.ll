@@ -122,7 +122,7 @@ if [[ -n "${NEXTSTEP}" ]]
 		if [[ ! -h "${RESTART}" ]]; then ln -sf "${RESTART}"; fi # if not a link itself
 	done
 	# check for WRF input files (in next working directory)
-	if [[ ! -e "${INIDIR}/${NEXTSTEP}/wrfinput_d02" ]]
+	if [[ ! -e "${INIDIR}/${NEXTSTEP}/${DEPENDENCY}" ]]
 	  then
 		echo
 		echo "   ***   Waiting for WPS to complete...   ***"
