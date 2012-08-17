@@ -1,0 +1,16 @@
+  &bdy_control
+ spec_bdy_width                      = 10,
+ spec_zone                           = 1,
+ relax_zone                          = 9,
+ spec_exp                            = 0.33,
+ specified                           = .true., .false.,.false.,.false.,.false.,
+ nested                              = .false., .true., .true.,.true., .true.,
+ /
+
+ &grib2
+ /
+
+ &namelist_quilt
+ nio_tasks_per_group = 0,
+ nio_groups = 1,
+ /
