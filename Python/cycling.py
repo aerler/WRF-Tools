@@ -86,9 +86,9 @@ if __name__ == '__main__':
       enddate = (enddate[0], enddate[1], 28, enddate[3])        
     # create next step folder
     StepFolder = IniDir + '/' + nextstep + '/'
-    if os.path.isdir(StepFolder):            
-      shutil.rmtree(StepFolder) # remove directory if already there        
-    os.mkdir(StepFolder) # create new step folder 
+    if not os.path.isdir(StepFolder):            
+      #shutil.rmtree(StepFolder) # remove directory if already there        
+      os.mkdir(StepFolder) # create new step folder 
     # copy namelist templates  
     shutil.copy(IniDir+'/'+nmlstwps, StepFolder)
     shutil.copy(IniDir+'/'+nmlstwrf, StepFolder)
