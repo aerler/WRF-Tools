@@ -5,7 +5,7 @@
 # @ wall_clock_limit = 04:00:00
 # @ node = 4 
 # @ tasks_per_node = 64
-# @ environment = COPY_ALL; MEMORY_AFFINITY=MCM; MP_SYNC_QP=YES; \
+# @ environment = MEMORY_AFFINITY=MCM; MP_SYNC_QP=YES; \
 #                MP_RFIFO_SIZE=16777216; MP_SHM_ATTACH_THRESH=500000; \
 #                MP_EUIDEVELOP=min; MP_USE_BULK_XFER=yes; \
 #                MP_RDMA_MTU=4K; MP_BULK_MIN_MSG_SIZE=64k; MP_RC_MAX_QP=8192; \

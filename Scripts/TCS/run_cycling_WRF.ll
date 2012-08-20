@@ -1,26 +1,27 @@
 #!/usr/bin/bash
-# Specifies the name of the shell to use for the job 
-# @ shell = /usr/bin/bash
 # @ job_name = WC05_WRF
 # @ wall_clock_limit = 06:00:00
 # @ node = 4 
 # @ tasks_per_node = 64
-# @ environment = COPY_ALL; MEMORY_AFFINITY=MCM; MP_SYNC_QP=YES; \
+# @ notification = error
+# @ output = $(job_name).$(jobid).out
+# @ error = $(job_name).$(jobid).out
+# @ environment = $NEXTSTEP; $NOWPS; MEMORY_AFFINITY=MCM; MP_SYNC_QP=YES; \
 #                MP_RFIFO_SIZE=16777216; MP_SHM_ATTACH_THRESH=500000; \
 #                MP_EUIDEVELOP=min; MP_USE_BULK_XFER=yes; \
 #                MP_RDMA_MTU=4K; MP_BULK_MIN_MSG_SIZE=64k; MP_RC_MAX_QP=8192; \
 #                PSALLOC=early; NODISCLAIM=true
+#=====================================
 # @ job_type = parallel
 # @ class = verylong
 # @ node_usage = not_shared
-# @ output = $(job_name).$(jobid).out
-# @ error = $(job_name).$(jobid).out
+# Specifies the name of the shell to use for the job 
+# @ shell = /usr/bin/bash
 #=====================================
 ## this is necessary in order to avoid core dumps for batch files
 ## which can cause the system to be overloaded
 # ulimits
 # @ core_limit = 0
-#=====================================
 ## necessary to force use of infiniband network for MPI traffic
 # @ network.MPI = sn_all,not_shared,US,HIGH
 #=====================================
@@ -127,7 +128,7 @@ if [[ -n "${NEXTSTEP}" ]]
 		echo
 		echo "   ***   Waiting for WPS to complete...   ***"
 		echo
-		while [[ ! -e "${INIDIR}/${NEXTSTEP}/wrfinput_d01" ]]; do
+		while [[ ! -e "${INIDIR}/${NEXTSTEP}/${DEPENDENCY}" ]]; do
 			sleep 5 # need faster turnover to submit next step
 		done
 	fi
@@ -135,6 +136,7 @@ if [[ -n "${NEXTSTEP}" ]]
 	cd "${INIDIR}"
 	echo
 	echo "   ***   Launching WRF for next step: ${NEXTSTEP}   ***   "
+	date
 	echo
 	# submit next job to LoadLeveler (TCS)
 	#ssh tcs-f11n06 "cd \"${INIDIR}\"; export NEXTSTEP=${NEXTSTEP}; llsubmit ./${SCRIPTNAME}"
