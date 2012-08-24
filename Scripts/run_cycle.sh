@@ -27,19 +27,19 @@ rm -rf "${METDATA}" "${WRFOUT}"
 
 # run geogrid
 # clear files
-cd "${INIDIR}"
-rm geo_em.d??.nc geogrid.log*
-# run with parallel processes
-echo
-echo "   Running geogrid.exe"
-echo
-mpirun -n $OMP_NUM_THREADS ./geogrid.exe
-# N.B.: $OMP_NUM_THREADS is used as a proxy for # cores
+#cd "${INIDIR}"
+#rm geo_em.d??.nc geogrid.log*
+## run with parallel processes
+#echo
+#echo "   Running geogrid.exe"
+#echo
+#mpirun -n $OMP_NUM_THREADS ./geogrid.exe
+## N.B.: $OMP_NUM_THREADS is used as a proxy for # cores
   
 
 # read first entry in stepfile 
 NEXTSTEP=$(python cycling.py)
-#export NEXTSTEP
+export NEXTSTEP
 echo
 echo "   First Step: ${NEXTSTEP}"
 echo

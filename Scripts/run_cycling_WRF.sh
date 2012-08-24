@@ -33,6 +33,7 @@ export REALINMETDATA="${INIDIR}/metgrid/"
 export REALOUT="${WORKDIR}"
 export WRFIN="${WORKDIR}"
 export WRFOUT="${INIDIR}/wrfout/"
+export RSTDIR="${WRFOUT}"
 # WRF settings
 export GHG='A1B' # GHG emission scenario for CAM/ClWRF
 #RAD='CAM'
@@ -75,18 +76,24 @@ wait # wait for WRF and WPS to finish
 # launch WRF for next step (if $NEXTSTEP is not empty)
 if [[ -n "${NEXTSTEP}" ]]
  then
+    # figure out next restart time
+    RSTDATE=$(sed -n "/${NEXTSTEP}/ s/${NEXTSTEP}\s.\(.*\).\s.*$/\1/p" stepfile)
 	NEXTDIR="${INIDIR}/${NEXTSTEP}" # next $WORKDIR
 	cd "${NEXTDIR}"
 	# link restart files
 	echo 
 	echo "Linking restart files to next working directory:"
 	echo "${NEXTDIR}"
-	# N.B.: find is necessary to avoid linking all the linked restart files again
-	find "${WORKDIR}" -maxdepth 1 -type f -name "wrfrst_d??_*" -exec ln -fs {} \;
-	#for RESTART in "$(find "${WORKDIR}" -maxdepth 1 -type f -name "wrfrst_d??_*")"; do ln -s "${RESTART}"; done 
+    for RESTART in "${RSTDIR}"/wrfrst_d??_"${RSTDATE}"; do
+            ln -sf "${RESTART}"
+    done
 	echo		
 	# start next cycle
 	cd "${INIDIR}"
 	./run_cycling_WRF.sh &
 fi
 exit
+
+
+# old code using find is to avoid linking all the linked restart files again
+#find "${WORKDIR}" -maxdepth 1 -type f -name "wrfrst_d??_*" -exec ln -fs {} \;

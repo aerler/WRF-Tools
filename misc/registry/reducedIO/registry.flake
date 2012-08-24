@@ -1,0 +1,34 @@
+#
+# ----------------------------------------
+#  begin flake variables and configuration
+# ----------------------------------------
+#
+# declare fire package and choose which fire scheme
+#
+#<key>   <package       <associated               <package        <associated 4d scalars>
+#         name>          namelist choice>          state vars>
+
+rconfig   integer flake_update             namelist,physics	1            1         h    "flake_update"  "run FLake module   0=no, 1=yes"   ""
+rconfig   integer tsk_flake             namelist,physics	1            1         h    "tsk_flake"  "use TSK and XICE from FLake for lake pts   0=no, 1=yes"   ""
+rconfig   real lake_depth_limit             namelist,physics	1            70.         h    "lake_depth_limit"  "lake depth maximum in m"   ""
+
+state   real    LAKE_DEPTH     ij      misc         1         -     i012rh6  "LAKE_DEPTH"              "Lake Depth"   "m"
+state   real    T_SNOW_LAKE     ij      misc         1         -     i5rh6  "T_SNOW_LAKE"              "T_snow_lake"   "K"
+state   real    T_ice_lake     ij      misc         1         -     i5rh6  "T_ice_lake"              "T_ice_lake"   "K"
+state   real    T_mnw_lake     ij      misc         1         -     i5rh6  "T_mnw_lake "              "T_mnw_lake "   "K"
+state   real    T_wML_lake     ij      misc         1         -     i5rh6  "T_wML_lake"              "T_wML_lake"   "K"
+state   real    T_bot_lake     ij      misc         1         -     i5rh6  "T_bot_lake"              "T_bot_lake"   "K"
+state   real    T_B1_lake     ij      misc         1         -     i5rh6  "T_B1_lake"              "T_B1_lake"   "K"
+state   real    C_T_lake     ij      misc         1         -     i5rh6  "C_T_lake"              "C_T_lake"   ""
+state   real    h_snow_lake     ij      misc         1         -     i5rh6  "h_snow_lake"              "h_snow_lake"   "m"
+state   real    h_ice_lake     ij      misc         1         -     i5rh6  "h_ice_lake"              "h_ice_lake"   "m"
+state   real    h_ML_lake     ij      misc         1         -     i5rh6  "h_ML_lake"              "h_ML_lake"   "m"
+state   real    H_B1_lake     ij      misc         1         -     i5rh6  "H_B1_lake"              "H_B1_lake"   "m"
+state   real    T_sfc_lake     ij      misc         1         -     i5rh6  "T_sfc_lake"              "T_sfc_lake"   "K"
+
+
+# ----------------------------------------
+#  end flake variables and configuration
+# ----------------------------------------
+
+##

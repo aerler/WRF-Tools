@@ -26,6 +26,7 @@ REALTGZ="${RUNNAME}_${REALLOG}.tgz" # archive for log folder
 RUNWRF=${RUNWRF:-1} # whether to run WRF
 WRFIN=${WRFIN:-"${WORKDIR}"} # location of wrfinput_d?? files etc.
 WRFOUT=${WRFOUT:-"${WORKDIR}"} # final destination of WRF output
+RSTDIR=${RSTDIR:-"${WRFOUT}"} # final destination of WRF restart files
 TABLES=${TABLES:-"${INIDIR}/tables/"} # folder for WRF data tables
 #RAD=${RAD:-'CAM'} # folder for WRF input data
 #LSM=${LSM:-'Noah'} # output folder for WRF
@@ -246,7 +247,13 @@ if [[ ! "${WRFDIR}" == "${WRFOUT}" ]]; then
 	time -p mv wrfout_d??_* "${WRFOUT}" 
 	mv wrfxtrm_d??_* "${WRFOUT}" 
 	mv wrfflake_d??_* "${WRFOUT}" 
-	# N.B.: don't move restart files! 
+	mv wrfconst_d?? "${WRFOUT}" 
+    # move new restart files as well
+    for RESTART in "${WORKDIR}"/wrfrst_d??_*; do
+        if [[ ! -h "${RESTART}" ]]; then 
+            mv "${RESTART}" "${RSTDIR}" # defaults to $WRFOUT
+        fi # if not a link itself
+    done
 	# N.B.: move separately to avoid "too long argument list" error
 	# copy real.exe log files to wrf output
 	mv "${WORKDIR}"/*.tgz "${WRFOUT}"
