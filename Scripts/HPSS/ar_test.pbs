@@ -1,0 +1,18 @@
+#!/bin/bash
+#PBS -l walltime=01:00:00
+#PBS -q archive
+#PBS -N ar_test
+#PBS -j oe
+#PBS -m e
+set -o pipefail
+hsi ls -l
+hsi rm test.*
+cd /scratch/p/peltier/aerler/Downscaling/WC01-tcs-ctl/wrfout
+echo ***   GZIP   ***
+time -p tar -cz wrfout_d01_1979-01-02_00:00:00 | hsi cput - : "${ARCHIVE}/test.tar.gz"
+echo ***   BZIP   ***
+time -p tar -cj wrfout_d01_1979-01-02_00:00:00 | hsi cput - : "${ARCHIVE}/test.tar.bz2"
+echo ***   LZMA   ***
+time -p tar -c --lzma wrfout_d01_1979-01-02_00:00:00 | hsi cput - : "${ARCHIVE}/test.tar.lzma"
+echo ***   ZIP   ***
+time -p tar c wrfout_d01_1979-01-02_00:00:00 | zip | hsi cput - : "${ARCHIVE}/test.tar.zip"
