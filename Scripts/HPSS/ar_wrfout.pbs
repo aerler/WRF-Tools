@@ -49,9 +49,7 @@ function BACKUPDATASET () {
   done
   # check for errors
   if [ ! ${ERR} == 0 ]; then
-   echo "WARNING: there were ${ERR} errors!"
-   /scinet/gpc/bin/exit2msg ${ERR}
-   exit ${ERR}
+    echo "   >>>   WARNING: there were ${ERR} errors!   <<<   "
   else
     echo 'Transfer Successful!'
   fi
@@ -91,7 +89,7 @@ if [ ! ${ERRORS} == 0 ]; then
   echo
   echo "   >>>   WARNING: THERE WERE ${ERRORS} ERRORS!   <<<   "
   echo "   >>>        ${TRANSFERS} TRANSFERS COMPLETED   <<<   "
-  /scinet/gpc/bin/exit2msg ${ERRORS}
+  # /scinet/gpc/bin/exit2msg ${ERRORS} # translate exit codes to human-readable messages
   exit ${ERRORS}
 else
   echo

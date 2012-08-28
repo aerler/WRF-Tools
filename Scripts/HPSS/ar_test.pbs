@@ -1,18 +1,58 @@
 #!/bin/bash
-#PBS -l walltime=01:00:00
+#PBS -l walltime=24:00:00
 #PBS -q archive
-#PBS -N ar_test
+#PBS -N ar_benchmark
 #PBS -j oe
 #PBS -m e
+
 set -o pipefail
-hsi ls -l
-hsi rm test.*
-cd /scratch/p/peltier/aerler/Downscaling/WC01-tcs-ctl/wrfout
+
+SRC="${SCRATCH}/Downscaling/WC01-tcs-ctl/wrfout"
+
+hsi rm ${ARCHIVE}/test.*
+hsi ls -l ${ARCHIVE}
+cd "${SRC}"
+
+echo
+echo ***   HPSS Benchmark   ***
+echo
+
+echo ***   HSI (plain)   ***
+time -p hsi -q cput "${SRC}/wrfout_d01_1979-01-02_00:00:00" : "${ARCHIVE}/test.plain"
+echo
+echo ***   TAR (only)   ***
+time -p tar -c wrfout_d01_1979-01-02_00:00:00 | hsi -q cput - : "${ARCHIVE}/test.tar"
+echo
 echo ***   GZIP   ***
-time -p tar -cz wrfout_d01_1979-01-02_00:00:00 | hsi cput - : "${ARCHIVE}/test.tar.gz"
+time -p tar -cz wrfout_d01_1979-01-02_00:00:00 | hsi -q cput - : "${ARCHIVE}/test.tar.gz"
+echo
 echo ***   BZIP   ***
-time -p tar -cj wrfout_d01_1979-01-02_00:00:00 | hsi cput - : "${ARCHIVE}/test.tar.bz2"
+time -p tar -cj wrfout_d01_1979-01-02_00:00:00 | hsi -q cput - : "${ARCHIVE}/test.tar.bz2"
+echo
 echo ***   LZMA   ***
-time -p tar -c --lzma wrfout_d01_1979-01-02_00:00:00 | hsi cput - : "${ARCHIVE}/test.tar.lzma"
+time -p tar -c --lzma wrfout_d01_1979-01-02_00:00:00 | hsi -q cput - : "${ARCHIVE}/test.tar.lzma"
+echo
 echo ***   ZIP   ***
-time -p tar c wrfout_d01_1979-01-02_00:00:00 | zip | hsi cput - : "${ARCHIVE}/test.tar.zip"
+time -p tar c wrfout_d01_1979-01-02_00:00:00 | zip | hsi -q cput - : "${ARCHIVE}/test.tar.zip"
+
+echo
+echo ***   GPFS Benchmark   ***
+echo
+
+echo ***   copy (plain)   ***
+time -p cp wrfout_d01_1979-01-02_00:00:00 "${SRC}/test.plain"
+echo
+echo ***   TAR (only)   ***
+time -p tar -cf "${SRC}/test.tar" wrfout_d01_1979-01-02_00:00:00
+echo
+echo ***   GZIP   ***
+time -p tar -czf "${SRC}/test.tar.gz" wrfout_d01_1979-01-02_00:00:00
+echo
+echo ***   BZIP   ***
+time -p tar -cjf "${SRC}/test.tar.bz2" wrfout_d01_1979-01-02_00:00:00
+echo
+echo ***   LZMA   ***
+time -p tar --lzma -cf "${SRC}/test.tar.lzma" wrfout_d01_1979-01-02_00:00:00 
+echo
+echo ***   ZIP   ***
+time -p zip "${SRC}/test.tar.zip" wrfout_d01_1979-01-02_00:00:00
