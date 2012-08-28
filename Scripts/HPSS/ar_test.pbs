@@ -19,22 +19,22 @@ echo '***   HPSS Benchmark   ***'
 echo
 
 echo '***   HSI (plain)   ***'
-time -p hsi -q cput "${SRC}/test.nc" : "${ARCHIVE}/test.plain"
+time -p hsi -q cput "${SRC}/original.nc" : "${ARCHIVE}/test.plain"
 echo
 echo '***   TAR (only)   ***'
-time -p tar -c test.nc | hsi -q cput - : "${ARCHIVE}/test.tar"
+time -p tar -ch original.nc | hsi -q cput - : "${ARCHIVE}/test.tar"
 echo
 echo '***   GZIP   ***'
-time -p tar -cz test.nc | hsi -q cput - : "${ARCHIVE}/test.tar.gz"
+time -p tar -chhz original.nc | hsi -q cput - : "${ARCHIVE}/test.tar.gz"
 echo
 echo '***   BZIP   ***'
-time -p tar -cj test.nc | hsi -q cput - : "${ARCHIVE}/test.tar.bz2"
+time -p tar -chj original.nc | hsi -q cput - : "${ARCHIVE}/test.tar.bz2"
 echo
 echo '***   LZMA   ***'
-time -p tar -c --lzma test.nc | hsi -q cput - : "${ARCHIVE}/test.tar.lzma"
+time -p tar -ch --lzma original.nc | hsi -q cput - : "${ARCHIVE}/test.tar.lzma"
 echo
 echo '***   ZIP   ***'
-time -p tar c test.nc | zip | hsi -q cput - : "${ARCHIVE}/test.tar.zip"
+time -p tar c original.nc | zip | hsi -q cput - : "${ARCHIVE}/test.tar.zip"
 
 echo
 echo
@@ -42,19 +42,19 @@ echo '***   GPFS Benchmark   ***'
 echo
 
 echo '***   copy (plain)   ***'
-time -p cp test.nc "${SRC}/test.plain"
+time -p cp original.nc "${SRC}/test.plain"
 echo
 echo '***   TAR (only)   ***'
-time -p tar -cf "${SRC}/test.tar" test.nc
+time -p tar -chf "${SRC}/test.tar" original.nc
 echo
 echo '***   GZIP   ***'
-time -p tar -czf "${SRC}/test.tar.gz" test.nc
+time -p tar -chzf "${SRC}/test.tar.gz" original.nc
 echo
 echo '***   BZIP   ***'
-time -p tar -cjf "${SRC}/test.tar.bz2" test.nc
+time -p tar -chjf "${SRC}/test.tar.bz2" original.nc
 echo
 echo '***   LZMA   ***'
-time -p tar --lzma -cf "${SRC}/test.tar.lzma" test.nc 
+time -p tar --lzma -chf "${SRC}/test.tar.lzma" original.nc 
 echo
 echo '***   ZIP   ***'
-time -p zip "${SRC}/test.tar.zip" test.nc
+time -p zip "${SRC}/test.tar.zip" original.nc
