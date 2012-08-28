@@ -8,16 +8,45 @@
 set -o pipefail # through error (in exit code) if pipe fails 
 trap "echo 'Job script not completed';exit 129" TERM INT
 # Note that your initial directory in HPSS will be /archive/$(id -gn)/$(whoami)/
- 
+
+## definitions
 # data folder
 DST="${ARCHIVE}/test/${PBS_O_WORKDIR##*/}" # remove parent folder (= run name)
 SRC="${PBS_O_WORKDIR}/wrfout/" 
-# files
-LOGS="${DATE}_pyWPS.tgz ${DATE}_real.tgz ${DATE}_wrf.tgz" 
-SMALL="wrfxtrm_d??_${DATE}* wrfflake_d??_${DATE}*"
-BIG="wrfout_d??_${DATE}*" # $BIG filenames will get trimmed:
-# NEWNAME="${FILE%${1}*}${1}" # cut off what does beyond $DATE
 
+## function to to back up one output dataset
+function BACKUPDATASET () {
+  ERR=0 # error counter
+  # files to be backed up
+  LOGS="${1}_pyWPS.tgz ${1}_real.tgz ${1}_wrf.tgz" 
+  SMALL="wrfxtrm_d??_${DATE}* wrfflake_d??_${1}*"
+  BIG="wrfout_d??_${1}*" # $BIG filenames will get trimmed below ($NEWNAME)
+  echo
+  echo "   ***   BACKUP ${1}   ***   "
+  echo '  compressing and archiving logs and smaller files:'
+  echo ${LOGS}
+  echo ${SMALL}
+  time -p tar -cz ${LOGS} ${SMALL} | hsi cput - : "${DST}/wrfextra_${1}.tgz"
+  ERR=$(( ${ERR} + $? ))
+  echo '  compressing and moving big output files:'
+  echo ${BIG}
+  for FILE in ${BIG} # N.B.: need to expand regex (no quotes)
+    do
+      NEWNAME="${FILE%${1}*}${1}" # cut off what does beyond $DATE
+      time -p gzip -c ${FILE} | hsi cput - : "${DST}/${NEWNAME}.gz"
+      ERR=$(( ${ERR} + $? ))
+  done
+  # check for errors
+  if [ ! ${ERR} == 0 ]; then
+   echo "WARNING: there were ${ERR} errors!"
+   /scinet/gpc/bin/exit2msg ${ERR}
+   exit ${ERR}
+  else
+    echo 'TRANSFER SUCCESSFUL'
+  fi
+}
+
+## execution
 # set up directories
 hsi mkdir -p "${DST}"
 cd "${SRC}"
@@ -52,33 +81,3 @@ else
   echo
   echo '   <<<   TRANSFER SUCCESSFUL   >>>   '
 fi
-
-##  FUNCTIONS
-
-# function to to back up one output dataset
-function BACKUPDATASET () {
-  ERR=0 # error counter
-  echo
-  echo "   ***   BACKUP ${1}   ***   "
-  echo '  compressing and archiving logs and smaller files:'
-  echo ${LOGS}
-  echo ${SMALL}
-  time -p tar -cz ${LOGS} ${SMALL} | hsi cput - : "${DST}/wrfextra_${1}.zip"
-  ERR=$(( ${ERR} + $? ))
-  echo '  compressing and moving big output files:'
-  echo ${BIG}
-  for FILE in "${BIG}"
-    do
-      NEWNAME="${FILE%${1}*}${1}" # cut off what does beyond $DATE
-      time -p tar -zc ${FILE} | hsi cput - : "${DST}/${NEWNAME}.zip"
-      ERR=$(( ${ERR} + $? ))
-  done
-  # check for errors
-  if [ ! ${ERR} == 0 ]; then
-   echo "WARNING: there were ${ERR} errors!"
-   /scinet/gpc/bin/exit2msg ${ERR}
-   exit ${ERR}
-  else
-    echo 'TRANSFER SUCCESSFUL'
-  fi
-}
