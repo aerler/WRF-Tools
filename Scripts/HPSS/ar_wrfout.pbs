@@ -1,9 +1,20 @@
 #!/bin/bash
+#MOAB/Torque archiving script for SciNet HPSS
+
+## queue/PBS settings
+# 72h is maximum for long queue, 1h for short
 #PBS -l walltime=72:00:00
-#PBS -q archive
-#PBS -N ar_WC01
+# merge standard error and output stream
 #PBS -j oe
-#PBS -m e
+#PBS -o $PBS_JOBNAME.$PBS_JOBID.out
+##PBS -e $PBS_JOBNAME.$PBS_JOBID.err
+# send email if abort (nbae)
+#PBS -M aerler@atmosp.physics.utoronto.ca
+#PBS -m ae
+# job name
+#PBS -N ar_test
+## submit to queue (NB: this has to be the last PBS line!)
+#PBS -q archive
 
 set -o pipefail # through error (in exit code) if pipe fails 
 trap "echo 'Job script not completed';exit 129" TERM INT
@@ -26,14 +37,14 @@ function BACKUPDATASET () {
   echo '  compressing and archiving logs and smaller files:'
   echo ${LOGS}
   echo ${SMALL}
-  time -p tar -cz ${LOGS} ${SMALL} | hsi cput - : "${DST}/wrfextra_${1}.tgz"
+  tar -cz ${LOGS} ${SMALL} | hsi -q cput - : "${DST}/wrfextra_${1}.tgz"
   ERR=$(( ${ERR} + $? ))
   echo '  compressing and moving big output files:'
   echo ${BIG}
   for FILE in ${BIG} # N.B.: need to expand regex (no quotes)
     do
       NEWNAME="${FILE%${1}*}${1}" # cut off what does beyond $DATE
-      time -p gzip -c ${FILE} | hsi cput - : "${DST}/${NEWNAME}.gz"
+      gzip -c ${FILE} | hsi -q cput - : "${DST}/${NEWNAME}.gz"
       ERR=$(( ${ERR} + $? ))
   done
   # check for errors
@@ -42,7 +53,7 @@ function BACKUPDATASET () {
    /scinet/gpc/bin/exit2msg ${ERR}
    exit ${ERR}
   else
-    echo 'TRANSFER SUCCESSFUL'
+    echo 'Transfer Successful!'
   fi
 }
 
@@ -54,20 +65,24 @@ cd "${SRC}"
 ERRORS=0
 TRANSFERS=0
 
-# decide what to do
+# decide what to do: process one (given) dataset, or all?
 if [[ -n "${DATE}" ]]
- # treat only one run
  then
-  BACKUPDATASET ${DATE}
-  ERRORS=$(( ${ERRORS} + $? ))
+ # treat only one run
+  time -p BACKUPDATASET ${DATE}
+  if [ $? == 0 ]; then TRANSFERS=$(( ${TRANSFERS} + 1 ))
+  else ERRORS=$(( ${ERRORS} + 1 )); fi
+  hsi -q ls "${DST}"
  else
  # cycle over monthly output datasets
   for DATE in ????-??_wrf.tgz # use WRF log-files as indicator
   do
     DATE=${DATE%_wrf.tgz} # extract date
-    BACKUPDATASET ${DATE}
-    ERRORS=$(( ${ERRORS} + $? ))
+    time -p BACKUPDATASET ${DATE}
+    if [ $? == 0 ]; then TRANSFERS=$(( ${TRANSFERS} + 1 ))
+    else ERRORS=$(( ${ERRORS} + 1 )); fi
   done
+  hsi -q ls "${DST}"
 fi # if $DATE
  
 trap - TERM INT
@@ -75,9 +90,10 @@ trap - TERM INT
 if [ ! ${ERRORS} == 0 ]; then
   echo
   echo "   >>>   WARNING: THERE WERE ${ERRORS} ERRORS!   <<<   "
+  echo "   >>>        ${TRANSFERS} TRANSFERS COMPLETED   <<<   "
   /scinet/gpc/bin/exit2msg ${ERRORS}
   exit ${ERRORS}
 else
   echo
-  echo '   <<<   TRANSFER SUCCESSFUL   >>>   '
+  echo "   <<<   ALL ${TRANSFERS} TRANSFERS COMPLETED   >>>   "
 fi
