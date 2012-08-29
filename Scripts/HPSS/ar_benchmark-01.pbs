@@ -8,15 +8,14 @@
 set -o pipefail
 
 SRC="${SCRATCH}/HPSS-test"
-
-hsi rm ${ARCHIVE}/test.*
-hsi ls -l ${ARCHIVE}
 cd "${SRC}"
 
 echo
 echo
 echo '***   HPSS Benchmark   ***'
 echo
+hsi -q rm ${ARCHIVE}/test.*
+hsi -q ls -l ${ARCHIVE}
 
 echo '***   HSI (plain)   ***'
 time -p hsi -q cput "${SRC}/original.nc" : "${ARCHIVE}/test.plain"
@@ -34,12 +33,16 @@ echo '***   LZMA   ***'
 time -p tar -ch --lzma original.nc | hsi -q cput - : "${ARCHIVE}/test.tar.lzma"
 echo
 echo '***   ZIP   ***'
-time -p tar c original.nc | zip | hsi -q cput - : "${ARCHIVE}/test.tar.zip"
+time -p tar -ch original.nc | zip | hsi -q cput - : "${ARCHIVE}/test.tar.zip"
+echo
+hsi -q ls -l ${ARCHIVE}
+
 
 echo
 echo
 echo '***   GPFS Benchmark   ***'
 echo
+rm "${SRC}/test.*"
 
 echo '***   copy (plain)   ***'
 time -p cp original.nc "${SRC}/test.plain"
@@ -58,3 +61,5 @@ time -p tar --lzma -chf "${SRC}/test.tar.lzma" original.nc
 echo
 echo '***   ZIP   ***'
 time -p zip "${SRC}/test.tar.zip" original.nc
+echo
+ls -lhL "${SRC}"

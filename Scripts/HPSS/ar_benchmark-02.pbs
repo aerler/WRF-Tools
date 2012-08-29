@@ -1,0 +1,71 @@
+#!/bin/bash
+#PBS -l walltime=24:00:00
+#PBS -q archive
+#PBS -N ar_benchmark-02
+#PBS -j oe
+#PBS -m e
+
+set -o pipefail
+
+SRC="${SCRATCH}/HPSS-test"
+cd "${SRC}"
+
+echo
+echo
+echo '***   HPSS Benchmark   ***'
+echo
+hsi -q rm ${ARCHIVE}/test.*
+hsi -q ls -l ${ARCHIVE}
+
+echo '***   TAR (only)   ***'
+time -p tar -ch original.nc | hsi -q cput - : "${ARCHIVE}/test.tar"
+echo
+echo '***   GZIP (fastest -1)   ***'
+time -p tar -ch original.nc | gzip -1 | hsi -q cput - : "${ARCHIVE}/test.tar.gz1"
+echo
+echo '***   GZIP (fast -3)   ***'
+time -p tar -ch original.nc | gzip -3 | hsi -q cput - : "${ARCHIVE}/test.tar.gz3"
+echo
+#echo '***   GZIP (medium -5)   ***'
+#time -p tar -ch original.nc | gzip -5 | hsi -q cput - : "${ARCHIVE}/test.tar.gz5"
+#echo
+#echo '***   GZIP (slow -7)   ***'
+#time -p tar -ch original.nc | gzip -7 | hsi -q cput - : "${ARCHIVE}/test.tar.gz7"
+#echo
+#echo '***   GZIP (slowest -9)   ***'
+#time -p tar -ch original.nc | gzip -9 | hsi -q cput - : "${ARCHIVE}/test.tar.gz9"
+#echo
+#echo '***   BZIP (fast)   ***'
+#time -p tar -ch original.nc | bzip2 -1 | hsi -q cput - : "${ARCHIVE}/test.tar.bz1"
+#echo
+hsi -q ls -l ${ARCHIVE}
+
+
+echo
+echo
+echo '***   GPFS Benchmark   ***'
+echo
+rm "${SRC}/test.*"
+
+echo '***   TAR (only)   ***'
+time -p tar -ch original.nc | cat - > "${SRC}/test.tar"
+echo
+echo '***   GZIP (fastest -1)   ***'
+time -p tar -ch original.nc | gzip -1 | cat - > "${SRC}/test.tar.gz1"
+echo
+echo '***   GZIP (fast -3)   ***'
+time -p tar -ch original.nc | gzip -3 | cat - > "${SRC}/test.tar.gz3"
+echo
+#echo '***   GZIP (medium -5)   ***'
+#time -p tar -ch original.nc | gzip -5 | cat - > "${SRC}/test.tar.gz5"
+#echo
+#echo '***   GZIP (slow -7)   ***'
+#time -p tar -ch original.nc | gzip -7 | cat - > "${SRC}/test.tar.gz7"
+#echo
+#echo '***   GZIP (slowest -9)   ***'
+#time -p tar -ch original.nc | gzip -9 | cat - > "${SRC}/test.tar.gz9"
+#echo
+#echo '***   BZIP (fast)   ***'
+#time -p tar -ch original.nc | bzip2 -1 | cat - > "${SRC}/test.tar.bz1"
+#echo
+ls -lhL "${SRC}"
