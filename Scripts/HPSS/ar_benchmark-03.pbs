@@ -1,0 +1,69 @@
+#!/bin/bash
+#PBS -l walltime=24:00:00
+#PBS -q archive
+#PBS -N ar_benchmark-03
+#PBS -j oe
+#PBS -m e
+
+set -o pipefail
+
+SRC="${SCRATCH}/HPSS-test"
+cd "${SRC}"
+
+echo
+echo
+echo '***   HPSS Parallel Performance Benchmark   ***'
+echo
+hsi -q rm ${ARCHIVE}/test*
+hsi -q rm ${ARCHIVE}/original*
+hsi -q ls -l ${ARCHIVE}
+
+echo '***   Two Sequential Transfers   ***'
+time -p hsi -q cput original_1.nc : "${ARCHIVE}/test_seq_1.nc"
+time -p hsi -q cput original_2.nc : "${ARCHIVE}/test_seq_2.nc"
+status=$?
+if [ ! $status == 0 ]; then
+    echo "HSI (#2) returned non-zero exit code: $status"
+    /scinet/gpc/bin/exit2msg $status
+fi
+echo
+
+echo '***   Two Parallel Transfers   ***'
+time -p hsi -q cput original_1.nc original_2.nc: "${ARCHIVE}/"
+status=$?
+echo
+if [ ! $status == 0 ]; then
+    echo "Parallel HSI returned non-zero exit code: $status"
+    /scinet/gpc/bin/exit2msg $status
+fi
+
+echo '***   Two Sequential Pipelines   ***'
+time -p tar -ch original_1.nc | hsi -q cput - : "${ARCHIVE}/test_seq_1.tar"
+time -p tar -ch original_1.nc | hsi -q cput - : "${ARCHIVE}/test_seq_2.tar"
+status=$?
+echo
+if [ ! $status == 0 ]; then
+    echo "Pipeline (#2) returned non-zero exit code: $status"
+    /scinet/gpc/bin/exit2msg $status
+fi
+
+echo '***   Two Parallel Pipelines   ***'
+mkfifo /tmp/pipe_1; mkfifo /tmp/pipe_2
+cat original_1 > /tmp/pipe_1 &
+cat original_2 > /tmp/pipe_2 &
+time -p hsi -q cput /tmp/pipe_1 /tmp/pipe_2  : "${ARCHIVE}/"
+wait $!
+status=$?
+rm  -f /tmp/pipe_1 /tmp/pipe_2
+echo
+if [ ! $status == 0 ]; then
+    echo "Pipeline returned non-zero error exit: $status"
+    /scinet/gpc/bin/exit2msg $status
+fi
+
+echo
+echo '***   Parallel Performance Benchmark Finished   ***'
+echo
+hsi -q rm ${ARCHIVE}/test*
+hsi -q rm ${ARCHIVE}/original*
+hsi -q ls -l ${ARCHIVE}

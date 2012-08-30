@@ -29,7 +29,7 @@ SRC="${PBS_O_WORKDIR}/wrfout/"
 function BACKUPDATASET () {
   ERR=0 # error counter
   # files to be backed up
-  LOGS="${1}_pyWPS.tgz ${1}_real.tgz ${1}_wrf.tgz" 
+  LOGS="${1}_*.tgz" # "${1}_pyWPS.tgz ${1}_real.tgz ${1}_wrf.tgz" 
   SMALL="wrfxtrm_d??_${DATE}* wrfflake_d??_${1}*"
   BIG="wrfout_d??_${1}*" # $BIG filenames will get trimmed below ($NEWNAME)
   echo
@@ -37,7 +37,7 @@ function BACKUPDATASET () {
   echo '  compressing and archiving logs and smaller files:'
   echo ${LOGS}
   echo ${SMALL}
-  tar -cz ${LOGS} ${SMALL} | hsi -q cput - : "${DST}/wrfextra_${1}.tgz"
+  tar -c ${LOGS} ${SMALL} | hsi -q cput - : "${DST}/wrfextra_${1}.tar"
   ERR=$(( ${ERR} + $? ))
   echo '  compressing and moving big output files:'
   echo ${BIG}
