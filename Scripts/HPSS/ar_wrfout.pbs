@@ -25,11 +25,6 @@ trap "echo 'Job script not completed';exit 129" TERM INT
 DST="${ARCHIVE}/test/${PBS_O_WORKDIR##*/}" # remove parent folder (= run name)
 SRC="${PBS_O_WORKDIR}/wrfout/" 
 
-## function to put a file on HPSS using HSI put and verify it's checksum
-function PUTFILE () {
-  
-}
-
 ## function to to back up one output dataset
 function BACKUPDATASET () {
   ERR=0 # error counter
@@ -42,14 +37,14 @@ function BACKUPDATASET () {
   echo '  compressing and archiving logs and smaller files:'
   echo ${LOGS}
   echo ${SMALL}
-  /scinet/gpc/bin/ish htar -cpf -Hcrc -Hverify=1 "${DST}/wrfextra_${1}.tar" ${LOGS} ${SMALL}
+  /scinet/gpc/bin/ish htar -cpf "${DST}/wrfextra_${1}.tar" -Hcrc -Hverify=1 ${LOGS} ${SMALL}
   ERR=$(( ${ERR} + $? ))
   echo '  compressing and moving big output files:'
   echo ${BIG}
   for FILE in ${BIG} # N.B.: need to expand regex (no quotes)
     do
       NEWNAME="${FILE%${1}*}${1}" # cut off what does beyond $DATE
-      /scinet/gpc/bin/ish htar -cpf -Hcrc -Hverify=1 "${DST}/${NEWNAME}.tar" ${FILE}
+      /scinet/gpc/bin/ish htar -cpf "${DST}/${NEWNAME}.tar" -Hcrc -Hverify=1 ${FILE}
       ERR=$(( ${ERR} + $? ))
   done
   # check for errors
