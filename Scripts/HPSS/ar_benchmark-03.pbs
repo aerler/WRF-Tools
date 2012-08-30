@@ -9,61 +9,85 @@ set -o pipefail
 
 SRC="${SCRATCH}/HPSS-test"
 cd "${SRC}"
+DST="${ARCHIVE}/HPSS-test"
 
 echo
 echo
 echo '***   HPSS Parallel Performance Benchmark   ***'
 echo
-hsi -q rm ${ARCHIVE}/test*
-hsi -q rm ${ARCHIVE}/original*
 hsi -q ls -l ${ARCHIVE}
+hsi -q rm -R ${DST}
+hsi -q mkdir ${DST}
 
-echo '***   Two Sequential Transfers   ***'
-time -p hsi -q cput original_1.nc : "${ARCHIVE}/test_seq_1.nc"
-time -p hsi -q cput original_2.nc : "${ARCHIVE}/test_seq_2.nc"
+echo '***   Two Separate HTAR with ISH  ***'
+time -p /scinet/gpc/bin/ish htar -cphf "${DST}/original_1.tar" original_1.nc 
+time -p /scinet/gpc/bin/ish htar -cphf "${DST}/original_2.tar" original_2.nc 
 status=$?
 if [ ! $status == 0 ]; then
-    echo "HSI (#2) returned non-zero exit code: $status"
+    echo "HTAR (#2) returned non-zero exit code: $status"
     /scinet/gpc/bin/exit2msg $status
 fi
+/scinet/gpc/bin/ish original_1.tar.igz ls
+/scinet/gpc/bin/ish original_2.tar.igz ls
 echo
 
-echo '***   Two Parallel Transfers   ***'
-time -p hsi -q cput original_1.nc original_2.nc: "${ARCHIVE}/"
-status=$?
-echo
-if [ ! $status == 0 ]; then
-    echo "Parallel HSI returned non-zero exit code: $status"
-    /scinet/gpc/bin/exit2msg $status
-fi
-
-echo '***   Two Sequential Pipelines   ***'
-time -p tar -ch original_1.nc | hsi -q cput - : "${ARCHIVE}/test_seq_1.tar"
-time -p tar -ch original_1.nc | hsi -q cput - : "${ARCHIVE}/test_seq_2.tar"
+echo '***   One Aggregated HTAR with ISH  ***'
+time -p /scinet/gpc/bin/ish htar -cphf "${DST}/aggregate.tar" original_1.nc original_2.nc 
 status=$?
 echo
 if [ ! $status == 0 ]; then
-    echo "Pipeline (#2) returned non-zero exit code: $status"
+    echo "Aggregated HTAR returned non-zero exit code: $status"
     /scinet/gpc/bin/exit2msg $status
 fi
-
-echo '***   Two Parallel Pipelines   ***'
-mkfifo /tmp/pipe_1; mkfifo /tmp/pipe_2
-cat original_1 > /tmp/pipe_1 &
-cat original_2 > /tmp/pipe_2 &
-time -p hsi -q cput /tmp/pipe_1 /tmp/pipe_2  : "${ARCHIVE}/"
-wait $!
-status=$?
-rm  -f /tmp/pipe_1 /tmp/pipe_2
-echo
-if [ ! $status == 0 ]; then
-    echo "Pipeline returned non-zero error exit: $status"
-    /scinet/gpc/bin/exit2msg $status
-fi
+/scinet/gpc/bin/ish aggregate.tar.igz
 
 echo
 echo '***   Parallel Performance Benchmark Finished   ***'
 echo
-hsi -q rm ${ARCHIVE}/test*
-hsi -q rm ${ARCHIVE}/original*
-hsi -q ls -l ${ARCHIVE}
+#hsi -q ls -l ${DST}
+#hsi -q rm -R ${DST}
+/scinet/gpc/bin/ish hindex
+/scinet/gpc/bin/ish ls ${DST}
+
+#echo '***   Two Sequential Transfers   ***'
+#time -p hsi -q cput original_1.nc : "${ARCHIVE}/test_seq_1.nc"
+#time -p hsi -q cput original_2.nc : "${ARCHIVE}/test_seq_2.nc"
+#status=$?
+#if [ ! $status == 0 ]; then
+#    echo "HSI (#2) returned non-zero exit code: $status"
+#    /scinet/gpc/bin/exit2msg $status
+#fi
+#echo
+#
+#echo '***   Two Parallel Transfers   ***'
+#time -p hsi -q cput original_1.nc original_2.nc: "${ARCHIVE}/"
+#status=$?
+#echo
+#if [ ! $status == 0 ]; then
+#    echo "Parallel HSI returned non-zero exit code: $status"
+#    /scinet/gpc/bin/exit2msg $status
+#fi
+
+#echo '***   Two Sequential Pipelines   ***'
+#time -p tar -ch original_1.nc | hsi -q cput - : "${ARCHIVE}/test_seq_1.tar"
+#time -p tar -ch original_1.nc | hsi -q cput - : "${ARCHIVE}/test_seq_2.tar"
+#status=$?
+#echo
+#if [ ! $status == 0 ]; then
+#    echo "Pipeline (#2) returned non-zero exit code: $status"
+#    /scinet/gpc/bin/exit2msg $status
+#fi
+#
+#echo '***   Two Parallel Pipelines   ***'
+#mkfifo /tmp/pipe_1; mkfifo /tmp/pipe_2
+#cat original_1 > /tmp/pipe_1 &
+#cat original_2 > /tmp/pipe_2 &
+#time -p hsi -q cput /tmp/pipe_1 /tmp/pipe_2  : "${ARCHIVE}/"
+#wait $!
+#status=$?
+#rm  -f /tmp/pipe_1 /tmp/pipe_2
+#echo
+#if [ ! $status == 0 ]; then
+#    echo "Pipeline returned non-zero error exit: $status"
+#    /scinet/gpc/bin/exit2msg $status
+#fi
