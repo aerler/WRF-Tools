@@ -16,6 +16,7 @@ echo
 echo '***   HPSS Parallel Performance Benchmark   ***'
 echo
 hsi -q ls -l ${ARCHIVE}
+hsi -q rm ${ARCHIVE}/*.*
 hsi -q rm -R ${DST}
 hsi -q mkdir ${DST}
 
@@ -50,8 +51,8 @@ hsi -q mkdir ${DST}
 # /scinet/gpc/bin/ish ls ${DST}
 
 echo '***   Two Sequential Transfers   ***'
-time -p hsi -q cput original_1.nc : "${ARCHIVE}/test_seq_1.nc"
-time -p hsi -q cput original_2.nc : "${ARCHIVE}/test_seq_2.nc"
+time -p hsi -q cput original_1.nc : "${DST}/test_seq_1.nc"
+time -p hsi -q cput original_2.nc : "${DST}/test_seq_2.nc"
 status=$?
 if [ ! $status == 0 ]; then
    echo "HSI (#2) returned non-zero exit code: $status"

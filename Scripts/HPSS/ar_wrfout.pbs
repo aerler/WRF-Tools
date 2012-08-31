@@ -3,7 +3,7 @@
 
 ## queue/PBS settings
 # 72h is maximum for long queue, 1h for short
-#PBS -l walltime=72:00:00
+#PBS -l walltime=1:00:00
 # merge standard error and output stream
 #PBS -j oe
 #PBS -o $PBS_JOBNAME.$PBS_JOBID.out
@@ -26,17 +26,18 @@ MODE=''
 DST="${ARCHIVE}/test/${PBS_O_WORKDIR##*/}" # remove parent folder (= run name)
 SRC="${PBS_O_WORKDIR}/wrfout/" 
 # if no dates given, process all datasets in current directory
-if [[ -n "${DATES}" ]]; then DATES=$( ls ????-??_wrf.tgz ); fi # if $DATE
+cd "${SRC}"
+if [[ -z "${DATES}" ]]; then DATES=$( ls ????-??_wrf.tgz ); fi # if $DATE
 
 ## function to verify the contents of an HTAR archive
 function VERIFYHTAR () {
   local HTAR=${1} # archive file (absolute pass on HPSS)
   local FILES=${2} # 
-  local LIST=$(htar -vtf  | awk '{print $7}' "${HTAR}")
+  local LIST=$( htar -vtf "${HTAR}" | awk '{print $7}' ) # column 7 are the file names
   local MISS=0 # missing file counter
   # loop over files in list and check presence in HTAR list
   for FILE in ${FILES}; do
-    if [[ "${FILE}" != $( echo "${LIST}" | sed -n "/${FILE}/p" ) - ]]; then
+    if [[ "${FILE}" != $( echo "${LIST}" | sed -n "/${FILE}/p" ) ]]; then
       MISS=$(( ${MISS} + 1 ))
       echo "WARNING: File ${FILE} missing in archive ${HTAR}"
     fi
@@ -83,7 +84,7 @@ function BACKUPDATASET () {
     echo "   >>>   WARNING: there were ${ERR} errors!   <<<   "
     return 1
   else
-    echo 'Transfer Successful!'
+    echo 'Backup Successful!'
     return 0
   fi
 }
@@ -111,10 +112,10 @@ trap - TERM INT
 if [ ! ${ERRORS} == 0 ]; then
   echo
   echo "   >>>   WARNING: THERE WERE ${ERRORS} ERRORS!   <<<   "
-  echo "   >>>        ${TRANSFERS} TRANSFERS COMPLETED   <<<   "
+  echo "   >>>        ${TRANSFERS} TRANSFERS OK   <<<   "
   # /scinet/gpc/bin/exit2msg ${ERRORS} # translate exit codes to human-readable messages
   exit ${ERRORS}
 else
   echo
-  echo "   <<<   ALL ${TRANSFERS} TRANSFERS COMPLETED   >>>   "
+  echo "   <<<   ALL ${TRANSFERS} TRANSFERS OK   >>>   "
 fi
