@@ -21,8 +21,9 @@ trap "echo 'Job script not completed';exit 129" TERM INT
 # Note that your initial directory in HPSS will be /archive/$(id -gn)/$(whoami)/
 
 ## definitions
-BACKUP='NO'
-RMSRC='NO'
+BACKUP=${BACKUP:-'NO'} # set to 'BACKUP'
+RMSRC=${RMSRC:-'NO'} # set to 'RMSRC'
+# N.B.: do not edit these variable; instead pass them as environment variables
 # data folder
 DST="${ARCHIVE}/test/${PBS_O_WORKDIR##*/}" # remove parent folder (= run name)
 SRC="${PBS_O_WORKDIR}/wrfout/" 
@@ -68,8 +69,8 @@ function BACKUPDATASET () {
   fi
   # delete source or not?
   if [[ ${RMSRC} == 'RMSRC' ]]
-    then echo "   +++   Removing source files after backup!   +++   "
-    else echo "         (leaving source files on untouched)         "
+    then echo " + Removing source files after backup! + "
+    else echo "   (leaving source files on untouched)   "
   fi
   echo '  logs and smaller files:'
   echo ${LOGS}
