@@ -61,10 +61,15 @@ function BACKUPDATASET () {
   local SMALL=$( ls wrfxtrm_d??_${DATE}* wrfflake_d??_${DATE}* )
   local BIG=$( ls wrfout_d??_${DATE}* ) # $BIG filenames will get trimmed below ($NEWNAME)
   echo
-  # select mode
+  # check or backup?
   if [[ ${BACKUP} == 'BACKUP' ]]
     then echo "   ***   BACKUP ${DATE}   ***   "
     else echo "   ***   CHECK ${DATE}   ***   "
+  fi
+  # delete source or not?
+  if [[ ${RMSRC} == 'RMSRC' ]]
+    then echo "   +++   Removing source files after backup!   +++   "
+    else echo "         (leaving source files on untouched)         "
   fi
   echo '  logs and smaller files:'
   echo ${LOGS}
@@ -90,7 +95,7 @@ function BACKUPDATASET () {
     echo "   >>>   WARNING: there were ${ERR} errors!   <<<   "
     return 1
   else
-    echo 'Backup Successful!'
+    echo 'Backup OK!'
     return 0
   fi
 }
