@@ -1,0 +1,49 @@
+#!/bin/bash
+#PBS -l walltime=24:00:00
+#PBS -q archive
+#PBS -N ar_benchmark-02
+#PBS -j oe
+#PBS -m e
+
+module load extras # to get pigz (parallel gzip)
+
+set -o pipefail
+
+SRC="${SCRATCH}/HPSS-test"
+cd "${SRC}"
+
+echo
+echo
+echo '***   HPSS Benchmark   ***'
+echo
+hsi -q rm ${ARCHIVE}/test.*
+hsi -q ls -l ${ARCHIVE}
+
+echo '***   TAR (only)   ***'
+time -p tar -ch original.nc | hsi -q cput - : "${ARCHIVE}/test.tar"
+echo
+echo '***   GZIP (serial)   ***'
+time -p tar -ch original.nc | gzip -1 | hsi -q cput - : "${ARCHIVE}/test.tar.gz"
+echo
+echo '***   GZIP (parallel)   ***'
+time -p tar -ch original.nc | pigz -1 | hsi -q cput - : "${ARCHIVE}/test.tar.pgz"
+echo
+hsi -q ls -l ${ARCHIVE}
+
+
+echo
+echo
+echo '***   GPFS Benchmark   ***'
+echo
+rm "${SRC}/test.*"
+
+echo '***   TAR (only)   ***'
+time -p tar -ch original.nc | cat - > "${SRC}/test.tar"
+echo
+echo '***   GZIP (serial)   ***'
+time -p tar -ch original.nc | gzip -1 | cat - > "${SRC}/test.tar.gz"
+echo
+echo '***   GZIP (parallel)   ***'
+time -p tar -ch original.nc | pigz -1 | cat - > "${SRC}/test.tar.pgz"
+echo
+ls -lhL "${SRC}"
