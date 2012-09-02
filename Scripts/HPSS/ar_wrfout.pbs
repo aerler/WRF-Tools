@@ -21,7 +21,8 @@ trap "echo 'Job script not completed';exit 129" TERM INT
 # Note that your initial directory in HPSS will be /archive/$(id -gn)/$(whoami)/
 
 ## definitions
-MODE=''
+BACKUP='NO'
+RMSRC='NO'
 # data folder
 DST="${ARCHIVE}/test/${PBS_O_WORKDIR##*/}" # remove parent folder (= run name)
 SRC="${PBS_O_WORKDIR}/wrfout/" 
@@ -37,7 +38,12 @@ function VERIFYHTAR () {
   local MISS=0 # missing file counter
   # loop over files in list and check presence in HTAR list
   for FILE in ${FILES}; do
-    if [[ "${FILE}" != $( echo "${LIST}" | sed -n "/${FILE}/p" ) ]]; then
+    if [[ "${FILE}" == $( echo "${LIST}" | sed -n "/${FILE}/p" ) ]]; then
+      if [[ "${RMSRC}" == 'RMSRC' ]]; then
+        echo "   >>> removing ${FILE}"
+        rm "${FILE}"
+      fi
+    else
       MISS=$(( ${MISS} + 1 ))
       echo "WARNING: File ${FILE} missing in archive ${HTAR}"
     fi
@@ -56,14 +62,14 @@ function BACKUPDATASET () {
   local BIG=$( ls wrfout_d??_${DATE}* ) # $BIG filenames will get trimmed below ($NEWNAME)
   echo
   # select mode
-  if [[ ${MODE} == 'backup' ]]
+  if [[ ${BACKUP} == 'BACKUP' ]]
     then echo "   ***   BACKUP ${DATE}   ***   "
     else echo "   ***   CHECK ${DATE}   ***   "
   fi
   echo '  logs and smaller files:'
   echo ${LOGS}
   echo ${SMALL}
-  if [[ ${MODE} == 'backup' ]]
+  if [[ ${BACKUP} == 'BACKUP' ]]
     then htar -cpf "${DST}/wrfextra_${DATE}.tar" -Hcrc -Hverify=1 ${LOGS} ${SMALL} # /scinet/gpc/bin/ish 
   fi
   VERIFYHTAR "${DST}/wrfextra_${DATE}.tar" "${LOGS} ${SMALL}"
@@ -73,7 +79,7 @@ function BACKUPDATASET () {
   for FILE in ${BIG} # N.B.: need to expand regex (no quotes)
     do
       local NEWNAME="${FILE%${DATE}*}${DATE}" # cut off what does beyond $DATE
-      if [[ ${MODE} == 'backup' ]]
+      if [[ ${BACKUP} == 'BACKUP' ]]
         then htar -cpf "${DST}/${NEWNAME}.tar" -Hcrc -Hverify=1 ${FILE} # /scinet/gpc/bin/ish 
       fi
       VERIFYHTAR "${DST}/${NEWNAME}.tar" "${FILE}"
