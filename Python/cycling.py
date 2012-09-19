@@ -58,6 +58,7 @@ if __name__ == '__main__':
     # or read first line
     nextline = 1
     linesplit = file[0].split()
+  fileinput.close()
         
   # set up next step    
   if nextline <= 0:
@@ -101,7 +102,8 @@ if __name__ == '__main__':
     for line in file: # loop over entries/lines
       if 'max_dom' in line: # search for relevant entries
         maxdom = int(line.split()[2].strip(','))
-        break; fileinput.close()    
+        break 
+    fileinput.close()    
 
     # WPS namelist
     # construct date strings
