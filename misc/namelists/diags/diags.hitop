@@ -1,0 +1,6 @@
+ &diags
+ p_lev_diags                         = 1
+ num_press_levels                    = 5
+ press_levels                        = 85000, 70000, 50000, 25000, 10000
+ use_tot_or_hyd_p                    = 2
+ / 
