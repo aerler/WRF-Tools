@@ -12,3 +12,14 @@ syntax: regexp
 ^bin$
 ^test$
 ^gmon\.out$
+
+syntax: regexp
+^misc/registry/test/io_boilerplate_temporary\.inc$
+syntax: glob
+
+syntax: glob
+registry.*
+syntax: regexp
+^misc/registry/test/Registry\.EM_COMMON$
+syntax: regexp
+^misc/registry/test/Registry\.EM$
