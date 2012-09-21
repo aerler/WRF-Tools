@@ -23,6 +23,7 @@ registryfile = '/home/me/Models/WRF Tools/misc/registry/test/Registry.EM_COMMON'
 oldregistry  = '/home/me/Models/WRF/WRFV3/Registry/Registry.EM_COMMON.original'
 # more settings 
 recurse = False # also apply changes to 'included' registry files (currently not implemented)
+debug = True # print all changes to I/O string
 
 ## actual editing functions
 
@@ -31,9 +32,10 @@ dusffct = re.compile(r'[udsf]=\([^()]*\)') # match nesting operations with funct
 dusf = re.compile(r'[udsf]') # match nesting operations without function specification
 
 # fct for pre-conditioning an I/O stream
-def processIOstream(iostr, addrm, iotype, ioid):
+def processIOstream(oldiostr, addrm, iotype, ioid):
   # regular expression defining the stream we are interested in
   irh = re.compile(iotype+r'[0-9{}]*') # match the required I/O stream
+  iostr = oldiostr
   # remove irrelevant fields
   excess = str().join(dusffct.findall(iostr)) # what we don't care about, but need to keep 
   iostr = str().join(dusffct.split(iostr)) # what we are actually interested in
@@ -41,11 +43,16 @@ def processIOstream(iostr, addrm, iotype, ioid):
   iostr = str().join(dusf.split(iostr))
   ## process actual I/O streams (and keep order)
   # N.B.: I don't know what happens if multiple instances occur
-  iostrs = irh.split(iostr) # list of other I/O streams
-  assert len(iostrs) == 2 
-  iostr = irh.findall(iostr) # the I/O stream we are operating on 
-  assert len(iostr) == 1 
-  iostr = iostr[0]
+  # treat '-' as empty field
+  if iostr == '-':
+    iostrs = ['','']
+    iostr = ''
+  else:
+    iostrs = irh.split(iostr) # list of other I/O streams
+    assert len(iostrs) == 2 
+    iostr = irh.findall(iostr) # the I/O stream we are operating on 
+    assert len(iostr) == 1 
+    iostr = iostr[0]
   # string representation of I/O stream
   if ioid > 9:
     assert ioid < 100
@@ -59,21 +66,26 @@ def processIOstream(iostr, addrm, iotype, ioid):
     iostr = str().join(dd.split(iostr))
   ## add stream
   if addrm:
-    # add implicit zero
-    if iostr == iotype:
-      iostr = iostr + '0' 
-    # add new stream is not already present
-    if ioidstr not in iostr:
-      iostr = iostr + ioidstr
+    # just write stream type and ID if not yet present
+    if iostr == '': 
+      iostr = iotype + ioidstr
+    # if stream type is already present add new ID
+    else:
+      # add implicit zero
+      if iostr == iotype: iostr = iostr + '0' 
+      # add new stream is not already present
+      if ioidstr not in iostr:
+        iostr = iostr + ioidstr
   ## remove stream
   else:
     # remove existing stream (if actually present)
     if ioidstr in iostr:
       iostr = iostr.replace(ioidstr,'')
-    # remove stream to avoid implicit zero
-    if iostr == iotype:
-      iostr = '' 
+      # remove stream to avoid implicit zero
+      if iostr == iotype: iostr = '' 
   newiostr = str().join([iostrs[0], iostr, ddstr, iostrs[1], excess])
+  if newiostr == '': newiostr = '-' # never return empty field
+  # return new I/O string
   return newiostr
 
 
@@ -93,7 +105,7 @@ if __name__ == '__main__':
     # check that this is not a comment line
     if not '#' in line:
       streamno += 1      
-      print('\nProcessing Stream # '+str(streamno))
+      print('\nProcessing I/O List # '+str(streamno))
       feedback = ' the following variables ' # tell the user what we are doing
       err = 0
       # split into tokens
@@ -101,10 +113,10 @@ if __name__ == '__main__':
       # operation: addrm
       if tokens[0] == '+': 
         addrm = True
-        feedback = 'Adding' + feedback + 'to '  
+        feedback = '  Adding' + feedback + 'to '  
       elif tokens[0] == '-': 
         addrm = False
-        feedback = 'Removing' + feedback + 'from '
+        feedback = '  Removing' + feedback + 'from '
       else: 
         addrm = None
         err += 1
@@ -133,21 +145,22 @@ if __name__ == '__main__':
       feedback = feedback + ' stream # ' + tokens[2]
       # list of variables
       variables = tokens[3].lower().split(',')
-      feedback = feedback + ':\n ' + variables[0]
+      feedback = feedback + ':\n   ' + variables[0]
       for variable in variables[1:]:
         feedback += ', ' + variable
       # print feedback (tell user what we are doing)
       if err == 0:
         print(feedback)
         
-      # debugging output
-      print
-      print 'Debugging Info:'
-      print addrm
-      print iotype
-      print ioid
-      print variables
-      print
+#      # debugging output
+#      if debug:
+#        print
+#        print 'Debugging Info:'
+#        print addrm
+#        print iotype
+#        print ioid
+#        print variables
+#        print
             
   # close I/O config file
   fileinput.close()
@@ -156,6 +169,8 @@ if __name__ == '__main__':
   # copy the original to the new destination (if given) 
   if oldregistry:
     shutil.copy(oldregistry, registryfile)
+  # save list of changes
+  if debug: changelog = []
   # open with fileinput for editing
   registry = fileinput.FileInput([registryfile], inplace=True) # apparently AIX doesn't like "mode='r'"
   # loop over lines
@@ -187,7 +202,10 @@ if __name__ == '__main__':
             if tokens[2].lower() == var.lower():
               oldiostr = tokens[7].lower()
               ## here comes the editing of the actual I/O string
-              newiostr = processIOstream(oldiostr, addrm, iotype, ioid)              
+              newiostr = processIOstream(oldiostr, addrm, iotype, ioid)
+              # save modifications in string and add to change-log              
+              if debug: 
+                changelog.append(var+':  '+oldiostr+'  >>>  '+newiostr)                
               tokens[7] = newiostr
           # write modified line into file
           newline = tokens[0]
@@ -200,4 +218,9 @@ if __name__ == '__main__':
       oldline = '' # lines must not grow indefinitely
   # close WRF registry file
   fileinput.close()
+  # print debugging info / change-log
+  if debug:
+    print('  Log of changes:')
+    for line in changelog:
+      print('   '+line)
   

@@ -117,8 +117,8 @@ state    real    qni_gc    igj    dyn_em    1    Z    i1    "QNI"   "ice no conc
 # Velocities
 #
 # U Vel
-state    real    u    ikjb    dyn_em    2    X    i0{11}rhusdf=(bdy_interp:dt)    "U"                      "x-wind component"   "m s-1"
-state    real    ru    ikj    dyn_em    1    X    -    "MU_U"        "mu-coupled u"   "Pa m s-1"
+state    real    u    ikjb    dyn_em    2    X    i0rhusdf=(bdy_interp:dt)    "U"                      "x-wind component"   "m s-1"
+state    real    ru    ikj    dyn_em    1    X    i0    "MU_U"        "mu-coupled u"   "Pa m s-1"
 state    real    ru_m    ikj    dyn_em    1    X    -    "ru_m"        ""   ""
 state    real    ru_tend    ikj    dyn_em    1    X    -    "ru_tend"        ""   ""
 i1       real   ru_tendf       ikj     dyn_em      1         X
@@ -129,7 +129,7 @@ state    real    u_g    |    dyn_em    1    -    i3rh    "U_G" "x-direction geos
 state    real    u_g_tend    |    dyn_em    1    -    i3rh    "U_G_TEND" "tendency x-direction geostrophic wind" "m s-1"
 #
 # V Vel
-state    real    v    ikjb    dyn_em    2    Y    i0{11}rhusdf=(bdy_interp:dt)    "V"                     "y-wind component"   "m s-1"
+state    real    v    ikjb    dyn_em    2    Y    i0rhusdf=(bdy_interp:dt)    "V"                     "y-wind component"   "m s-1"
 state    real    rv    ikj    dyn_em    1    Y    -    "MU_V"        "mu-coupled v"   "Pa m s-1"
 state    real    rv_m    ikj    dyn_em    1    Y    -    "rv_m"
 state    real    rv_tend    ikj    dyn_em    1    Y    -    "rv_tend"
@@ -139,7 +139,7 @@ state    real    v_g    |    dyn_em    1    -    i3rh    "V_G" "y-direction geos
 state    real    v_g_tend    |    dyn_em    1    -    i3rh    "V_G_TEND" "tendency y-direction geostrophic wind" "m s-1"
 #
 # Vertical Vel
-state    real    w    ikjb    dyn_em    2    Z    i0{11}rhusdf=(bdy_interp:dt)    "w"                          "z-wind component"   "m s-1"
+state    real    w    ikjb    dyn_em    2    Z    irhusdf=(bdy_interp:dt)    "w"                          "z-wind component"   "m s-1"
 state    real    ww    ikj    dyn_em    1    Z    r    "ww"   "mu-coupled eta-dot"    "Pa s-1"
 state    real    rw    ikj    dyn_em    1    Z    -    "rw"   "mu-coupled w"          "Pa m s-1"
 i1       real   ww1            ikj     dyn_em      1         Z
