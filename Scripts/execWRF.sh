@@ -243,17 +243,16 @@ if [[ ! "${WRFDIR}" == "${WORKDIR}" ]]; then
 fi
 # copy/move data to output directory (hard disk) if necessary
 if [[ ! "${WRFDIR}" == "${WRFOUT}" ]]; then 
-	echo "Moving data and log-files (*.tgz) to ${WRFOUT}"
-	time -p mv wrfout_d??_* "${WRFOUT}" 
-	mv wrfxtrm_d??_* "${WRFOUT}" 
-	mv wrfflake_d??_* "${WRFOUT}" 
-	mv wrfconst_d?? "${WRFOUT}" 
     # move new restart files as well
-    for RESTART in "${WORKDIR}"/wrfrst_d??_*; do
-        if [[ ! -h "${RESTART}" ]]; then 
+    for RESTART in "${WORKDIR}"/wrfrst_d??_????-??-??_??:??:??; do
+        if [[ ! -h "${RESTART}" ]]; then
             mv "${RESTART}" "${RSTDIR}" # defaults to $WRFOUT
         fi # if not a link itself
     done
+	echo "Moving data and log-files (*.tgz) to ${WRFOUT}"
+    # time -p mv wrfout_d??_* "${WRFOUT}"}"
+	mv wrfconst_d?? "${WRFOUT}" # this one doesn't have a date string
+	mv wrf*_d??_????-??-??_??:??:?? "${WRFOUT}" # othersie identify output files by date string
 	# N.B.: move separately to avoid "too long argument list" error
 	# copy real.exe log files to wrf output
 	mv "${WORKDIR}"/*.tgz "${WRFOUT}"

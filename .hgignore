@@ -5,6 +5,7 @@ syntax: glob
 *.so
 *.mod
 *.pyc
+*.kate-swp
 
 syntax: regexp
 ^.settings$

@@ -1,3 +1,4 @@
+#!/usr/bin/python
 '''
 Created on 2012-09-19
 
@@ -16,18 +17,19 @@ import re # to parse I/O strings
 
 ## settings 
 # full path to I/O config file
-ioconfigfile = '/home/me/Models/WRF Tools/misc/registry/test/ioconfig.test' 
+ioconfigfile = '/home/me/Models/WRF/WRFV3/config/registry/ioconfig.fine'
 # full path to WRF registry file (destination)
-newregfolder = '/home/me/Models/WRF Tools/misc/registry/test/'
-newregfiles = ['Registry.EM']
+newregfolder = '/home/me/Models/WRF/WRFV3/Registry/'
+newregfiles = ['Registry.EM_COMMON', 'registry.flake']
 # full path to WRF registry file (source) 
 oldregfolder = '/home/me/Models/WRF/WRFV3/Registry/original/'
-oldregfiles = ['/Registry.EM'] or newregfiles # ['/Registry.EM_COMMON.original']
+oldregfiles = [] or newregfiles
 # more settings
 lstate = True # only operate on state-variables (faster) 
 ltable = False # search table field instead of variable field (e.g. you can remove all state variables)
-lrmall = True # allow keyword 'all' as stream ID to remove all  
-lrecurse = True # also apply changes to 'included' registry files (currently not implemented)
+lrmall = True # allow keyword 'all' as stream ID to remove all stream IDs for a variable 
+lrecurse = False # also apply changes to 'included' registry files
+# N.B.: even though the recursion works, due to this option, apparently some files get modified that should not be touched, so that WRF does not build anymore
 ldebug = True # print all changes to I/O string
 
 ## actual editing functions
@@ -77,7 +79,7 @@ def processIOstream(oldiostr, addrm, iotype, ioid):
       ddstr = str().join(dd.findall(iostr))
       iostr = str().join(dd.split(iostr))
   # add implicit zero before processing further
-  if iostr == iotype: iostr = iostr + '0' 
+  if (iostr == iotype) and (ddstr == ''): iostr = iostr + '0' 
   ## add stream
   if addrm:
     # just write stream type and ID if not yet present
@@ -97,7 +99,7 @@ def processIOstream(oldiostr, addrm, iotype, ioid):
     elif ioidstr in iostr:
       iostr = iostr.replace(ioidstr,'')
       # remove stream to avoid implicit zero
-      if iostr == iotype: iostr = '' 
+      if (iostr == iotype) and (ddstr == ''): iostr = ''
   newiostr = str().join([iostrs[0], iostr, ddstr, iostrs[1], excess])
   if newiostr == '': newiostr = '-' # never return empty field
   # return new I/O string
@@ -119,7 +121,7 @@ if __name__ == '__main__':
   entrylist = []
   for line in ioconfig:
     # check that this is not a comment line
-    if not '#' in line:
+    if (line != '\n') and ('#' not in line):
       entryno += 1     
       tmpdict = dict() # dictionary of parameters 
       if ldebug:
@@ -139,7 +141,7 @@ if __name__ == '__main__':
       else: 
         addrm = None
         err += 1
-        warnings.warn('WARNING: No legal operation: '+tokens[0]+' \n'+line)
+        warnings.warn('WARNING (line #'+str(ioconfig.filelineno())+'): No legal operation: '+tokens[0]+' \n'+line)
       # save in dictionary
       tmpdict['addrm'] = addrm 
       # stream type: iotype
