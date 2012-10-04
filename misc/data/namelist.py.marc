@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 # configuration file for pyWPS.py:
-# Guido's CESM data, for test purpose only
+# Marc's CESM data, for production tests
 
 # general settings
 prefix = 'tb20trcn1x1' # file prefix for CESM output

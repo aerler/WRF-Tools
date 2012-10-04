@@ -9,6 +9,7 @@ GCM = "CESM"
 grid = "gx1v6"
 res = "fv0.9x1.25"
 date = "090309" 
+; ocean grid definition file: "map_gx1v6_to_fv0.9x1.25_aave_da_090309.nc"
 
 ;------------------------------------------------------------------
 ;  For SEAICE: define environment variable $NCL_POP_REMAP 

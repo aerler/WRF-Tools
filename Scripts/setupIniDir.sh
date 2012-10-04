@@ -3,46 +3,34 @@
 # created 28/06/2012 by Andre R. Erler, GPL v3
 # environment variables: $MODEL_ROOT, $WPSSRC, $WRFSRC
 
-## some settings: source folders
+## load configuration 
+source config.setup
+# run folder
 RUNDIR="${PWD}"
 mkdir -p "${RUNDIR}"
-# WPS
-WPSSYS="GPC"
-WRFTOOLS="${MODEL_ROOT}/WRF Tools/"
-# data
-GEOGRID="FLAKE"
-METGRID="CESM"
-DATA="cesm"
-POPMAP="map_gx1v6_to_fv0.9x1.25_aave_da_090309.nc"
-DATATAG="marc"
-DATADIR="/scratch/p/peltier/marcdo/archive/tb20trcn1x1/"
-CASE="clim"
-# WRF
-WRFSYS="TCS"
-# cycling
-CYCLING="monthly"
 
-## link in WPS stuff
-# meta data
+# link meta data
 mkdir -p "${RUNDIR}/meta"
-cd meta
+cd "${RUNDIR}/meta"
 ln -sf "${WRFTOOLS}/misc/data/${POPMAP}" ${POPMAP}  
-ln -sf "${WRFTOOLS}/misc/data/GEOGRID.TBL.${GEOGRID}" GEOGRID.TBL
-ln -sf "${WRFTOOLS}/misc/data/METGRID.TBL.${METGRID}" METGRID.TBL
-ln -sf "${WRFTOOLS}/misc/data/namelist.data.${DATA}" namelist.data
-ln -sf "${WRFTOOLS}/misc/data/namelist.py.${DATATAG}" namelist.py
-ln -sf "${WRFTOOLS}/misc/data/setup.ncl.${DATA}" setup.ncl
-# data
+ln -sf "${WRFTOOLS}/misc/data/${GEOGRID}" GEOGRID.TBL
+ln -sf "${WRFTOOLS}/misc/data/${METGRID}" METGRID.TBL
+ln -sf "${WRFTOOLS}/misc/data/${UNCCSM}" namelist.data
+ln -sf "${WRFTOOLS}/misc/data/${PYWPS}" namelist.py
+ln -sf "${WRFTOOLS}/misc/data/${NCL}" setup.ncl
+# link boundary data
 cd "${RUNDIR}"
 ln -sf "${DATADIR}/atm/hist/" "atm" # atmosphere
 ln -sf "${DATADIR}/lnd/hist/" "lnd" # land surface
 ln -sf "${DATADIR}/ice/hist/" "ice" # sea ice
+
+## link in WPS stuff
 # WPS scripts and executables
 ln -sf "${WRFTOOLS}/Scripts/prepWorkDir.sh"
 ln -sf "${WRFTOOLS}/Scripts/execWPS.sh"
 ln -sf "${WRFTOOLS}/Python/pyWPS.py"
 ln -sf "${WRFTOOLS}/NCL/eta2p.ncl"
-# WPS GPC-sfpecific stuff (for largemem-nodes)
+# WPS GPC-specific stuff (for largemem-nodes)
 if [[ "$WPSSYS" == "GPC" ]]; then
 	ln -sf "${WRFTOOLS}/Scripts/GPC/setupGPC.sh"
 	ln -sf "${WRFTOOLS}/bin/GPC-lm/unccsm.exe"
@@ -59,10 +47,6 @@ fi
 if [[ "$WRFSYS" == "TCS" ]]; then
 	ln -sf "${WPSSRC}/TCS-MPI/NoOptO3/geogrid.exe"
 fi
-
-## WPS/WRF namelists
-cp "${WRFTOOLS}/misc/namelists/namelist.wps.${CASE}" namelist.wps
-cp "${WRFTOOLS}/misc/namelists/namelist.input.${CASE}" namelist.input
 
 ## link in WRF stuff
 cd "${RUNDIR}"
