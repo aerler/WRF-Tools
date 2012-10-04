@@ -51,7 +51,7 @@ unccsm: unccsm.exe
 unccsm.exe: bin/nc2im.o
 	$(FC) $(FCFLAGS) -o bin/$@ $^ $(NC_LIB)
 	
-bin/nc2im.o: src/nc2im.f90
+bin/nc2im.o: Fortran/nc2im.f90
 	$(FC) $(FCFLAGS) $(NC_INC) -c $^
 	mv nc2im.o bin/
 
@@ -62,7 +62,7 @@ spectra: convert_spectra
 convert_spectra: bin/gribSpectra.o
 	$(FC) $(FCFLAGS) -o bin/$@ $^ $(GRIBLIBS) $(NCLIBS)
 
-bin/gribSpectra.o: src/gribSpectra.f90
+bin/gribSpectra.o: Fortran/gribSpectra.f90
 	$(FC) $(FCFLAGS) $(INCLUDE) -c $^
 	mv gribSpectra.o bin/ 
 
