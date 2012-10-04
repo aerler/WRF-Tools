@@ -1,7 +1,16 @@
 #!/bin/bash
 # script to set up a WPS/WRF run folder on SciNet
 # created 28/06/2012 by Andre R. Erler, GPL v3
+# last revision 04/10/2012 by Andre R. Erler
 # environment variables: $MODEL_ROOT, $WPSSRC, $WRFSRC
+
+## TODO:
+# * reconsider neccessity of ocean grid definition files
+# * config file needs a standard name
+# * include date range in stepfile filename
+# * handle GHG scenario in setup script, not in run-script
+# * consider putting exec* scripts into PATH
+# * differentiate between GPC-batch and GPC-largemem 
 
 ## load configuration 
 source config.setup
