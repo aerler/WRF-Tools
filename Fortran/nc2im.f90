@@ -1,7 +1,7 @@
 ! ====================================================================================
 ! Name        : nc2im.f90
 ! Author      : original version by Jonathan Gula, adapted by Andre R. Erler
-! Version     : 2.0
+! Version     : 3.0
 ! Copyright   : GPL v3
 ! Description : Program to convert CCSM netcdf output into the WRF
 !               intermediate file format
@@ -17,7 +17,8 @@ program unccsm
   integer, parameter :: IUNIT = 10
   character (len = *), parameter :: FILEOUT = "FILEOUT"
   integer :: IFV=5
-  character(len=24) :: HDATE
+  character(len=24) :: HDATE = "2001:01:01_00:00:00" ! this is just a dummy
+  ! N.B.: The NetCDF date is irrelevant - metgrid only uses the date in the filename
   real :: XFCST
   character(len=8) :: STARTLOC
   character(len=9) :: FIELD
@@ -56,6 +57,11 @@ program unccsm
   character (len = *), parameter :: LAT_NAME = "lat"
   character (len = *), parameter :: LON_NAME = "lon"
   character (len = *), parameter :: REC_NAME = "time"
+  character (len = *), parameter :: MS_NAME = 'Map_Source'
+  character (len = *), parameter :: MP_NAME = 'Map_Proj_ID'
+  ! these are necessary because nf90_inquire_dimension can change the name of a variable
+  character (len = 64) :: lvl_new, lat_new, lon_new
+
   integer :: lvl_dimid, lon_dimid, lat_dimid, rec_dimid
 
   ! In addition to the latitude and longitude dimensions, we will also
@@ -80,23 +86,19 @@ program unccsm
   ! Loop indices
   integer :: lvl, lat, lon, rec, i, ilvl
 
-  ! Namelist input control
-  integer :: NLUNIT = 8
-  character (len = *), parameter :: NAMLISTFILE = "meta/namelist.data"
-  namelist /meta/ HDATE, MAP_SOURCE
-  namelist /grid/ IPROJ, NLONS, NLATS, NLVLS
-
+!  ! Namelist input control
+!  integer :: NLUNIT = 8
+!  character (len = *), parameter :: NAMLISTFILE = "meta/namelist.data"
+!  namelist /meta/ HDATE, MAP_SOURCE
+!  namelist /grid/ IPROJ, NLONS, NLATS, NLVLS
+!
 ! ====================================================================================
-
+!
 ! Read Namelist parameter
-open(NLUNIT, FILE=NAMLISTFILE, action='read',status='old', delim='quote')
-read(NLUNIT, NML=meta)
-read(NLUNIT, NML=grid)
-close(NLUNIT)
-
-! Allocate memory
-allocate( lats(NLATS), lons(NLONS), lvls(NLVLS) )
-allocate( datafield2d(NLONS,NLATS), datafield3d(NLONS,NLATS,NLVLS) )
+!open(NLUNIT, FILE=NAMLISTFILE, action='read',status='old', delim='quote')
+!read(NLUNIT, NML=meta)
+!read(NLUNIT, NML=grid)
+!close(NLUNIT)
 
 ! ====================================================================================
 
@@ -114,6 +116,22 @@ OPEN(IUNIT, CONVERT='BIG_ENDIAN', FILE=FILEOUT, form='unformatted',status='repla
 write(*,*) 'Opening file ', FILEOUT, ' for writing.'
 #endif
 
+! Get relevant global attribute values
+ncerr = nf90_get_att(ncid, NF90_GLOBAL, MS_NAME, MAP_SOURCE) ! source model
+ncerr = nf90_get_att(ncid, NF90_GLOBAL, MP_NAME, IPROJ) ! projection code (set in NCL script)
+
+! Get dimension sizes
+ncerr = nf90_inq_dimid(ncid, LAT_NAME, lat_dimid) ! usually dimensions have the same name
+ncerr = nf90_inq_dimid(ncid, LON_NAME, lon_dimid) ! as their associated arrays
+ncerr = nf90_inq_dimid(ncid, LVL_NAME, lvl_dimid)
+ncerr = nf90_inquire_dimension(ncid, lat_dimid, lat_new, NLATS) ! the name should not change, but well...
+ncerr = nf90_inquire_dimension(ncid, lon_dimid, lon_new, NLONS) ! NetCDF insists on retunring the name...
+ncerr = nf90_inquire_dimension(ncid, lvl_dimid, lvl_new, NLVLS)
+
+! Allocate memory
+allocate( lats(NLATS), lons(NLONS), lvls(NLVLS) )
+allocate( datafield2d(NLONS,NLATS), datafield3d(NLONS,NLATS,NLVLS) )
+
 ! Get the varids of the latitude and longitude coordinate variables.
 ncerr = nf90_inq_varid(ncid, LAT_NAME, lat_varid)
 ncerr = nf90_inq_varid(ncid, LON_NAME, lon_varid)
@@ -129,8 +147,8 @@ ncerr = nf90_get_var(ncid, lvl_varid, lvls)
 
 !  IPROJ=4 ! Gaussian projection (T85 version)
 !  HDATE="1987:01:01_00:00:00"
-  XFCST=0
 !  MAP_SOURCE="CCSM3"
+  XFCST=0
   NX=NLONS
   NY=NLATS
   NLATSGAUSS=NLATS/2 ! number of latitudes north of equator

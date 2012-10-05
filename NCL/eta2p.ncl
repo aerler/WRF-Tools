@@ -41,8 +41,6 @@ begin
   lev = atm->lev
 
 ;---------------------------------------------------------------------------------------------------------------------
-;  Boucle Day (only one here)
-;---------------------------------------------------------------------------------------------------------------------
 
   nzyx = floattointeger(fspan(0,3, 4))
   nzyx(0) = dimsizes(time)
@@ -50,13 +48,28 @@ begin
   nzyx(2) = dimsizes(atm->lon)
   nzyx(3) = dimsizes(atm->lat)
 
-	; load output file
-  ;system ("rm "+"intermed"+".nc")
-  fncfout = addfile ("intermed" +".nc" , "c") 
-
+;---------------------------------------------------------------------------------------------------------------------
+; open output file
 ;---------------------------------------------------------------------------------------------------------------------
 
- ijouratm = 0
+  ;system ("rm "+"intermed"+".nc")
+  fncfout = addfile ("intermed" +".nc" , "c")
+  ; add source data to file
+  fncfout@Map_Source = GCM
+  ; add projection type
+  if ( (GCM .eq. "CESM") .and. (atmgrid .eq. "fv0.9x1.25") ) then
+    fncfout@Map_Proj_ID =  0
+    fncfout@Map_Proj_Name = "Cylindrical Equidistant"
+  else if ( (GCM .eq. "CCSM")  .and. (atmgrid .eq. "T85") ) then
+    fncfout@Map_Proj_ID =  4
+    fncfout@Map_Proj_Name = "Gaussian Projection"
+  else
+    print("Warning: unknown grid/projection type!")
+  end if ; NCL does not support elseif...
+  end if
+;---------------------------------------------------------------------------------------------------------------------
+
+ ijouratm = 0 ; constant (one file per timestep), just for convenience
  ijourocn = 0
 
 ;---------------------------------------------------------------------------------------------------------------------
@@ -160,7 +173,7 @@ begin
 	
 		ICEFRAC1 = atm->ICEFRAC(ijouratm,:,:)
 		ICEFRAC1@_FillValue = 1e20
-		tgridfile = addfile ("$NCL_POP_REMAP/tgrid"+res+".nc" , "r") 
+		tgridfile = addfile ("$NCL_POP_REMAP/tgrid"+atmgrid+".nc" , "r")
 	  	tgrid = tgridfile->tgrid
 	  	ICEFRAC = ICEFRAC1               ; done for metadata
 	  	ICEFRAC = (/ ICEFRAC1/tgrid /)     ; normalize the original regridded field by using remap2
@@ -189,10 +202,10 @@ begin
 		end if
   	
   	; Regrid ice data from ocean to atmosphere grid
-  	ICEFRAC1 = PopLatLon(ICEFRAC0,grid,res,"aave","da",date)
+  	ICEFRAC1 = PopLatLon(ICEFRAC0,ocngrid,atmgrid,"aave","da",trafoid)
 		ICEFRAC1@_FillValue = 1e20
 		tgrid0  = where(.not.ismissing(ICEFRAC0),1.,0.)   
-		tgrid = PopLatLon(tgrid0,grid,res,"aave","da",date)
+		tgrid = PopLatLon(tgrid0,ocngrid,atmgrid,"aave","da",trafoid)
 		delete(tgrid0)
 		tgrid = where(tgrid.eq.0,tgrid@_FillValue,tgrid) 
 		ICEFRAC = ICEFRAC1               ; done for metadata
@@ -230,8 +243,8 @@ begin
 		end if
 		end if
 
-		SITHIK1 = PopLatLon(SITHIK0,grid,res,"aave","da",date)
-		SNOWSI1 = PopLatLon(SNOWSI0,grid,res,"aave","da",date)
+		SITHIK1 = PopLatLon(SITHIK0,ocngrid,atmgrid,"aave","da",trafoid)
+		SNOWSI1 = PopLatLon(SNOWSI0,ocngrid,atmgrid,"aave","da",trafoid)
 		
 		SITHIK = (/ SITHIK1/tgrid /)   
 		SNOWSI = (/ SNOWSI1/tgrid /)    
@@ -271,7 +284,7 @@ begin
 		end if
 		end if
 
-		ALBSI1 = PopLatLon(ALBSI0,grid,res,"aave","da",date)
+		ALBSI1 = PopLatLon(ALBSI0,ocngrid,atmgrid,"aave","da",trafoid)
 		ALBSI = (/ ALBSI1/tgrid /)  
   	ALBSI@_FillValue = 1e20
 

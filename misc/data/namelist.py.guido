@@ -1,8 +1,0 @@
-#!/usr/bin/python
-
-# configuration file for pyWPS.py:
-# Guido's CESM data, for test purpose only
-
-# general settings
-prefix = 'cesmpdwrf1x1' # file prefix for CESM output
-ldisk = False # don't write metgrid files to hard disk

@@ -6,9 +6,9 @@
 GCM = "CESM"
 
 ; Grid parameters for POP (ocean model)
-grid = "gx1v6"
-res = "fv0.9x1.25"
-date = "090309" 
+ocngrid = "gx1v6"
+atmgrid = "fv0.9x1.25"
+trafoid = "090309"
 ; ocean grid definition file: "map_gx1v6_to_fv0.9x1.25_aave_da_090309.nc"
 
 ;------------------------------------------------------------------

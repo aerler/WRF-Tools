@@ -87,7 +87,7 @@ data = 'data/' # data folder in ram
 ldata = True # whether or not to keep data in memory  
 disk = 'data/' # destination folder on hard disk
 Disk = '' # default: Root + disk
-ldisk = True # whether or not to store data on hard disk
+ldisk = False # don't write metgrid files to hard disk
 ## Commands
 eta2p_ncl = 'eta2p.ncl'
 eta2p_log = 'eta2p.log'
@@ -115,34 +115,21 @@ icelnk = 'icefile.nc'
 ## import local settings from file
 #sys.path.append(os.getcwd()+'/meta')
 #from namelist import *
-print('\n Loading namelist parameters from '+meta+'/namelist.py:')
-nmlstpy = imp.load_source('namelist_py',meta+'/namelist.py') # avoid conflict with module 'namelist'
-localvars = locals()
-# loop over variables defined in module/namelist  
-for var in dir(nmlstpy):
-  if ( var[0:2] != '__' ) and ( var[-2:] != '__' ):
-    # overwrite local variables
-    localvars[var] = nmlstpy.__dict__[var]
-    print('   '+var+' = '+str(localvars[var]))
-print('')
+#print('\n Loading namelist parameters from '+meta+'/namelist.py:')
+#nmlstpy = imp.load_source('namelist_py',meta+'/namelist.py') # avoid conflict with module 'namelist'
+#localvars = locals()
+## loop over variables defined in module/namelist  
+#for var in dir(nmlstpy):
+#  if ( var[0:2] != '__' ) and ( var[-2:] != '__' ):
+#    # overwrite local variables
+#    localvars[var] = nmlstpy.__dict__[var]
+#    print('   '+var+' = '+str(localvars[var]))
+#print('')
 
-# number of processes NP 
-if os.environ.has_key('PYWPS_THREADS'):
-  NP = int(os.environ['PYWPS_THREADS']) # default is set above (machine specific)
 # dependent variables 
 NCL_ETA2P = NCL + ' ' + eta2p_ncl
 UNCCSM = './' + unccsm_exe
 METGRID = './' + metgrid_exe
-dateregx = re.compile(dateform)
-# atmosphere
-if prefix: atmpfx = prefix+'.cam2.h1.'
-atmrgx = re.compile(atmpfx+dateform+ncext+'$')
-# land
-if prefix: lndpfx = prefix+'.clm2.h1.'
-lndrgx = re.compile(lndpfx+dateform+ncext+'$')
-# ice
-if prefix: icepfx = prefix+'.cice.h1_inst.'
-icergx = re.compile(icepfx+dateform+ncext+'$')
 
 ## subroutines
 
@@ -311,7 +298,7 @@ def processTimesteps(myid, dates):
     tmpstr += '\n\n   ============================== finished '+imdate+' ==============================   \n'
     print(tmpstr)
     # clean up (also renamed intermediate file)
-    clean(MyDir, filelist=[imfile])
+    #clean(MyDir, filelist=[imfile])
       
   ## clean up after all time-steps
   # link other source files
@@ -392,6 +379,36 @@ if __name__ == '__main__':
     os.putenv('NCL_POP_REMAP', meta) # NCL is finicky about space characters in the path statement, so relative path is saver
     os.putenv('MODEL_ROOT', Model) # also for NCL (where personal function libs are)
     
+    # number of processes NP 
+    if os.environ.has_key('PYWPS_THREADS'):
+      NP = int(os.environ['PYWPS_THREADS']) # default is set above (machine specific)
+    
+    # get file prefix for data files
+    if not prefix:
+#      prefix = 'cesmpdwrf1x1' # or 'tb20trcn1x1' file prefix for CESM output
+      # use only atmosphere files
+      prergx = re.compile(atmpfx+dateform+ncext+'$')
+      # search for first valid filename
+      for file in os.listdir(AtmDir):
+        match = prergx.search(file) 
+        if match: break
+      prefix = file[0:match.start()] # use everything before the pattern as prefix
+      # print prefix
+      print('\n No data prefix defined; inferring prefix from valid data files in directory '+AtmDir)
+      print('  prefix = '+prefix)
+    
+    # compile regular expressions
+    dateregx = re.compile(dateform)
+    # atmosphere
+    if prefix: atmpfx = prefix+atmpfx
+    atmrgx = re.compile(atmpfx+dateform+ncext+'$')
+    # land
+    if prefix: lndpfx = prefix+lndpfx
+    lndrgx = re.compile(lndpfx+dateform+ncext+'$')
+    # ice
+    if prefix: icepfx = prefix+icepfx
+    icergx = re.compile(icepfx+dateform+ncext+'$')
+
     ## multiprocessing
     
     # search for files and check dates for validity
