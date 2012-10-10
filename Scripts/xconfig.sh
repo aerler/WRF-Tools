@@ -1,5 +1,6 @@
 #!/bin/bash
 ## scenario definition section
+NAME=''
 # GHG emission scenario
 GHG='A2' # CAMtr_volume_mixing_ratio.* file to be used
 # time period and cycling interval

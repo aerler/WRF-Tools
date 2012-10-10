@@ -44,11 +44,9 @@ echo
 
 # prepare first working directory
 # set restart to False for first step
-sed -i '/restart\s/ s/restart\s*=\s*\.true\..*$/restart = .false.,/' \
- "${INIDIR}/${NEXTSTEP}/namelist.input"  
+sed -i '/restart\s/ s/restart\s*=\s*\.true\..*$/restart = .false.,/' "${INIDIR}/${NEXTSTEP}/namelist.input"  
 # and make sure the rest is on restart
-sed -i '/restart\s/ s/restart\s*=\s*\.false\..*$/restart = .true.,/' \
- "${INIDIR}/namelist.input"
+sed -i '/restart\s/ s/restart\s*=\s*\.false\..*$/restart = .true.,/' "${INIDIR}/namelist.input"
 echo "   Setting restart option and interval in namelist."
 echo
 

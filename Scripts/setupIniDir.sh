@@ -5,17 +5,55 @@
 # environment variables: $MODEL_ROOT, $WPSSRC, $WRFSRC
 
 ## TODO:
-# * generate namelists in setup script
-# * change name of experiment
-# * handle GHG scenario in setup script, not in run-script
-# * consider putting exec* scripts into PATH
+# * handle data tables in setup, not in execution script?
+# * put machine-independent execution scripts into PATH?
 
 ## load configuration 
 source xconfig.sh
-# make run folder
-# RUNDIR="${PWD}" in xconfig.sh 
+## defaults
+WRFTOOLS="${MODEL_ROOT}/WRF Tools/"
+# WPS executables
+WPSSYS=${WPSSYS:-"GPC"} # general system
+GEOEXE="${WPSSRC}/GPC/Clim-fullIO/O3xHost/geogrid.exe"
+if [[ "${WPSSYS}" == "GPC" ]]; then 
+	METEXE="${WPSSRC}/GPC/Clim-fullIO/O3xHost/metgrid.exe"
+	REALEXE="${WRFSRC}/GPC/Clim-fineIO-03/O3xHost/real.exe"
+elif [[ "${WPSSYS}" == "GPC-lm" ]]; then
+	METEXE="${WPSSRC}/GPC/Clim-fullIO/O3xSSS3/metgrid.exe"
+	REALEXE="${WRFSRC}/GPC/Clim-fineIO-03/O3xSSS3/real.exe"
+fi
+# WRF executable
+WRFSYS="GPC" # WRF
+if [[ "${WRFSYS}" == "GPC" ]]; then 
+	WRFEXE="${WRFSRC}/GPC/Clim-fineIO-03/O3xHost/wrf.exe"
+elif [[ "${WRFSYS}" == "TCS" ]]; then
+	WRFEXE="${WRFSRC}/TCS/Clim-fineIO-03/O3/wrf.exe"
+fi
+# run folder
+RUNDIR=${RUNDIR:-"${PWD}"} # default; set in xconfig.sh 
 mkdir -p "${RUNDIR}"
 
+## create namelist files
+# WRF
+export TIME_CONTROL
+export DIAGS
+export PHYSICS
+export DOMAINS
+export FDDA
+export DYNAMICS
+export BDY_CONTROL
+export NAMELIST_QUILT
+# WPS
+export SHARE
+export GEOGRID
+export METGRID
+# create namelists
+cd "${RUNDIR}/meta"
+ln -sf "${WRFTOOLS}/Scripts/writeNamelists.sh" 
+./writeNamelists.sh
+rm writeNamelists.sh
+
+## link data and meta data
 # link meta data
 mkdir -p "${RUNDIR}/meta"
 cd "${RUNDIR}/meta"
@@ -71,15 +109,29 @@ ln -sf "${WRFTOOLS}/misc/tables" # WRF default tables
 # if cycling
 ln -sf "${WRFTOOLS}/Scripts/${WRFSYS}/setup${WRFSYS}.sh"
 if [[ -n "${CYCLING}" ]]; then
-	ln -sf "${WRFTOOLS}/Scripts/${WRFSYS}/run_cycle_*.sh"
+	ln -sf "${WRFTOOLS}/Scripts/${WRFSYS}/run_cycle_${WRFQ}.sh"
 	ln -sf "${WRFTOOLS}/Python/cycling.py"
 	cp "${WRFTOOLS}/misc/namelists/stepfile.${CYCLING}" 'stepfile' 
-	cp "${WRFTOOLS}/Scripts/${WRFSYS}/run_cycling_WRF.*" .
+	cp "${WRFTOOLS}/Scripts/${WRFSYS}/run_cycling_WRF.${WRFQ}" .
 else
-	cp "${WRFTOOLS}/Scripts/${WRFSYS}/run_test_WRF.*" .
+	cp "${WRFTOOLS}/Scripts/${WRFSYS}/run_test_WRF.${WRFQ}" .
 fi
 # WRF executable
 ln -sf "${WRFEXE}"
+
+## insert name and GHG emission scenario into run scripts
+# name of experiment (and WRF dependency)
+if [[ "${WPSSYS}" == "GPC" ]]; then
+	sed -i "/#PBS -N/ s/#PBS -N\s.*$/#PBS -N ${NAME}_WPS/" run_*_WPS.pbs
+fi
+if [[ "${WRFSYS}" == "GPC" ]]; then
+	sed -i "/#PBS -N/ s/#PBS -N\s.*$/#PBS -N ${NAME}_WRF/" run_*_WRF.pbs
+	sed -i "/#PBS -W/ s/#PBS -W\s.*$/#PBS -W depend:afterok:${NAME}_WPS/" run_*_WRF.pbs
+elif [[ "${WRFSYS}" == "TCS" ]]; then
+	sed -i "/#\s*@\s*job_name/ s/#\s*@\s*job_name\s*=.*$/# @ job_name = ${NAME}_WRF/" run_*_WRF.ll
+fi
+# GHG emission scenario
+sed -i "/export GHG/ s/export\sGHG=\'.*.'.*$/export GHG=\'${GHG}\' # GHG emission scenario set by setup script/" run_*_WRF.${WRFQ}
 
 ## prompt user to create data links
 echo "Remainign tasks:"
