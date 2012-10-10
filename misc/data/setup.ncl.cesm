@@ -2,10 +2,10 @@
 ;  Specific settings and meta data for CESM data
 ;------------------------------------------------------------------
 
-; Type of data
+; data source (which model)
 GCM = "CESM"
 
-; Grid parameters for POP (ocean model)
+; parameters to convert from ocean to atmosphere grid
 ocngrid = "gx1v6"
 atmgrid = "fv0.9x1.25"
 trafoid = "090309"
