@@ -48,7 +48,7 @@ echo
 # N.B.: ´mkdir $RAMTMP´ is actually done by Python script
 # copy links to source data (or create links)
 cd "${INIDIR}" 
-cp ${NOCLOBBER} -P atm lnd ice pyWPS.py eta2p.ncl unccsm.exe metgrid.exe "${WORKDIR}"
+cp ${NOCLOBBER} -P atm lnd ice pyWPS.py unccsm.ncl unccsm.exe metgrid.exe "${WORKDIR}"
 cp ${NOCLOBBER} -r meta/ "${WORKDIR}"
 cp ${NOCLOBBER} -P geo_em.d??.nc "${WORKDIR}" # copy or link to geogrid files
 cp ${NOCLOBBER} namelist.wps "${WORKDIR}" # configuration file

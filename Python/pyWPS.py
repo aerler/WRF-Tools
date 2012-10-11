@@ -89,12 +89,12 @@ disk = 'data/' # destination folder on hard disk
 Disk = '' # default: Root + disk
 ldisk = False # don't write metgrid files to hard disk
 ## Commands
-eta2p_ncl = 'eta2p.ncl'
-eta2p_log = 'eta2p.log'
+unncl_ncl = 'unccsm.ncl'
+unncl_log = 'unccsm.ncl.log'
 unccsm_exe = 'unccsm.exe'
-unccsm_log = 'unccsm.log'
+unccsm_log = 'unccsm.exe.log'
 metgrid_exe = 'metgrid.exe'
-metgrid_log = 'metgrid.err'
+metgrid_log = 'metgrid.exe.log'
 nmlstwps = 'namelist.wps'
 ##  data sources
 ncext = '.nc'
@@ -127,7 +127,7 @@ icelnk = 'icefile.nc'
 #print('')
 
 # dependent variables 
-NCL_ETA2P = NCL + ' ' + eta2p_ncl
+NCL_ETA2P = NCL + ' ' + unncl_ncl
 UNCCSM = './' + unccsm_exe
 METGRID = './' + metgrid_exe
 
@@ -211,7 +211,7 @@ def processTimesteps(myid, dates):
   # link other source files
   os.symlink(Meta, meta[:-1]) # link to folder
   os.symlink(Tmp+unccsm_exe, unccsm_exe)
-  os.symlink(Tmp+eta2p_ncl, eta2p_ncl)
+  os.symlink(Tmp+unncl_ncl, unncl_ncl)
   os.symlink(Tmp+metgrid_exe, metgrid_exe)
   for i in doms: # loop over all geogrid domains
     geoname = geopfx%(i)+ncext
@@ -246,13 +246,13 @@ def processTimesteps(myid, dates):
     ##  convert data to intermediate files
     # run NCL script (suppressing output)
     print('\n  * '+mytag+' interpolating to pressure levels (eta2p.ncl)')
-    fncl = open(eta2p_log, 'a') # NCL output and error log
+    fncl = open(unncl_log, 'a') # NCL output and error log
     if lscinet:
       # On SciNet we have to pass this command through the shell, so that the NCL module is loaded.
       subprocess.call(NCL_ETA2P, shell=True, stdout=fncl, stderr=fncl)
     else:
       # otherwise we don't need the shell and it's a security risk
-      subprocess.call([NCL,eta2p_ncl], stdout=fncl, stderr=fncl)  
+      subprocess.call([NCL,unncl_ncl], stdout=fncl, stderr=fncl)  
     fncl.close()      
     # run unccsm.exe
     print('\n  * '+mytag+' writing to WRF IM format (unccsm.exe)')
@@ -304,7 +304,7 @@ def processTimesteps(myid, dates):
   # link other source files
   os.remove(meta[:-1]) # link to folder
   os.remove(unccsm_exe)
-  os.remove(eta2p_ncl)
+  os.remove(unncl_ncl)
   os.remove(metgrid_exe)
   for i in doms: # loop over all geogrid domains
     os.remove(geopfx%(i)+ncext)
@@ -366,7 +366,7 @@ if __name__ == '__main__':
     # copy meta data to temporary folder
     shutil.copytree(meta,Tmp+meta)
     shutil.copy(unccsm_exe, Tmp)
-    shutil.copy(eta2p_ncl, Tmp)
+    shutil.copy(unncl_ncl, Tmp)
     shutil.copy(metgrid_exe, Tmp)
     shutil.copy(nmlstwps, Tmp)
     for i in doms: # loop over all geogrid domains
@@ -441,7 +441,7 @@ if __name__ == '__main__':
       
     # clean up files
     os.chdir(Tmp)
-    os.remove(eta2p_ncl)
+    os.remove(unncl_ncl)
     os.remove(unccsm_exe)
     os.remove(metgrid_exe)
     # N.B.: remember to remove *.nc files in meta-folder!

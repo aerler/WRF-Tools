@@ -10,18 +10,18 @@ NMLDIR="${MODEL_ROOT}/WRF Tools/misc/namelists"
 ## definition section
 # list of namelist groups and used snippets
 # WRF
-TIME_CONTROL='cycling,fineio'
-DIAGS='hitop'
-PHYSICS='clim'
-DOMAINS='wc02'
-FDDA='spectral'
-DYNAMICS='default'
-BDY_CONTROL='clim'
-NAMELIST_QUILT=''
+TIME_CONTROL=${TIME_CONTROL:-'cycling,fineio'}
+DIAGS=${DIAGS:-'hitop'}
+PHYSICS=${PHYSICS:-'clim'}
+DOMAINS=${DOMAINS:-'wc02'}
+FDDA=${FDDA:-'spectral'}
+DYNAMICS=${DYNAMICS:-'default'}
+BDY_CONTROL=${BDY_CONTROL:-'clim'}
+NAMELIST_QUILT=${NAMELIST_QUILT:-''}
 # WPS
-SHARE='default'
-GEOGRID="${DOMAINS}"
-METGRID='pywps'
+SHARE=${SHARE:-'d02'}
+GEOGRID=${GEOGRID:-"${DOMAINS}"}
+METGRID=${METGRID:-'pywps'}
 
 ## function to add namelsit groups to namelist file
 function WRITENML () {

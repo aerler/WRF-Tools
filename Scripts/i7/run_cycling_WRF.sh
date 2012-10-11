@@ -20,7 +20,7 @@ export RAMDISK="/media/tmp/" # my local machines
 #export RAMDISK="/dev/shm/aerler/" # SciNet (GPC & P7 only)
 # working directories
 export RUNNAME="${CURRENTSTEP}" # $*STEP is provided by calling instance
-export INIDIR="${HOME}/Models/WRF Tools/test" # "$PWD"
+export INIDIR="$PWD"
 export WORKDIR="${INIDIR}/${RUNNAME}/"
 
 # optional arguments

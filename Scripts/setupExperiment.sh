@@ -8,29 +8,37 @@
 # * handle data tables in setup, not in execution script?
 # * put machine-independent execution scripts into PATH?
 
+## defaults (may be set or overwritten in xconfig.sh)
+# folders
+RUNDIR="${PWD}"
+WRFTOOLS="${MODEL_ROOT}/WRF Tools/"
+# WPS and WRF executables
+WPSSYS="GPC" # WPS
+WRFSYS="GPC" # WRF
 ## load configuration 
 source xconfig.sh
-## defaults
-WRFTOOLS="${MODEL_ROOT}/WRF Tools/"
-# WPS executables
-WPSSYS=${WPSSYS:-"GPC"} # general system
-GEOEXE="${WPSSRC}/GPC/Clim-fullIO/O3xHost/geogrid.exe"
+# look up default configurations
 if [[ "${WPSSYS}" == "GPC" ]]; then 
-	METEXE="${WPSSRC}/GPC/Clim-fullIO/O3xHost/metgrid.exe"
-	REALEXE="${WRFSRC}/GPC/Clim-fineIO-03/O3xHost/real.exe"
+	METEXE=${METEXE:-"${WPSSRC}/GPC-MPI/Clim-fullIO/O3xHost/metgrid.exe"}
+	REALEXE=${REALEXE:-"${WRFSRC}/GPC-MPI/Clim-fineIO/O3xHost/real.exe"}
 elif [[ "${WPSSYS}" == "GPC-lm" ]]; then
-	METEXE="${WPSSRC}/GPC/Clim-fullIO/O3xSSS3/metgrid.exe"
-	REALEXE="${WRFSRC}/GPC/Clim-fineIO-03/O3xSSS3/real.exe"
+	METEXE=${METEXE:-"${WPSSRC}/GPC-MPI/Clim-fullIO/O3xSSS3/metgrid.exe"}
+	REALEXE=${REALEXE:-"${WRFSRC}/GPC-MPI/Clim-fineIO/O3xSSS3/real.exe"}
+elif [[ "${WPSSYS}" == "i7" ]]; then
+	METEXE=${METEXE:-"${WPSSRC}/i7-MPI/Clim-reducedIO/O3xHost/metgrid.exe"}
+	REALEXE=${REALEXE:-"${WRFSRC}/i7-MPI/Clim-reducedIO/O3xHost/real.exe"}
 fi
-# WRF executable
-WRFSYS="GPC" # WRF
-if [[ "${WRFSYS}" == "GPC" ]]; then 
-	WRFEXE="${WRFSRC}/GPC/Clim-fineIO-03/O3xHost/wrf.exe"
+if [[ "${WRFSYS}" == "GPC" ]]; then
+	GEOEXE=${GEOEXE:-"${WPSSRC}/GPC-MPI/Clim-fullIO/O3xHost/geogrid.exe"} 
+	WRFEXE=${WRFEXE:-"${WRFSRC}/GPC-MPI/Clim-fineIO/O3xHostNC4/wrf.exe"}
 elif [[ "${WRFSYS}" == "TCS" ]]; then
-	WRFEXE="${WRFSRC}/TCS/Clim-fineIO-03/O3/wrf.exe"
+	GEOEXE=${GEOEXE:-"${WPSSRC}/TCS-MPI/Clim-fullIO/O3/geogrid.exe"}
+	WRFEXE=${WRFEXE:-"${WRFSRC}/TCS-MPI/Clim-fineIO/O3NC4/wrf.exe"}
+elif [[ "${WPSSYS}" == "i7" ]]; then
+	GEOEXE=${GEOEXE:-"${WPSSRC}/i7-MPI/Clim-reducedIO/O3xHost/geogrid.exe"}
+	WRFEXE=${WRFEXE:-"${WRFSRC}/i7-MPI/Clim-fineIO/O3xHostNC4/wrf.exe"}
 fi
-# run folder
-RUNDIR=${RUNDIR:-"${PWD}"} # default; set in xconfig.sh 
+# create run folder 
 mkdir -p "${RUNDIR}"
 
 ## create namelist files
@@ -48,7 +56,7 @@ export SHARE
 export GEOGRID
 export METGRID
 # create namelists
-cd "${RUNDIR}/meta"
+cd "${RUNDIR}"
 ln -sf "${WRFTOOLS}/Scripts/writeNamelists.sh" 
 ./writeNamelists.sh
 rm writeNamelists.sh
@@ -58,8 +66,8 @@ rm writeNamelists.sh
 mkdir -p "${RUNDIR}/meta"
 cd "${RUNDIR}/meta"
 ln -sf "${WRFTOOLS}/misc/data/${POPMAP}"  
-ln -sf "${WRFTOOLS}/misc/data/${GEOGRID}" 'GEOGRID.TBL'
-ln -sf "${WRFTOOLS}/misc/data/${METGRID}" 'METGRID.TBL'
+ln -sf "${WRFTOOLS}/misc/data/${GEOGRIDTBL}" 'GEOGRID.TBL'
+ln -sf "${WRFTOOLS}/misc/data/${METGRIDTBL}" 'METGRID.TBL'
 ln -sf "${WRFTOOLS}/misc/data/${NCL}" 'setup.ncl'
 # link boundary data
 cd "${RUNDIR}"
@@ -73,15 +81,18 @@ if [[ "${WPSSYS}" == "GPC"* ]]; then
 	WPSQ='pbs' # GPC standard and largemem nodes
 elif [[ "${WPSSYS}" == "P7" ]]; then
 	WPSQ='ll'
+else
+	WPSQ='sh' # just a shell script on local system
 fi
 # WPS scripts
 ln -sf "${WRFTOOLS}/Scripts/prepWorkDir.sh"
 ln -sf "${WRFTOOLS}/Scripts/execWPS.sh"
 ln -sf "${WRFTOOLS}/Python/pyWPS.py"
-ln -sf "${WRFTOOLS}/NCL/eta2p.ncl"
+ln -sf "${WRFTOOLS}/NCL/unccsm.ncl"
 # platform dependent stuff
 ln -sf "${WRFTOOLS}/bin/${WPSSYS}/unccsm.exe"
-ln -sf "${WRFTOOLS}/Scripts/${WPSSYS}/setup${WPSSYS}.sh"
+if [[ "${WPSSYS}" == "GPC"* ]] || [[ "${WPSSYS}" == "P7" ]]; then
+	ln -sf "${WRFTOOLS}/Scripts/${WPSSYS}/setup_${WPSSYS}.sh"; fi
 # if cycling
 if [[ -n "${CYCLING}" ]]; then
 	cp "${WRFTOOLS}/Scripts/${WPSSYS}/run_cycling_WPS.${WPSQ}" .
@@ -99,6 +110,8 @@ if [[ "${WRFSYS}" == "GPC" ]]; then
 	WRFQ='pbs' # GPC standard and largemem nodes
 elif [[ "${WRFSYS}" == "TCS" ]] || [[ "${WRFSYS}" == "P7" ]]; then
 	WRFQ='ll'
+else
+	WRFQ='sh' # just a shell script on local system
 fi
 # WRF scripts
 cd "${RUNDIR}"
@@ -107,11 +120,12 @@ ln -sf "${WRFTOOLS}/Scripts/execWRF.sh"
 ln -sf "${WRFTOOLS}/misc/tables" # WRF default tables
 #ln -sf "${WRFTOOLS}/misc/tables-NoahMP" 'tables' # new tables including Noah-MP stuff 
 # if cycling
-ln -sf "${WRFTOOLS}/Scripts/${WRFSYS}/setup${WRFSYS}.sh"
+if [[ "${WRFSYS}" == "GPC" ]] || [[ "${WRFSYS}" == "TCS" ]]; then
+	ln -sf "${WRFTOOLS}/Scripts/${WRFSYS}/setup_${WRFSYS}.sh"; fi
 if [[ -n "${CYCLING}" ]]; then
 	ln -sf "${WRFTOOLS}/Scripts/${WRFSYS}/run_cycle_${WRFQ}.sh"
 	ln -sf "${WRFTOOLS}/Python/cycling.py"
-	cp "${WRFTOOLS}/misc/namelists/stepfile.${CYCLING}" 'stepfile' 
+	cp "${WRFTOOLS}/misc/stepfiles/stepfile.${CYCLING}" 'stepfile' 
 	cp "${WRFTOOLS}/Scripts/${WRFSYS}/run_cycling_WRF.${WRFQ}" .
 else
 	cp "${WRFTOOLS}/Scripts/${WRFSYS}/run_test_WRF.${WRFQ}" .
@@ -131,7 +145,14 @@ elif [[ "${WRFSYS}" == "TCS" ]]; then
 	sed -i "/#\s*@\s*job_name/ s/#\s*@\s*job_name\s*=.*$/# @ job_name = ${NAME}_WRF/" run_*_WRF.ll
 fi
 # GHG emission scenario
-sed -i "/export GHG/ s/export\sGHG=\'.*.'.*$/export GHG=\'${GHG}\' # GHG emission scenario set by setup script/" run_*_WRF.${WRFQ}
+sed -i "/export GHG/ s/export\sGHG=.*$/export GHG=\'${GHG}\' # GHG emission scenario set by setup script/" run_*_WRF.${WRFQ}
+
+## set correct path for geogrid data
+if [[ "${WPSSYS}" == "GPC"* ]] || [[ "${WPSSYS}" == "P7" ]]; then 
+	sed -i "/geog_data_path/ s+\s*geog_data_path\s*=\s*.*$+ geog_data_path = \'/scratch/p/peltier/aerler/data/geog/\',+" namelist.wps
+elif [[ "${WPSSYS}" == "i7" ]]; then
+	sed -i "/geog_data_path/ s+\s*geog_data_path\s*=\s*.*$+ geog_data_path = \'/media/data/DATA/WRF/geog/\',+" namelist.wps
+fi
 
 ## prompt user to create data links
 echo "Remainign tasks:"
