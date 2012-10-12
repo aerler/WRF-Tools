@@ -1,20 +1,19 @@
- &domains
+&domains
  max_dom                             = 2,
- time_step                           = 180,
- time_step_fract_num                 = 0,
- time_step_fract_den                 = 1,
- parent_time_step_ratio              = 1,    3,     5,
+! time-step is tweaked to account for map factors in outer domain
+ time_step                           =  150, 
+ parent_time_step_ratio              =    1, 2.7272727,
 ! geogrid parameters start here
- parent_id                           =    1,    1,    2,
- parent_grid_ratio                   =    1,    3,    5,
- i_parent_start                      =    1,  113,  138,
- e_we                                =  260,  271,  121,
- j_parent_start                      =    1,   52,   46,
- e_sn                                =  180,  271,  121,
+ parent_id                           =    1,    1,
+ parent_grid_ratio                   =    1,    3,
+ i_parent_start                      =    1,  113,
+ e_we                                =  260,  271,
+ j_parent_start                      =    1,   52,
+ e_sn                                =  180,  271,
 ! geogrid parameters end here
- e_vert                              = 28, 28, 28,
- dx                                  = 30000, 10000, 1000,
- dy                                  = 30000, 10000, 1000,
+ e_vert                              = 28, 28,
+ dx                                  = 30000, 10000, 
+ dy                                  = 30000, 10000, 
  feedback                            = 0,
  smooth_option                       = 0,
  num_metgrid_levels                  = 27,
@@ -28,4 +27,4 @@
  smooth_cg_topo                      = .false.,
  zap_close_levels                    = 0,
  p_top_requested                     = 5000,
- / 
+/ 

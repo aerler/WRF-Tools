@@ -3,6 +3,7 @@
 # created 28/06/2012 by Andre R. Erler, GPL v3
 # last revision 04/10/2012 by Andre R. Erler
 # environment variables: $MODEL_ROOT, $WPSSRC, $WRFSRC
+set -e # abort if anything goes wrong
 
 ## TODO:
 # * handle data tables in setup, not in execution script?
@@ -42,6 +43,7 @@ fi
 mkdir -p "${RUNDIR}"
 
 ## create namelist files
+# export relevant variables so that writeNamelist.sh can read them
 # WRF
 export TIME_CONTROL
 export DIAGS
@@ -115,6 +117,7 @@ else
 fi
 # WRF scripts
 cd "${RUNDIR}"
+ln -sf "${WRFTOOLS}/Scripts/HPSS/ar_wrfout.pbs"
 ln -sf "${WRFTOOLS}/Scripts/prepWorkDir.sh"
 ln -sf "${WRFTOOLS}/Scripts/execWRF.sh"
 ln -sf "${WRFTOOLS}/misc/tables" # WRF default tables

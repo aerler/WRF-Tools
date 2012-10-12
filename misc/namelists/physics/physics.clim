@@ -10,7 +10,7 @@
  bldt                                = 0,   0,   0, 
  cu_physics                          = 1,   1,   5, 
  cudt                                = 0,   0,   0,
- shcu_physics                        = 2,   2,   0, ! shallow cumulus scheme from CESM
+ shcu_physics                        = 1,   1,   0, ! shallow cumulus scheme from CESM
  ishallow                            = 0 ! shallow convection (G3)
  grav_settling                       = 0, 0, 0, ! gravitational settling for pbl=5,6
  surface_input_source                = 1, ! could use CESM input

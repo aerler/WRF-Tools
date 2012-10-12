@@ -104,6 +104,11 @@ echo "   ***   WRF step ${CURRENTSTEP} completed   ***   "
 date
 echo
 
+# launch archive script
+echo
+echo "   ***   Launching archive script for WRF output: ${CURRENTSTEP}   ***   "
+echo
+ssh gpc01 "cd ${INIDIR}; qsub ./${ARSCRIPT} -v DATES=${CURRENTSTEP}"
 
 ## launch WRF for next step (if $NEXTSTEP is not empty)
 if [[ -n "${NEXTSTEP}" ]]

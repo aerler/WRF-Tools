@@ -1,0 +1,5 @@
+&domains
+ use_adaptive_time_step = .true.,
+ step_to_output_time    = .true.,
+ adaptation_domain        = 1,
+/

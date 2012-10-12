@@ -25,11 +25,11 @@ BACKUP=${BACKUP:-'NO'} # set to 'BACKUP'
 RMSRC=${RMSRC:-'NO'} # set to 'RMSRC'
 # N.B.: do not edit these variable; instead pass them as environment variables
 # data folder
-DST="${ARCHIVE}/test/${PBS_O_WORKDIR##*/}" # remove parent folder (= run name)
+DST="${ARCHIVE}/Downscaling/${PBS_O_WORKDIR##*/}" # remove parent folder (= run name)
 SRC="${PBS_O_WORKDIR}/wrfout/" 
 # if no dates given, process all datasets in current directory
 cd "${SRC}"
-if [[ -z "${DATES}" ]]; then DATES=$( ls ????-??_wrf.tgz ); fi # if $DATE
+if [[ -z "${DATES}" ]]; then DATES=$( ls ????-??_wrf.tgz ); fi # if no $DATES 
 
 ## function to verify the contents of an HTAR archive
 function VERIFYHTAR () {
@@ -112,7 +112,7 @@ TRANSFERS=0
 # cycle over monthly output datasets
 for DATE in ${DATES} # use WRF log-files as indicator
 do
-  DATE=${DATE%_wrf.tgz} # extract date
+  DATE=${DATE%_wrf.tgz} # extract date (no effect if only date)
   time -p BACKUPDATASET ${DATE}
   if [ $? == 0 ]; then TRANSFERS=$(( ${TRANSFERS} + 1 ))
   else ERRORS=$(( ${ERRORS} + 1 )); fi
