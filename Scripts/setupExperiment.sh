@@ -74,9 +74,10 @@ ln -sf "${WRFTOOLS}/misc/data/${METGRIDTBL}" 'METGRID.TBL'
 #ln -sf "${WRFTOOLS}/misc/data/${NCL}" 'setup.ncl'
 # link boundary data
 cd "${RUNDIR}"
-ln -sf "${DATADIR}/atm/hist/" 'atm' # atmosphere
-ln -sf "${DATADIR}/lnd/hist/" 'lnd' # land surface
-ln -sf "${DATADIR}/ice/hist/" 'ice' # sea ice
+rm -f 'atm' 'lnd' 'ice' # remove old links
+ln -s "${DATADIR}/atm/hist/" 'atm' # atmosphere
+ln -s "${DATADIR}/lnd/hist/" 'lnd' # land surface
+ln -s "${DATADIR}/ice/hist/" 'ice' # sea ice
 
 ## link in WPS stuff
 # queue system

@@ -1,7 +1,7 @@
 #!/bin/bash
 #PBS -l walltime=1:00:00
 #PBS -q archive
-#PBS -N ar_benchmark-01
+#PBS -N ar_benchmark-04
 #PBS -j oe
 #PBS -m e
 
@@ -17,19 +17,19 @@ echo
 echo
 echo '***   HPSS Benchmark   ***'
 echo
-hsi -q rm ${DST}/test.*
-hsi -q ls -l ${ARCHIVE}
+hsi -q rm -R ${DST}
+hsi -q mkdir ${DST}
 
 echo '***   TAR (only)   ***'
-time -p tar -ch original.nc | hsi -q cput - : "${ARCHIVE}/test.tar"
+time -p tar -c ${SCRATCH}/data/WRF/clim/real/* | hsi -q cput - : "${DST}/test.tar"
 echo
 echo '***   GZIP (serial)   ***'
-time -p tar -ch original.nc | gzip -1 | hsi -q cput - : "${ARCHIVE}/test.tar.gz"
+time -p tar -c ${SCRATCH}/data/WRF/clim/real/* | gzip -1 | hsi -q cput - : "${DST}/test.tar.gz"
 echo
 echo '***   PIGZ (parallel)   ***'
-time -p tar -ch original.nc | pigz -1 | hsi -q cput - : "${ARCHIVE}/test.tar.pgz"
+time -p tar -c ${SCRATCH}/data/WRF/clim/real/* | pigz -1 | hsi -q cput - : "${DST}/test.tar.pgz"
 echo
-hsi -q ls -l ${ARCHIVE}
+hsi -q ls -l ${DST}
 
 
 echo
@@ -39,12 +39,12 @@ echo
 rm "${SRC}/test.*"
 
 echo '***   TAR (only)   ***'
-time -p tar -ch original.nc | cat - > "${SRC}/test.tar"
+time -p tar -c ${SCRATCH}/data/WRF/clim/real/* | cat - > "${SRC}/test.tar"
 echo
 echo '***   GZIP (serial)   ***'
-time -p tar -ch original.nc | gzip -1 | cat - > "${SRC}/test.tar.gz"
+time -p tar -c ${SCRATCH}/data/WRF/clim/real/* | gzip -1 | cat - > "${SRC}/test.tar.gz"
 echo
 echo '***   PIGZ (parallel)   ***'
-time -p tar -ch original.nc | pigz -1 | cat - > "${SRC}/test.tar.pgz"
+time -p tar -c ${SCRATCH}/data/WRF/clim/real/* | pigz -1 | cat - > "${SRC}/test.tar.pgz"
 echo
 ls -lhL "${SRC}"

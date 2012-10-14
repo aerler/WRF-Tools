@@ -28,7 +28,7 @@ rm -rf "${METDATA}" "${WRFOUT}"
 # run geogrid
 # clear files
 cd "${INIDIR}"
-rm geo_em.d??.nc geogrid.log*
+rm -f geo_em.d??.nc geogrid.log*
 # run with parallel processes
 echo
 echo "   Running geogrid.exe"
