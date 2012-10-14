@@ -1,15 +1,12 @@
 ;---------------------------------------------------------------------------------------------------------------------
-;	 Define environment variable $NCL_POP_REMAP (http://www.ncl.ucar.edu/Document/Functions/Pop_remap/PopLatLon.shtml)
-;  CCSM: 'export NCL_POP_REMAP=/media/data/DATA/WRF/BC/CCSM/meta/'
-;  CESM: 'export NCL_POP_REMAP=/media/data/DATA/WRF/BC/CESM/meta/'
-;---------------------------------------------------------------------------------------------------------------------
-;  Make sure "setup.ncl" is present in the data folder
+;  Define environment variable $NCL_POP_REMAP (http://www.ncl.ucar.edu/Document/Functions/Pop_remap/PopLatLon.shtml)
+;  CCSM/CESM: 'export NCL_POP_REMAP=""'
 ;---------------------------------------------------------------------------------------------------------------------
 
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/popRemap.ncl"
 load "$MODEL_ROOT/WRF Tools/NCL/functions.ncl"
-load "meta/setup.ncl"
+;load "meta/setup.ncl"
 
 ;--------------------------------------------------------
 begin
@@ -21,7 +18,25 @@ begin
 
  atm = addfile ("atmfile.nc" , "r")  
  lnd = addfile ("lndfile.nc" , "r")  
- ice = addfile ("icefile.nc" , "r")  
+ ice = addfile ("icefile.nc" , "r")
+
+;---------------------------------------------------------------------------------------------------------------------
+;  GCM meta data 
+;---------------------------------------------------------------------------------------------------------------------
+
+; data source (which model)
+GCM = "CESM"
+; TODO: infer GCM and grid type from NetCDF input files
+
+if ( (GCM .eq. "CESM") ) then
+  ; parameters to convert from ocean to atmosphere grid
+  ocngrid = "gx1v6"
+  atmgrid = "fv0.9x1.25"
+  trafoid = "090309"
+  ; ocean grid definition file: "map_gx1v6_to_fv0.9x1.25_aave_da_090309.nc"
+end if
+
+; N.B.: for SEAICE define environment variable $NCL_POP_REMAP
 
 ;---------------------------------------------------------------------------------------------------------------------
 ;  Coordinates

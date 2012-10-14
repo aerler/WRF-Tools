@@ -253,7 +253,7 @@ if [[ ! "${WRFDIR}" == "${WRFOUT}" ]]; then
     # time -p mv wrfout_d??_* "${WRFOUT}"}"
 	mv wrfconst_d?? "${WRFOUT}" # this one doesn't have a date string
 	mv wrf*_d??_????-??-??_??:??:?? "${WRFOUT}" # otherwise identify output files by date string
-	# N.B.: move separately to avoid "too long argument list" error
+	# N.B.: I don't know how to avoid the error message cause by the restart-symlinks...
 	# copy real.exe log files to wrf output
 	mv "${WORKDIR}"/*.tgz "${WRFOUT}"
 fi

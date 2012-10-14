@@ -28,6 +28,7 @@ CURRENTSTEP="${NEXTSTEP}" # $NEXTSTEP will be overwritten
 ## job settings
 export SCRIPTNAME="run_cycling_WRF.pbs" # WRF suffix assumed
 export DEPENDENCY="run_cycling_WPS.pbs" # WRF suffix assumed, WPS suffix substituted: ${JOBNAME%_WRF}_WPS
+export ARSCRIPT="" # archive script to be executed after WRF finishes
 export CLEARWDIR=0 # do not clear working director
 # run configuration
 export NODES=${PBS_NUM_NODES} # set in PBS section
@@ -104,11 +105,14 @@ echo "   ***   WRF step ${CURRENTSTEP} completed   ***   "
 date
 echo
 
-# launch archive script
-echo
-echo "   ***   Launching archive script for WRF output: ${CURRENTSTEP}   ***   "
-echo
-ssh gpc01 "cd ${INIDIR}; qsub ./${ARSCRIPT} -v DATES=${CURRENTSTEP}"
+# launch archive script if specified
+if [[ -n "${ARSCRIPT}" ]]
+ then
+	echo
+	echo "   ***   Launching archive script for WRF output: ${CURRENTSTEP}   ***   "
+	echo
+	ssh gpc01 "cd ${INIDIR}; qsub ./${ARSCRIPT} -v DATES=${CURRENTSTEP}"
+fi
 
 ## launch WRF for next step (if $NEXTSTEP is not empty)
 if [[ -n "${NEXTSTEP}" ]]

@@ -5,6 +5,9 @@ NAME='test'
 GHG='A2' # CAMtr_volume_mixing_ratio.* file to be used
 # time period and cycling interval
 CYCLING="hourly.test" # stepfile to be used (leave empty if not cycling)
+# archiving
+ARSCRIPT='' # no archiving on local machine
+
 
 ## namelist definition section
 # list of namelist groups and used snippets

@@ -13,6 +13,7 @@ set -e # abort if anything goes wrong
 # folders
 RUNDIR="${PWD}"
 WRFTOOLS="${MODEL_ROOT}/WRF Tools/"
+ARSCRIPT='ar_wrfout.pbs'
 # WPS and WRF executables
 WPSSYS="GPC" # WPS
 WRFSYS="GPC" # WRF
@@ -70,7 +71,7 @@ cd "${RUNDIR}/meta"
 ln -sf "${WRFTOOLS}/misc/data/${POPMAP}"  
 ln -sf "${WRFTOOLS}/misc/data/${GEOGRIDTBL}" 'GEOGRID.TBL'
 ln -sf "${WRFTOOLS}/misc/data/${METGRIDTBL}" 'METGRID.TBL'
-ln -sf "${WRFTOOLS}/misc/data/${NCL}" 'setup.ncl'
+#ln -sf "${WRFTOOLS}/misc/data/${NCL}" 'setup.ncl'
 # link boundary data
 cd "${RUNDIR}"
 ln -sf "${DATADIR}/atm/hist/" 'atm' # atmosphere
@@ -117,7 +118,6 @@ else
 fi
 # WRF scripts
 cd "${RUNDIR}"
-ln -sf "${WRFTOOLS}/Scripts/HPSS/ar_wrfout.pbs"
 ln -sf "${WRFTOOLS}/Scripts/prepWorkDir.sh"
 ln -sf "${WRFTOOLS}/Scripts/execWRF.sh"
 ln -sf "${WRFTOOLS}/misc/tables" # WRF default tables
@@ -146,6 +146,12 @@ if [[ "${WRFSYS}" == "GPC" ]]; then
 	sed -i "/#PBS -W/ s/#PBS -W\s.*$/#PBS -W depend:afterok:${NAME}_WPS/" run_*_WRF.pbs
 elif [[ "${WRFSYS}" == "TCS" ]]; then
 	sed -i "/#\s*@\s*job_name/ s/#\s*@\s*job_name\s*=.*$/# @ job_name = ${NAME}_WRF/" run_*_WRF.ll
+fi
+# archive script
+sed -i "/export ARSCRIPT/ s/export\sARSCRIPT=.*$/export ARSCRIPT=\'${ARSCRIPT}\' # archive script to be executed after WRF finishes/" run_*_WRF.${WRFQ}
+if [[ -n "${ARSCRIPT}" ]]; then
+    cp -f "${WRFTOOLS}/Scripts/HPSS/${ARSCRIPT}" .
+	sed -i "/#PBS -N/ s/#PBS -N\s.*$/#PBS -N ${NAME}_ar/" "${ARSCRIPT}"
 fi
 # GHG emission scenario
 sed -i "/export GHG/ s/export\sGHG=.*$/export GHG=\'${GHG}\' # GHG emission scenario set by setup script/" run_*_WRF.${WRFQ}
