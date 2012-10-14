@@ -14,15 +14,22 @@ import sys # write to stdout (used with fileinput)
 import warnings # alert the user of syntax errors
 import shutil # copy the original
 import re # to parse I/O strings
+import os # to read environment variables
 
-## settings 
+## settings
+if os.environ.has_key('WRFSRC'):
+  WRFSRC = os.environ['WRFSRC'] # WRF source folder
+elif os.environ.has_key('MODEL_ROOT'):
+  WRFSRC = os.environ['MODEL_ROOT'] + '/WRF/WRFV3/' # WRF source folder
+else:
+  WRFSRC = os.environ['HOME'] + '/WRF/WRFV3/' # WRF source folder
 # full path to I/O config file
-ioconfigfile = '/home/me/Models/WRF/WRFV3/config/registry/ioconfig.fine'
+ioconfigfile = WRFSRC + '/config/registry/ioconfig.fine'
 # full path to WRF registry file (destination)
-newregfolder = '/home/me/Models/WRF/WRFV3/Registry/'
+newregfolder = WRFSRC + '/Registry/'
 newregfiles = ['Registry.EM_COMMON', 'registry.flake']
 # full path to WRF registry file (source) 
-oldregfolder = '/home/me/Models/WRF/WRFV3/Registry/original/'
+oldregfolder = WRFSRC + '/Registry/original/'
 oldregfiles = [] or newregfiles
 # more settings
 lstate = True # only operate on state-variables (faster) 
