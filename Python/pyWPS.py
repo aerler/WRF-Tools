@@ -298,7 +298,7 @@ def processTimesteps(myid, dates):
     tmpstr += '\n\n   ============================== finished '+imdate+' ==============================   \n'
     print(tmpstr)
     # clean up (also renamed intermediate file)
-    #clean(MyDir, filelist=[imfile])
+    clean(MyDir, filelist=[imfile])
       
   ## clean up after all time-steps
   # link other source files
