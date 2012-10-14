@@ -126,6 +126,8 @@ ln -sf "${WRFTOOLS}/misc/tables" # WRF default tables
 # if cycling
 if [[ "${WRFSYS}" == "GPC" ]] || [[ "${WRFSYS}" == "TCS" ]]; then
 	ln -sf "${WRFTOOLS}/Scripts/${WRFSYS}/setup_${WRFSYS}.sh"; fi
+if [[ "${WRFSYS}" == "TCS" ]]; then
+    ln -sf "${WRFTOOLS}/Scripts/${WRFSYS}/sleepCycle.sh"; fi
 if [[ -n "${CYCLING}" ]]; then
 	ln -sf "${WRFTOOLS}/Scripts/${WRFSYS}/run_cycle_${WRFQ}.sh"
 	ln -sf "${WRFTOOLS}/Python/cycling.py"

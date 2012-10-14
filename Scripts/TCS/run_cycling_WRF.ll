@@ -63,7 +63,7 @@ export RSTDIR="${WRFOUT}"
 
 ## setup job environment
 cd "${INIDIR}"
-source setupTCS.sh # load machine-specific stuff
+source setup_TCS.sh # load machine-specific stuff
 
 
 ## start execution

@@ -53,7 +53,7 @@ fi
 
 ## setup environment
 cd "${INIDIR}"
-source setupGPC.sh # load machine-specific stuff
+source setup_GPC.sh # load machine-specific stuff
 
 
 ## begin job
