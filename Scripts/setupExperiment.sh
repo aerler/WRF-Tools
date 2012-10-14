@@ -21,23 +21,23 @@ WRFSYS="GPC" # WRF
 source xconfig.sh
 # look up default configurations
 if [[ "${WPSSYS}" == "GPC" ]]; then 
-	METEXE=${METEXE:-"${WPSSRC}/GPC-MPI/Clim-fullIO/O3xHost/metgrid.exe"}
+	METEXE=${METEXE:-"${WPSSRC}/GPC-MPI/Clim-fineIO/O3xHost/metgrid.exe"}
 	REALEXE=${REALEXE:-"${WRFSRC}/GPC-MPI/Clim-fineIO/O3xHost/real.exe"}
 elif [[ "${WPSSYS}" == "GPC-lm" ]]; then
-	METEXE=${METEXE:-"${WPSSRC}/GPC-MPI/Clim-fullIO/O3xSSS3/metgrid.exe"}
+	METEXE=${METEXE:-"${WPSSRC}/GPC-MPI/Clim-fineIO/O3xSSS3/metgrid.exe"}
 	REALEXE=${REALEXE:-"${WRFSRC}/GPC-MPI/Clim-fineIO/O3xSSS3/real.exe"}
 elif [[ "${WPSSYS}" == "i7" ]]; then
-	METEXE=${METEXE:-"${WPSSRC}/i7-MPI/Clim-reducedIO/O3xHost/metgrid.exe"}
-	REALEXE=${REALEXE:-"${WRFSRC}/i7-MPI/Clim-reducedIO/O3xHost/real.exe"}
+	METEXE=${METEXE:-"${WPSSRC}/i7-MPI/Clim-fineIO/O3xHost/metgrid.exe"}
+	REALEXE=${REALEXE:-"${WRFSRC}/i7-MPI/Clim-fineIO/O3xHost/real.exe"}
 fi
 if [[ "${WRFSYS}" == "GPC" ]]; then
-	GEOEXE=${GEOEXE:-"${WPSSRC}/GPC-MPI/Clim-fullIO/O3xHost/geogrid.exe"} 
+	GEOEXE=${GEOEXE:-"${WPSSRC}/GPC-MPI/Clim-fineIO/O3xHost/geogrid.exe"} 
 	WRFEXE=${WRFEXE:-"${WRFSRC}/GPC-MPI/Clim-fineIO/O3xHostNC4/wrf.exe"}
 elif [[ "${WRFSYS}" == "TCS" ]]; then
-	GEOEXE=${GEOEXE:-"${WPSSRC}/TCS-MPI/Clim-fullIO/O3/geogrid.exe"}
+	GEOEXE=${GEOEXE:-"${WPSSRC}/TCS-MPI/Clim-fineIO/O3/geogrid.exe"}
 	WRFEXE=${WRFEXE:-"${WRFSRC}/TCS-MPI/Clim-fineIO/O3NC4/wrf.exe"}
 elif [[ "${WPSSYS}" == "i7" ]]; then
-	GEOEXE=${GEOEXE:-"${WPSSRC}/i7-MPI/Clim-reducedIO/O3xHost/geogrid.exe"}
+	GEOEXE=${GEOEXE:-"${WPSSRC}/i7-MPI/Clim-fineIO/O3xHost/geogrid.exe"}
 	WRFEXE=${WRFEXE:-"${WRFSRC}/i7-MPI/Clim-fineIO/O3xHostNC4/wrf.exe"}
 fi
 # create run folder 
