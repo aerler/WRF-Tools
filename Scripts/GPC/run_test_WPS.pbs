@@ -15,7 +15,7 @@
 #PBS -N test_WPS
 ## submit to queue (NB: this has to be the last PBS line!)
 # batch (default), debug, largemem
-#PBS -q largemem
+#PBS -q batch
 
 
 ## job settings
@@ -34,7 +34,7 @@ export WORKDIR="${INIDIR}/${RUNNAME}/"
 export RUNPYWPS=1
 export RUNREAL=1
 export RAMIN=1
-export RAMOUT=1
+export RAMOUT=0
 # folders: $METDATA, $REALIN, $REALOUT
 export METDATA="${INIDIR}/metgrid/"
 export REALOUT="${WORKDIR}"

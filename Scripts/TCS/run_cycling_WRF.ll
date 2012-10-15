@@ -3,7 +3,7 @@
 # @ wall_clock_limit = 06:00:00
 # @ node = 4 
 # @ tasks_per_node = 64
-# @ notification = error
+# @ notification = complete
 # @ output = $(job_name).$(jobid).out
 # @ error = $(job_name).$(jobid).out
 # @ environment = $NEXTSTEP; $NOWPS; MEMORY_AFFINITY=MCM; MP_SYNC_QP=YES; \
@@ -53,7 +53,7 @@ export WORKDIR="${INIDIR}/${RUNNAME}/"
 
 ## WRF settings
 # optional arguments: $RUNWRF, $GHG ($RAD, $LSM) 
-export GHG='A2' # GHG emission scenario
+export GHG='' # GHG emission scenario
 # folders: $WRFIN, $WRFOUT, $TABLES
 export REALOUT="${WORKDIR}" # this should be default anyway
 export WRFIN="${WORKDIR}" # same as $REALOUT

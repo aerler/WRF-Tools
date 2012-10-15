@@ -47,7 +47,7 @@ export RAMDISK="/dev/shm/aerler/"
 
 ## WRF settings
 # optional arguments: $RUNWRF, $GHG ($RAD, $LSM) 
-export GHG='A2' # GHG emission scenario
+export GHG='' # GHG emission scenario
 # folders: $WRFIN, $WRFOUT, $TABLES
 export REALOUT="${WORKDIR}" # this should be default anyway
 export WRFIN="${WORKDIR}" # same as $REALOUT
