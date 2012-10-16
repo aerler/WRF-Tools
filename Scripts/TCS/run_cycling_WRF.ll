@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/bin/bash
 # @ job_name = WC05_WRF
 # @ wall_clock_limit = 06:00:00
 # @ node = 4 
@@ -16,7 +16,7 @@
 # @ class = verylong
 # @ node_usage = not_shared
 # Specifies the name of the shell to use for the job 
-# @ shell = /usr/bin/bash
+# @ shell = /bin/bash
 #=====================================
 ## this is necessary in order to avoid core dumps for batch files
 ## which can cause the system to be overloaded

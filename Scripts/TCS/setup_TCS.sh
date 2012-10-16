@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/bin/bash
 # source script to load TCS-specific settings for WRF
 # created 06/07/2012 by Andre R. Erler, GPL v3
 

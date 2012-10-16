@@ -1,6 +1,6 @@
-#!/usr/bin/bash
+#!/bin/bash
 # Specifies the name of the shell to use for the job 
-# @ shell = /usr/bin/bash
+# @ shell = /bin/bash
 # @ job_name = test_WRF
 # @ wall_clock_limit = 04:00:00
 # @ node = 4 
