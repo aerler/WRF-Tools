@@ -27,7 +27,7 @@ else:
 ioconfigfile = WRFSRC + '/config/registry/ioconfig.fine'
 # full path to WRF registry file (destination)
 newregfolder = WRFSRC + '/Registry/'
-newregfiles = ['Registry.EM_COMMON', 'registry.flake']
+newregfiles = ['Registry.EM','Registry.EM_COMMON','registry.diags','registry.flake']
 # full path to WRF registry file (source) 
 oldregfolder = WRFSRC + '/Registry/original/'
 oldregfiles = [] or newregfiles

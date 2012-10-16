@@ -1,8 +1,7 @@
 &domains
- max_dom                             = 2,
-! time-step is tweaked to account for map factors in outer domain
- time_step                           =  150, 
- parent_time_step_ratio              =    1, 2.7272727,
+ max_dom                             =    2,
+ time_step                           =  180, 
+ parent_time_step_ratio              =    1,    3,
 ! geogrid parameters start here
  parent_id                           =    1,    1,
  parent_grid_ratio                   =    1,    3,
