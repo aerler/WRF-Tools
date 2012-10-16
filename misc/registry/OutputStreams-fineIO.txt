@@ -1,0 +1,78 @@
+Possible Output Configuration for WRF Climate Simulations using Many Files 
+
+0. Misc (and stuff I don't know)
+! default stream (misc and stuff I don't know)
+ auxhist0_outname                    = "wrfmisc_d<domain>_<date>.nc",
+ io_form_auxhist0                    = 2,
+ auxhist0_interval                   = 360, 360, 360,
+ frames_per_auxhist0                 = 1000, 1000, 1000,
+
+1. Dry Dynamics
+! dry dynamics (3D)
+ auxhist1_outname                    = "wrfdrydyn3d_d<domain>_<date>.nc",
+ io_form_auxhist1                    = 2,
+ auxhist1_interval                   = 360, 360, 360,
+ frames_per_auxhist1                 = 1000, 1000, 1000,
+
+2. Moist Variables
+! moist variables (3D)
+ auxhist2_outname                    = "wrfmoist3d_d<domain>_<date>.nc",
+ io_form_auxhist2                    = 2,
+ auxhist2_interval                   = 360, 360, 360,
+ frames_per_auxhist2                 = 1000, 1000, 1000,
+
+3. Extreme Values (daily)
+! extreme values and stats (daily)
+ auxhist3_outname                    = "wrfxtrm_d<domain>_<date>.nc",
+ io_form_auxhist3                    = 2,
+ auxhist3_interval                   = 1440, 1440, 1440,
+ frames_per_auxhist3                 = 1000, 1000, 1000,
+ 
+4. Surface Variables and Precipitation (and FLake)
+! surface and precip data (and some FLake)
+ auxhist4_outname                    = "wrfsrfc_d<domain>_<date>.nc",
+ io_form_auxhist4                    = 2,
+ auxhist4_interval                   = 360, 360, 360,
+ frames_per_auxhist4                 = 1000, 1000, 1000,
+
+5. Constants (only once)
+! static fields and constants
+ auxhist5_outname                    = "wrfconst_d<domain>.nc",
+ io_form_auxhist5                    = 2,
+ auxhist5_interval                   = 527040, 527040, 527040,
+ frames_per_auxhist5                 = 1, 1, 1,
+
+6. Accumulated Radiation (daily)
+! radiation budget (daily)
+ auxhist6_outname                    = "wrfrad_d<domain>_<date>.nc",
+ io_form_auxhist6                    = 2,
+ auxhist6_interval                   = 1440, 1440, 1440,
+ frames_per_auxhist6                 = 1000, 1000, 1000,
+
+7. Land Surface Model (daily)
+! land-surface data (daily)
+ auxhist7_outname                    = "wrflsm_d<domain>_<date>.nc",
+ io_form_auxhist7                    = 2,
+ auxhist7_interval                   = 1440, 1440, 1440,
+ frames_per_auxhist7                 = 1000, 1000, 1000,
+
+8. Hydrology (for Waterloo Group)
+! hydrology data (for hydrogeosphere)
+ auxhist8_outname                    = "wrfhydro_d<domain>_<date>.nc",
+ io_form_auxhist8                    = 2,
+ auxhist8_interval                   = 1440, 1440, 1440,
+ frames_per_auxhist8                 = 1000, 1000, 1000,
+
+9. FDDA Increments
+! nudging increments
+ auxhist9_outname                   = "wrffdda_d<domain>_<date>.nc",
+ io_form_auxhist9                   = 2,
+ auxhist9_interval                  = 1440, 1440, 1440,
+ frames_per_auxhist9                = 1000, 1000, 1000,
+
+10. Pressure Level Diagnostics
+! pressure level diagnostics
+ auxhist23_outname                    = "wrfplev3d_d<domain>_<date>.nc",
+ io_form_auxhist23                    = 2,
+ auxhist23_interval                   = 360, 360, 360,
+ frames_per_auxhist23                 = 1000, 1000, 1000,

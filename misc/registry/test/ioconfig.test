@@ -1,7 +1,0 @@
-# this is a test I/O config file
-# first set 
-#-:i:all:lu_index
-# second set
-#+:h:1:ru,rv,rw
-# third set
--:h:all:u,v,w

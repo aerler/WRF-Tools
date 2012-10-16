@@ -1,0 +1,44 @@
+Possible Output Configuration for WRF Climate Simulations using Fewer Files
+
+0. Misc, Radiation, and Land Model (and stuff I don't know)
+ auxhist0_outname                    = "wrfmisc_d<domain>_<date>",
+ io_form_auxhist0                    = 2,
+ auxhist0_interval                   = 1440, 1440, 1440,
+ frames_per_auxhist0                 = 1000, 1000, 1000,
+
+1. 3D Dynamics
+ auxhist1_outname                    = "wrfdyn3d_d<domain>_<date>",
+ io_form_auxhist1                    = 2,
+ auxhist1_interval                   = 360, 360, 360,
+ frames_per_auxhist1                 = 1000, 1000, 1000,
+
+3. Extreme Values (daily)
+ auxhist3_outname                    = "wrfxtrm_d<domain>_<date>",
+ io_form_auxhist3                    = 2,
+ auxhist3_interval                   = 1440, 1440, 1440,
+ frames_per_auxhist3                 = 1000, 1000, 1000,
+ 
+4. Surface, Precipitation and p-level Diags (and FLake)
+ auxhist4_outname                    = "wrfdiag_d<domain>_<date>",
+ io_form_auxhist4                    = 2,
+ auxhist4_interval                   = 360, 360, 360,
+ frames_per_auxhist4                 = 1000, 1000, 1000,
+
+5. Constants (only once)
+ auxhist5_outname                    = "wrfconst_d<domain>",
+ io_form_auxhist5                    = 2,
+ auxhist5_interval                   = 527040, 527040, 527040,
+ frames_per_auxhist5                 = 1, 1, 1,
+
+8. Hydrology (for Waterloo Group)
+ auxhist8_outname                    = "wrfhydro_d<domain>_<date>",
+ io_form_auxhist8                    = 2,
+ auxhist8_interval                   = 1440, 1440, 1440,
+ frames_per_auxhist8                 = 1000, 1000, 1000,
+
+10. FDDA Increments
+ auxhist10_outname                   = "wrffdda_d<domain>_<date>",
+ io_form_auxhist10                   = 2,
+ auxhist10_interval                  = 360, 360, 360,
+ frames_per_auxhist10                = 1000, 1000, 1000,
+ 
