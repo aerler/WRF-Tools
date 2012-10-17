@@ -11,6 +11,7 @@
 ## Stuff that needs to be removed
 # N.B.: everything else that is not moved, will end up in output stream # 0 (default)
 -:h:0:GRDFLX,XLAND,XICEM,refl_10cm,HAILNC,xmb_shallow,p_hyd,PH,HFX_FORCE,LH_FORCE,TSK_FORCE,HFX_FORCE_TEND,LH_FORCE_TEND,TSK_FORCE_TEND
+# this is an exception - don't know why h5, but has to be removed (added to h4)
 -:h:5:SST
 # this stuff goes into constants (# 5)
 -:h:1:LU_INDEX,LU_MASK,XLAT,XLONG,XLAT_U,XLONG_U,XLAT_V,XLONG_V,U10,V10,mu
