@@ -243,16 +243,16 @@ if [[ ! "${WRFDIR}" == "${WORKDIR}" ]]; then
 fi
 # copy/move data to output directory (hard disk) if necessary
 if [[ ! "${WRFDIR}" == "${WRFOUT}" ]]; then 
-    # move new restart files as well
-    for RESTART in "${WORKDIR}"/wrfrst_d??_????-??-??_??:??:??; do
-        if [[ ! -h "${RESTART}" ]]; then
-            mv "${RESTART}" "${RSTDIR}" # defaults to $WRFOUT
-        fi # if not a link itself
-    done
-	echo "Moving data and log-files (*.tgz) to ${WRFOUT}"
-    # time -p mv wrfout_d??_* "${WRFOUT}"}"
-	mv wrfconst_d?? "${WRFOUT}" # this one doesn't have a date string
-	mv wrf*_d??_????-??-??_??:??:?? "${WRFOUT}" # otherwise identify output files by date string
+	# move new restart files as well
+	for RESTART in "${WORKDIR}"/wrfrst_d??_????-??-??_??:??:??; do
+	    if [[ ! -h "${RESTART}" ]]; then
+	        mv "${RESTART}" "${RSTDIR}" # defaults to $WRFOUT
+	    fi # if not a link itself
+	done
+	echo "Moving data (*.nc) and log-files (*.tgz) to ${WRFOUT}"
+	# time -p mv wrfout_d??_* "${WRFOUT}"}"
+	mv wrfconst_d??.nc "${WRFOUT}" # this one doesn't have a date string
+	mv wrf*_d??_????-??-??_??:??:??.nc "${WRFOUT}" # otherwise identify output files by date string
 	# N.B.: I don't know how to avoid the error message cause by the restart-symlinks...
 	# copy real.exe log files to wrf output
 	mv "${WORKDIR}"/*.tgz "${WRFOUT}"
