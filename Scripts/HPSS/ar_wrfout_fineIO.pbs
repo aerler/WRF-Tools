@@ -55,14 +55,28 @@ function VERIFYHTAR () {
 
 ## function to create a new HTAR archive
 function MAKEHTAR () {
-  local HTAR=${1} # archive file (absolute pass on HPSS)
-  local FILES=${2} #    
+  local HTAR="${DST}/${1}" # archive file (absolute pass on HPSS)
+  local FILES=${2} #
   # make backup (if desired)
-  if [[ ${BACKUP} == 'BACKUP' ]]
-    echo "$FILES   >>>   $HTAR" # print feedback
-    then htar -cpf "${DST}/$HTAR" -Hcrc -Hverify=1 ${FILES} # /scinet/gpc/bin/ish?
+  if [[ ${BACKUP} == 'BACKUP' ]]; then 
+    # check if archive already exists
+    hsi ls "${HTAR}"
+    echo "${FILES}   >>>   ${HTAR}" # print feedback
+    if [[ $? == 0 ]]; then
+      echo "Warning: archive ${HTAR} already exists - checking contents."
+      VERIFYHTAR "${HTAR}" "${FILES}" # check contents
+      if [[ $? == 0 ]]; then
+        echo "   Archive OK, skipping backup..."
+        return 0
+      else
+        echo "   Archive contents are different - removing old archive and creating new."
+        hsi rm "${HTAR}"
+      fi
+    else
+    fi
+    htar -cpf "${HTAR}" -Hcrc -Hverify=1 ${FILES} # /scinet/gpc/bin/ish?
   else
-    echo "$HTAR   :::   $FILES" # print feedback
+    echo "${HTAR}   :::   ${FILES}" # print feedback
   fi
   # verify contents and return result
   VERIFYHTAR "${HTAR}" "${FILES}"
@@ -75,12 +89,12 @@ function BACKUPDATASET () {
   local DATE="${1}"
   local ERR=0 # error counter
   # files to be backed up
-  local LOGS=$( ls ${DATE}_*.tgz wrfconst_d0?.nc ) # "${1}_pyWPS.tgz ${1}_real.tgz ${1}_wrf.tgz"
-  local DIAGS=$( ls wrfxtrm_d0?_${DATE}*.nc wrfsrfc_d0?_${DATE}*.nc wrfplev3d_d0?_${DATE}*.nc )
-  local DYN_D1=$( ls wrfdrydyn3D_d01_${DATE}*.nc )
-  local DYN_D2=$( ls wrfdrydyn3D_d02_${DATE}*.nc )
-  local MISC_D1=$( ls wrfmoist3D_d01_${DATE}*.nc wrflsm_d01_${DATE}*.nc wrfrad_d01_${DATE}*.nc wrfhydro_d01_${DATE}*.nc wrffdda_d01_${DATE}*.nc )
-  local MISC_D2=$( ls wrfmoist3D_d02_${DATE}*.nc wrflsm_d02_${DATE}*.nc wrfrad_d02_${DATE}*.nc wrfhydro_d02_${DATE}*.nc  )
+  local LOGS="${DATE}_pyWPS.tgz ${DATE}_real.tgz ${DATE}_wrf.tgz wrfconst_d01.nc wrfconst_d02.nc"
+  local DIAGS="wrfxtrm_d01_${DATE}-01_00:00:00.nc wrfsrfc_d01_${DATE}-01_00:00:00.nc wrfplev3d_d01_${DATE}-01_00:00:00.nc wrfxtrm_d02_${DATE}-01_00:00:00.nc wrfsrfc_d02_${DATE}-01_00:00:00.nc wrfplev3d_d02_${DATE}-01_00:00:00.nc"
+  local DYN_D1="wrfdrydyn3D_d01_${DATE}-01_00:00:00.nc"
+  local DYN_D2="wrfdrydyn3D_d02_${DATE}-01_00:00:00.nc"
+  local MISC_D1="wrfmoist3D_d01_${DATE}-01_00:00:00.nc wrflsm_d01_${DATE}-01_00:00:00.nc wrfrad_d01_${DATE}-01_00:00:00.nc wrfhydro_d01_${DATE}-01_00:00:00.nc wrffdda_d01_${DATE}-01_00:00:00.nc"
+  local MISC_D2="wrfmoist3D_d02_${DATE}-01_00:00:00.nc wrflsm_d02_${DATE}-01_00:00:00.nc wrfrad_d02_${DATE}-01_00:00:00.nc wrfhydro_d02_${DATE}-01_00:00:00.nc"
   echo
   # check or backup?
   if [[ ${BACKUP} == 'BACKUP' ]]
