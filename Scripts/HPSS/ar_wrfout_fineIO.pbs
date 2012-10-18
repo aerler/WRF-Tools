@@ -60,8 +60,8 @@ function MAKEHTAR () {
   # make backup (if desired)
   if [[ ${BACKUP} == 'BACKUP' ]]; then 
     # check if archive already exists
-    hsi ls "${HTAR}"
     echo "${FILES}   >>>   ${HTAR}" # print feedback
+    hsi -q ls "${HTAR}" # quiet mode
     if [[ $? == 0 ]]; then
       echo "Warning: archive ${HTAR} already exists - checking contents."
       VERIFYHTAR "${HTAR}" "${FILES}" # check contents
@@ -70,9 +70,8 @@ function MAKEHTAR () {
         return 0
       else
         echo "   Archive contents are different - removing old archive and creating new."
-        hsi rm "${HTAR}"
+        hsi -q rm "${HTAR}"
       fi
-    else
     fi
     htar -cpf "${HTAR}" -Hcrc -Hverify=1 ${FILES} # /scinet/gpc/bin/ish?
   else
@@ -91,10 +90,10 @@ function BACKUPDATASET () {
   # files to be backed up
   local LOGS="${DATE}_pyWPS.tgz ${DATE}_real.tgz ${DATE}_wrf.tgz wrfconst_d01.nc wrfconst_d02.nc"
   local DIAGS="wrfxtrm_d01_${DATE}-01_00:00:00.nc wrfsrfc_d01_${DATE}-01_00:00:00.nc wrfplev3d_d01_${DATE}-01_00:00:00.nc wrfxtrm_d02_${DATE}-01_00:00:00.nc wrfsrfc_d02_${DATE}-01_00:00:00.nc wrfplev3d_d02_${DATE}-01_00:00:00.nc"
-  local DYN_D1="wrfdrydyn3D_d01_${DATE}-01_00:00:00.nc"
-  local DYN_D2="wrfdrydyn3D_d02_${DATE}-01_00:00:00.nc"
-  local MISC_D1="wrfmoist3D_d01_${DATE}-01_00:00:00.nc wrflsm_d01_${DATE}-01_00:00:00.nc wrfrad_d01_${DATE}-01_00:00:00.nc wrfhydro_d01_${DATE}-01_00:00:00.nc wrffdda_d01_${DATE}-01_00:00:00.nc"
-  local MISC_D2="wrfmoist3D_d02_${DATE}-01_00:00:00.nc wrflsm_d02_${DATE}-01_00:00:00.nc wrfrad_d02_${DATE}-01_00:00:00.nc wrfhydro_d02_${DATE}-01_00:00:00.nc"
+  local DYN_D1="wrfdrydyn3d_d01_${DATE}-01_00:00:00.nc"
+  local DYN_D2="wrfdrydyn3d_d02_${DATE}-01_00:00:00.nc"
+  local MISC_D1="wrfmoist3d_d01_${DATE}-01_00:00:00.nc wrflsm_d01_${DATE}-01_00:00:00.nc wrfrad_d01_${DATE}-01_00:00:00.nc wrfhydro_d01_${DATE}-01_00:00:00.nc wrffdda_d01_${DATE}-01_00:00:00.nc"
+  local MISC_D2="wrfmoist3d_d02_${DATE}-01_00:00:00.nc wrflsm_d02_${DATE}-01_00:00:00.nc wrfrad_d02_${DATE}-01_00:00:00.nc wrfhydro_d02_${DATE}-01_00:00:00.nc"
   echo
   # check or backup?
   if [[ ${BACKUP} == 'BACKUP' ]]
