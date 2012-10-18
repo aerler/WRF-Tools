@@ -2,7 +2,7 @@
 ## scenario definition section
 NAME='test'
 # GHG emission scenario
-GHG='A2' # CAMtr_volume_mixing_ratio.* file to be used
+GHG='A1B' # CAMtr_volume_mixing_ratio.* file to be used
 # time period and cycling interval
 CYCLING="monthly" # stepfile to be used (leave empty if not cycling)
 # archiving

@@ -1,5 +1,5 @@
-## year[1] | co2 (ppmv) [2] | n2o (ppbv)[3] | ch4 (ppbv)[4] | cfc11 (ppbv)[5] | cfc12 (ppbv)[6] 
-## Missing value: -9999.999
+## Greenhouse Gas Emission Scenario: A2; Missing value: -9999.999
+## year[1] | co2 (ppmv) [2] | n2o (ppbv)[3] | ch4 (ppbv)[4] | cfc11 (ppbv)[5] | cfc12 (ppbv)[6]
 1970  325.000    295.000   1420.000     50.000    109.000
 1980  337.000    301.000   1570.000    164.000    290.000
 1990  353.000    308.000   1700.000    258.000    467.000

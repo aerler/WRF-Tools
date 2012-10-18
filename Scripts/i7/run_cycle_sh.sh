@@ -5,39 +5,48 @@
 
 # settings
 set -e # abort if anything goes wrong
-export STEPFILE='stepfile' # file in $INIDIR
-export INIDIR="${PWD}" # current directory
+NOGEO=$1 # option to run without geogrid
+STEPFILE='stepfile' # file in $INIDIR
+INIDIR="${PWD}" # current directory
+METDATA="${INIDIR}/metgrid/"
+WRFOUT="${INIDIR}/wrfout/"
+CASENAME='cycling' # name tag
+WPSSCRIPT="run_${CASENAME}_WPS.sh"
+WRFSCRIPT="run_${CASENAME}_WRF.sh"
+STATICTGZ='static.tgz' # file for static data backup
 
 # launch feedback
 echo
 echo "   ***   Starting Cycle  ***   "
 echo
-echo "   Stepfile: ${STEPFILE}"
+# echo "   Stepfile: ${STEPFILE}"
 echo "   Root Dir: ${INIDIR}"
-echo 
+echo
 
 # clear some folders
 cd "${INIDIR}"
-export METDATA="${INIDIR}/metgrid/"
-export WRFOUT="${INIDIR}/wrfout/"
 echo "   Clearing Output Folders:"
 echo "${METDATA}"
 echo "${WRFOUT}"
-rm -rf "${METDATA}" "${WRFOUT}" 
+rm -rf "${METDATA}" "${WRFOUT}"
+mkdir -p "${WRFOUT}"
+echo
 
 # run geogrid
 # clear files
-#cd "${INIDIR}"
-#rm geo_em.d??.nc geogrid.log*
-## run with parallel processes
-#echo
-#echo "   Running geogrid.exe"
-#echo
-#mpirun -n $OMP_NUM_THREADS ./geogrid.exe
-## N.B.: $OMP_NUM_THREADS is used as a proxy for # cores
-  
+cd "${INIDIR}"
+if [[ "${NOGEO}" == 'NOGEO'* ]]; then
+  echo "   Not running geogrid.exe"
+else
+  rm -f geo_em.d??.nc geogrid.log*
+  # run with parallel processes
+  echo "   Running geogrid.exe"
+  mpirun -n $OMP_NUM_THREADS ./geogrid.exe
+  # N.B.: $OMP_NUM_THREADS is used as a proxy for # cores
+fi
 
-# read first entry in stepfile 
+# read first entry in stepfile
+export STEPFILE
 NEXTSTEP=$(python cycling.py)
 export NEXTSTEP
 echo
@@ -52,12 +61,25 @@ sed -i '/restart\s/ s/restart\s*=\s*\.true\..*$/restart = .false.,/' \
 sed -i '/restart\s/ s/restart\s*=\s*\.false\..*$/restart = .true.,/' \
  "${INIDIR}/namelist.input"
 echo "  Setting restart option and interval in namelist."
+# echo
+
+# create backup of static files
+cd "${INIDIR}"
+rm -rf 'static-tmp/' 
+mkdir -p 'static-tmp'
+echo $( cp -P * 'static-tmp/' &> /dev/null ) # trap this error and hide output
+cp -rL 'meta/' 'tables/' 'static-tmp/'
+tar czf "${STATICTGZ}" 'static-tmp/'
+rm -r 'static-tmp/'
+mv "${STATICTGZ}" "${WRFOUT}"
+echo "  Saved backup file for static data:"
+echo "${WRFOUT}/${STATICTGZ}"
 echo
 
 # launch first WPS instance
-./run_cycling_WPS.sh
+./${WPSSCRIPT}
 wait
 
 # launch first WRF instance
-./run_cycling_WRF.sh
+./${WRFSCRIPT}
 wait

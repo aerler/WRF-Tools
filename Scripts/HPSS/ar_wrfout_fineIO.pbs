@@ -88,12 +88,21 @@ function BACKUPDATASET () {
   local DATE="${1}"
   local ERR=0 # error counter
   # files to be backed up
-  local LOGS="${DATE}_pyWPS.tgz ${DATE}_real.tgz ${DATE}_wrf.tgz wrfconst_d01.nc wrfconst_d02.nc"
+  local STATIC="static.tar.gz wrfconst_d01.nc wrfconst_d02.nc"
+  local LOGS="${DATE}_pyWPS.tgz ${DATE}_real.tgz ${DATE}_wrf.tgz"
   local DIAGS="wrfxtrm_d01_${DATE}-01_00:00:00.nc wrfsrfc_d01_${DATE}-01_00:00:00.nc wrfplev3d_d01_${DATE}-01_00:00:00.nc wrfxtrm_d02_${DATE}-01_00:00:00.nc wrfsrfc_d02_${DATE}-01_00:00:00.nc wrfplev3d_d02_${DATE}-01_00:00:00.nc"
   local DYN_D1="wrfdrydyn3d_d01_${DATE}-01_00:00:00.nc"
   local DYN_D2="wrfdrydyn3d_d02_${DATE}-01_00:00:00.nc"
-  local MISC_D1="wrfmoist3d_d01_${DATE}-01_00:00:00.nc wrflsm_d01_${DATE}-01_00:00:00.nc wrfrad_d01_${DATE}-01_00:00:00.nc wrfhydro_d01_${DATE}-01_00:00:00.nc wrffdda_d01_${DATE}-01_00:00:00.nc"
+  local MISC_D1="wrfmoist3d_d01_${DATE}-01_00:00:00.nc wrflsm_d01_${DATE}-01_00:00:00.nc wrfrad_d01_${DATE}-01_00:00:00.nc wrfhydro_d01_${DATE}-01_00:00:00.nc wrffdda_d01_${DATE}-01_00:00:00.nc wrfrst_d01_${DATE}-01_00:00:00"
   local MISC_D2="wrfmoist3d_d02_${DATE}-01_00:00:00.nc wrflsm_d02_${DATE}-01_00:00:00.nc wrfrad_d02_${DATE}-01_00:00:00.nc wrfhydro_d02_${DATE}-01_00:00:00.nc"
+  # determine if this is a cold start or a restart
+  if [[ -e "${SRC}/wrfrst_d01_${DATE}-01_00:00:00" ]]; then
+    # restart run: backup restart file
+    MISC_D1="${MISC_D1} wrfrst_d01_${DATE}-01_00:00:00"
+    MISC_D2="${MISC_D2} wrfrst_d02_${DATE}-01_00:00:00"
+    STATIC='' # skip this step
+    # cold start: backup data tables, constants, and geogrid files
+  fi
   echo
   # check or backup?
   if [[ ${BACKUP} == 'BACKUP' ]]
@@ -106,6 +115,12 @@ function BACKUPDATASET () {
     else echo "   (leaving source files on untouched)   "
   fi
   # process file lists
+  if [[ -n "$STATIC" ]]; then
+    # only execute this for the first step/date (cold start)
+    echo '  Static data, WRF constants, and geogrid files (both domains):'
+    MAKEHTAR "wrfstatic.tar" "${STATIC}"
+    ERR=$(( ${ERR} + $? ))
+  fi
   echo '  Pressure level and surface fields, log files (both domains):' # short description of archive
   MAKEHTAR "wrfdiags_${DATE}.tar" "${DIAGS} ${LOGS}"
   ERR=$(( ${ERR} + $? )) # VERIFYHTAR returns the number of missing files as exit code
