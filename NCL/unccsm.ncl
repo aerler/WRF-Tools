@@ -24,16 +24,27 @@ begin
 ;  GCM meta data 
 ;---------------------------------------------------------------------------------------------------------------------
 
-; data source (which model)
-GCM = "CESM"
-; TODO: infer GCM and grid type from NetCDF input files
+; get dimension sizes to verify grid
+llev = getfilevardimsizes(atm,"lev")
+llat = getfilevardimsizes(atm,"lat")
+llon = getfilevardimsizes(atm,"lon")
+nji  = getfilevardimsizes(ice,"tmask")
 
-if ( (GCM .eq. "CESM") ) then
+if ( (llev .eq. 26) .and. (llat .eq. 192) .and. (llon .eq. 288) .and. (nji(0) .eq. 384) .and. (nji(1) .eq. 320) ) then
+  ; data source (which model)
+  GCM = "CESM"
   ; parameters to convert from ocean to atmosphere grid
   ocngrid = "gx1v6"
   atmgrid = "fv0.9x1.25"
   trafoid = "090309"
   ; ocean grid definition file: "map_gx1v6_to_fv0.9x1.25_aave_da_090309.nc"
+else
+  ; print warning
+  print("WARNING: GCM grid type not recognized - unable to transform ice data to atmospheric grid!")
+  print(llev)
+  print(llat)
+  print(llon)
+  print(nji)
 end if
 
 ; N.B.: for SEAICE define environment variable $NCL_POP_REMAP

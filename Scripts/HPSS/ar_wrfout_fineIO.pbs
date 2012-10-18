@@ -53,14 +53,34 @@ function VERIFYHTAR () {
   return ${MISS}    
 }
 
+## function to create a new HTAR archive
+function MAKEHTAR () {
+  local HTAR=${1} # archive file (absolute pass on HPSS)
+  local FILES=${2} #    
+  # make backup (if desired)
+  if [[ ${BACKUP} == 'BACKUP' ]]
+    echo "$FILES   >>>   $HTAR" # print feedback
+    then htar -cpf "${DST}/$HTAR" -Hcrc -Hverify=1 ${FILES} # /scinet/gpc/bin/ish?
+  else
+    echo "$HTAR   :::   $FILES" # print feedback
+  fi
+  # verify contents and return result
+  VERIFYHTAR "${HTAR}" "${FILES}"
+  # N.B.: VERIFYHTAR also deletes the source file, if desired
+  return $?
+}
+
 ## function to to back up one output dataset
 function BACKUPDATASET () {
   local DATE="${1}"
   local ERR=0 # error counter
   # files to be backed up
-  local LOGS=$( ls ${DATE}_*.tgz ) # "${1}_pyWPS.tgz ${1}_real.tgz ${1}_wrf.tgz" 
-  local SMALL=$( ls wrfxtrm_d??_${DATE}* wrfflake_d??_${DATE}* )
-  local BIG=$( ls wrfout_d??_${DATE}* ) # $BIG filenames will get trimmed below ($NEWNAME)
+  local LOGS=$( ls ${DATE}_*.tgz wrfconst_d0?.nc ) # "${1}_pyWPS.tgz ${1}_real.tgz ${1}_wrf.tgz"
+  local DIAGS=$( ls wrfxtrm_d0?_${DATE}*.nc wrfsrfc_d0?_${DATE}*.nc wrfplev3d_d0?_${DATE}*.nc )
+  local DYN_D1=$( ls wrfdrydyn3D_d01_${DATE}*.nc )
+  local DYN_D2=$( ls wrfdrydyn3D_d02_${DATE}*.nc )
+  local MISC_D1=$( ls wrfmoist3D_d01_${DATE}*.nc wrflsm_d01_${DATE}*.nc wrfrad_d01_${DATE}*.nc wrfhydro_d01_${DATE}*.nc wrffdda_d01_${DATE}*.nc )
+  local MISC_D2=$( ls wrfmoist3D_d02_${DATE}*.nc wrflsm_d02_${DATE}*.nc wrfrad_d02_${DATE}*.nc wrfhydro_d02_${DATE}*.nc  )
   echo
   # check or backup?
   if [[ ${BACKUP} == 'BACKUP' ]]
@@ -72,25 +92,22 @@ function BACKUPDATASET () {
     then echo " + Removing source files after backup! + "
     else echo "   (leaving source files on untouched)   "
   fi
-  echo '  logs and smaller files:'
-  echo ${LOGS}
-  echo ${SMALL}
-  if [[ ${BACKUP} == 'BACKUP' ]]
-    then htar -cpf "${DST}/wrfextra_${DATE}.tar" -Hcrc -Hverify=1 ${LOGS} ${SMALL} # /scinet/gpc/bin/ish 
-  fi
-  VERIFYHTAR "${DST}/wrfextra_${DATE}.tar" "${LOGS} ${SMALL}"
+  # process file lists
+  echo '  Pressure level and surface fields, log files (both domains):' # short description of archive
+  MAKEHTAR "wrfdiags_${DATE}.tar" "${DIAGS} ${LOGS}"
   ERR=$(( ${ERR} + $? )) # VERIFYHTAR returns the number of missing files as exit code
-  echo '  big output files:'
-  echo ${BIG}
-  for FILE in ${BIG} # N.B.: need to expand regex (no quotes)
-    do
-      local NEWNAME="${FILE%${DATE}*}${DATE}" # cut off what does beyond $DATE
-      if [[ ${BACKUP} == 'BACKUP' ]]
-        then htar -cpf "${DST}/${NEWNAME}.tar" -Hcrc -Hverify=1 ${FILE} # /scinet/gpc/bin/ish 
-      fi
-      VERIFYHTAR "${DST}/${NEWNAME}.tar" "${FILE}"
-      ERR=$(( ${ERR} + $? )) # VERIFYHTAR returns the number of missing files as exit code
-  done
+  echo '  Miscellaneous field, including 3D moisture (outer domain):'
+  MAKEHTAR "wrfmisc_d01_${DATE}.tar" "${MISC_D1}"
+  ERR=$(( ${ERR} + $? ))
+  echo '  Miscellaneous field, including 3D moisture (inner domain):'
+  MAKEHTAR "wrfmisc_d02_${DATE}.tar" "${MISC_D2}"
+  ERR=$(( ${ERR} + $? ))
+  echo '  3D dry dynamics fields (outer domain):'
+  MAKEHTAR "wrfdrydyn_d01_${DATE}.tar" "${DYN_D1}"
+  ERR=$(( ${ERR} + $? ))
+  echo '  3D dry dynamics fields (inner domain):'
+  MAKEHTAR "wrfdrydyn_d02_${DATE}.tar" "${DYN_D2}"
+  ERR=$(( ${ERR} + $? ))
   # check for errors
   if [ ! ${ERR} == 0 ]; then
     echo "   >>>   WARNING: there were ${ERR} errors!   <<<   "

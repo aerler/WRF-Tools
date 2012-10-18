@@ -232,7 +232,7 @@ rm -rf "${WORKDIR}/${WRFLOG}" # remove old logs
 mkdir -p "${WRFLOG}" # make folder for log files locally
 #cd "${WORKDIR}"
 # save log files and meta data
-mv ${RADTAB} ${LSMTAB} rsl.*.???? namelist.output "${WRFLOG}"
+mv rsl.*.???? namelist.output "${WRFLOG}" # do not add tables to logs: ${RADTAB} ${LSMTAB} 
 cp -P namelist.input wrf.exe "${WRFLOG}" # leave namelist in place
 if [[ -n "${GHG}" ]]; then # also add emission scenario to log
 	mv 'CAMtr_volume_mixing_ratio' "${WRFLOG}/CAMtr_volume_mixing_ratio.${GHG}"
