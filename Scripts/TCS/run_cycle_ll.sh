@@ -5,19 +5,21 @@
 
 # settings
 set -e # abort if anything goes wrong
+NOGEO=$1 # option to run without geogrid
 STEPFILE='stepfile' # file in $INIDIR
 INIDIR="${PWD}" # current directory
+METDATA="${INIDIR}/metgrid/"
+WRFOUT="${INIDIR}/wrfout/"
 CASENAME='cycling' # name tag
 WPSSCRIPT="run_${CASENAME}_WPS.pbs"
 WRFSCRIPT="run_${CASENAME}_WRF.ll"
-METDATA="${INIDIR}/metgrid/"
-WRFOUT="${INIDIR}/wrfout/"
+STATICTGZ='static.tgz' # file for static data backup
 
 # launch feedback
 echo
 echo "   ***   Starting Cycle  ***   "
 echo
-echo "   Stepfile: ${STEPFILE}"
+#echo "   Stepfile: ${STEPFILE}"
 echo "   Root Dir: ${INIDIR}"
 echo
 
@@ -41,7 +43,7 @@ else
   echo "   Running geogrid.exe"
   echo
   rm -f geo_em.d??.nc geogrid.log*
-  mpiexec -n 8 ./geogrid.exe
+  mpiexec -n 8 ./geogrid.exe > /dev/null
 fi
 
 # read first entry in stepfile
@@ -71,29 +73,29 @@ cp -rL 'meta/' 'tables/' 'static-tmp/'
 tar czf "${STATICTGZ}" 'static-tmp/'
 rm -r 'static-tmp/'
 mv "${STATICTGZ}" "${WRFOUT}"
-echo "  Saved backup file for static data:"
+echo "   Saved backup file for static data:"
 echo "${WRFOUT}/${STATICTGZ}"
 echo
 
-# # submit first independent WPS job to GPC (not TCS!)
-# echo
-# echo "   Submitting first WPS job to GPC queue:"
-# ssh gpc-f104n084 "cd \"${INIDIR}\"; qsub ./${WPSSCRIPT} -v NEXTSTEP=${NEXTSTEP}"
-# echo
-# 
-# # wait until WPS job is completed: check presence of wrfinput files
-# echo
-# echo "   Waiting for WPS job on GPC to complete..."
-# while [[ ! -e "${INIDIR}/${NEXTSTEP}/${WPSSCRIPT}" ]]
-#   do
-#     sleep 30
-# done
-# echo "   ... WPS completed. Submitting WRF job to LoadLeveler."
-# echo
-# 
-# # submit first WRF instance on TCS
-# echo
-# echo "   Submitting first WRF job to TCS queue:"
-# export NEXTSTEP # this is how env vars are passed to LL
-# llsubmit ./${WRFSCRIPT}
-# echo
+# submit first independent WPS job to GPC (not TCS!)
+echo
+echo "   Submitting first WPS job to GPC queue:"
+ssh gpc-f104n084 "cd \"${INIDIR}\"; qsub ./${WPSSCRIPT} -v NEXTSTEP=${NEXTSTEP}"
+echo
+
+# wait until WPS job is completed: check presence of wrfinput files
+echo
+echo "   Waiting for WPS job on GPC to complete..."
+while [[ ! -e "${INIDIR}/${NEXTSTEP}/${WPSSCRIPT}" ]]
+  do
+    sleep 30
+done
+echo "   ... WPS completed. Submitting WRF job to LoadLeveler."
+echo
+
+# submit first WRF instance on TCS
+echo
+echo "   Submitting first WRF job to TCS queue:"
+export NEXTSTEP # this is how env vars are passed to LL
+llsubmit ./${WRFSCRIPT}
+echo

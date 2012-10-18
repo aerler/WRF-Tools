@@ -256,7 +256,7 @@ echo "Remaining tasks:"
 echo " * review meta data and namelists"
 echo " * edit run scripts, if necessary"
 # count number of broken links
-for FILE in * */*; do
+for FILE in * meta/* tables/*; do
   if [[ ! -e $FILE ]]; then
     CNT=$(( CNT + 1 ))
     if (( CNT == 1 )); then

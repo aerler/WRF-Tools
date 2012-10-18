@@ -30,6 +30,7 @@ echo "${METDATA}"
 echo "${WRFOUT}"
 rm -rf "${METDATA}" "${WRFOUT}" 
 mkdir -p "${WRFOUT}"
+echo
 
 # run geogrid
 # clear files
@@ -39,10 +40,8 @@ if [[ "${NOGEO}" == 'NOGEO'* ]]; then
 else
   rm -f geo_em.d??.nc geogrid.log*
   # run with parallel processes
-  echo
   echo "   Running geogrid.exe"
-  echo
-  mpirun -n 4 ./geogrid.exe
+  mpirun -n 4 ./geogrid.exe > /dev/null # hide stdout
 fi
 
 # read first entry in stepfile 
@@ -63,19 +62,19 @@ echo "   Setting restart option and interval in namelist."
 
 # create backup of static files
 cd "${INIDIR}"
-rm -rf 'static-tmp/'
-mkdir -p 'static-tmp'
-echo $( cp -P * 'static-tmp/' &> /dev/null ) # trap this error and hide output
-cp -rL 'meta/' 'tables/' 'static-tmp/'
-tar czf "${STATICTGZ}" 'static-tmp/'
-rm -r 'static-tmp/'
+rm -rf 'static/'
+mkdir -p 'static'
+echo $( cp -P * 'static/' &> /dev/null ) # trap this error and hide output
+cp -rL 'meta/' 'tables/' 'static/'
+tar czf "${STATICTGZ}" 'static/'
+rm -r 'static/'
 mv "${STATICTGZ}" "${WRFOUT}"
-echo "  Saved backup file for static data:"
+echo "   Saved backup file for static data:"
 echo "${WRFOUT}/${STATICTGZ}"
 echo
 
-# # submit first WPS instance
-# qsub ./${WPSSCRIPT} -v NEXTSTEP="${NEXTSTEP}"
-# 
-# # submit first WRF instance
-# qsub ./${WRFSCRIPT} -v NEXTSTEP="${NEXTSTEP}"
+# submit first WPS instance
+qsub ./${WPSSCRIPT} -v NEXTSTEP="${NEXTSTEP}"
+
+# submit first WRF instance
+qsub ./${WRFSCRIPT} -v NEXTSTEP="${NEXTSTEP}"
