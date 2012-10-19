@@ -11,12 +11,19 @@ set -e # abort if anything goes wrong
 # folders
 RUNDIR="${PWD}"
 WRFTOOLS="${MODEL_ROOT}/WRF Tools/"
-ARSCRIPT='ar_wrfout.pbs'
+ARSCRIPT='DEFAULT' # this is a dummy name...
 # WPS and WRF executables
 WPSSYS="GPC" # WPS
 WRFSYS="GPC" # WRF
 ## load configuration 
 source xconfig.sh
+# default archive script name (no $ARSCRIPT means no archiving)
+if [[ "${ARSCRIPT}" == 'DEFAULT' ]] && [[ -n "${IO}" ]]; then ARSCRIPT="ar_wrfout_${IO}.pbs"; fi # always runs from GPC
+# infer default $CASETYPE (can also set $CASETYPE in xconfig.sh)
+if [[ -z "${CASETYPE}" ]]; then
+  if [[ -n "${CYCLING}" ]]; then CASETYPE='cycling';
+  else CASETYPE='test'; fi
+fi
 # look up default configurations
 if [[ "${WPSSYS}" == "GPC" ]]; then 
 	METEXE=${METEXE:-"${WPSSRC}/GPC-MPI/Clim-fineIO/O3xHost/metgrid.exe"}
@@ -104,11 +111,7 @@ ln -sf "${WRFTOOLS}/bin/${WPSSYS}/unccsm.exe"
 if [[ "${WPSSYS}" == "GPC"* ]] || [[ "${WPSSYS}" == "P7" ]]; then
 	ln -sf "${WRFTOOLS}/Scripts/${WPSSYS}/setup_${WPSSYS}.sh"; fi
 # if cycling
-if [[ -n "${CYCLING}" ]]; then
-	cp "${WRFTOOLS}/Scripts/${WPSSYS}/run_cycling_WPS.${WPSQ}" .
-else
-	cp "${WRFTOOLS}/Scripts/${WPSSYS}/run_test_WPS.${WPSQ}" .
-fi		
+cp "${WRFTOOLS}/Scripts/${WPSSYS}/run_${CASETYPE}_WPS.${WPSQ}" .
 # WPS/WRF executables
 ln -sf "${GEOEXE}"
 ln -sf "${METEXE}"
@@ -140,10 +143,8 @@ if [[ -n "${CYCLING}" ]]; then
 	ln -sf "${WRFTOOLS}/Scripts/${WRFSYS}/run_cycle_${WRFQ}.sh"
 	ln -sf "${WRFTOOLS}/Python/cycling.py"
 	cp "${WRFTOOLS}/misc/stepfiles/stepfile.${CYCLING}" 'stepfile' 
-	cp "${WRFTOOLS}/Scripts/${WRFSYS}/run_cycling_WRF.${WRFQ}" .
-else
-	cp "${WRFTOOLS}/Scripts/${WRFSYS}/run_test_WRF.${WRFQ}" .
 fi
+cp "${WRFTOOLS}/Scripts/${WRFSYS}/run_${CASETYPE}_WRF.${WRFQ}" .
 # WRF executable
 ln -sf "${WRFEXE}"
 
@@ -151,21 +152,26 @@ ln -sf "${WRFEXE}"
 echo "Defining experiment name in run scripts:"
 # name of experiment (and WRF dependency)
 if [[ "${WPSSYS}" == "GPC"* ]]; then
-	sed -i "/#PBS -N/ s/#PBS -N\s.*$/#PBS -N ${NAME}_WPS/" run_*_WPS.pbs
-    ls run_*_WPS.pbs
+	sed -i "/#PBS -N/ s/#PBS -N\s.*$/#PBS -N ${NAME}_WPS/" "run_${CASETYPE}_WPS.${WRFQ}"
+    echo "  run_${CASETYPE}_WPS.${WRFQ}"
 fi
 if [[ "${WRFSYS}" == "GPC" ]]; then
-	sed -i "/#PBS -N/ s/#PBS -N\s.*$/#PBS -N ${NAME}_WRF/" run_*_WRF.pbs
-	sed -i "/#PBS -W/ s/#PBS -W\s.*$/#PBS -W depend:afterok:${NAME}_WPS/" run_*_WRF.pbs
-    ls run_*_WRF.pbs
+	sed -i "/#PBS -N/ s/#PBS -N\s.*$/#PBS -N ${NAME}_WRF/" "run_${CASETYPE}_WRF.${WRFQ}"
+	sed -i "/#PBS -W/ s/#PBS -W\s.*$/#PBS -W depend:afterok:${NAME}_WPS/" "run_${CASETYPE}_WRF.${WRFQ}"
+    echo "  run_${CASETYPE}_WRF.${WRFQ}"    
 elif [[ "${WRFSYS}" == "TCS" ]]; then
-	sed -i "/#\s*@\s*job_name/ s/#\s*@\s*job_name\s*=.*$/# @ job_name = ${NAME}_WRF/" run_*_WRF.ll
-    ls run_*_WRF.ll
+	sed -i "/#\s*@\s*job_name/ s/#\s*@\s*job_name\s*=.*$/# @ job_name = ${NAME}_WRF/" "run_${CASETYPE}_WRF.${WRFQ}"
+    echo "  run_${CASETYPE}_WRF.${WRFQ}"
 else
     echo "  N/A"
 fi
+# run_cycle-script
+if [[ -n "${CYCLING}" ]]; then
+  sed -i "/WPSSCRIPT/ s/WPSSCRIPT=.*$/WPSSCRIPT=\'run_${CASETYPE}_WPS.${WPSQ}\' # WPS run-scripts/" "run_cycle_${WRFQ}.sh" # WPS run-script
+  sed -i "/WRFSCRIPT/ s/WRFSCRIPT=.*$/WRFSCRIPT=\'run_${CASETYPE}_WRF.${WRFQ}\' # WRF run-scripts/" "run_cycle_${WRFQ}.sh" # WPS run-script
+fi
 # archive script
-sed -i "/export ARSCRIPT/ s/export\sARSCRIPT=.*$/export ARSCRIPT=\'${ARSCRIPT}\' # archive script to be executed after WRF finishes/" run_*_WRF.${WRFQ}
+sed -i "/export ARSCRIPT/ s/export\sARSCRIPT=.*$/export ARSCRIPT=\'${ARSCRIPT}\' # archive script to be executed after WRF finishes/" "run_${CASETYPE}_WRF.${WRFQ}"
 if [[ -n "${ARSCRIPT}" ]]; then
     cp -f "${WRFTOOLS}/Scripts/HPSS/${ARSCRIPT}" .
 	sed -i "/#PBS -N/ s/#PBS -N\s.*$/#PBS -N ${NAME}_ar/" "${ARSCRIPT}"
@@ -247,7 +253,7 @@ if [[ -n "${GHG}" ]]; then # only if $GHG is defined!
 fi
 cd "${RUNDIR}" # return to run directory
 # GHG emission scenario (if no GHG scenario is selected, the variable will be empty)
-sed -i "/export GHG/ s/export\sGHG=.*$/export GHG=\'${GHG}\' # GHG emission scenario set by setup script/" run_*_WRF.${WRFQ}
+sed -i "/export GHG/ s/export\sGHG=.*$/export GHG=\'${GHG}\' # GHG emission scenario set by setup script/" "run_${CASETYPE}_WRF.${WRFQ}"
 
 ## finish up
 # prompt user to create data links
@@ -256,7 +262,7 @@ echo "Remaining tasks:"
 echo " * review meta data and namelists"
 echo " * edit run scripts, if necessary"
 # count number of broken links
-for FILE in * meta/* tables/*; do
+for FILE in * meta/* tables/*; do # need to list meta/ and table/ extra, because */ includes data links (e.g. atm/)
   if [[ ! -e $FILE ]]; then
     CNT=$(( CNT + 1 ))
     if (( CNT == 1 )); then

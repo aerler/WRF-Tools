@@ -10,9 +10,8 @@ STEPFILE='stepfile' # file in $INIDIR
 INIDIR="${PWD}" # current directory
 METDATA="${INIDIR}/metgrid/"
 WRFOUT="${INIDIR}/wrfout/"
-CASENAME='cycling' # name tag
-WPSSCRIPT="run_${CASENAME}_WPS.pbs"
-WRFSCRIPT="run_${CASENAME}_WRF.pbs"
+WPSSCRIPT="run_cycling_WPS.pbs"
+WRFSCRIPT="run_cycling_WRF.pbs"
 STATICTGZ='static.tgz' # file for static data backup
 
 # launch feedback

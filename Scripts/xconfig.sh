@@ -5,13 +5,14 @@ NAME='test'
 GHG='A1B' # CAMtr_volume_mixing_ratio.* file to be used
 # time period and cycling interval
 CYCLING="monthly" # stepfile to be used (leave empty if not cycling)
-# archiving
-ARSCRIPT='ar_wrfout.pbs' # archive to HPSS
+# I/O and archiving
+IO='fineIO' # this is used for namelist construction and archiving
+ARSCRIPT='' # set ARSCRIPT='DEFAULT' to let $IO control archiving
 
 ## namelist definition section
 # list of namelist groups and used snippets
 # WRF
-TIME_CONTROL='cycling,fineio'
+TIME_CONTROL="cycling,$IO"
 DIAGS='hitop'
 PHYSICS='clim'
 DOMAINS='wc02'
