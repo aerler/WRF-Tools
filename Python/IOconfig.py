@@ -24,7 +24,7 @@ elif os.environ.has_key('MODEL_ROOT'):
 else:
   WRFSRC = os.environ['HOME'] + '/WRF/WRFV3/' # WRF source folder
 # full path to I/O config file
-ioconfigfile = WRFSRC + '/config/registry/ioconfig.fine'
+ioconfigfile = WRFSRC + '/config/registry/ioconfig.fineIO'
 # full path to WRF registry file (destination)
 newregfolder = WRFSRC + '/Registry/'
 newregfiles = ['Registry.EM','Registry.EM_COMMON','registry.diags','registry.flake']

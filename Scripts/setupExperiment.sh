@@ -108,7 +108,7 @@ ln -sf "${WRFTOOLS}/Python/pyWPS.py"
 ln -sf "${WRFTOOLS}/NCL/unccsm.ncl"
 # platform dependent stuff
 ln -sf "${WRFTOOLS}/bin/${WPSSYS}/unccsm.exe"
-if [[ "${WPSSYS}" == "GPC"* ]] || [[ "${WPSSYS}" == "P7" ]]; then
+if [[ "${WPSQ}" == "pbs" ]] && [[ "${WPSQ}" == "ll" ]]; then # if it has a queue system, it has to have a setup script...
 	ln -sf "${WRFTOOLS}/Scripts/${WPSSYS}/setup_${WPSSYS}.sh"; fi
 # if cycling
 cp "${WRFTOOLS}/Scripts/${WPSSYS}/run_${CASETYPE}_WPS.${WPSQ}" .
@@ -135,9 +135,9 @@ ln -sf "${WRFTOOLS}/Scripts/execWRF.sh"
 #ln -sf "${WRFTOOLS}/misc/tables" # WRF default tables
 #ln -sf "${WRFTOOLS}/misc/tables-NoahMP" 'tables' # new tables including Noah-MP stuff 
 # if cycling
-if [[ "${WRFSYS}" == "GPC" ]] || [[ "${WRFSYS}" == "TCS" ]]; then
+if [[ "${WRFQ}" == "pbs" ]] && [[ "${WRFQ}" == "ll" ]]; then # if it has a queue system, it has to have a setup script...
 	ln -sf "${WRFTOOLS}/Scripts/${WRFSYS}/setup_${WRFSYS}.sh"; fi
-if [[ "${WRFSYS}" == "TCS" ]]; then
+if [[ "${WRFQ}" == "ll" ]]; then
     ln -sf "${WRFTOOLS}/Scripts/${WRFSYS}/sleepCycle.sh"; fi
 if [[ -n "${CYCLING}" ]]; then
 	ln -sf "${WRFTOOLS}/Scripts/${WRFSYS}/run_cycle_${WRFQ}.sh"
@@ -150,16 +150,16 @@ ln -sf "${WRFEXE}"
 
 ## insert name into run scripts
 echo "Defining experiment name in run scripts:"
-# name of experiment (and WRF dependency)
-if [[ "${WPSSYS}" == "GPC"* ]]; then
+# name of experiment (and WRF dependency) depends on queue system
+if [[ "${WPSQ}" == "pbs" ]]; then
 	sed -i "/#PBS -N/ s/#PBS -N\s.*$/#PBS -N ${NAME}_WPS/" "run_${CASETYPE}_WPS.${WPSQ}"
     echo "  run_${CASETYPE}_WPS.${WRFQ}"
 fi
-if [[ "${WRFSYS}" == "GPC" ]]; then
+if [[ "${WRFQ}" == "pbs" ]]; then
 	sed -i "/#PBS -N/ s/#PBS -N\s.*$/#PBS -N ${NAME}_WRF/" "run_${CASETYPE}_WRF.${WRFQ}"
 	sed -i "/#PBS -W/ s/#PBS -W\s.*$/#PBS -W depend:afterok:${NAME}_WPS/" "run_${CASETYPE}_WRF.${WRFQ}"
     echo "  run_${CASETYPE}_WRF.${WRFQ}"    
-elif [[ "${WRFSYS}" == "TCS" ]]; then
+elif [[ "${WRFQ}" == "ll" ]]; then
 	sed -i "/#\s*@\s*job_name/ s/#\s*@\s*job_name\s*=.*$/# @ job_name = ${NAME}_WRF/" "run_${CASETYPE}_WRF.${WRFQ}"
     echo "  run_${CASETYPE}_WRF.${WRFQ}"
     sed -i "/WPSSCRIPT/ s/WPSSCRIPT=.*$/WPSSCRIPT=\'run_${CASETYPE}_WPS.${WPSQ}\' # WPS run-scripts/" "sleepCycle.sh" # TCS sleeper script
