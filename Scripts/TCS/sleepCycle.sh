@@ -4,26 +4,26 @@
 
 # settings
 set -e # abort if anything goes wrong
-export NEXTSTEP=$1 # step name/folder as first argument
-export INIDIR="${PWD}" # current directory
-CASENAME='cycling' # name tag
-RUNWPS=$2 # to run or not to run WPS
-WPSSCRIPT="run_${CASENAME}_WPS.pbs"
+NEXTSTEP=$1 # step name/folder as first argument
+NOWPS=$2 # to run or not to run WPS
+INIDIR="${PWD}" # current directory
+WPSSCRIPT="run_cycling_WPS.pbs"
+WRFSCRIPT="run_cycling_WRF.ll"
 
 # launch feedback
 echo
 echo "   Next Step: ${NEXTSTEP}"
-echo "   Root Dir: ${INIDIR}"
+# echo "   Root Dir: ${INIDIR}"
 echo 
 
 # submit first independent WPS job to GPC (not TCS!)
 echo
-if [[ "$RUNWPS" == runWPS ]]
+if [[ "$NOWPS" != 'NOWPS' ]]
   then
     echo "   Submitting first WPS job to GPC queue:"
-    ssh gpc-f104n084 "cd \"${INIDIR}\"; qsub ./run_${CASENAME}_WPS.pbs -v NEXTSTEP=${NEXTSTEP}"
+    ssh gpc-f104n084 "cd \"${INIDIR}\"; qsub ./${WPSSCRIPT} -v NEXTSTEP=${NEXTSTEP}"
 else
-  echo "   WARNING: not running WPS!"
+  echo "   WARNING: not running WPS! (make sure WPS was started manually)"
 fi
 echo
 
@@ -41,5 +41,5 @@ echo
 echo
 echo "   Submitting first WRF job to TCS queue:"
 export NEXTSTEP # this is how env vars are passed to LL
-llsubmit ./run_${CASENAME}_WRF.ll
+llsubmit ./${WRFSCRIPT}
 echo

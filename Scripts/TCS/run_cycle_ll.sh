@@ -76,25 +76,28 @@ echo "   Saved backup file for static data:"
 echo "${WRFOUT}/${STATICTGZ}"
 echo
 
-# submit first independent WPS job to GPC (not TCS!)
-echo
-echo "   Submitting first WPS job to GPC queue:"
-ssh gpc-f104n084 "cd \"${INIDIR}\"; qsub ./${WPSSCRIPT} -v NEXTSTEP=${NEXTSTEP}"
-echo
+# use sleeper script to to launch WPS and WRF
+./sleepCycle "${NEXTSTEP}"
 
-# wait until WPS job is completed: check presence of wrfinput files
-echo
-echo "   Waiting for WPS job on GPC to complete..."
-while [[ ! -e "${INIDIR}/${NEXTSTEP}/${WPSSCRIPT}" ]]
-  do
-    sleep 30
-done
-echo "   ... WPS completed. Submitting WRF job to LoadLeveler."
-echo
-
-# submit first WRF instance on TCS
-echo
-echo "   Submitting first WRF job to TCS queue:"
-export NEXTSTEP # this is how env vars are passed to LL
-llsubmit ./${WRFSCRIPT}
-echo
+# # submit first independent WPS job to GPC (not TCS!)
+# echo
+# echo "   Submitting first WPS job to GPC queue:"
+# ssh gpc-f104n084 "cd \"${INIDIR}\"; qsub ./${WPSSCRIPT} -v NEXTSTEP=${NEXTSTEP}"
+# echo
+# 
+# # wait until WPS job is completed: check presence of wrfinput files
+# echo
+# echo "   Waiting for WPS job on GPC to complete..."
+# while [[ ! -e "${INIDIR}/${NEXTSTEP}/${WPSSCRIPT}" ]]
+#   do
+#     sleep 30
+# done
+# echo "   ... WPS completed. Submitting WRF job to LoadLeveler."
+# echo
+# 
+# # submit first WRF instance on TCS
+# echo
+# echo "   Submitting first WRF job to TCS queue:"
+# export NEXTSTEP # this is how env vars are passed to LL
+# llsubmit ./${WRFSCRIPT}
+# echo

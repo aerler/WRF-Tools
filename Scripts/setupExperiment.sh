@@ -162,13 +162,15 @@ if [[ "${WRFSYS}" == "GPC" ]]; then
 elif [[ "${WRFSYS}" == "TCS" ]]; then
 	sed -i "/#\s*@\s*job_name/ s/#\s*@\s*job_name\s*=.*$/# @ job_name = ${NAME}_WRF/" "run_${CASETYPE}_WRF.${WRFQ}"
     echo "  run_${CASETYPE}_WRF.${WRFQ}"
+    sed -i "/WPSSCRIPT/ s/WPSSCRIPT=.*$/WPSSCRIPT=\'run_${CASETYPE}_WPS.${WPSQ}\' # WPS run-scripts/" "sleepCycle.sh" # TCS sleeper script
+    sed -i "/WRFSCRIPT/ s/WRFSCRIPT=.*$/WRFSCRIPT=\'run_${CASETYPE}_WRF.${WRFQ}\' # WRF run-scripts/" "sleepCycle.sh" # TCS sleeper script
 else
     echo "  N/A"
 fi
 # run_cycle-script
 if [[ -n "${CYCLING}" ]]; then
-  sed -i "/WPSSCRIPT/ s/WPSSCRIPT=.*$/WPSSCRIPT=\'run_${CASETYPE}_WPS.${WPSQ}\' # WPS run-scripts/" "run_cycle_${WRFQ}.sh" # WPS run-script
-  sed -i "/WRFSCRIPT/ s/WRFSCRIPT=.*$/WRFSCRIPT=\'run_${CASETYPE}_WRF.${WRFQ}\' # WRF run-scripts/" "run_cycle_${WRFQ}.sh" # WPS run-script
+    sed -i "/WPSSCRIPT/ s/WPSSCRIPT=.*$/WPSSCRIPT=\'run_${CASETYPE}_WPS.${WPSQ}\' # WPS run-scripts/" "run_cycle_${WRFQ}.sh" # WPS run-script
+    sed -i "/WRFSCRIPT/ s/WRFSCRIPT=.*$/WRFSCRIPT=\'run_${CASETYPE}_WRF.${WRFQ}\' # WRF run-scripts/" "run_cycle_${WRFQ}.sh" # WPS run-script
 fi
 # archive script
 sed -i "/export ARSCRIPT/ s/export\sARSCRIPT=.*$/export ARSCRIPT=\'${ARSCRIPT}\' # archive script to be executed after WRF finishes/" "run_${CASETYPE}_WRF.${WRFQ}"
