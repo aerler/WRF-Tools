@@ -152,7 +152,7 @@ ln -sf "${WRFEXE}"
 echo "Defining experiment name in run scripts:"
 # name of experiment (and WRF dependency)
 if [[ "${WPSSYS}" == "GPC"* ]]; then
-	sed -i "/#PBS -N/ s/#PBS -N\s.*$/#PBS -N ${NAME}_WPS/" "run_${CASETYPE}_WPS.${WRFQ}"
+	sed -i "/#PBS -N/ s/#PBS -N\s.*$/#PBS -N ${NAME}_WPS/" "run_${CASETYPE}_WPS.${WPSQ}"
     echo "  run_${CASETYPE}_WPS.${WRFQ}"
 fi
 if [[ "${WRFSYS}" == "GPC" ]]; then

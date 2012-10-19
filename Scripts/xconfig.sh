@@ -4,7 +4,7 @@ NAME='test'
 # GHG emission scenario
 GHG='A1B' # CAMtr_volume_mixing_ratio.* file to be used
 # time period and cycling interval
-CYCLING="monthly" # stepfile to be used (leave empty if not cycling)
+CYCLING="monthly.1979-1984" # stepfile to be used (leave empty if not cycling)
 # I/O and archiving
 IO='fineIO' # this is used for namelist construction and archiving
 ARSCRIPT='' # set ARSCRIPT='DEFAULT' to let $IO control archiving
@@ -28,7 +28,6 @@ METGRID='pywps'
 ## configure data sources
 RUNDIR="${PWD}"
 # source data definiton 
-NCL="setup.ncl.cesm" # CESM grid parameters (for sea-ice) for NCL
 DATADIR="/scratch/p/peltier/marcdo/archive/tb20trcn1x1/" 
 # other WPS configuration files
 POPMAP="map_gx1v6_to_fv0.9x1.25_aave_da_090309.nc" # ocean grid definition

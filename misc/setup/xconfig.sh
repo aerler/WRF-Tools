@@ -1,0 +1,1 @@
+../../Scripts/xconfig.sh
