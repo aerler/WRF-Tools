@@ -80,7 +80,9 @@ if [[ -n "${NEXTSTEP}" ]] && [[ ! $NOWPS == 1 ]]
 	echo
 	# submitting independent WPS job to GPC (not TCS!)
 	ssh gpc-f104n084 "cd \"${INIDIR}\"; qsub ./${DEPENDENCY} -v NEXTSTEP=${NEXTSTEP}"
-	#cho '   >>>   Skip WPS for now.   <<<'
+else
+	echo '   >>>   Skipping WPS!   <<<'
+    echo
 fi
 # this is only for the first instance; unset for next
 unset NOWPS
@@ -110,6 +112,14 @@ echo "   ***   WRF step ${CURRENTSTEP} completed   ***   "
 date
 echo
 
+# launch archive script if specified
+if [[ -n "${ARSCRIPT}" ]]
+ then
+    echo
+    echo "   ***   Launching archive script for WRF output: ${CURRENTSTEP}   ***   "
+    echo
+    ssh gpc-f104n084 "cd ${INIDIR}; qsub ./${ARSCRIPT} -v DATES=${CURRENTSTEP},BACKUP=BACKUP"
+fi
 
 ## launch WRF for next step (if $NEXTSTEP is not empty)
 if [[ -n "${NEXTSTEP}" ]]
