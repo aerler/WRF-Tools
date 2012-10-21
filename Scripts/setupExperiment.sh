@@ -15,6 +15,9 @@ ARSCRIPT='DEFAULT' # this is a dummy name...
 # WPS and WRF executables
 WPSSYS="GPC" # WPS
 WRFSYS="GPC" # WRF
+## some shortcuts for WRF/WPS settings
+MAXDOM=2 # number of domains in WRF and WPS
+FEEDBACK=0 # WRF nesting option: one-way=0 or two-way=1
 ## load configuration 
 source xconfig.sh
 # default archive script name (no $ARSCRIPT means no archiving)
@@ -256,6 +259,12 @@ fi
 cd "${RUNDIR}" # return to run directory
 # GHG emission scenario (if no GHG scenario is selected, the variable will be empty)
 sed -i "/export GHG/ s/export\sGHG=.*$/export GHG=\'${GHG}\' # GHG emission scenario set by setup script/" "run_${CASETYPE}_WRF.${WRFQ}"
+
+## shortcuts for some WRF/WPS options
+# number of domains (WRF and WPS namelist!)
+sed -i "/max_dom/ s/^\s*max_dom\s*=\s*.*$/ max_dom = ${MAXDOM}, ! this entry was edited by the setup script/" namelist.input namelist.wps
+# nesting option
+sed -i "/feedback/ s/^\s*feedback\s*=\s*.*$/ feedback = ${FEEDBACK}, ! this entry was edited by the setup script/" namelist.input
 
 ## finish up
 # prompt user to create data links
