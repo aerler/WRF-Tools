@@ -32,26 +32,29 @@ cd "${SRC}"
 if [[ -z "${DATES}" ]]; then DATES=$( ls ????-??_wrf.tgz ); fi # if no $DATES 
 
 ## function to verify the contents of an HTAR archive
-function VERIFYHTAR () {
+function CHECKHTAR () {
   local HTAR=${1} # archive file (absolute pass on HPSS)
-  local FILES=${2} # 
+  local FILES=${2} # list of files that should be in the archive
+  local PASSIVE=${3} # just return number of missing files, no output or action
   local LIST=$( htar -vtf "${HTAR}" | awk '{print $7}' ) # column 7 are the file names
   local MISS=0 # missing file counter
   # loop over files in list and check presence in HTAR list
   for FILE in ${FILES}; do
     if [[ "${FILE}" == $( echo "${LIST}" | sed -n "/${FILE}/p" ) ]]; then
-      if [[ "${RMSRC}" == 'RMSRC' ]]; then
+      if [[ "${RMSRC}" == 'RMSRC' ]] && [[ "${PASSIVE}" != 'PASSIVE' ]]; then
         echo "   >>> removing ${FILE}"
         rm "${FILE}"
-      fi
       # else, do nothing...
+      fi # RMSRC
     else
-      if [[ ${MISS} == 0 ]]; then echo; fi # visually offset missing file list
+      if [[ "${PASSIVE}" != 'PASSIVE' ]]; then
+        if [[ ${MISS} == 0 ]]; then echo; fi # visually offset missing file list
+        echo "WARNING: File ${FILE} missing in archive ${HTAR}"
+      fi # !PASSIVE
       MISS=$(( ${MISS} + 1 ))
-      echo "WARNING: File ${FILE} missing in archive ${HTAR}"
     fi
-    if [[ ${MISS} != 0 ]]; then echo; fi # visually offset missing file list
   done
+  if [[ ${MISS} != 0 ]] && [[ "${PASSIVE}" != 'PASSIVE' ]]; then echo; fi # visually offset missing file list
   # return number of missing files
   return ${MISS}    
 }
@@ -67,7 +70,7 @@ function BACKUPHTAR () {
     hsi -q ls "${HTAR}" # quiet mode
     if [[ $? == 0 ]]; then
       echo "Warning: archive ${HTAR} already exists - checking contents."
-      VERIFYHTAR "${HTAR}" "${FILES}" # check contents
+      CHECKHTAR "${HTAR}" "${FILES}" # check contents
       if [[ $? == 0 ]]; then
         echo "   Archive OK, skipping backup..."
         return 0
@@ -81,8 +84,8 @@ function BACKUPHTAR () {
     echo "${HTAR}   :::   ${FILES}" # print feedback
   fi
   # verify contents and return result
-  VERIFYHTAR "${HTAR}" "${FILES}"
-  # N.B.: VERIFYHTAR also deletes the source file, if desired
+  CHECKHTAR "${HTAR}" "${FILES}"
+  # N.B.: CHECKHTAR also deletes the source file, if desired
   return $?
 }
 
@@ -128,7 +131,7 @@ function PROCESSDATASET () {
   fi
   echo '  Pressure level and surface fields, log files (both domains):' # short description of archive
   BACKUPHTAR "wrfdiags_${DATE}.tar" "${DIAGS} ${LOGS}"
-  ERR=$(( ${ERR} + $? )) # VERIFYHTAR returns the number of missing files as exit code
+  ERR=$(( ${ERR} + $? )) # CHECKHTAR returns the number of missing files as exit code
   echo '  Miscellaneous field, including 3D moisture (outer domain):'
   BACKUPHTAR "wrfmisc_d01_${DATE}.tar" "${MISC_D1}"
   ERR=$(( ${ERR} + $? ))
