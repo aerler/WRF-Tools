@@ -44,17 +44,20 @@ function VERIFYHTAR () {
         echo "   >>> removing ${FILE}"
         rm "${FILE}"
       fi
+      # else, do nothing...
     else
+      if [[ ${MISS} == 0 ]]; then echo; fi # visually offset missing file list
       MISS=$(( ${MISS} + 1 ))
       echo "WARNING: File ${FILE} missing in archive ${HTAR}"
     fi
+    if [[ ${MISS} != 0 ]]; then echo; fi # visually offset missing file list
   done
   # return number of missing files
   return ${MISS}    
 }
 
 ## function to create a new HTAR archive
-function MAKEHTAR () {
+function BACKUPHTAR () {
   local HTAR="${DST}/${1}" # archive file (absolute pass on HPSS)
   local FILES=${2} #
   # make backup (if desired)
@@ -84,22 +87,23 @@ function MAKEHTAR () {
 }
 
 ## function to to back up one output dataset
-function BACKUPDATASET () {
+function PROCESSDATASET () {
   local DATE="${1}"
   local ERR=0 # error counter
   # files to be backed up
-  local STATIC="static.tar.gz wrfconst_d01.nc wrfconst_d02.nc"
+  local STATIC="static.tgz wrfconst_d01.nc wrfconst_d02.nc"
   local LOGS="${DATE}_pyWPS.tgz ${DATE}_real.tgz ${DATE}_wrf.tgz"
   local DIAGS="wrfxtrm_d01_${DATE}-01_00:00:00.nc wrfsrfc_d01_${DATE}-01_00:00:00.nc wrfplev3d_d01_${DATE}-01_00:00:00.nc wrfxtrm_d02_${DATE}-01_00:00:00.nc wrfsrfc_d02_${DATE}-01_00:00:00.nc wrfplev3d_d02_${DATE}-01_00:00:00.nc"
   local DYN_D1="wrfdrydyn3d_d01_${DATE}-01_00:00:00.nc"
   local DYN_D2="wrfdrydyn3d_d02_${DATE}-01_00:00:00.nc"
-  local MISC_D1="wrfmoist3d_d01_${DATE}-01_00:00:00.nc wrflsm_d01_${DATE}-01_00:00:00.nc wrfrad_d01_${DATE}-01_00:00:00.nc wrfhydro_d01_${DATE}-01_00:00:00.nc wrffdda_d01_${DATE}-01_00:00:00.nc wrfrst_d01_${DATE}-01_00:00:00"
+  local MISC_D1="wrfmoist3d_d01_${DATE}-01_00:00:00.nc wrflsm_d01_${DATE}-01_00:00:00.nc wrfrad_d01_${DATE}-01_00:00:00.nc wrfhydro_d01_${DATE}-01_00:00:00.nc wrffdda_d01_${DATE}-01_00:00:00.nc"
   local MISC_D2="wrfmoist3d_d02_${DATE}-01_00:00:00.nc wrflsm_d02_${DATE}-01_00:00:00.nc wrfrad_d02_${DATE}-01_00:00:00.nc wrfhydro_d02_${DATE}-01_00:00:00.nc"
   # determine if this is a cold start or a restart
   if [[ -e "${SRC}/wrfrst_d01_${DATE}-01_00:00:00" ]]; then
     # restart run: backup restart file
     MISC_D1="${MISC_D1} wrfrst_d01_${DATE}-01_00:00:00"
     MISC_D2="${MISC_D2} wrfrst_d02_${DATE}-01_00:00:00"
+
     STATIC='' # skip this step
     # cold start: backup data tables, constants, and geogrid files
   fi
@@ -112,29 +116,30 @@ function BACKUPDATASET () {
   # delete source or not?
   if [[ ${RMSRC} == 'RMSRC' ]]
     then echo " + Removing source files after backup! + "
-    else echo "   (leaving source files on untouched)   "
+    else echo "   (leaving source files untouched)   "
   fi
+  echo
   # process file lists
   if [[ -n "$STATIC" ]]; then
     # only execute this for the first step/date (cold start)
     echo '  Static data, WRF constants, and geogrid files (both domains):'
-    MAKEHTAR "wrfstatic.tar" "${STATIC}"
+    BACKUPHTAR "wrfstatic.tar" "${STATIC}"
     ERR=$(( ${ERR} + $? ))
   fi
   echo '  Pressure level and surface fields, log files (both domains):' # short description of archive
-  MAKEHTAR "wrfdiags_${DATE}.tar" "${DIAGS} ${LOGS}"
+  BACKUPHTAR "wrfdiags_${DATE}.tar" "${DIAGS} ${LOGS}"
   ERR=$(( ${ERR} + $? )) # VERIFYHTAR returns the number of missing files as exit code
   echo '  Miscellaneous field, including 3D moisture (outer domain):'
-  MAKEHTAR "wrfmisc_d01_${DATE}.tar" "${MISC_D1}"
+  BACKUPHTAR "wrfmisc_d01_${DATE}.tar" "${MISC_D1}"
   ERR=$(( ${ERR} + $? ))
   echo '  Miscellaneous field, including 3D moisture (inner domain):'
-  MAKEHTAR "wrfmisc_d02_${DATE}.tar" "${MISC_D2}"
+  BACKUPHTAR "wrfmisc_d02_${DATE}.tar" "${MISC_D2}"
   ERR=$(( ${ERR} + $? ))
   echo '  3D dry dynamics fields (outer domain):'
-  MAKEHTAR "wrfdrydyn_d01_${DATE}.tar" "${DYN_D1}"
+  BACKUPHTAR "wrfdrydyn_d01_${DATE}.tar" "${DYN_D1}"
   ERR=$(( ${ERR} + $? ))
   echo '  3D dry dynamics fields (inner domain):'
-  MAKEHTAR "wrfdrydyn_d02_${DATE}.tar" "${DYN_D2}"
+  BACKUPHTAR "wrfdrydyn_d02_${DATE}.tar" "${DYN_D2}"
   ERR=$(( ${ERR} + $? ))
   # check for errors
   if [ ! ${ERR} == 0 ]; then
@@ -158,21 +163,24 @@ TRANSFERS=0
 for DATE in ${DATES} # use WRF log-files as indicator
 do
   DATE=${DATE%_wrf.tgz} # extract date (no effect if only date)
-  time -p BACKUPDATASET ${DATE}
+  time -p PROCESSDATASET ${DATE}
   if [ $? == 0 ]; then TRANSFERS=$(( ${TRANSFERS} + 1 ))
   else ERRORS=$(( ${ERRORS} + 1 )); fi
+  echo
+  echo '   ==========================================================================   '
+  echo
 done
 hsi -q ls "${DST}"
  
 trap - TERM INT
  
+echo
 if [ ! ${ERRORS} == 0 ]; then
-  echo
-  echo "   >>>   WARNING: THERE WERE ${ERRORS} ERRORS!   <<<   "
-  echo "   >>>        ${TRANSFERS} TRANSFERS OK   <<<   "
+  echo "   >>>   WARNING: ${ERRORS} TRANSFERS FAILD OR INCOMPLETE!   <<<   "
+  echo "   >>>                 ${TRANSFERS} TRANSFERS OK             <<<   "
   # /scinet/gpc/bin/exit2msg ${ERRORS} # translate exit codes to human-readable messages
   exit ${ERRORS}
 else
-  echo
   echo "   <<<   ALL ${TRANSFERS} TRANSFERS OK   >>>   "
 fi
+echo
