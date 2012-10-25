@@ -44,7 +44,10 @@ if [[ "${WRFSYS}" == "GPC" ]]; then
 elif [[ "${WRFSYS}" == "TCS" ]]; then
 	GEOEXE=${GEOEXE:-"${WPSSRC}/TCS-MPI/Clim-fineIO/O3/geogrid.exe"}
 	WRFEXE=${WRFEXE:-"${WRFSRC}/TCS-MPI/Clim-fineIO/O3NC4/wrf.exe"}
-elif [[ "${WPSSYS}" == "i7" ]]; then
+elif [[ "${WRFSYS}" == "P7" ]]; then
+	GEOEXE=${GEOEXE:-"${WPSSRC}/P7-MPI/Clim-fineIO/O3/geogrid.exe"}
+	WRFEXE=${WRFEXE:-"${WRFSRC}/P7-MPI/Clim-fineIO/O3NC4/wrf.exe"}
+elif [[ "${WRFSYS}" == "i7" ]]; then
 	GEOEXE=${GEOEXE:-"${WPSSRC}/i7-MPI/Clim-fineIO/O3xHost/geogrid.exe"}
 	WRFEXE=${WRFEXE:-"${WRFSRC}/i7-MPI/Clim-fineIO/O3xHostNC4/wrf.exe"}
 fi
@@ -111,7 +114,7 @@ ln -sf "${WRFTOOLS}/Python/pyWPS.py"
 ln -sf "${WRFTOOLS}/NCL/unccsm.ncl"
 # platform dependent stuff
 ln -sf "${WRFTOOLS}/bin/${WPSSYS}/unccsm.exe"
-if [[ "${WPSQ}" == "pbs" ]] && [[ "${WPSQ}" == "ll" ]]; then # if it has a queue system, it has to have a setup script...
+if [[ "${WPSQ}" == "pbs" ]] || [[ "${WPSQ}" == "ll" ]]; then # if it has a queue system, it has to have a setup script...
 	ln -sf "${WRFTOOLS}/Scripts/${WPSSYS}/setup_${WPSSYS}.sh"; fi
 # if cycling
 cp "${WRFTOOLS}/Scripts/${WPSSYS}/run_${CASETYPE}_WPS.${WPSQ}" .
@@ -138,7 +141,7 @@ ln -sf "${WRFTOOLS}/Scripts/execWRF.sh"
 #ln -sf "${WRFTOOLS}/misc/tables" # WRF default tables
 #ln -sf "${WRFTOOLS}/misc/tables-NoahMP" 'tables' # new tables including Noah-MP stuff 
 # if cycling
-if [[ "${WRFQ}" == "pbs" ]] && [[ "${WRFQ}" == "ll" ]]; then # if it has a queue system, it has to have a setup script...
+if [[ "${WRFQ}" == "pbs" ]] || [[ "${WRFQ}" == "ll" ]]; then # if it has a queue system, it has to have a setup script...
 	ln -sf "${WRFTOOLS}/Scripts/${WRFSYS}/setup_${WRFSYS}.sh"; fi
 if [[ "${WRFQ}" == "ll" ]]; then
     ln -sf "${WRFTOOLS}/Scripts/${WRFSYS}/sleepCycle.sh"; fi
