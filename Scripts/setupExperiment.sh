@@ -274,7 +274,9 @@ sed -i "/feedback/ s/^\s*feedback\s*=\s*.*$/ feedback = ${FEEDBACK}, ! this entr
 echo
 echo "Remaining tasks:"
 echo " * review meta data and namelists"
-echo " * edit run scripts, if necessary"
+echo " * edit run scripts, if necessary,"
+echo "   e.g. adjust wallclock time"
+echo
 # count number of broken links
 for FILE in * meta/* tables/*; do # need to list meta/ and table/ extra, because */ includes data links (e.g. atm/)
   if [[ ! -e $FILE ]]; then
@@ -283,13 +285,14 @@ for FILE in * meta/* tables/*; do # need to list meta/ and table/ extra, because
       echo " * fix broken links"
       echo
       echo "  Broken links:"
+      echo
     fi
     ls -l "${FILE}"
   fi
 done
 if (( CNT > 0 )); then
-  echo
   echo "   >>>   WARNING: there are ${CNT} broken links!!!   <<<   "
   echo
 fi
 
+echo
