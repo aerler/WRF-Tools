@@ -3,7 +3,7 @@
 #PBS -q archive
 #PBS -N ar_benchmark
 #PBS -j oe
-#PBS -m e
+#PBS -m a
 
 set -o pipefail
 

@@ -11,7 +11,7 @@
 ##PBS -e $PBS_JOBNAME.$PBS_JOBID.err
 # send email if abort (nbae)
 #PBS -M aerler@atmosp.physics.utoronto.ca
-#PBS -m ae
+#PBS -m a
 # job name
 #PBS -N test_WRF
 # job dependency (this ${PBS_JOBNAME%_WRF}_WPS does not work)

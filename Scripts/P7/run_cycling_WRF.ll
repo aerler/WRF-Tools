@@ -4,7 +4,7 @@
 # @ wall_clock_limit = 2:00:00
 # @ node = 4
 # @ tasks_per_node = 128
-# @ notification = complete
+# @ notification = error
 # @ output = $(job_name).$(jobid).out
 # @ error = $(job_name).$(jobid).out
 #@ environment = MP_INFOLEVEL=1; MP_USE_BULK_XFER=yes; MP_BULK_MIN_MSG_SIZE=64K; \

@@ -9,7 +9,7 @@
 #PBS -o $PBS_JOBNAME.$PBS_JOBID.out
 # send email if abort (nbae)
 #PBS -M aerler@atmosp.physics.utoronto.ca
-#PBS -m ae
+#PBS -m a
 # job name
 #PBS -N cycling_WPS
 ## submit to queue (NB: this has to be the last PBS line!)

@@ -3,6 +3,7 @@
 # @ shell = /bin/bash
 # @ job_name = test_WRF
 # @ wall_clock_limit = 04:00:00
+# @ notification = error
 # @ node = 4 
 # @ tasks_per_node = 64
 # @ environment = MEMORY_AFFINITY=MCM; MP_SYNC_QP=YES; \

@@ -3,7 +3,7 @@
 # @ wall_clock_limit = 06:00:00
 # @ node = 4 
 # @ tasks_per_node = 64
-# @ notification = complete
+# @ notification = error
 # @ output = $(job_name).$(jobid).out
 # @ error = $(job_name).$(jobid).out
 # @ environment = $NEXTSTEP; $NOWPS; MEMORY_AFFINITY=MCM; MP_SYNC_QP=YES; \
@@ -36,6 +36,7 @@ CURRENTSTEP="${NEXTSTEP}" # $NEXTSTEP will be overwritten
 ## job settings
 export SCRIPTNAME="run_cycling_WRF.ll" # WRF suffix assumed
 export DEPENDENCY="run_cycling_WPS.pbs" # run WPS on GPC (WPS suffix substituted for WRF): ${LOADL_JOB_NAME%_WRF}_WPS
+export ARSCRIPT="" # archive script to be executed after WRF finishes
 export CLEARWDIR=0 # do not clear working director
 # run configuration
 export NODES=4 # also has to be set in LL section

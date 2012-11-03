@@ -3,7 +3,7 @@
 #PBS -q archive
 #PBS -N ar_benchmark-04
 #PBS -j oe
-#PBS -m e
+#PBS -m a
 
 module load extras # to get pigz (parallel gzip)
 

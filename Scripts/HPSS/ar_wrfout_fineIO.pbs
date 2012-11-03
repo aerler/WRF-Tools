@@ -10,7 +10,7 @@
 ##PBS -e $PBS_JOBNAME.$PBS_JOBID.err
 # send email if abort (nbae)
 #PBS -M aerler@atmosp.physics.utoronto.ca
-#PBS -m ae
+#PBS -m a
 # job name
 #PBS -N ar_test
 ## submit to queue (NB: this has to be the last PBS line!)
@@ -21,7 +21,7 @@ trap "echo 'Job script not completed';exit 129" TERM INT
 # Note that your initial directory in HPSS will be /archive/$(id -gn)/$(whoami)/
 
 ## definitions
-BACKUP=${BACKUP:-'NO'} # set to 'BACKUP'
+BACKUP=${BACKUP:-'BACKUP'} # set to 'BACKUP'
 RMSRC=${RMSRC:-'NO'} # set to 'RMSRC'
 # N.B.: do not edit these variable; instead pass them as environment variables
 # data folder
