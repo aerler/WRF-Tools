@@ -16,12 +16,15 @@ from socket import gethostname
 hostname = gethostname()
 if hostname=='komputer':
   WRFroot = '/media/data/DATA/WRF/Downscaling/'
-  exp = 'ctrl-1'
+  exp = 'ctrl-2'
   folder = WRFroot + exp + '/'
-elif hostname[0:3] == 'gpc':
-  folder = os.getcwd()+'/wrfout/' # i.e. on scinet... 
+elif hostname[0:3] == 'gpc': # i.e. on scinet...
+  exproot = os.getcwd()
+  exp = exproot.split('/')[-1] # root folder name
+  folder = exproot + '/wrfout/' # output folder 
 else:
   folder = os.getcwd() # just operate in the current directory
+  exp = '' # need to define experiment name...
 
 ## definitions
 # input files and folders
