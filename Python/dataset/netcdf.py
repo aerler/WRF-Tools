@@ -28,7 +28,8 @@ def copy_vars(dst, src, varlist=None, namemap=None, dimmap=None, remove_dims=Non
   if dimmap: midmap = dict(zip(dimmap.values(),dimmap.keys())) # reverse mapping
   varargs = dict() # arguments to be passed to createVariable
   if zlib: varargs.update(zlib_default)
-  varargs.update(kwargs) 
+  varargs.update(kwargs)
+  dtype = varargs.pop('dtype', None) 
   # loop over variable list
   for name in varlist:
     if namemap and (name in namemap.keys()): rav = src.variables[namemap[name]] # apply name mapping 
@@ -38,7 +39,8 @@ def copy_vars(dst, src, varlist=None, namemap=None, dimmap=None, remove_dims=Non
       if dimmap and midmap.has_key(dim): dim = midmap[dim] # apply name mapping (in reverse)
       if not (remove_dims and dim in remove_dims): dims.append(dim)
     # create new variable
-    var = dst.createVariable(name, rav.dtype, dims, **varargs)
+    dtype = dtype or rav.dtype
+    var = dst.createVariable(name, dtype, dims, **varargs)
     if copy_data: var[:] = rav[:] # copy actual data, if desired (default)
     if copy_atts: copy_ncatts(var, rav, prefix=prefix) # copy attributes, if desired (default) 
 
@@ -53,6 +55,7 @@ def copy_dims(dst, src, dimlist=None, namemap=None, copy_coords=True, **kwargs):
     dst.createDimension(name, size=len(mid))
   # create coordinate variable
   if copy_coords:
+#    if kwargs.has_key('dtype'): kwargs['datatype'] = kwargs.pop('dtype') # different convention... 
 #    remove_dims = [dim for dim in src.dimensions.keys() if dim not in dimlist] # remove_dims=remove_dims
     copy_vars(dst, src, varlist=dimlist, namemap=namemap, dimmap=namemap, **kwargs)
     
