@@ -11,7 +11,7 @@ This script does not rely on PyGeode but instead uses netCDF4 and numpy directly
 # numpy
 from numpy import arange, array, zeros
 # import netCDF4-python and added functionality
-from dataset.netcdf import Dataset, copy_ncatts, copy_vars, copy_dims, add_coord
+from netcdf import Dataset, copy_ncatts, copy_vars, copy_dims, add_coord
 
 ## settings
 CFSRroot = '/media/data/DATA/CFSR/'
@@ -77,9 +77,9 @@ if __name__ == '__main__':
   days = array([31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31])
   # create time dimensions and coordinate variables
   for grp in [fngrp, higrp]:
-    add_coord(grp,'time',arange(1,ntime+1))
+    add_coord(grp,'time',arange(1,ntime+1),dtype='i4')
     grp.createDimension('tstrlen', 9) # name of month string
-    grp.createVariable('ndays',days.dtype,('time',))[:] = days
+    grp.createVariable('ndays','i4',('time',))[:] = days
     # names of months (as char array)
     coord = grp.createVariable('month','S1',('time','tstrlen'))
     for m in xrange(ntime): 

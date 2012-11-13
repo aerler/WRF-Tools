@@ -9,20 +9,27 @@ from numpy import array, arange, zeros, diff
 import os
 import re
 # netcdf stuff
-from dataset.netcdf import Dataset, add_coord, copy_dims, copy_ncatts, copy_vars
+from netcdf import Dataset, add_coord, copy_dims, copy_ncatts, copy_vars
 
-## settings
+# data root folder
+from socket import gethostname
+hostname = gethostname()
+if hostname=='komputer':
+  WRFroot = '/media/data/DATA/WRF/Downscaling/'
+  exp = 'ctrl-1'
+  folder = WRFroot + exp + '/'
+elif hostname[0:3] == 'gpc':
+  folder = os.getcwd()+'/wrfout/' # i.e. on scinet... 
+else:
+  folder = os.getcwd() # just operate in the current directory
 
 ## definitions
 # input files and folders
-WRFroot = '/media/data/DATA/WRF/Downscaling/'
-exp = 'ctrl-1'
 maxdom = 2
 wrfpfx = 'wrfsrfc_d%02i_' # %02i is for the domain number
 wrfext = '-01_00:00:00.nc'
 wrfdate = '19\d\d-\d\d' # use '\d' for any number and [1-3,45] for ranges
 # output files and folders
-folder = WRFroot + exp + '/'
 meanfile = 'wrfsrfc_d%02i_monthly.nc' # %02i is for the domain number
 climfile = 'wrfsrfc_d%02i_clim.nc' # %02i is for the domain number
 # variables
@@ -56,6 +63,9 @@ if __name__ == '__main__':
     wrfrgx = re.compile(wrffile) # compile regular expression
     filelist = [wrfrgx.match(filename) for filename in os.listdir(folder)] # list folder and match
     filelist = [match.group() for match in filelist if match is not None] # assemble valid file list
+    if len(filelist) == 0:
+      print('\nWARNING: no matching files found for domain %02i'%(ndom,))
+      break # skip and go to next domain
     filelist.sort() # sort alphabetically, so that files are in sequence (temporally)
     datergx = re.compile(wrfdate) # compile regular expression, also used to infer month (later)
     begindate = datergx.search(filelist[0]).group()
@@ -69,7 +79,7 @@ if __name__ == '__main__':
     copy_dims(mean, wrfout, dimlist=dimlist, namemap=dimmap, copy_coords=False) # don't have coordinate variables
     # global attributes
     copy_ncatts(mean, wrfout, prefix='WRF_') # copy all attributes and save with prefix WRF
-    mean.description = 'monthly means'
+    mean.description = 'WRF monthly means'
     mean.begin_date = begindate; mean.end_date = enddate
     mean.experiment = exp
     mean.creator = 'Andre R. Erler'
@@ -85,7 +95,7 @@ if __name__ == '__main__':
       for n in xrange(9): coord[m,n] = months[m][n]
     # global attributes
     copy_ncatts(clim, wrfout, prefix='WRF_') # copy all attributes and save with prefix WRF
-    clim.description = 'climatology of monthly means'
+    clim.description = 'climatology of WRF monthly means'
     clim.begin_date = begindate; clim.end_date = enddate
     clim.experiment = exp
     clim.creator = 'Andre R. Erler'
@@ -144,7 +154,9 @@ if __name__ == '__main__':
             if wrfout.variables.has_key(bktvar):
               bkt = wrfout.variables[bktvar]
               mtmp = mtmp + acclist[var] * diff(bkt[:].take([0,ntime-1],axis=tax), n=1, axis=tax).squeeze()
-          mtmp /= days[m] # transform to daily instead of monthly rate
+          mtmp /= (days[m]-1) # transform to daily instead of monthly rate
+          # N.B.: technically the difference should be taken w.r.t. the last day of the previous month,
+          #       not the first day of the current month, hence we loose one day in the accumulation
         else:
           mtmp = tmp[:].mean(axis=tax) # normal variables, normal mean...
         meandata[var][n,:] = mtmp # save monthly mean
