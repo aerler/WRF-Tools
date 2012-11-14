@@ -40,14 +40,15 @@ else:
 # input files and folders
 cesmpfx = cesmname + '.cam2.h0.' # %02i is for the domain number
 cesmext = '.nc'
-cesmdate = '\d\d\d\d-\d\d' # use '\d' for any number and [1-3,45] for ranges
+cesmdate = '\d\d\d\d-\d\d' # use '\d' for any number and [1-3,45] for ranges; '\d\d\d\d-\d\d'
 # output files and folders
 climfile = 'cesmsrfc_clim.nc' # %02i is for the domain number
 # variables
 tax = 0 # time axis (to average over)
 dimlist = ['lon', 'lat'] # copy these dimensions
 dimmap = dict() # original names of dimensions
-varlist = ['ps','pmsl','Ts','rainnc','rainc','snow','rain','rainsh','snowc','rainzm'] # include these variables in monthly means 
+varlist = ['ps','pmsl','Ts','rainnc','rainc','snow','rain','rainsh','snowc','rainzm'] # include these variables in monthly means
+statlist = ['zs','lnd'] # static fields (only copied once) 
 varmap = dict(ps='PS',pmsl='PSL',Ts='TS',zs='PHIS',lnd='LANDFRAC',rain='PRECT', # original (CESM) names of variables
               rainnc='PRECL',rainc='PRECC',rainsh='PRECSH',rainzm='PRECCDZM',snow='PRECSL',snowc='PRECSC') 
 # time constants
@@ -76,9 +77,9 @@ if __name__ == '__main__':
   datergx = re.compile(cesmdate) # compile regular expression, also used to infer month (later)
   begindate = datergx.search(filelist[0]).group()
   enddate = datergx.search(filelist[-1]).group()
+
   # load first file to copy some meta data
-  cesmout = Dataset(folder+filelist[0], 'r', format='NETCDF4')
-    
+  cesmout = Dataset(folder+filelist[0], 'r', format='NETCDF4')    
   # create climatology output file  
   clim = Dataset(folder+climfile, 'w', format='NETCDF4')
   add_coord(clim, 'time', values=mons, dtype='i4', atts=dict(units='month of the year')) # month of the year
@@ -94,6 +95,8 @@ if __name__ == '__main__':
   clim.begin_date = begindate; clim.end_date = enddate
   clim.experiment = exp
   clim.creator = 'Andre R. Erler'
+  # copy constant variables (no time dimension)
+  copy_vars(clim, cesmout, varlist=statlist, namemap=varmap, dimmap=dimmap, remove_dims=['time'], copy_data=True)
   
   # check variable list
   for var in varlist:

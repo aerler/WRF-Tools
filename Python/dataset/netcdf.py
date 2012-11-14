@@ -56,8 +56,8 @@ def copy_dims(dst, src, dimlist=None, namemap=None, copy_coords=True, **kwargs):
   # create coordinate variable
   if copy_coords:
 #    if kwargs.has_key('dtype'): kwargs['datatype'] = kwargs.pop('dtype') # different convention... 
-#    remove_dims = [dim for dim in src.dimensions.keys() if dim not in dimlist] # remove_dims=remove_dims
-    copy_vars(dst, src, varlist=dimlist, namemap=namemap, dimmap=namemap, **kwargs)
+    remove_dims = [dim for dim in src.dimensions.keys() if dim not in dimlist] # remove_dims=remove_dims
+    copy_vars(dst, src, varlist=dimlist, namemap=namemap, dimmap=namemap, remove_dims=remove_dims, **kwargs)
     
 # add a new dimension with coordinate variable
 def add_coord(dst, name, values=None, atts=None, dtype=None, zlib=True, **kwargs):
