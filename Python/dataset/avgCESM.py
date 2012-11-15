@@ -47,9 +47,9 @@ climfile = 'cesmsrfc_clim.nc' # %02i is for the domain number
 tax = 0 # time axis (to average over)
 dimlist = ['lon', 'lat'] # copy these dimensions
 dimmap = dict() # original names of dimensions
-varlist = ['ps','pmsl','Ts','rainnc','rainc','snow','rain','rainsh','snowc','rainzm'] # include these variables in monthly means
+varlist = ['ps','pmsl','Ts','T2','rainnc','rainc','snow','rain','rainsh','snowc','rainzm'] # include these variables in monthly means
 statlist = ['zs','lnd'] # static fields (only copied once) 
-varmap = dict(ps='PS',pmsl='PSL',Ts='TS',zs='PHIS',lnd='LANDFRAC',rain='PRECT', # original (CESM) names of variables
+varmap = dict(ps='PS',pmsl='PSL',Ts='TS',T2='TREFHT',zs='PHIS',lnd='LANDFRAC',rain='PRECT', # original (CESM) names of variables
               rainnc='PRECL',rainc='PRECC',rainsh='PRECSH',rainzm='PRECCDZM',snow='PRECSL',snowc='PRECSC') 
 # time constants
 months = ['January  ', 'February ', 'March    ', 'April    ', 'May      ', 'June     ', #
@@ -134,7 +134,12 @@ if __name__ == '__main__':
       climdata[var][m,:] += cesmout.variables[ncvar][0,:] # accumulate climatology
     # close file
     cesmout.close()
-
+  
+  # normalize climatology
+  if n < nmons: xmon[xmon==0] = 1 # avoid division by zero 
+  for var in varlist:
+    climdata[var][:,:,:] = climdata[var][:,:,:] / xmon[:,None,None] # 'None" indicates a singleton dimension
+    
   ## finish
   # save to files
   print(' Done. Writing output to:\n  %s'%(folder,))
