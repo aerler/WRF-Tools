@@ -72,7 +72,7 @@ source setup_TCS.sh # load machine-specific stuff
 # N.B.: don't remove namelist files in working directory
 
 # read next step from stepfile
-NEXTSTEP=$(python cycling.py ${CURRENTSTEP})
+NEXTSTEP=$(python cycling.py "${CURRENTSTEP}")
 
 # launch WPS for next step (if $NEXTSTEP is not empty)
 if [[ -n "${NEXTSTEP}" ]] && [[ ! $NOWPS == 1 ]]
@@ -122,6 +122,9 @@ if [[ -n "${ARSCRIPT}" ]]
     ssh gpc-f104n084 "cd ${INIDIR}; qsub ./${ARSCRIPT} -v DATES=${CURRENTSTEP},BACKUP=BACKUP"
 fi
 
+# copy driver script into work dir to signal completion
+cp "${INIDIR}/${SCRIPTNAME}" "${WORKDIR}"
+
 ## launch WRF for next step (if $NEXTSTEP is not empty)
 if [[ -n "${NEXTSTEP}" ]]
   then
@@ -136,15 +139,15 @@ if [[ -n "${NEXTSTEP}" ]]
             ln -sf "${RESTART}"
     done
 	# check for WRF input files (in next working directory)
-	if [[ ! -e "${INIDIR}/${NEXTSTEP}/${DEPENDENCY}" ]]
-	  then
-		echo
-		echo "   ***   Waiting for WPS to complete...   ***"
-		echo
-		while [[ ! -e "${INIDIR}/${NEXTSTEP}/${DEPENDENCY}" ]]; do
-			sleep 5 # need faster turnover to submit next step
-		done
-	fi
+	#if [[ ! -e "${INIDIR}/${NEXTSTEP}/${DEPENDENCY}" ]]
+	#  then
+	#	echo
+	#	echo "   ***   Waiting for WPS to complete...   ***"
+	#	echo
+	#	while [[ ! -e "${INIDIR}/${NEXTSTEP}/${DEPENDENCY}" ]]; do
+	#		sleep 5 # need faster turnover to submit next step
+	#	done
+	#fi
 	# start next cycle
 	cd "${INIDIR}"
 	echo
