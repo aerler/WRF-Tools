@@ -16,6 +16,10 @@ from netcdf import Dataset, copy_ncatts, copy_vars, copy_dims, add_coord
 ## settings
 CFSRroot = '/media/data/DATA/CFSR/'
 test = ''
+# output settings
+finyr = 7; finmon = 6 # same as 
+fnoutfile = 'CFSRclimFineRes1979-1986_6.nc'
+hioutfile = 'CFSRclimHighRes1979-1986_6.nc'
 #test = 'test/'
 # files
 zsfile = 'flxf06.gdas.HGT.SFC.grb2.nc' # topography (surface geopotential)
@@ -52,16 +56,21 @@ if __name__ == '__main__':
   
   ## perform actual computation of climatologies
   ntime = 12
+  if finmon and finyr: 
+    fnmax = 12*finyr + finmon; himax = 12*finyr + finmon 
+  else: 
+    fnmax = fnshape[0]; himax = hishape[0]
+  
   fndynclim = dict(); hidynclim = dict()
   for (key,value) in fndynvar.iteritems():
     tmp = zeros((ntime, fnshape[1],fnshape[2])); cnt = ntime
-    while cnt < fnshape[0]:      
+    while cnt < fnmax:      
       tmp +=  fndynset[key].variables[value][cnt-ntime:cnt,:,:]
       cnt += 12
     fndynclim[key] = tmp / (cnt/12-1)            
   for (key,value) in hidynvar.iteritems():
     tmp = zeros((ntime, hishape[1],hishape[2])); cnt = ntime
-    while cnt < hishape[0]:      
+    while cnt < himax:      
       tmp +=  hidynset[key].variables[value][cnt-ntime:cnt,:,:]
       cnt += 12
     hidynclim[key] = tmp / (cnt/12-1)
@@ -69,8 +78,8 @@ if __name__ == '__main__':
   ## initialize netcdf dataset structure
 #  outgrp = Dataset(CFSRroot+'climatology1979-2011.nc', 'w', format='NETCDF4')
   # create groups for different resolution
-  fngrp = Dataset(CFSRroot+test+'CFSRclimFineRes1979-2011.nc', 'w', format='NETCDF4') # outgrp.createGroup('fineres')
-  higrp = Dataset(CFSRroot+test+'CFSRclimHighRes1979-2010.nc', 'w', format='NETCDF4') # outgrp.createGroup('highres')
+  fngrp = Dataset(CFSRroot+test+fnoutfile, 'w', format='NETCDF4') # outgrp.createGroup('fineres')
+  higrp = Dataset(CFSRroot+test+hioutfile, 'w', format='NETCDF4') # outgrp.createGroup('highres')
   # new time dimensions
   months = ['January  ', 'February ', 'March    ', 'April    ', 'May      ', 'June     ', #
             'July     ', 'August   ', 'September', 'October  ', 'November ', 'December ']
@@ -85,7 +94,7 @@ if __name__ == '__main__':
     for m in xrange(ntime): 
       for n in xrange(9): coord[m,n] = months[m][n]
   # global attributes
-  fngrp.description = 'Climatology of CFSR monthly means, averaged over 1979 - 2011'
+  fngrp.description = 'Climatology of CFSR monthly means, averaged from January 1979 to %s $04i'%(months[finmon],finyr)
   fngrp.creator = 'Andre R. Erler'
   copy_ncatts(fngrp,fndynset['prt'],prefix='CFSR_')
 #  for att in fndynset['prt'].ncattrs(): fngrp.setncattr('SRC_'+att,fndynset['prt'].getncattr(att))
