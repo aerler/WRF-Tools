@@ -137,6 +137,9 @@ if [[ -n "${NEXTSTEP}" ]]
 	ssh gpc01 "cd ${INIDIR}; qsub ./${SCRIPTNAME} -v NEXTSTEP=${NEXTSTEP}"
 fi
 
+# copy driver script into work dir to signal completion
+cp "${INIDIR}/${SCRIPTNAME}" "${WORKDIR}"
+
 ## alternative PBS settings
 ##PBS -l nodes=1:ppn=8 
 ##PBS -l walltime=0:15:00

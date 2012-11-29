@@ -125,7 +125,7 @@ fi # if restart
 cd "${INIDIR}"
 
 # use sleeper script to to launch WPS and WRF
-./sleepCycle "${NEXTSTEP}"
+./sleepCycle.sh "${NEXTSTEP}"
 
 # exit with 0 exit code: if anything went wrong we would already have aborted
 exit 0
