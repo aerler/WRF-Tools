@@ -1,8 +1,8 @@
 #!/bin/bash
 ##=====================================
 # @ job_name = test_2x128
-# @ wall_clock_limit = 2:00:00
-# @ node = 4
+# @ wall_clock_limit = 48:00:00
+# @ node = 1
 # @ tasks_per_node = 128
 # @ notification = error
 # @ output = $(job_name).$(jobid).out
