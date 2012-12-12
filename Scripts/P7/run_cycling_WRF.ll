@@ -49,8 +49,8 @@ export SCRIPTNAME="run_cycling_WRF.ll" # WRF suffix assumed
 export DEPENDENCY="run_cycling_WPS.pbs" # run WPS on GPC (WPS suffix substituted for WRF): ${LOADL_JOB_NAME%_WRF}_WPS
 export CLEARWDIR=0 # do not clear working director
 # run configuration
-export NODES=4 # also has to be set in LL section
-export TASKS=64 # number of MPI task per node (Hpyerthreading!)
+export NODES=1 # also has to be set in LL section
+export TASKS=128 # number of MPI task per node (Hpyerthreading!)
 export THREADS=1 # number of OpenMP threads
 # directory setup
 export INIDIR="${LOADL_STEP_INITDIR}" # launch directory
