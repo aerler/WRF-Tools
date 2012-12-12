@@ -17,14 +17,18 @@ import re # to parse I/O strings
 import os # to read environment variables
 
 ## settings
-if os.environ.has_key('WRFSRC'):
-  WRFSRC = os.environ['WRFSRC'] # WRF source folder
-elif os.environ.has_key('MODEL_ROOT'):
-  WRFSRC = os.environ['MODEL_ROOT'] + '/WRF/WRFV3/' # WRF source folder
-else:
-  WRFSRC = os.environ['HOME'] + '/WRF/WRFV3/' # WRF source folder
+#if os.environ.has_key('WRFSRC'):
+#  WRFSRC = os.environ['WRFSRC'] # WRF source folder
+#elif os.environ.has_key('MODEL_ROOT'):
+#  WRFSRC = os.environ['MODEL_ROOT'] + '/WRF/WRFV3/' # WRF source folder
+#else:
+#  WRFSRC = os.environ['HOME'] + '/WRF/WRFV3/' # WRF source folder
+WRFSRC = os.getcwd() # WRF source folder
 # full path to I/O config file
-ioconfigfile = WRFSRC + '/config/registry/ioconfig.fineIO'
+if len(sys.argv) > 1:
+  ioconfigfile = WRFSRC + '/' + sys.argv[1]
+else:
+  ioconfigfile = WRFSRC + '/config/registry/ioconfig.fineIO'
 # full path to WRF registry file (destination)
 newregfolder = WRFSRC + '/Registry/'
 newregfiles = ['Registry.EM','Registry.EM_COMMON','registry.diags','registry.flake']
@@ -214,7 +218,12 @@ if __name__ == '__main__':
 #        print ioid
 #        print variables
 #        print
-                  
+  
+  ## make backup copy is not already there
+  if not os.path.exists(oldregfolder):
+    shutil.copytree(newregfolder,oldregfolder)
+    # N.B.: this performes in-place manipulation and after creating a backup
+
   ## loop over and rewrite WRF registry files
   baseno = len(newregfiles) # original number of files
   fileno = 0 # file counter
@@ -223,92 +232,97 @@ if __name__ == '__main__':
     newregfile = newregfiles[fileno]
     oldregfile = oldregfiles[fileno]
     fileno += 1 # move up counter
-    # announce files
-    print('')
-    print('   ***   Processing Registry file: '+newregfile+'   ***   ')
-    if fileno > baseno: print('            (file was automatically included)')
-    print('')
-    # copy the original to the new destination (if given) 
-    if oldregfolder:
-      shutil.copy(oldregfolder+oldregfile, newregfolder+newregfile)
-    
-    ## loop over I/O config entries
-    entryno = 0 # list of changes per entry  
-    for entry in entrylist:
-      entryno += 1
-      # open with fileinput for editing
-      registry = fileinput.FileInput([newregfolder+newregfile], inplace=True) # apparently AIX doesn't like "mode='r'"
-      # regurgitate parameter values
-      addrm = entry['addrm'] # operation (True: add, False: remove)
-      iotype = entry['iotype'] # I/O stream type (i, r, h)
-      ioid = entry['ioid'] # I/O stream ID (0-9, {10}-{23})
-      variables = entry['variables'] # List of variables affected by the operation
-      # save list of changes
-      if ldebug: changelog = []
-      # loop over lines
-      oldline = '' # used to reassemble line continuations
+    if not os.path.exists(oldregfolder+oldregfile):
+      print('')
+      print('   ***   Registry file '+oldregfile+' not found!  ***   ')
+      print('')
+    else:
+      # announce files
+      print('')
+      print('   ***   Processing Registry file: '+newregfile+'   ***   ')
+      if fileno > baseno: print('            (file was automatically included)')
+      print('')
+      # copy the original to the new destination (if given) 
+      if oldregfolder:
+        shutil.copy(oldregfolder+oldregfile, newregfolder+newregfile)
       
-      ## loop over lines
-      for line in registry:
-        line = line.strip() # remove leading/trailing spaces
-        # reassemble line continuations
-        if oldline:
-          line = oldline + line # oldline will be empty is line is self-contained
-        # check for more line continuation 
-        if line[-1:] == '\\': # need to escape backslash
-          oldline = line[:-1] # remove backslash
-        # if the line is complete, process it  
-        else:
-          # skip comments and empty lines
-          if (line == '') or (line[0] == '#'):
-            sys.stdout.write(line+'\n')
-          # check for affected variables
+      ## loop over I/O config entries
+      entryno = 0 # list of changes per entry  
+      for entry in entrylist:
+        entryno += 1
+        # open with fileinput for editing
+        registry = fileinput.FileInput([newregfolder+newregfile], inplace=True) # apparently AIX doesn't like "mode='r'"
+        # regurgitate parameter values
+        addrm = entry['addrm'] # operation (True: add, False: remove)
+        iotype = entry['iotype'] # I/O stream type (i, r, h)
+        ioid = entry['ioid'] # I/O stream ID (0-9, {10}-{23})
+        variables = entry['variables'] # List of variables affected by the operation
+        # save list of changes
+        if ldebug: changelog = []
+        # loop over lines
+        oldline = '' # used to reassemble line continuations
+        
+        ## loop over lines
+        for line in registry:
+          line = line.strip() # remove leading/trailing spaces
+          # reassemble line continuations
+          if oldline:
+            line = oldline + line # oldline will be empty is line is self-contained
+          # check for more line continuation 
+          if line[-1:] == '\\': # need to escape backslash
+            oldline = line[:-1] # remove backslash
+          # if the line is complete, process it  
           else:
-            tokens = line.split(None, 8) # white space delimiter, max 8 splits (to keep names and units intact)
-            # N.B.: by limiting the splits to 8, we don't have to deal with the description and unit sections,
-            #       which contain white spaces, and would not be easily separable          
-            ## identify affected variables
-            # standard format has 10 entries, but we only split 8 times
-            if (len(tokens) == 9) and ((not lstate) or (tokens[0].lower() == 'state')):
-              # decide which column to go by
-              if ltable: mode = 0 # process all of a type
-              else: mode = 2 # process by variable name
-              # loop over variable list
-              for var in variables:
-                # search for variable name in 3rd field (all lower case)
-                if tokens[mode].lower() == var.lower():
-                  oldiostr = tokens[7].lower()
-                  ## here comes the editing of the actual I/O string
-                  newiostr = processIOstream(oldiostr, addrm, iotype, ioid)
-                  # save modifications in string and add to change-log              
-                  if ldebug: 
-                    if oldiostr != newiostr:
-                      changelog.append(tokens[2]+':  '+oldiostr+'  >>>  '+newiostr) # use actual variable name                 
-                  tokens[7] = newiostr
-              # write modified line into file
-              newline = tokens[0]
-              for token in tokens[1:]:
-                newline = newline + '    ' + token
-              sys.stdout.write(newline+'\n')
-            elif lrecurse and (tokens[0].lower() == 'include'):
-              newregfiles.append(tokens[1])
-              oldregfiles.append(tokens[1])
-            # if the line doesn't have 9 tokens, it is something else...
-            else:
+            # skip comments and empty lines
+            if (line == '') or (line[0] == '#'):
               sys.stdout.write(line+'\n')
-          oldline = '' # lines must not grow indefinitely
+            # check for affected variables
+            else:
+              tokens = line.split(None, 8) # white space delimiter, max 8 splits (to keep names and units intact)
+              # N.B.: by limiting the splits to 8, we don't have to deal with the description and unit sections,
+              #       which contain white spaces, and would not be easily separable          
+              ## identify affected variables
+              # standard format has 10 entries, but we only split 8 times
+              if (len(tokens) == 9) and ((not lstate) or (tokens[0].lower() == 'state')):
+                # decide which column to go by
+                if ltable: mode = 0 # process all of a type
+                else: mode = 2 # process by variable name
+                # loop over variable list
+                for var in variables:
+                  # search for variable name in 3rd field (all lower case)
+                  if tokens[mode].lower() == var.lower():
+                    oldiostr = tokens[7].lower()
+                    ## here comes the editing of the actual I/O string
+                    newiostr = processIOstream(oldiostr, addrm, iotype, ioid)
+                    # save modifications in string and add to change-log              
+                    if ldebug: 
+                      if oldiostr != newiostr:
+                        changelog.append(tokens[2]+':  '+oldiostr+'  >>>  '+newiostr) # use actual variable name                 
+                    tokens[7] = newiostr
+                # write modified line into file
+                newline = tokens[0]
+                for token in tokens[1:]:
+                  newline = newline + '    ' + token
+                sys.stdout.write(newline+'\n')
+              elif lrecurse and (tokens[0].lower() == 'include'):
+                newregfiles.append(tokens[1])
+                oldregfiles.append(tokens[1])
+              # if the line doesn't have 9 tokens, it is something else...
+              else:
+                sys.stdout.write(line+'\n')
+            oldline = '' # lines must not grow indefinitely
   
-      # close WRF registry file
-      fileinput.close()
-    
-      # print debugging info / change-log
-      if ldebug:
-        print('')
-        print('Processed I/O config Entry # '+str(entryno))
-        print('  Log of changes:')
-        if len(changelog) == 0:
-          print('   no changes')
-        else:
-          for line in changelog:
-            print('   '+line)
-    
+        # close WRF registry file
+        fileinput.close()
+      
+        # print debugging info / change-log
+        if ldebug:
+          print('')
+          print('Processed I/O config Entry # '+str(entryno))
+          print('  Log of changes:')
+          if len(changelog) == 0:
+            print('   no changes')
+          else:
+            for line in changelog:
+              print('   '+line)
+      
