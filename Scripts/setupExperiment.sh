@@ -32,8 +32,8 @@ if [[ "${WPSSYS}" == "GPC" ]]; then
 	METEXE=${METEXE:-"${WPSSRC}/GPC-MPI/Clim-fineIO/O3xHost/metgrid.exe"}
 	REALEXE=${REALEXE:-"${WRFSRC}/GPC-MPI/Clim-fineIO/O3xHost/real.exe"}
 elif [[ "${WPSSYS}" == "GPC-lm" ]]; then
-	METEXE=${METEXE:-"${WPSSRC}/GPC-MPI/Clim-fineIO/O3xSSS3/metgrid.exe"}
-	REALEXE=${REALEXE:-"${WRFSRC}/GPC-MPI/Clim-fineIO/O3xSSS3/real.exe"}
+	METEXE=${METEXE:-"${WPSSRC}/GPC-MPI/Clim-fineIO/O3xSSSE3/metgrid.exe"}
+	REALEXE=${REALEXE:-"${WRFSRC}/GPC-MPI/Clim-fineIO/O3xSSSE3/real.exe"}
 elif [[ "${WPSSYS}" == "i7" ]]; then
 	METEXE=${METEXE:-"${WPSSRC}/i7-MPI/Clim-fineIO/O3xHost/metgrid.exe"}
 	REALEXE=${REALEXE:-"${WRFSRC}/i7-MPI/Clim-fineIO/O3xHost/real.exe"}
