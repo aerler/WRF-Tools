@@ -29,7 +29,10 @@
 
 # check if $NEXTSTEP is set, and exit, if not
 set -e # abort if anything goes wrong
-if [[ -z "${NEXTSTEP}" ]]; then exit 1; fi
+if [[ -z "${NEXTSTEP}" ]]; then 
+  echo 'Environment variable $NEXTSTEP not set - aborting!'
+  exit 1
+fi
 CURRENTSTEP="${NEXTSTEP}" # $NEXTSTEP will be overwritten
 
 

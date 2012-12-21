@@ -7,7 +7,7 @@
 # @ notification = error
 # @ output = $(job_name).$(jobid).out
 # @ error = $(job_name).$(jobid).out
-#@ environment = MP_INFOLEVEL=1; MP_USE_BULK_XFER=yes; MP_BULK_MIN_MSG_SIZE=64K; \
+#@ environment = $NEXTSTEP; $NOWPS; MP_INFOLEVEL=1; MP_USE_BULK_XFER=yes; MP_BULK_MIN_MSG_SIZE=64K; \
 #                MP_EAGER_LIMIT=64K; LAPI_DEBUG_ENABLE_AFFINITY=no; \
 #                MP_RFIFO_SIZE=16777216; MP_EUIDEVELOP=min; \
 #                MP_PULSE=0; MP_BUFFER_MEM=256M; MP_EUILIB=us; MP_EUIDEVICE=sn_all;\
@@ -41,6 +41,10 @@
 # check if $NEXTSTEP is set, and exit, if not
 set -e # abort if anything goes wrong
 if [[ -z "${NEXTSTEP}" ]]; then exit 1; fi
+if [[ -z "${NEXTSTEP}" ]]; then 
+  echo 'Environment variable $NEXTSTEP not set - aborting!'
+  exit 1
+fi
 CURRENTSTEP="${NEXTSTEP}" # $NEXTSTEP will be overwritten
 
 
@@ -152,7 +156,5 @@ if [[ -n "${NEXTSTEP}" ]]
 	date
 	echo
 	# submit next job to LoadLeveler (P7)
-	#ssh tcs-f11n06 "cd \"${INIDIR}\"; export NEXTSTEP=${NEXTSTEP}; llsubmit ./${SCRIPTNAME}"
-	export NEXTSTEP=${NEXTSTEP}
-	llsubmit ./${SCRIPTNAME}
+	ssh p7n01 "cd \"${INIDIR}\"; export NEXTSTEP=${NEXTSTEP}; llsubmit ./${SCRIPTNAME}"
 fi
