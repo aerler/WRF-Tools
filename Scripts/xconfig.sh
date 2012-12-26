@@ -4,7 +4,7 @@ NAME='test'
 # GHG emission scenario
 GHG='A1B' # CAMtr_volume_mixing_ratio.* file to be used
 # time period and cycling interval
-CYCLING="monthly.1979-1984" # stepfile to be used (leave empty if not cycling)
+CYCLING="monthly.1979-2009" # stepfile to be used (leave empty if not cycling)
 # I/O and archiving
 IO='fineIO' # this is used for namelist construction and archiving
 ARSCRIPT='' # set ARSCRIPT='DEFAULT' to let $IO control archiving
@@ -14,7 +14,7 @@ ARSCRIPT='' # set ARSCRIPT='DEFAULT' to let $IO control archiving
 # WRF
 TIME_CONTROL="cycling,$IO"
 DIAGS='hitop'
-PHYSICS='clim'
+PHYSICS='clim-NoahMP'
 DOMAINS='wc02'
 FDDA='spectral'
 DYNAMICS='default'
@@ -40,7 +40,7 @@ METGRIDTBL="METGRID.TBL.CESM"
 ## system settings
 WRFTOOLS="${MODEL_ROOT}/WRF Tools/"
 # WPS executables
-WPSSYS="GPC" # also affects unccsm.exe 
+WPSSYS="GPC-lm" # also affects unccsm.exe 
 # set path for metgrid.exe and real.exe explicitly using METEXE and REALEXE  
 # WRF executable
 WRFSYS="GPC"
