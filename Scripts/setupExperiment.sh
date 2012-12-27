@@ -45,8 +45,8 @@ elif [[ "${WRFSYS}" == "TCS" ]]; then
 	GEOEXE=${GEOEXE:-"${WPSSRC}/TCS-MPI/Clim-fineIO/O3/geogrid.exe"}
 	WRFEXE=${WRFEXE:-"${WRFSRC}/TCS-MPI/Clim-fineIO/O3NC4/wrf.exe"}
 elif [[ "${WRFSYS}" == "P7" ]]; then
-	GEOEXE=${GEOEXE:-"${WPSSRC}/P7-MPI/Clim-fineIO/O3/geogrid.exe"}
-	WRFEXE=${WRFEXE:-"${WRFSRC}/P7-MPI/Clim-fineIO/O3NC4/wrf.exe"}
+	GEOEXE=${GEOEXE:-"${WPSSRC}/GPC-MPI/Clim-fineIO/O3xHost/geogrid.exe"}
+	WRFEXE=${WRFEXE:-"${WRFSRC}/P7-MPI/Clim-fineIO/O3pwr7NC4/wrf.exe"}
 elif [[ "${WRFSYS}" == "i7" ]]; then
 	GEOEXE=${GEOEXE:-"${WPSSRC}/i7-MPI/Clim-fineIO/O3xHost/geogrid.exe"}
 	WRFEXE=${WRFEXE:-"${WRFSRC}/i7-MPI/Clim-fineIO/O3xHostNC4/wrf.exe"}
