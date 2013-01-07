@@ -45,7 +45,7 @@ export REALOUT="${WORKDIR}" # this should be default anyway
 
 ## setup environment
 cd "${INIDIR}"
-source setup_GPC.sh # load machine-specific stuff
+source setup_GPC-lm.sh # load machine-specific stuff
 
 
 ## begin job
