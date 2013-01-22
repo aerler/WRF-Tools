@@ -2,12 +2,12 @@
 ## scenario definition section
 NAME='test'
 # GHG emission scenario
-GHG='A1B' # CAMtr_volume_mixing_ratio.* file to be used
+GHG='RCP8.5' # CAMtr_volume_mixing_ratio.* file to be used
 # time period and cycling interval
 CYCLING="monthly.1979-2009" # stepfile to be used (leave empty if not cycling)
 # I/O and archiving
 IO='fineIO' # this is used for namelist construction and archiving
-ARSCRIPT='' # set ARSCRIPT='DEFAULT' to let $IO control archiving
+ARSCRIPT='DEFAULT' # set ARSCRIPT='DEFAULT' to let $IO control archiving
 
 ## namelist definition section
 # list of namelist groups and used snippets
@@ -15,6 +15,7 @@ ARSCRIPT='' # set ARSCRIPT='DEFAULT' to let $IO control archiving
 TIME_CONTROL="cycling,$IO"
 DIAGS='hitop'
 PHYSICS='clim-NoahMP'
+NOAH_MP='default'
 DOMAINS='wc02'
 FDDA='spectral'
 DYNAMICS='default'

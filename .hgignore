@@ -24,3 +24,6 @@ syntax: regexp
 ^misc/registry/test/Registry\.EM_COMMON$
 syntax: regexp
 ^misc/registry/test/Registry\.EM$
+
+syntax: regexp
+^Python/dataset/test\.txt$

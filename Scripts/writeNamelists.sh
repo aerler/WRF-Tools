@@ -13,6 +13,7 @@ NMLDIR="${MODEL_ROOT}/WRF Tools/misc/namelists"
 TIME_CONTROL=${TIME_CONTROL:-'cycling,fineio'}
 DIAGS=${DIAGS:-'hitop'}
 PHYSICS=${PHYSICS:-'clim'}
+NOAHMP=${NOAH_MP:-'default'}
 DOMAINS=${DOMAINS:-'wc02'}
 FDDA=${FDDA:-'spectral'}
 DYNAMICS=${DYNAMICS:-'default'}
@@ -23,7 +24,7 @@ SHARE=${SHARE:-'d02'}
 GEOGRID=${GEOGRID:-"${DOMAINS}"}
 METGRID=${METGRID:-'pywps'}
 
-## function to add namelsit groups to namelist file
+## function to add namelist groups to namelist file
 function WRITENML () {
 	# #1: namelist group, #2: snippet list, #3: filename
 	BEGIN='0,/^\s*&\w.*$/d' # regex matching the namelist group opening
@@ -60,6 +61,8 @@ WRITENML 'time_control' "${TIME_CONTROL}" "${NML}"
 WRITENML 'diags' "${DIAGS}" "${NML}"
 # namelist group &physics
 WRITENML 'physics' "${PHYSICS}" "${NML}"
+# namelist group &noah_mp
+WRITENML 'noah_mp' "${NOAH_MP}" "${NML}"
 # namelist group &domains
 WRITENML 'domains' "${DOMAINS}" "${NML}"
 # namelist group &fdda
