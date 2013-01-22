@@ -63,6 +63,7 @@ mkdir -p "${RUNDIR}"
 export TIME_CONTROL
 export DIAGS
 export PHYSICS
+export NOAH_MP
 export DOMAINS
 export FDDA
 export DYNAMICS
