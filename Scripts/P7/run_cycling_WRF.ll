@@ -1,7 +1,7 @@
 #!/bin/bash
 ##=====================================
 # @ job_name = test_2x128
-# @ wall_clock_limit = 48:00:00
+# @ wall_clock_limit = 18:00:00
 # @ node = 1
 # @ tasks_per_node = 128
 # @ notification = error
@@ -40,7 +40,6 @@
 
 # check if $NEXTSTEP is set, and exit, if not
 set -e # abort if anything goes wrong
-if [[ -z "${NEXTSTEP}" ]]; then exit 1; fi
 if [[ -z "${NEXTSTEP}" ]]; then 
   echo 'Environment variable $NEXTSTEP not set - aborting!'
   exit 1
@@ -51,6 +50,7 @@ CURRENTSTEP="${NEXTSTEP}" # $NEXTSTEP will be overwritten
 ## job settings
 export SCRIPTNAME="run_cycling_WRF.ll" # WRF suffix assumed
 export DEPENDENCY="run_cycling_WPS.pbs" # run WPS on GPC (WPS suffix substituted for WRF): ${LOADL_JOB_NAME%_WRF}_WPS
+export ARSCRIPT="" # archive script to be executed after WRF finishes
 export CLEARWDIR=0 # do not clear working director
 # run configuration
 export NODES=1 # also has to be set in LL section
@@ -86,7 +86,7 @@ source setup_P7.sh # load machine-specific stuff
 # N.B.: don't remove namelist files in working directory
 
 # read next step from stepfile
-NEXTSTEP=$(python cycling.py ${CURRENTSTEP})
+NEXTSTEP=$(python cycling.py "${CURRENTSTEP}")
 
 # launch WPS for next step (if $NEXTSTEP is not empty)
 if [[ -n "${NEXTSTEP}" ]] && [[ ! $NOWPS == 1 ]]
@@ -95,7 +95,9 @@ if [[ -n "${NEXTSTEP}" ]] && [[ ! $NOWPS == 1 ]]
 	echo
 	# submitting independent WPS job to GPC (not TCS!)
 	ssh gpc-f104n084 "cd \"${INIDIR}\"; qsub ./${DEPENDENCY} -v NEXTSTEP=${NEXTSTEP}"
-	#cho '   >>>   Skip WPS for now.   <<<'
+else
+	echo '   >>>   Skipping WPS!   <<<'
+    echo
 fi
 # this is only for the first instance; unset for next
 unset NOWPS
@@ -125,6 +127,17 @@ echo "   ***   WRF step ${CURRENTSTEP} completed   ***   "
 date
 echo
 
+# launch archive script if specified
+if [[ -n "${ARSCRIPT}" ]]
+ then
+    echo
+    echo "   ***   Launching archive script for WRF output: ${CURRENTSTEP}   ***   "
+    echo
+    ssh gpc-f104n084 "cd ${INIDIR}; qsub ./${ARSCRIPT} -v DATES=${CURRENTSTEP},BACKUP=BACKUP"
+fi
+
+# copy driver script into work dir to signal completion
+cp "${INIDIR}/${SCRIPTNAME}" "${WORKDIR}"
 
 ## launch WRF for next step (if $NEXTSTEP is not empty)
 if [[ -n "${NEXTSTEP}" ]]
