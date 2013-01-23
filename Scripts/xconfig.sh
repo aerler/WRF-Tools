@@ -14,8 +14,8 @@ ARSCRIPT='DEFAULT' # set ARSCRIPT='DEFAULT' to let $IO control archiving
 # WRF
 TIME_CONTROL="cycling,$IO"
 DIAGS='hitop'
-PHYSICS='clim-NoahMP'
-NOAH_MP='default'
+PHYSICS='clim'
+NOAH_MP=''
 DOMAINS='wc02'
 FDDA='spectral'
 DYNAMICS='default'
