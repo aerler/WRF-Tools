@@ -14,6 +14,6 @@
  truelat1  =  53.,
  truelat2  =  53.,
  stand_lon = -130,
- geog_data_path = '/scratch/p/peltier/aerler/data/geog/',
+ geog_data_path = '/project/p/peltier/aerler/geog/',
  opt_geogrid_tbl_path = 'meta/'
 /
