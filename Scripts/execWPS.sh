@@ -152,7 +152,11 @@ echo
 echo "Writing output to ${REALDIR}"
 echo
 time -p ${HYBRIDRUN} ./real.exe
-REALERR=$? # save WRF error code and pass on to exit
+# check REAL exit status
+if [[ -n $(grep 'SUCCESS COMPLETE REAL_EM INIT' rsl.error.0000) ]]; 
+  then REALERR=0; 
+  else REALERR=1; fi
+# REALERR=$? # save WRF error code and pass on to exit
 echo
 wait # wait for all threads to finish
 

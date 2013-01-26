@@ -33,15 +33,15 @@ wrfpfx = 'wrfsrfc_d%02i_' # %02i is for the domain number
 wrfext = '-01_00:00:00.nc'
 wrfdate = '19(79|8[0-4])-\d\d' # use '\d' for any number and [1-3,45] for ranges, '(...)' indicates a group and '|' can be used as 'or' 
 # output files and folders
-meanfile = 'wrfsrfc_d%02i_monthly_1979-1981.nc' # %02i is for the domain number
-climfile = 'wrfsrfc_d%02i_clim_1979-1981.nc' # %02i is for the domain number
+meanfile = 'wrfsrfc_d%02i_monthly_1979-1985.nc' # %02i is for the domain number
+climfile = 'wrfsrfc_d%02i_clim_1979-1985.nc' # %02i is for the domain number
 # variables
 tax = 0 # time axis (to average over)
 dimlist = ['x', 'y'] # copy these dimensions
 dimmap = dict(time='Time', x='west_east', y='south_north') # original names of dimensions
-varlist = ['ps','T2','Ts','rainnc','rainc','snow','graupel'] # include these variables in monthly means 
-varmap = dict(ps='PSFC',Ts='TSK', # original (WRF) names of variables
-              rainnc='RAINNC',rainc='RAINC',rainsh='RAINSH',snow='SNOWNC',graupel='GRAUPELNC') 
+varlist = ['ps','T2','Ts','rainnc','rainc','snownc','graupel','snow'] # include these variables in monthly means 
+varmap = dict(ps='PSFC',T2='T2',Ts='TSK',snow='SNOW', # original (WRF) names of variables
+              rainnc='RAINNC',rainc='RAINC',rainsh='RAINSH',snownc='SNOWNC',graupel='GRAUPELNC') 
 acclist = dict(rainnc=100,rainc=100,rainsh=0,snow=0,graupel=0) # dictionary of accumulated variables
 # N.B.: keys = variables and values = bucket sizes; value = None or 0 means no bucket  
 bktpfx = 'I_' # prefix for bucket variables ( 
