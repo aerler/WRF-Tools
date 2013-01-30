@@ -1,14 +1,14 @@
 &physics
- mp_physics                          = 10,     3,     3,
- ra_lw_physics                       = 4,     1,     1,
- ra_sw_physics                       = 4,     1,     1,
- radt                                = 10,    30,    30,
- sf_sfclay_physics                   = 5,     1,     1,
+ mp_physics                          = 10,    10,     3,
+ ra_lw_physics                       = 4,     4,     1,
+ ra_sw_physics                       = 4,     4,     1,
+ radt                                = 12,    12,    30,
+ sf_sfclay_physics                   = 5,     5,     1,
  sf_surface_physics                  = 2,     2,     2,
- bl_pbl_physics                      = 5,     1,     1,
+ bl_pbl_physics                      = 5,     5,     1,
  bldt                                = 0,     0,     0,
- cu_physics                          = 3,     1,     0,
- cudt                                = 5,     5,     5,
+ cu_physics                          = 3,     3,     0,
+ cudt                                = 0,     0,     5,
  isfflx                              = 1,
  ifsnow                              = 1,
  icloud                              = 1,
@@ -22,6 +22,10 @@
  ensdim                              = 144,
  sst_update                          = 1,
  fractional_seaice                   = 1,
- seaice_thickness                    = 1,
+! seaice_thickness                    = 1, ! only in PolarWRF
+ num_land_cat                        = 28, ! USGS+lake
+ flake_update                        = 1,
+ tsk_flake                           = 1,
+ lake_depth_limit                    = 70,
  /
  
