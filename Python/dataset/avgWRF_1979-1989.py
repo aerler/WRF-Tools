@@ -18,7 +18,7 @@ if hostname=='komputer':
   WRFroot = '/media/data/DATA/WRF/Downscaling/'
   exp = 'ctrl-2'
   folder = WRFroot + exp + '/'
-elif hostname[0:3] == 'gpc': # i.e. on scinet...
+elif ( hostname[0:3] == 'gpc' ): # i.e. on scinet...
   exproot = os.getcwd()
   exp = exproot.split('/')[-1] # root folder name
   folder = exproot + '/wrfout/' # output folder 
@@ -31,10 +31,10 @@ else:
 maxdom = 2
 wrfpfx = 'wrfsrfc_d%02i_' # %02i is for the domain number
 wrfext = '-01_00:00:00.nc'
-wrfdate = '\d\d\d\d-\d\d' # use '\d' for any number and [1-3,45] for ranges
+wrfdate = '19(79|8[0-8])-\d\d' # use '\d' for any number and [1-3,45] for ranges, '(...)' indicates a group and '|' can be used as 'or' 
 # output files and folders
-meanfile = 'wrfsrfc_d%02i_monthly.nc' # %02i is for the domain number
-climfile = 'wrfsrfc_d%02i_clim.nc' # %02i is for the domain number
+meanfile = 'wrfsrfc_d%02i_monthly_1979-1989.nc' # %02i is for the domain number
+climfile = 'wrfsrfc_d%02i_clim_1979-1989.nc' # %02i is for the domain number
 # variables
 tax = 0 # time axis (to average over)
 dimlist = ['x', 'y'] # copy these dimensions
@@ -44,11 +44,11 @@ varmap = dict(ps='PSFC',T2='T2',Ts='TSK',snow='SNOW',snowh='SNOWH', # original (
               rainnc='RAINNC',rainc='RAINC',rainsh='RAINSH',snownc='SNOWNC',graupelnc='GRAUPELNC') 
 acclist = dict(rainnc=100,rainc=100,rainsh=0,snownc=0,graupelnc=0) # dictionary of accumulated variables
 # N.B.: keys = variables and values = bucket sizes; value = None or 0 means no bucket  
-bktpfx = 'I_' # prefix for bucket variables 
+bktpfx = 'I_' # prefix for bucket variables ( 
 # time constants
 months = ['January  ', 'February ', 'March    ', 'April    ', 'May      ', 'June     ', #
           'July     ', 'August   ', 'September', 'October  ', 'November ', 'December ']
-days = array([31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]) # no leap year
+days = array([31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31])
 mons = arange(1,13); nmons = len(mons)
 
 if __name__ == '__main__':
@@ -60,10 +60,10 @@ if __name__ == '__main__':
     print('\n\n   ***   Processing Domain #%02i (of %02i)   ***   '%(ndom,maxdom))
   
     ## setup files and folders
-    wrffiles = wrfpfx%ndom + wrfdate + wrfext
+    wrffile = wrfpfx%ndom + wrfdate + wrfext
     # N.B.: wrfpfx must contain something like %02i to accommodate the domain number  
     # assemble input filelist
-    wrfrgx = re.compile(wrffiles) # compile regular expression
+    wrfrgx = re.compile(wrffile) # compile regular expression
     filelist = [wrfrgx.match(filename) for filename in os.listdir(folder)] # list folder and match
     filelist = [match.group() for match in filelist if match is not None] # assemble valid file list
     if len(filelist) == 0:

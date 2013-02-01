@@ -21,7 +21,7 @@ if hostname=='komputer':
 elif hostname[0:3] == 'gpc': # i.e. on scinet...
   exproot = os.getcwd()
   exp = exproot.split('/')[-1] # root folder name
-  folder = exproot + '/wrfout/' # output folder 
+  folder = exproot + '/wrfout-A2/' # output folder 
 else:
   folder = os.getcwd() # just operate in the current directory
   exp = '' # need to define experiment name...
@@ -31,10 +31,10 @@ else:
 maxdom = 2
 wrfpfx = 'wrfsrfc_d%02i_' # %02i is for the domain number
 wrfext = '-01_00:00:00.nc'
-wrfdate = '\d\d\d\d-\d\d' # use '\d' for any number and [1-3,45] for ranges
+wrfdate = '20(4[5-9]|5[0-4])-\d\d' # use '\d' for any number and [1-3,45] for ranges
 # output files and folders
-meanfile = 'wrfsrfc_d%02i_monthly.nc' # %02i is for the domain number
-climfile = 'wrfsrfc_d%02i_clim.nc' # %02i is for the domain number
+meanfile = 'wrfsrfc_d%02i_monthly_2045-2055.nc' # %02i is for the domain number
+climfile = 'wrfsrfc_d%02i_clim_2045-2055.nc' # %02i is for the domain number
 # variables
 tax = 0 # time axis (to average over)
 dimlist = ['x', 'y'] # copy these dimensions
