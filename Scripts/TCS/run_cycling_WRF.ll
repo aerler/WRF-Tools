@@ -58,6 +58,8 @@ export WORKDIR="${INIDIR}/${RUNNAME}/"
 ## WRF settings
 # optional arguments: $RUNWRF, $GHG ($RAD, $LSM) 
 export GHG='' # GHG emission scenario
+export RAD='' # radiation scheme
+export LSM='' # land surface scheme
 # folders: $WRFIN, $WRFOUT, $TABLES
 export REALOUT="${WORKDIR}" # this should be default anyway
 export WRFIN="${WORKDIR}" # same as $REALOUT

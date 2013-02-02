@@ -203,6 +203,8 @@ fi
 # radiation scheme
 RAD=$(sed -n '/ra_lw_physics/ s/^\s*ra_lw_physics\s*=\s*\(.\),.*$/\1/p' namelist.input) # \s = space
 echo "Determining radiation scheme from namelist: RAD=${RAD}"
+# write default RAD into job script ('sed' sometimes fails on TCS...)
+sed -i "/export RAD/ s/export\sRAD=.*$/export RAD=\'${RAD}\' # radiation scheme set by setup script/" "run_${CASETYPE}_WRF.${WRFQ}"
 # select scheme and print confirmation
 if [[ ${RAD} == 1 ]]; then
     echo "  Using RRTM radiation scheme."
@@ -220,6 +222,8 @@ fi
 # land-surface scheme
 LSM=$(sed -n '/sf_surface_physics/ s/^\s*sf_surface_physics\s*=\s*\(.\),.*$/\1/p' namelist.input) # \s = space
 echo "Determining land-surface scheme from namelist: LSM=${LSM}"
+# write default LSM into job script ('sed' sometimes fails on TCS...)
+sed -i "/export LSM/ s/export\sLSM=.*$/export LSM=\'${LSM}\' # land surface scheme set by setup script/" "run_${CASETYPE}_WRF.${WRFQ}"
 # select scheme and print confirmation
 if [[ ${LSM} == 1 ]]; then
     echo "  Using diffusive land-surface scheme."
