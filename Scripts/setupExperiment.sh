@@ -128,7 +128,7 @@ ln -sf "${REALEXE}"
 # queue system
 if [[ "${WRFSYS}" == "GPC" ]]; then 
 	WRFQ='pbs' # GPC standard and largemem nodes
-elif [[ "${WRFSYS}" == "TCS" ]] || [[ "${WRFSYS}" == "P7" ]]; then
+elif [[ "${WRFSYS}" == "TCS" ]] || [[ "${WRFSYS}" == "P7" ]] || [[ "${WRFSYS}" == "BGQ" ]]; then
 	WRFQ='ll'
 else
 	WRFQ='sh' # just a shell script on local system
