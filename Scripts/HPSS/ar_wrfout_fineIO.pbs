@@ -3,7 +3,7 @@
 
 ## queue/PBS settings
 # 72h is maximum for long queue, 1h for short
-#PBS -l walltime=1:00:00
+#PBS -l walltime=3:00:00
 # merge standard error and output stream
 #PBS -j oe
 #PBS -o $PBS_JOBNAME.$PBS_JOBID.out
