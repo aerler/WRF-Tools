@@ -75,7 +75,7 @@ fi
 mkdir -p "${REALOUT}" # make sure data destination folder exists
 # copy namelist and link to real.exe into working director
 cd "${INIDIR}"
-cp ${NOCLOBBER} -P "real.exe" "${REALDIR}" # link to executable real.exe
+cp -P "real.exe" "${REALDIR}" # link to executable real.exe
 cp ${NOCLOBBER} "namelist.input" "${REALDIR}" # copy namelists
 
 # change input directory in namelist.input
@@ -150,11 +150,15 @@ WRFDIR="${WORKDIR}" # could potentially be executed in RAM disk as well...
 mkdir -p "${WRFOUT}" # make sure data destination folder exists 
 # essentials
 cd "${INIDIR}" # folder containing input files
-cp ${NOCLOBBER} -P namelist.input wrf.exe "${WRFDIR}"
+cp -P wrf.exe "${WRFDIR}"
+cp ${NOCLOBBER} namelist.input "${WRFDIR}"
 cd "${WRFDIR}"
-# radiation scheme
-if [[ -z "${RAD}" ]]; then # read from namelist if not defined (need to be in ${RAD})
-	RAD=$(sed -n '/ra_lw_physics/ s/^\s*ra_lw_physics\s*=\s*\(.\),.*$/\1/p' namelist.input) # \s = space
+
+## figure out data tables (for radiation and surface scheme)
+# radiation scheme: try to infer from namelist using 'sed'
+SEDRAD=$(sed -n '/ra_lw_physics/ s/^\s*ra_lw_physics\s*=\s*\(.\),.*$/\1/p' namelist.input) # \s = space
+if [[ -n "${SEDRAD}" ]]; then
+	RAD="${SEDRAD}" # prefer namelist value over pre-set default
 	echo "Determining radiation scheme from namelist: RAD=${RAD}"
 fi
 # select scheme and print confirmation
@@ -170,10 +174,12 @@ elif [[ ${RAD} == 'RRTMG' ]] || [[ ${RAD} == 4 ]]; then
     RADTAB="RRTMG_LW_DATA RRTMG_LW_DATA_DBL RRTMG_SW_DATA RRTMG_SW_DATA_DBL"
 else
     echo 'WARNING: no radiation scheme selected!'
+    # this will only happen if no defaults are set and inferring from namelist via 'sed' failed
 fi
-# land-surface scheme
-if [[ -z "${LSM}" ]]; then # read from namelist if not defined (need to be in $WRFDIR)
-	LSM=$(sed -n '/sf_surface_physics/ s/^\s*sf_surface_physics\s*=\s*\(.\),.*$/\1/p' namelist.input) # \s = space
+# land-surface scheme: try to infer from namelist using 'sed'
+SEDLSM=$(sed -n '/sf_surface_physics/ s/^\s*sf_surface_physics\s*=\s*\(.\),.*$/\1/p' namelist.input) # \s = space
+if [[ -n "${SEDLSM}" ]]; then
+	LSM="${SEDLSM}" # prefer namelist value over pre-set default
 	echo "Determining land-surface scheme from namelist: LSM=${LSM}"
 fi
 # select scheme and print confirmation
@@ -191,6 +197,7 @@ elif [[ ${LSM} == 'Noah-MP' ]] || [[ ${LSM} == 4 ]]; then
     LSMTAB="SOILPARM.TBL VEGPARM.TBL GENPARM.TBL LANDUSE.TBL MPTABLE.TBL"    
 else
     echo 'WARNING: no land-surface model selected!'
+    # this will only happen if no defaults are set and inferring from namelist via 'sed' failed
 fi
 # copy appropriate tables for physics options 
 cd "${TABLES}"
@@ -203,7 +210,8 @@ if [[ -n "${GHG}" ]]; then # only if $GHG is defined!
 		cp ${NOCLOBBER} "CAMtr_volume_mixing_ratio.${GHG}" "${WRFDIR}/CAMtr_volume_mixing_ratio"
 	else
 		echo "WARNING: variable GHG emission scenarios not available with the ${RAD} scheme!"
-		unset GHG # for later use
+		unset GHG 
+		# N.B.: $GHG is used later to test if a variable GHG scenario has been used (for logging purpose)fi
 	fi
 	echo
 fi
@@ -228,7 +236,7 @@ echo
 # launch
 time -p ${HYBRIDRUN} ./wrf.exe
 # check WRF exit status
-if [[ -n $(grep 'SUCCESS COMPLETE WRF' rsl.error.0000) ]]; 
+if [[ -n $(grep 'SUCCESS COMPLETE WRF' 'rsl.error.0000') ]]; 
   then WRFERR=0; 
   else WRFERR=1; fi
 # WRFERR=$? # save WRF error code and pass on to exit
