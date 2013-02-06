@@ -29,7 +29,7 @@ if [[ -z "${CASETYPE}" ]]; then
   else CASETYPE='test'; fi
 fi
 # look up default configurations
-if [ ${POLARWRF} == 1 ] then
+if [ ${POLARWRF} == 1 ]; then
   WPSBLD="Clim-fineIO" # not yet polar...
   WRFBLD="Polar-Clim-fineIOv2"
 else
@@ -40,27 +40,27 @@ fi # if PolarWRF
 # default WPS and real executables
 if [[ "${WPSSYS}" == "GPC" ]]; then 
 	METEXE=${METEXE:-"${WPSSRC}/GPC-MPI/${WPSBLD}/O3xHost/metgrid.exe"}
-	REALEXE=${REALEXE:-"${WRFSRC}/GPC-MPI/${WPSBLD}/O3xHost/real.exe"}
+	REALEXE=${REALEXE:-"${WRFSRC}/GPC-MPI/${WRFBLD}/O3xHost/real.exe"}
 elif [[ "${WPSSYS}" == "GPC-lm" ]]; then
 	METEXE=${METEXE:-"${WPSSRC}/GPC-MPI/${WPSBLD}/O3xSSSE3/metgrid.exe"}
-	REALEXE=${REALEXE:-"${WRFSRC}/GPC-MPI/${WPSBLD}/O3xSSSE3/real.exe"}
+	REALEXE=${REALEXE:-"${WRFSRC}/GPC-MPI/${WRFBLD}/O3xSSSE3/real.exe"}
 elif [[ "${WPSSYS}" == "i7" ]]; then
 	METEXE=${METEXE:-"${WPSSRC}/i7-MPI/${WPSBLD}/O3xHost/metgrid.exe"}
-	REALEXE=${REALEXE:-"${WRFSRC}/i7-MPI/${WPSBLD}/O3xHost/real.exe"}
+	REALEXE=${REALEXE:-"${WRFSRC}/i7-MPI/${WRFBLD}/O3xHost/real.exe"}
 fi
 
 # default WRF and geogrid executables
   if [[ "${WRFSYS}" == "GPC" ]]; then
-	  GEOEXE=${GEOEXE:-"${WPSSRC}/GPC-MPI/${WRFBLD}/O3xHost/geogrid.exe"} 
+	  GEOEXE=${GEOEXE:-"${WPSSRC}/GPC-MPI/${WPSBLD}/O3xHost/geogrid.exe"} 
 	  WRFEXE=${WRFEXE:-"${WRFSRC}/GPC-MPI/${WRFBLD}/O3xHostNC4/wrf.exe"}
   elif [[ "${WRFSYS}" == "TCS" ]]; then
-	  GEOEXE=${GEOEXE:-"${WPSSRC}/TCS-MPI/${WRFBLD}/O3/geogrid.exe"}
+	  GEOEXE=${GEOEXE:-"${WPSSRC}/TCS-MPI/${WPSBLD}/O3/geogrid.exe"}
 	  WRFEXE=${WRFEXE:-"${WRFSRC}/TCS-MPI/${WRFBLD}/O3NC4/wrf.exe"}
   elif [[ "${WRFSYS}" == "P7" ]]; then
-	  GEOEXE=${GEOEXE:-"${WPSSRC}/GPC-MPI/${WRFBLD}/O3xHost/geogrid.exe"}
+	  GEOEXE=${GEOEXE:-"${WPSSRC}/GPC-MPI/${WPSBLD}/O3xHost/geogrid.exe"}
 	  WRFEXE=${WRFEXE:-"${WRFSRC}/P7-MPI/${WRFBLD}/O3pwr7NC4/wrf.exe"}
   elif [[ "${WRFSYS}" == "i7" ]]; then
-	  GEOEXE=${GEOEXE:-"${WPSSRC}/i7-MPI/${WRFBLD}/O3xHost/geogrid.exe"}
+	  GEOEXE=${GEOEXE:-"${WPSSRC}/i7-MPI/${WPSBLD}/O3xHost/geogrid.exe"}
 	  WRFEXE=${WRFEXE:-"${WRFSRC}/i7-MPI/${WRFBLD}/O3xHostNC4/wrf.exe"}
   fi
 # create run folder
