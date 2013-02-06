@@ -15,6 +15,7 @@ ARSCRIPT='DEFAULT' # this is a dummy name...
 # WPS and WRF executables
 WPSSYS="GPC" # WPS
 WRFSYS="GPC" # WRF
+POLARWRF=0 # PolarWRF switch
 ## some shortcuts for WRF/WPS settings
 MAXDOM=2 # number of domains in WRF and WPS
 FEEDBACK=0 # WRF nesting option: one-way=0 or two-way=1
@@ -28,29 +29,40 @@ if [[ -z "${CASETYPE}" ]]; then
   else CASETYPE='test'; fi
 fi
 # look up default configurations
+if [ ${POLARWRF} == 1 ] then
+  WPSBLD="Clim-fineIO" # not yet polar...
+  WRFBLD="Polar-Clim-fineIOv2"
+else
+  WPSBLD="Clim-fineIO"
+  WRFBLD="Clim-fineIOv2"
+fi # if PolarWRF
+
+# default WPS and real executables
 if [[ "${WPSSYS}" == "GPC" ]]; then 
-	METEXE=${METEXE:-"${WPSSRC}/GPC-MPI/Clim-fineIO/O3xHost/metgrid.exe"}
-	REALEXE=${REALEXE:-"${WRFSRC}/GPC-MPI/Clim-fineIO/O3xHost/real.exe"}
+	METEXE=${METEXE:-"${WPSSRC}/GPC-MPI/${WPSBLD}/O3xHost/metgrid.exe"}
+	REALEXE=${REALEXE:-"${WRFSRC}/GPC-MPI/${WPSBLD}/O3xHost/real.exe"}
 elif [[ "${WPSSYS}" == "GPC-lm" ]]; then
-	METEXE=${METEXE:-"${WPSSRC}/GPC-MPI/Clim-fineIO/O3xSSSE3/metgrid.exe"}
-	REALEXE=${REALEXE:-"${WRFSRC}/GPC-MPI/Clim-fineIO/O3xSSSE3/real.exe"}
+	METEXE=${METEXE:-"${WPSSRC}/GPC-MPI/${WPSBLD}/O3xSSSE3/metgrid.exe"}
+	REALEXE=${REALEXE:-"${WRFSRC}/GPC-MPI/${WPSBLD}/O3xSSSE3/real.exe"}
 elif [[ "${WPSSYS}" == "i7" ]]; then
-	METEXE=${METEXE:-"${WPSSRC}/i7-MPI/Clim-fineIO/O3xHost/metgrid.exe"}
-	REALEXE=${REALEXE:-"${WRFSRC}/i7-MPI/Clim-fineIO/O3xHost/real.exe"}
+	METEXE=${METEXE:-"${WPSSRC}/i7-MPI/${WPSBLD}/O3xHost/metgrid.exe"}
+	REALEXE=${REALEXE:-"${WRFSRC}/i7-MPI/${WPSBLD}/O3xHost/real.exe"}
 fi
-if [[ "${WRFSYS}" == "GPC" ]]; then
-	GEOEXE=${GEOEXE:-"${WPSSRC}/GPC-MPI/Clim-fineIO/O3xHost/geogrid.exe"} 
-	WRFEXE=${WRFEXE:-"${WRFSRC}/GPC-MPI/Clim-fineIO/O3xHostNC4/wrf.exe"}
-elif [[ "${WRFSYS}" == "TCS" ]]; then
-	GEOEXE=${GEOEXE:-"${WPSSRC}/TCS-MPI/Clim-fineIO/O3/geogrid.exe"}
-	WRFEXE=${WRFEXE:-"${WRFSRC}/TCS-MPI/Clim-fineIO/O3NC4/wrf.exe"}
-elif [[ "${WRFSYS}" == "P7" ]]; then
-	GEOEXE=${GEOEXE:-"${WPSSRC}/GPC-MPI/Clim-fineIO/O3xHost/geogrid.exe"}
-	WRFEXE=${WRFEXE:-"${WRFSRC}/P7-MPI/Clim-fineIO/O3pwr7NC4/wrf.exe"}
-elif [[ "${WRFSYS}" == "i7" ]]; then
-	GEOEXE=${GEOEXE:-"${WPSSRC}/i7-MPI/Clim-fineIO/O3xHost/geogrid.exe"}
-	WRFEXE=${WRFEXE:-"${WRFSRC}/i7-MPI/Clim-fineIO/O3xHostNC4/wrf.exe"}
-fi
+
+# default WRF and geogrid executables
+  if [[ "${WRFSYS}" == "GPC" ]]; then
+	  GEOEXE=${GEOEXE:-"${WPSSRC}/GPC-MPI/${WRFBLD}/O3xHost/geogrid.exe"} 
+	  WRFEXE=${WRFEXE:-"${WRFSRC}/GPC-MPI/${WRFBLD}/O3xHostNC4/wrf.exe"}
+  elif [[ "${WRFSYS}" == "TCS" ]]; then
+	  GEOEXE=${GEOEXE:-"${WPSSRC}/TCS-MPI/${WRFBLD}/O3/geogrid.exe"}
+	  WRFEXE=${WRFEXE:-"${WRFSRC}/TCS-MPI/${WRFBLD}/O3NC4/wrf.exe"}
+  elif [[ "${WRFSYS}" == "P7" ]]; then
+	  GEOEXE=${GEOEXE:-"${WPSSRC}/GPC-MPI/${WRFBLD}/O3xHost/geogrid.exe"}
+	  WRFEXE=${WRFEXE:-"${WRFSRC}/P7-MPI/${WRFBLD}/O3pwr7NC4/wrf.exe"}
+  elif [[ "${WRFSYS}" == "i7" ]]; then
+	  GEOEXE=${GEOEXE:-"${WPSSRC}/i7-MPI/${WRFBLD}/O3xHost/geogrid.exe"}
+	  WRFEXE=${WRFEXE:-"${WRFSRC}/i7-MPI/${WRFBLD}/O3xHostNC4/wrf.exe"}
+  fi
 # create run folder
 echo
 echo "   Creating Root Directory for Experiment ${NAME}"
@@ -241,9 +253,12 @@ else
     echo 'WARNING: no land-surface model selected!'
 fi
 # determine tables folder
-if [[ ${LSM} == 4 ]]; then
+if [[ ${LSM} == 4 ]]; then # NoahMP
   TABLES="${WRFTOOLS}/misc/tables-NoahMP/"
   echo "Linking Noah-MP tables: ${TABLES}"
+elif [[ ${POLARWRF} == 1 ]]; then # PolarWRF
+  TABLES="${WRFTOOLS}/misc/tables-PolarWRF/"
+  echo "Linking PolarWRF tables: ${TABLES}"
 else
   TABLES="${WRFTOOLS}/misc/tables/"
   echo "Linking default tables: ${TABLES}"
