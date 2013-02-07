@@ -159,7 +159,7 @@ if [[ "${WRFQ}" == "pbs" ]] || [[ "${WRFQ}" == "ll" ]]; then # if it has a queue
 if [[ "${WRFQ}" == "ll" ]]; then
     ln -sf "${WRFTOOLS}/Scripts/${WRFSYS}/sleepCycle.sh"; fi
 if [[ -n "${CYCLING}" ]]; then
-	ln -sf "${WRFTOOLS}/Scripts/${WRFSYS}/run_cycle_${WRFQ}.sh"
+	ln -sf "${WRFTOOLS}/Scripts/${WRFSYS}/start_cycle_${WRFQ}.sh"
 	ln -sf "${WRFTOOLS}/Python/cycling.py"
 	cp "${WRFTOOLS}/misc/stepfiles/stepfile.${CYCLING}" 'stepfile' 
 fi
@@ -188,8 +188,8 @@ else
 fi
 # run_cycle-script
 if [[ -n "${CYCLING}" ]]; then
-    sed -i "/WPSSCRIPT/ s/WPSSCRIPT=.*$/WPSSCRIPT=\'run_${CASETYPE}_WPS.${WPSQ}\' # WPS run-scripts/" "run_cycle_${WRFQ}.sh" # WPS run-script
-    sed -i "/WRFSCRIPT/ s/WRFSCRIPT=.*$/WRFSCRIPT=\'run_${CASETYPE}_WRF.${WRFQ}\' # WRF run-scripts/" "run_cycle_${WRFQ}.sh" # WPS run-script
+    sed -i "/WPSSCRIPT/ s/WPSSCRIPT=.*$/WPSSCRIPT=\'run_${CASETYPE}_WPS.${WPSQ}\' # WPS run-scripts/" "start_cycle_${WRFQ}.sh" # WPS run-script
+    sed -i "/WRFSCRIPT/ s/WRFSCRIPT=.*$/WRFSCRIPT=\'run_${CASETYPE}_WRF.${WRFQ}\' # WRF run-scripts/" "start_cycle_${WRFQ}.sh" # WPS run-script
 fi
 # archive script
 sed -i "/export ARSCRIPT/ s/export\sARSCRIPT=.*$/export ARSCRIPT=\'${ARSCRIPT}\' # archive script to be executed after WRF finishes/" "run_${CASETYPE}_WRF.${WRFQ}"
