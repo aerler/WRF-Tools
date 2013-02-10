@@ -15,6 +15,7 @@ ARSCRIPT='DEFAULT' # this is a dummy name...
 # WPS and WRF executables
 WPSSYS="GPC" # WPS
 WRFSYS="GPC" # WRF
+POLARWRF=0 # PolarWRF switch
 ## some shortcuts for WRF/WPS settings
 MAXDOM=2 # number of domains in WRF and WPS
 FEEDBACK=0 # WRF nesting option: one-way=0 or two-way=1
@@ -28,29 +29,40 @@ if [[ -z "${CASETYPE}" ]]; then
   else CASETYPE='test'; fi
 fi
 # look up default configurations
+if [ ${POLARWRF} == 1 ]; then
+  WPSBLD="Clim-fineIO" # not yet polar...
+  WRFBLD="Polar-Clim-fineIOv2"
+else
+  WPSBLD="Clim-fineIO"
+  WRFBLD="Clim-fineIOv2"
+fi # if PolarWRF
+
+# default WPS and real executables
 if [[ "${WPSSYS}" == "GPC" ]]; then 
-	METEXE=${METEXE:-"${WPSSRC}/GPC-MPI/Clim-fineIO/O3xHost/metgrid.exe"}
-	REALEXE=${REALEXE:-"${WRFSRC}/GPC-MPI/Clim-fineIO/O3xHost/real.exe"}
+	METEXE=${METEXE:-"${WPSSRC}/GPC-MPI/${WPSBLD}/O3xHost/metgrid.exe"}
+	REALEXE=${REALEXE:-"${WRFSRC}/GPC-MPI/${WRFBLD}/O3xHost/real.exe"}
 elif [[ "${WPSSYS}" == "GPC-lm" ]]; then
-	METEXE=${METEXE:-"${WPSSRC}/GPC-MPI/Clim-fineIO/O3xSSSE3/metgrid.exe"}
-	REALEXE=${REALEXE:-"${WRFSRC}/GPC-MPI/Clim-fineIO/O3xSSSE3/real.exe"}
+	METEXE=${METEXE:-"${WPSSRC}/GPC-MPI/${WPSBLD}/O3xSSSE3/metgrid.exe"}
+	REALEXE=${REALEXE:-"${WRFSRC}/GPC-MPI/${WRFBLD}/O3xSSSE3/real.exe"}
 elif [[ "${WPSSYS}" == "i7" ]]; then
-	METEXE=${METEXE:-"${WPSSRC}/i7-MPI/Clim-fineIO/O3xHost/metgrid.exe"}
-	REALEXE=${REALEXE:-"${WRFSRC}/i7-MPI/Clim-fineIO/O3xHost/real.exe"}
+	METEXE=${METEXE:-"${WPSSRC}/i7-MPI/${WPSBLD}/O3xHost/metgrid.exe"}
+	REALEXE=${REALEXE:-"${WRFSRC}/i7-MPI/${WRFBLD}/O3xHost/real.exe"}
 fi
-if [[ "${WRFSYS}" == "GPC" ]]; then
-	GEOEXE=${GEOEXE:-"${WPSSRC}/GPC-MPI/Clim-fineIO/O3xHost/geogrid.exe"} 
-	WRFEXE=${WRFEXE:-"${WRFSRC}/GPC-MPI/Clim-fineIO/O3xHostNC4/wrf.exe"}
-elif [[ "${WRFSYS}" == "TCS" ]]; then
-	GEOEXE=${GEOEXE:-"${WPSSRC}/TCS-MPI/Clim-fineIO/O3/geogrid.exe"}
-	WRFEXE=${WRFEXE:-"${WRFSRC}/TCS-MPI/Clim-fineIO/O3NC4/wrf.exe"}
-elif [[ "${WRFSYS}" == "P7" ]]; then
-	GEOEXE=${GEOEXE:-"${WPSSRC}/GPC-MPI/Clim-fineIO/O3xHost/geogrid.exe"}
-	WRFEXE=${WRFEXE:-"${WRFSRC}/P7-MPI/Clim-fineIO/O3pwr7NC4/wrf.exe"}
-elif [[ "${WRFSYS}" == "i7" ]]; then
-	GEOEXE=${GEOEXE:-"${WPSSRC}/i7-MPI/Clim-fineIO/O3xHost/geogrid.exe"}
-	WRFEXE=${WRFEXE:-"${WRFSRC}/i7-MPI/Clim-fineIO/O3xHostNC4/wrf.exe"}
-fi
+
+# default WRF and geogrid executables
+  if [[ "${WRFSYS}" == "GPC" ]]; then
+	  GEOEXE=${GEOEXE:-"${WPSSRC}/GPC-MPI/${WPSBLD}/O3xHost/geogrid.exe"} 
+	  WRFEXE=${WRFEXE:-"${WRFSRC}/GPC-MPI/${WRFBLD}/O3xHostNC4/wrf.exe"}
+  elif [[ "${WRFSYS}" == "TCS" ]]; then
+	  GEOEXE=${GEOEXE:-"${WPSSRC}/TCS-MPI/${WPSBLD}/O3/geogrid.exe"}
+	  WRFEXE=${WRFEXE:-"${WRFSRC}/TCS-MPI/${WRFBLD}/O3NC4/wrf.exe"}
+  elif [[ "${WRFSYS}" == "P7" ]]; then
+	  GEOEXE=${GEOEXE:-"${WPSSRC}/GPC-MPI/${WPSBLD}/O3xHost/geogrid.exe"}
+	  WRFEXE=${WRFEXE:-"${WRFSRC}/P7-MPI/${WRFBLD}/O3pwr7NC4/wrf.exe"}
+  elif [[ "${WRFSYS}" == "i7" ]]; then
+	  GEOEXE=${GEOEXE:-"${WPSSRC}/i7-MPI/${WPSBLD}/O3xHost/geogrid.exe"}
+	  WRFEXE=${WRFEXE:-"${WRFSRC}/i7-MPI/${WRFBLD}/O3xHostNC4/wrf.exe"}
+  fi
 # create run folder
 echo
 echo "   Creating Root Directory for Experiment ${NAME}"
@@ -128,7 +140,7 @@ ln -sf "${REALEXE}"
 # queue system
 if [[ "${WRFSYS}" == "GPC" ]]; then 
 	WRFQ='pbs' # GPC standard and largemem nodes
-elif [[ "${WRFSYS}" == "TCS" ]] || [[ "${WRFSYS}" == "P7" ]] || || [[ "${WRFSYS}" == "BGQ" ]]; then
+elif [[ "${WRFSYS}" == "TCS" ]] || [[ "${WRFSYS}" == "P7" ]] || [[ "${WRFSYS}" == "BGQ" ]]; then
 	WRFQ='ll'
 else
 	WRFQ='sh' # just a shell script on local system
@@ -147,7 +159,7 @@ if [[ "${WRFQ}" == "pbs" ]] || [[ "${WRFQ}" == "ll" ]]; then # if it has a queue
 if [[ "${WRFQ}" == "ll" ]]; then
     ln -sf "${WRFTOOLS}/Scripts/${WRFSYS}/sleepCycle.sh"; fi
 if [[ -n "${CYCLING}" ]]; then
-	ln -sf "${WRFTOOLS}/Scripts/${WRFSYS}/run_cycle_${WRFQ}.sh"
+	ln -sf "${WRFTOOLS}/Scripts/${WRFSYS}/start_cycle_${WRFQ}.sh"
 	ln -sf "${WRFTOOLS}/Python/cycling.py"
 	cp "${WRFTOOLS}/misc/stepfiles/stepfile.${CYCLING}" 'stepfile' 
 fi
@@ -176,8 +188,8 @@ else
 fi
 # run_cycle-script
 if [[ -n "${CYCLING}" ]]; then
-    sed -i "/WPSSCRIPT/ s/WPSSCRIPT=.*$/WPSSCRIPT=\'run_${CASETYPE}_WPS.${WPSQ}\' # WPS run-scripts/" "run_cycle_${WRFQ}.sh" # WPS run-script
-    sed -i "/WRFSCRIPT/ s/WRFSCRIPT=.*$/WRFSCRIPT=\'run_${CASETYPE}_WRF.${WRFQ}\' # WRF run-scripts/" "run_cycle_${WRFQ}.sh" # WPS run-script
+    sed -i "/WPSSCRIPT/ s/WPSSCRIPT=.*$/WPSSCRIPT=\'run_${CASETYPE}_WPS.${WPSQ}\' # WPS run-scripts/" "start_cycle_${WRFQ}.sh" # WPS run-script
+    sed -i "/WRFSCRIPT/ s/WRFSCRIPT=.*$/WRFSCRIPT=\'run_${CASETYPE}_WRF.${WRFQ}\' # WRF run-scripts/" "start_cycle_${WRFQ}.sh" # WPS run-script
 fi
 # archive script
 sed -i "/export ARSCRIPT/ s/export\sARSCRIPT=.*$/export ARSCRIPT=\'${ARSCRIPT}\' # archive script to be executed after WRF finishes/" "run_${CASETYPE}_WRF.${WRFQ}"
@@ -203,6 +215,8 @@ fi
 # radiation scheme
 RAD=$(sed -n '/ra_lw_physics/ s/^\s*ra_lw_physics\s*=\s*\(.\),.*$/\1/p' namelist.input) # \s = space
 echo "Determining radiation scheme from namelist: RAD=${RAD}"
+# write default RAD into job script ('sed' sometimes fails on TCS...)
+sed -i "/export RAD/ s/export\sRAD=.*$/export RAD=\'${RAD}\' # radiation scheme set by setup script/" "run_${CASETYPE}_WRF.${WRFQ}"
 # select scheme and print confirmation
 if [[ ${RAD} == 1 ]]; then
     echo "  Using RRTM radiation scheme."
@@ -220,6 +234,8 @@ fi
 # land-surface scheme
 LSM=$(sed -n '/sf_surface_physics/ s/^\s*sf_surface_physics\s*=\s*\(.\),.*$/\1/p' namelist.input) # \s = space
 echo "Determining land-surface scheme from namelist: LSM=${LSM}"
+# write default LSM into job script ('sed' sometimes fails on TCS...)
+sed -i "/export LSM/ s/export\sLSM=.*$/export LSM=\'${LSM}\' # land surface scheme set by setup script/" "run_${CASETYPE}_WRF.${WRFQ}"
 # select scheme and print confirmation
 if [[ ${LSM} == 1 ]]; then
     echo "  Using diffusive land-surface scheme."
@@ -237,9 +253,12 @@ else
     echo 'WARNING: no land-surface model selected!'
 fi
 # determine tables folder
-if [[ ${LSM} == 4 ]]; then
+if [[ ${LSM} == 4 ]]; then # NoahMP
   TABLES="${WRFTOOLS}/misc/tables-NoahMP/"
   echo "Linking Noah-MP tables: ${TABLES}"
+elif [[ ${POLARWRF} == 1 ]]; then # PolarWRF
+  TABLES="${WRFTOOLS}/misc/tables-PolarWRF/"
+  echo "Linking PolarWRF tables: ${TABLES}"
 else
   TABLES="${WRFTOOLS}/misc/tables/"
   echo "Linking default tables: ${TABLES}"
