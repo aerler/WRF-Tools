@@ -73,7 +73,7 @@ if __name__ == '__main__':
   # one time slot for each running process
   slots = numpy.zeros(nodes,dtype=int) # integer seconds
   # distribute running jobs to nodes
-  assert len(running) <= len(slots), warnings.warn('WARNING: number of nodes and number of runnign jobs inconsistent: %s'%len(running)) 
+  assert len(running) <= len(slots), warnings.warn('WARNING: number of nodes and number of running jobs inconsistent: %s'%len(running)) 
   for i in xrange(len(running)):
     slots[i] = running[i]
 #  print slots
