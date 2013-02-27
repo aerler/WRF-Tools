@@ -16,7 +16,7 @@
 ## submit to queue (NB: this has to be the last PBS line!)
 #PBS -q archive
 
-#set -o pipefail # through error (in exit code) if pipe fails 
+#set -o pipefail # through error (in exit code) if pipe fails
 trap "echo 'Job script not completed';exit 129" TERM INT
 # Note that your initial directory in HPSS will be /archive/$(id -gn)/$(whoami)/
 
@@ -24,24 +24,25 @@ trap "echo 'Job script not completed';exit 129" TERM INT
 # operation to perform: CHECK, LIST, REMOVE, BACKUP, RETRIEVE
 MODE=${MODE:-'BACKUP'} # default operation: 'BACKUP'
 RMSRC=${RMSRC:-'NO'} # set to 'RMSRC' to actually perform deletion
+VERIFY=${VERIFY:-'VERIFY'} # verify tarballs; can slow down operations significantly
 # N.B.: do not edit these variable; instead pass them as environment variables
 DATASET=${DATASET:-'FULL'} # default dataset: everything
 # N.B.: the datasets are defined in PROCESSDATASET below
 # data folder
-DST="${ARCHIVE}/${PBS_O_WORKDIR#/*/$(whoami)/}/" # replicate directory tree  
+DST=${DST:-"${ARCHIVE}/${PBS_O_WORKDIR#/*/$(whoami)/}/"} # replicate directory tree
 # replace things like '/scratch/g/group/user/' with $ARCHIVE
-SRC="${PBS_O_WORKDIR}/wrfout/" # output folder... where data is
+SRC=${SRC:-"${PBS_O_WORKDIR}/wrfout/"} # output folder... where data is
 
 # use this filename pattern to infer list of $TAGS
 PATTERN='_wrf.tgz' # filename "${TAG}${PATTERN}": remove $PATTERN, keep $TAG
 # if no tags are given, use file pattern to guess
-if [[ -z "${TAGS}" ]] && [[ -n "${PATTERN}" ]]; then 
+if [[ -z "${TAGS}" ]] && [[ -n "${PATTERN}" ]]; then
   cd "${SRC}"
-  for T in $( ls *${PATTERN} ); do 
+  for T in $( ls *${PATTERN} ); do
     TAGS="${TAGS} ${T%${PATTERN}}"; done # extract $TAG from filename
-fi # if no $TAGS 
+fi # if no $TAGS
 
-## function to verify the contents of an HTAR archive
+## function to check the contents of an HTAR archive
 function CHECKHTAR () {
   local HTAR="${DST}/${1}" # archive file (absolute path on HPSS)
   local FILES=${2} # list of files that should be in the archive
@@ -61,7 +62,7 @@ function CHECKHTAR () {
   done
   if [[ ${MISS} != 0 ]]; then echo; fi # visually offset missing file list
   # return number of missing files
-  return ${MISS}    
+  return ${MISS}
 }
 
 ## function to list contents of HTAR archive
@@ -77,7 +78,7 @@ function LISTHTAR () {
   else
     # list archive contents
 	htar -tvf "${HTAR}" -Hcrc -Hverify=1
-	MISS=$? 	
+	MISS=$?
   fi
   # return exit code
   return ${MISS}
@@ -86,7 +87,7 @@ function LISTHTAR () {
 ## function to verify contents of HTAR archive
 function VERIFYHTAR () {
   local HTAR="${DST}/${1}" # archive file (absolute path on HPSS)
-  local FILES=${2} # list of files that should be in the archive 
+  local FILES=${2} # list of files that should be in the archive
   local QUIET="${3}" # suppress positive output (still print missing files!)
   local MISS=0 # error code
   # print expected archive contents
@@ -97,10 +98,17 @@ function VERIFYHTAR () {
   if [[ $? != 0 ]]; then
 	echo "Warning: archive ${HTAR} does not exist."
 	MISS=1
-  else    
-    # verify archive contents
-    htar -Kvf "${HTAR}" -Hcrc -Hverify=1 "${FILES}"	
-    MISS=$? 	
+  else
+    if [[ "${VERIFY}" == 'VERIFY' ]]; then
+      # verify archive contents
+      htar -Kvf "${HTAR}" -Hcrc -Hverify=1 ${FILES}
+      MISS=$?
+    else
+      # verify without verification...
+      echo "Warning: verification is switched off - checking contents instead."
+      CHECKHTAR "${1}" "${2}" 'QUIET' # check contents
+      MISS=$?
+    fi # $VERIFY
   fi
   # return exit code
   return ${MISS}
@@ -109,39 +117,51 @@ function VERIFYHTAR () {
 ## function to remove source files of an HTAR archive
 function REMOVEHTAR () {
   local HTAR="${DST}/${1}" # archive file (absolute path on HPSS)
-  local FILES=${2} # list of files that should be in the archive 
+  local FILES=${2} # list of files that should be in the archive
   local LIST=$( htar -vtf "${HTAR}" | awk '{print $7}' ) # column 7 are the file names
   local MISS=0 # missing file counter
   # print expected archive contents
   echo "${HTAR}   ---   ${FILES}" # print feedback
-  VERIFYHTAR "${1}" "${2}"
-  if [[ $? == 0 ]]; then
-    # loop over files in list and check presence in HTAR list
-    for FILE in ${FILES}; do
-      if [[ "${FILE}" == $( echo "${LIST}" | sed -n "/${FILE}/p" ) ]]; then
-	if [[ "${RMSRC}" == 'RMSRC' ]]; then # additional safety check
-	  if [[ -e "${FILE}" ]]; then 
-	    echo "   >>> removing ${FILE}"
-	    rm "${FILE}"
-	  else echo "   >>> ${FILE} does not exist"; fi
-	else
-	  echo "   >>> would remove ${FILE}, if RMSRC='RMSRC' was set..."
-	fi # RMSRC
-      else
-	if [[ ${MISS} == 0 ]]; then echo; fi # visually offset missing file list
-	echo "WARNING: File ${FILE} missing in archive ${HTAR}"
-	echo "   >>> not deleting ${FILE}"
-	MISS=$(( ${MISS} + 1 ))
-      fi
-    done
+  # check is any of the files still exist
+  CNT=0; for F in "${FILES}"; do
+    if [[ -e "${F}" ]]; then CNT=$(( CNT + 1 )); fi; done;
+  if [[ ${CNT} == 0 ]]; then
+    echo '   >>> none of the files exist anymore - skipping this step!'
+    echo '   (use the VERIFY operation to verify integrity of the archive)'
   else
-    echo 
-    echo "   >>>   Cannot verify integrity of archive ${HTAR} - aborting!   <<<   "
-    echo
-    MISS=1q
+    if [[ "${VERIFY}" == 'VERIFY' ]]; then
+      # verify archive contents
+      VERIFYHTAR "${1}" "${2}" 'QUIET'
+      MISS=$?
+    fi # $VERIFY
+    if [[ $MISS == 0 ]]; then
+      # loop over files in list and check presence in HTAR list
+      for FILE in ${FILES}; do
+	if [[ "${FILE}" == $( echo "${LIST}" | sed -n "/${FILE}/p" ) ]]; then
+	  if [[ "${RMSRC}" == 'RMSRC' ]]; then # additional safety check
+	    if [[ -e "${FILE}" ]]; then
+	      echo "   >>> removing ${FILE}"
+	      rm "${FILE}"
+	    else echo "   ### ${FILE} does not exist"; fi
+	  else
+	    echo "   >>> would remove ${FILE}, if RMSRC='RMSRC' was set..."
+	  fi # RMSRC
+	else
+	  if [[ ${MISS} == 0 ]]; then echo; fi # visually offset missing file list
+	  echo "WARNING: File ${FILE} missing in archive ${HTAR}"
+	  echo "   >>> not deleting ${FILE}"
+	  MISS=$(( ${MISS} + 1 ))
+	fi
+      done
+    else
+      echo
+      echo "   >>>   Cannot verify integrity of archive ${HTAR} - aborting!   <<<   "
+      echo
+      MISS=1
+    fi
   fi
   # return number of missing files
-  return ${MISS}    
+  return ${MISS}
 }
 
 ## function to create a new HTAR archive
@@ -164,9 +184,19 @@ function BACKUPHTAR () {
   fi
   # create archive
   htar -cpf "${HTAR}" -Hcrc -Hverify=1 ${FILES}
-  # verify contents and return result
-  VERIFYHTAR "${1}" "${2}" 'QUIET'
-  # N.B.: CHECKHTAR also deletes the source file, if desired
+  # verify contents
+  if [[ "${VERIFY}" == 'VERIFY' ]]; then
+    # verify archive contents
+    echo "Verifying contents (not sure if this is necessary, but doesn't hurt.')"
+    VERIFYHTAR "${1}" "${2}" 'QUIET'
+    MISS=$?
+  else
+    # verify without verification...
+    echo "Warning: verification is switched off - checking contents instead."
+    CHECKHTAR "${1}" "${2}" 'QUIET' # check contents
+    MISS=$?
+  fi # $VERIFY
+  # return results of verification
   return $?
 }
 
@@ -176,17 +206,30 @@ function RETRIEVEHTAR () {
   local FILES=${2} # list of files to extract
   local MISS=0 # exit code
   echo "${HTAR}   >>>   ${FILES}" # print feedback
-  # check if archive exists
-  VERIFYHTAR "${1}" "${2}" 'QUIET' # also checks existence
-  MISS=$?
+  # check if archive exists and verify integrity (VERIFYHTAR checks existence)
+  if [[ "${VERIFY}" == 'VERIFY' ]]; then
+    # verify archive contents
+    echo "Verifying contents."
+    VERIFYHTAR "${1}" "${2}" 'QUIET'
+    MISS=$?
+  else
+    # verify without verification...
+    echo "Warning: verification is switched off - checking contents instead."
+    CHECKHTAR "${1}" "${2}" 'QUIET' # check contents
+    MISS=$?
+  fi # $VERIFY
   if [[ $MISS == 0 ]]; then
 	echo "Warning: cannot verify archive ${HTAR} - aborting!"
   else
     echo "Archive ${HTAR} exists - contents OK."
+    # check which files already exist
+    NFS=''; for F in ${FILES}; do # no quotes! white space delimited list!
+      if [[ ! -e "${F}" ]]; then NFS="${NFS} ${F}"; fi; done
     # extract archive
-    htar -xpmf "${HTAR}" -Hcrc -Hverify=1 ${FILES}
+    htar -xpmf "${HTAR}" -Hcrc -Hverify=1 ${NFS}
     MISS=$?
     # TODO: here some logic to skip already existing files might be useful...
+    # for example, existing files could be removed from the file list
   fi
   # verify contents and return result
   return ${MISS}
@@ -198,7 +241,7 @@ function PROCESSDATASET () {
   local ERR=0 # error counter
   ## define datasets
   # full backup
-  if [[ "${DATASET}" == 'FULL' ]]; then 
+  if [[ "${DATASET}" == 'FULL' ]]; then
     local STATIC="static.tgz wrfconst_d01.nc wrfconst_d02.nc" # only on cold start, otherwise skip
     local LOGS="${DATE}_pyWPS.tgz ${DATE}_real.tgz ${DATE}_wrf.tgz"
     local DIAGS="wrfxtrm_d01_${DATE}-01_00:00:00.nc wrfsrfc_d01_${DATE}-01_00:00:00.nc wrfplev3d_d01_${DATE}-01_00:00:00.nc wrfxtrm_d02_${DATE}-01_00:00:00.nc wrfsrfc_d02_${DATE}-01_00:00:00.nc wrfplev3d_d02_${DATE}-01_00:00:00.nc"
@@ -206,7 +249,7 @@ function PROCESSDATASET () {
     local DYN_D2="wrfdrydyn3d_d02_${DATE}-01_00:00:00.nc"
     local MISC_D1="wrfmoist3d_d01_${DATE}-01_00:00:00.nc wrflsm_d01_${DATE}-01_00:00:00.nc wrfrad_d01_${DATE}-01_00:00:00.nc wrfhydro_d01_${DATE}-01_00:00:00.nc wrffdda_d01_${DATE}-01_00:00:00.nc"
     local MISC_D2="wrfmoist3d_d02_${DATE}-01_00:00:00.nc wrflsm_d02_${DATE}-01_00:00:00.nc wrfrad_d02_${DATE}-01_00:00:00.nc wrfhydro_d02_${DATE}-01_00:00:00.nc"
-  elif [[ "${DATASET}" == 'DIAGS' ]]; then 
+  elif [[ "${DATASET}" == 'DIAGS' ]]; then
     unset DYN_D1 DYN_D2 MISC_D1 MISC_D2
     local STATIC="static.tgz wrfconst_d01.nc wrfconst_d02.nc" # only on cold start, otherwise skip
     local LOGS="${DATE}_pyWPS.tgz ${DATE}_real.tgz ${DATE}_wrf.tgz"
@@ -229,11 +272,11 @@ function PROCESSDATASET () {
     unset STATIC LOGS DIAGS MISC_D1 DYN_D1
     local DYN_D2="wrfdrydyn3d_d02_${DATE}-01_00:00:00.nc"
     local MISC_D2="wrfmoist3d_d02_${DATE}-01_00:00:00.nc wrflsm_d02_${DATE}-01_00:00:00.nc wrfrad_d02_${DATE}-01_00:00:00.nc"
-  elif [[ "${DATASET}" == 'LOGS' ]]; then 
+  elif [[ "${DATASET}" == 'LOGS' ]]; then
     unset DIAGS MISC_D1 DYN_D1 MISC_D2 DYN_D2
     local STATIC="static.tgz wrfconst_d01.nc wrfconst_d02.nc" # only on cold start, otherwise skip
     local LOGS="${DATE}_pyWPS.tgz ${DATE}_real.tgz ${DATE}_wrf.tgz"
-  fi # $DATASET  
+  fi # $DATASET
   # only large and unnecessary files
   # determine if this is a cold start or a restart
   if [[ -e "${SRC}/wrfrst_d01_${DATE}-01_00:00:00" ]]; then
@@ -262,7 +305,7 @@ function PROCESSDATASET () {
 	echo '  Pressure level and surface fields, log files (both domains):' # short description of archive
 	"${MODE}HTAR" "wrfdiags_${DATE}.tar" "${DIAGS} ${LOGS}"
 	ERR=$(( ${ERR} + $? )) # CHECKHTAR returns the number of missing files as exit code
-  fi; if [[ -n "${MISC_D1}" ]]; then 
+  fi; if [[ -n "${MISC_D1}" ]]; then
 	echo '  Miscellaneous field, including 3D moisture (outer domain):'
 	"${MODE}HTAR" "wrfmisc_d01_${DATE}.tar" "${MISC_D1}"
 	ERR=$(( ${ERR} + $? ))
@@ -270,7 +313,7 @@ function PROCESSDATASET () {
 	echo '  Miscellaneous field, including 3D moisture (inner domain):'
 	"${MODE}HTAR" "wrfmisc_d02_${DATE}.tar" "${MISC_D2}"
 	ERR=$(( ${ERR} + $? ))
-  fi; if [[ -n "${DYN_D1}" ]]; then	
+  fi; if [[ -n "${DYN_D1}" ]]; then
 	echo '  3D dry dynamics fields (outer domain):'
 	"${MODE}HTAR" "wrfdrydyn_d01_${DATE}.tar" "${DYN_D1}"
 	ERR=$(( ${ERR} + $? ))
@@ -290,6 +333,20 @@ function PROCESSDATASET () {
 }
 
 ## execution
+# feedback
+echo
+echo
+echo '  Settings'
+echo "Operation to perform: MODE=${MODE}"
+echo "Delete source files? RMSRC=${RMSRC}"
+echo "Verify tarball integrity? VERIFY=${VERIFY}"
+echo "File sets to work on: DATASET=${DATASET}"
+echo '  Data Folders'
+echo "Archive folder: DST=${DST}"
+echo "Source (disk) folder: SRC=${SRC}"
+echo
+echo
+
 # set up directories
 hsi mkdir -p "${DST}"
 cd "${SRC}"
@@ -299,7 +356,7 @@ ERRORS=0
 OPERATIONS=0
 # cycle over monthly output datasets
 for TAG in ${TAGS} # use WRF log-files as indicator
-do  
+do
   time -p PROCESSDATASET ${TAG}
   if [ $? == 0 ]; then OPERATIONS=$(( ${OPERATIONS} + 1 ))
   else ERRORS=$(( ${ERRORS} + 1 )); fi
@@ -308,9 +365,9 @@ do
   echo
 done
 hsi -q ls "${DST}"
- 
+
 trap - TERM INT
- 
+
 echo
 if [ ${ERRORS} == 0 ]; then
   echo "   <<<   ALL ${OPERATIONS} OPERATIONS OK   >>>   "
