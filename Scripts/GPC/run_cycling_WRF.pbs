@@ -12,12 +12,12 @@
 #PBS -m a
 # job name
 #PBS -N cycling_WRF
-# job dependency 
+# job dependency
 #PBS -W depend:afterok:cycling_WPS
 # N.B.: this ${PBS_JOBNAME%_WRF}_WPS does not work
 ## submit to queue (NB: this has to be the last PBS line!)
 # batch (default), debug, largemem
-#PBS -q batch 
+#PBS -q batch
 
 # check if $NEXTSTEP is set, and exit, if not
 set -e # abort if anything goes wrong
@@ -29,6 +29,7 @@ CURRENTSTEP="${NEXTSTEP}" # $NEXTSTEP will be overwritten
 export SCRIPTNAME="run_cycling_WRF.pbs" # WRF suffix assumed
 export DEPENDENCY="run_cycling_WPS.pbs" # WRF suffix assumed, WPS suffix substituted: ${JOBNAME%_WRF}_WPS
 export ARSCRIPT="" # archive script to be executed after WRF finishes
+export ARINTERVAL="" # default: every time
 export CLEARWDIR=0 # do not clear working director
 # run configuration
 export NODES=${PBS_NUM_NODES} # set in PBS section
@@ -46,7 +47,7 @@ export RAMDISK="/dev/shm/aerler/"
 # N.B.: RAMIN/OUT only works within a single node!
 
 ## WRF settings
-# optional arguments: $RUNWRF, $GHG ($RAD, $LSM) 
+# optional arguments: $RUNWRF, $GHG ($RAD, $LSM)
 export GHG='' # GHG emission scenario
 export RAD='' # radiation scheme
 export LSM='' # land surface scheme
@@ -71,7 +72,7 @@ NEXTSTEP=$(python cycling.py ${CURRENTSTEP})
 
 # launch WPS for next step (if $NEXTSTEP is not empty)
 if [[ -n "${NEXTSTEP}" ]] && [[ ! $NOWPS == 1 ]]
- then 
+ then
 	# this is only for the first instance; unset for next
 	echo "   ***   Launching WPS for next step: ${NEXTSTEP}   ***   "
 	echo
@@ -97,11 +98,19 @@ cd "${INIDIR}"
 # run script
 ./execWRF.sh
 # mock restart files for testing (correct linking)
-#if [[ -n "${NEXTSTEP}" ]]; then	  
+#if [[ -n "${NEXTSTEP}" ]]; then
 #	touch "${WORKDIR}/wrfrst_d01_${NEXTSTEP}_00"
-#	touch "${WORKDIR}/wrfrst_d01_${NEXTSTEP}_01" 
-#fi 
-wait # wait for WRF and WPS to finish
+#	touch "${WORKDIR}/wrfrst_d01_${NEXTSTEP}_01"
+#fi
+ERR=$? # capture exit code
+if [[ $ERR != 0 ]]; then
+  # end timing
+  echo
+  echo "   ###   WARNING: WRF step ${CURRENTSTEP} failed   ###   "
+  date
+  echo
+  exit ${ERR}
+fi # if error
 
 # end timing
 echo
@@ -109,51 +118,43 @@ echo "   ***   WRF step ${CURRENTSTEP} completed   ***   "
 date
 echo
 
-# launch archive script if specified
-if [[ -n "${ARSCRIPT}" ]]
- then
-	echo
-	echo "   ***   Launching archive script for WRF output: ${CURRENTSTEP}   ***   "
-	echo
-	ssh gpc01 "cd ${INIDIR}; qsub ./${ARSCRIPT} -v DATES=${CURRENTSTEP},BACKUP=BACKUP"
-fi
-
-## launch WRF for next step (if $NEXTSTEP is not empty)
-if [[ -n "${NEXTSTEP}" ]]
- then
-    RSTDATE=$(sed -n "/${NEXTSTEP}/ s/${NEXTSTEP}\s.\(.*\).\s.*$/\1/p" stepfile)
-	NEXTDIR="${INIDIR}/${NEXTSTEP}" # next $WORKDIR
-	cd "${NEXTDIR}"
-	# link restart files
-	echo 
-	echo "Linking restart files to next working directory:"
-	echo "${NEXTDIR}"
-	for RESTART in "${RSTDIR}"/wrfrst_d??_"${RSTDATE}"; do
-            ln -sf "${RESTART}"
-    done
-	# start next cycle
-	cd "${INIDIR}"
-	echo
-	echo "   ***   Launching WRF for next step: ${NEXTSTEP}   ***   "
-	echo
-	ssh gpc01 "cd ${INIDIR}; qsub ./${SCRIPTNAME} -v NEXTSTEP=${NEXTSTEP}"
-fi
-
 # copy driver script into work dir to signal completion
 cp "${INIDIR}/${SCRIPTNAME}" "${WORKDIR}"
 
-## alternative PBS settings
-##PBS -l nodes=1:ppn=8 
-##PBS -l walltime=0:15:00
-##PBS -W x=nodesetisoptional:false 
-##PBS -e $PBS_JOBNAME.$PBS_JOBID.err
+# launch archive script if specified
+if [[ -n "${ARSCRIPT}" ]]; then
+  # check trigger interval
+  ARTAG=''
+  if [[ "${ARINTERVAL}" == 'YEARLY' ]] && [[ "${CURRENTSTEP}" == ????-12 ]]; then
+    ARTAG="${CURRENTSTEP%'-12'}" # isolate interval, cut off rest
+  elif [[ "${ARINTERVAL}" == 'MONTHLY' ]] && [[ "${CURRENTSTEP}" == ????-?? ]]; then
+    ARTAG="${CURRENTSTEP}" # just the step tag
+  else
+    ARTAG="${CURRENTSTEP}"; fi
+  # decide to launch or not
+  if [[ -n "${ARTAG}" ]]; then
+    echo
+    echo "   ***   Launching archive script for WRF output: ${CURRENTSTEP}   ***   "
+    echo
+    ssh gpc-f104n084 "cd ${INIDIR}; qsub ./${ARSCRIPT} -v TAGS=${ARTAG},MODE=BACKUP,INTERVAL=${ARINTERVAL}"
+    # additional default options set in archive script: RMSRC, VERIFY, DATASET, DST, SRC
+fi; fi
 
-## old code fragments that may be useful later...
-	# N.B.: find is necessary to avoid linking all the linked restart files again
-	#find "${WORKDIR}" -maxdepth 1 -type f -name "wrfrst_d??_*" -exec ln -fs {} \;
-	# reset restart output timer manually ('override_restart_time' does not seem to work)
-	#module load udunits/2.1.11 nco/4.0.8-intel-nocxx 	
-	#for RESTART in wrfrst_d??_*; do 
-	#	ncatted -O -a 'WRF_ALARM_SECS_TIL_NEXT_RING_51,global,o,l,0' "${RESTART}"
-	#	ncatted -O -a 'WRF_ALARM_SECS_TIL_NEXT_RING_55,global,o,l,0' "${RESTART}"
-	#done 
+## launch WRF for next step (if $NEXTSTEP is not empty)
+if [[ -n "${NEXTSTEP}" ]]; then
+    RSTDATE=$(sed -n "/${NEXTSTEP}/ s/${NEXTSTEP}\s.\(.*\).\s.*$/\1/p" stepfile)
+    NEXTDIR="${INIDIR}/${NEXTSTEP}" # next $WORKDIR
+    cd "${NEXTDIR}"
+    # link restart files
+    echo
+    echo "Linking restart files to next working directory:"
+    echo "${NEXTDIR}"
+    for RESTART in "${RSTDIR}"/wrfrst_d??_"${RSTDATE}"; do
+	ln -sf "${RESTART}"; done
+    # start next cycle
+    cd "${INIDIR}"
+    echo
+    echo "   ***   Launching WRF for next step: ${NEXTSTEP}   ***   "
+    echo
+    ssh gpc01 "cd ${INIDIR}; qsub ./${SCRIPTNAME} -v NEXTSTEP=${NEXTSTEP}"
+fi

@@ -40,7 +40,7 @@
 
 # check if $NEXTSTEP is set, and exit, if not
 set -e # abort if anything goes wrong
-if [[ -z "${NEXTSTEP}" ]]; then 
+if [[ -z "${NEXTSTEP}" ]]; then
   echo 'Environment variable $NEXTSTEP not set - aborting!'
   exit 1
 fi
@@ -51,6 +51,7 @@ CURRENTSTEP="${NEXTSTEP}" # $NEXTSTEP will be overwritten
 export SCRIPTNAME="run_cycling_WRF.ll" # WRF suffix assumed
 export DEPENDENCY="run_cycling_WPS.pbs" # run WPS on GPC (WPS suffix substituted for WRF): ${LOADL_JOB_NAME%_WRF}_WPS
 export ARSCRIPT="" # archive script to be executed after WRF finishes
+export ARINTERVAL="" # default: every time
 export CLEARWDIR=0 # do not clear working director
 # run configuration
 export NODES=1 # also has to be set in LL section
@@ -67,7 +68,7 @@ export WORKDIR="${INIDIR}/${RUNNAME}/"
 # N.B.: RAMIN/OUT only works within a single node!
 
 ## WRF settings
-# optional arguments: $RUNWRF, $GHG ($RAD, $LSM) 
+# optional arguments: $RUNWRF, $GHG ($RAD, $LSM)
 export GHG='' # GHG emission scenario
 export RAD='' # radiation scheme
 export LSM='' # land surface scheme
@@ -92,7 +93,7 @@ NEXTSTEP=$(python cycling.py "${CURRENTSTEP}")
 
 # launch WPS for next step (if $NEXTSTEP is not empty)
 if [[ -n "${NEXTSTEP}" ]] && [[ ! $NOWPS == 1 ]]
- then 
+ then
 	echo "   ***   Launching WPS for next step: ${NEXTSTEP}   ***   "
 	echo
 	# submitting independent WPS job to GPC (not TCS!)
@@ -117,11 +118,19 @@ cd "${INIDIR}"
 # run script
 ./execWRF.sh
 # mock restart files for testing (correct linking)
-#if [[ -n "${NEXTSTEP}" ]]; then	  
+#if [[ -n "${NEXTSTEP}" ]]; then
 #	touch "${WORKDIR}/wrfrst_d01_${NEXTSTEP}_00"
-#	touch "${WORKDIR}/wrfrst_d01_${NEXTSTEP}_01" 
-#fi 
-wait # wait for WRF and WPS to finish
+#	touch "${WORKDIR}/wrfrst_d01_${NEXTSTEP}_01"
+#fi
+ERR=$? # capture exit code
+if [[ $ERR != 0 ]]; then
+  # end timing
+  echo
+  echo "   ###   WARNING: WRF step ${CURRENTSTEP} failed   ###   "
+  date
+  echo
+  exit ${ERR}
+fi # if error
 
 # end timing
 echo
@@ -129,17 +138,27 @@ echo "   ***   WRF step ${CURRENTSTEP} completed   ***   "
 date
 echo
 
+# copy driver script into work dir to signal completion
+cp "${INIDIR}/${SCRIPTNAME}" "${WORKDIR}"
+
 # launch archive script if specified
-if [[ -n "${ARSCRIPT}" ]]
- then
+if [[ -n "${ARSCRIPT}" ]]; then
+  # check trigger interval
+  ARTAG=''
+  if [[ "${ARINTERVAL}" == 'YEARLY' ]] && [[ "${CURRENTSTEP}" == ????-12 ]]; then
+    ARTAG="${CURRENTSTEP%'-12'}" # isolate interval, cut off rest
+  elif [[ "${ARINTERVAL}" == 'MONTHLY' ]] && [[ "${CURRENTSTEP}" == ????-?? ]]; then
+    ARTAG="${CURRENTSTEP}" # just the step tag
+  else
+    ARTAG="${CURRENTSTEP}"; fi
+  # decide to launch or not
+  if [[ -n "${ARTAG}" ]]; then
     echo
     echo "   ***   Launching archive script for WRF output: ${CURRENTSTEP}   ***   "
     echo
-    ssh gpc-f104n084 "cd ${INIDIR}; qsub ./${ARSCRIPT} -v DATES=${CURRENTSTEP},BACKUP=BACKUP"
-fi
-
-# copy driver script into work dir to signal completion
-cp "${INIDIR}/${SCRIPTNAME}" "${WORKDIR}"
+    ssh gpc-f104n084 "cd ${INIDIR}; qsub ./${ARSCRIPT} -v TAGS=${ARTAG},MODE=BACKUP,INTERVAL=${ARINTERVAL}"
+    # additional default options set in archive script: RMSRC, VERIFY, DATASET, DST, SRC
+fi; fi
 
 ## launch WRF for next step (if $NEXTSTEP is not empty)
 if [[ -n "${NEXTSTEP}" ]]
@@ -148,7 +167,7 @@ if [[ -n "${NEXTSTEP}" ]]
 	NEXTDIR="${INIDIR}/${NEXTSTEP}" # next $WORKDIR
 	cd "${NEXTDIR}"
 	# link restart files
-	echo 
+	echo
 	echo "Linking restart files to next working directory:"
 	echo "${NEXTDIR}"
 	for RESTART in "${RSTDIR}"/wrfrst_d??_"${RSTDATE}"; do
