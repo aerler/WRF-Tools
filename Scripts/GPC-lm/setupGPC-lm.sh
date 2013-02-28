@@ -1,1 +1,0 @@
-../GPC/setupGPC.sh
