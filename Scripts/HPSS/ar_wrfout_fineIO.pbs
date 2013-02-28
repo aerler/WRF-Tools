@@ -25,22 +25,26 @@ trap "echo 'Job script not completed';exit 129" TERM INT
 MODE=${MODE:-'BACKUP'} # default operation: 'BACKUP'
 RMSRC=${RMSRC:-'NO'} # set to 'RMSRC' to actually perform deletion
 VERIFY=${VERIFY:-'VERIFY'} # verify tarballs; can slow down operations significantly
+GLOB=${GLOB:-'NO'} # globbing expressions in file names? see DATASET and INTERVAL
 # N.B.: do not edit these variable; instead pass them as environment variables
-DATASET=${DATASET:-'FULL'} # default dataset: everything
+DATASET=${DATASET:-'FULL_D12'} # default dataset: everything
+INTERVAL=${INTERVAL:-'MONTHLY'} # default is monthly
 # N.B.: the datasets are defined in PROCESSDATASET below
 # data folder
 DST=${DST:-"${ARCHIVE}/${PBS_O_WORKDIR#/*/$(whoami)/}/"} # replicate directory tree
 # replace things like '/scratch/g/group/user/' with $ARCHIVE
 SRC=${SRC:-"${PBS_O_WORKDIR}/wrfout/"} # output folder... where data is
 
-# use this filename pattern to infer list of $TAGS
-PATTERN='_wrf.tgz' # filename "${TAG}${PATTERN}": remove $PATTERN, keep $TAG
-# if no tags are given, use file pattern to guess
-if [[ -z "${TAGS}" ]] && [[ -n "${PATTERN}" ]]; then
-  cd "${SRC}"
-  for T in $( ls *${PATTERN} ); do
-    TAGS="${TAGS} ${T%${PATTERN}}"; done # extract $TAG from filename
-fi # if no $TAGS
+# configure file according to archiving interval
+if [[ "${INTERVAL}" == "YEARLY" ]]; then
+  # use this filename pattern to infer list of $TAGS
+  PATTERN='-12_wrf.tgz' # filename "${TAG}${PATTERN}": remove $PATTERN, keep $TAG
+  GLOB='GLOB' # use globbing expressions in filenames
+elif [[ "${INTERVAL}" == "MONTHLY" ]]; then
+  # use this filename pattern to infer list of $TAGS
+  PATTERN='_wrf.tgz' # filename "${TAG}${PATTERN}": remove $PATTERN, keep $TAG
+  GLOB='NO' # use globbing expressions in filenames
+fi # ${INTERVAL}
 
 ## function to check the contents of an HTAR archive
 function CHECKHTAR () {
@@ -49,9 +53,12 @@ function CHECKHTAR () {
   local QUIET="${3}" # suppress positive output (still print missing files!)
   local LIST=$( htar -vtf "${HTAR}" | awk '{print $7}' ) # column 7 are the file names
   local MISS=0 # missing file counter
+  # evaluate globbing expression
+  if [[ "${GLOB}" == 'GLOB' ]]; then
+    FILES=$( ls ${FILES} ); fi
   # print expected archive contents
   if [[ "${QUIET}" != 'QUIET' ]]; then
-	echo "${HTAR}   :::   ${FILES}"; fi # print feedback
+    echo "${HTAR}   :::   ${FILES}"; fi # print feedback
   # loop over files in list and check presence in HTAR list
   for FILE in ${FILES}; do
     if [[ "${FILE}" != $( echo "${LIST}" | sed -n "/${FILE}/p" ) ]]; then
@@ -90,6 +97,9 @@ function VERIFYHTAR () {
   local FILES=${2} # list of files that should be in the archive
   local QUIET="${3}" # suppress positive output (still print missing files!)
   local MISS=0 # error code
+  # evaluate globbing expression
+  if [[ "${GLOB}" == 'GLOB' ]]; then
+    FILES=$( ls ${FILES} ); fi
   # print expected archive contents
   if [[ "${QUIET}" != 'QUIET' ]]; then
       echo "${HTAR}   :::   ${FILES}"; fi # print feedback
@@ -99,10 +109,16 @@ function VERIFYHTAR () {
 	echo "Warning: archive ${HTAR} does not exist."
 	MISS=1
   else
+    # verify archive contents
     if [[ "${VERIFY}" == 'VERIFY' ]]; then
-      # verify archive contents
-      htar -Kvf "${HTAR}" -Hcrc -Hverify=1 ${FILES}
-      MISS=$?
+      # evaluate globbing expression
+      if [[ "${GLOB}" == 'GLOB' ]]; then
+	htar -Kvf "${HTAR}" -Hcrc -Hverify=1 # verifying all files
+	MISS=$?
+      else
+	htar -Kvf "${HTAR}" -Hcrc -Hverify=1 ${FILES}
+	MISS=$?
+      fi # $GLOB
     else
       # verify without verification...
       echo "Warning: verification is switched off - checking contents instead."
@@ -120,12 +136,18 @@ function REMOVEHTAR () {
   local FILES=${2} # list of files that should be in the archive
   local LIST=$( htar -vtf "${HTAR}" | awk '{print $7}' ) # column 7 are the file names
   local MISS=0 # missing file counter
+  # check files on disk
+  if [[ "${GLOB}" == 'GLOB' ]]; then
+    # evaluate globbing expression
+    FILES=$( ls ${FILES} )
+  else # OR
+    # check if any of the files still exist
+    CNT=0; for F in "${FILES}"; do
+      if [[ -e "${F}" ]]; then CNT=$(( CNT + 1 )); fi; done;
+  fi # $GLOB
   # print expected archive contents
   echo "${HTAR}   ---   ${FILES}" # print feedback
-  # check is any of the files still exist
-  CNT=0; for F in "${FILES}"; do
-    if [[ -e "${F}" ]]; then CNT=$(( CNT + 1 )); fi; done;
-  if [[ ${CNT} == 0 ]]; then
+  if [[ -n "${CNT}" ]] && [[ ${CNT} == 0 ]]; then
     echo '   >>> none of the files exist anymore - skipping this step!'
     echo '   (use the VERIFY operation to verify integrity of the archive)'
   else
@@ -168,6 +190,9 @@ function REMOVEHTAR () {
 function BACKUPHTAR () {
   local HTAR="${DST}/${1}" # archive file (absolute path on HPSS)
   local FILES=${2} #
+  # evaluate globbing expression
+  if [[ "${GLOB}" == 'GLOB' ]]; then
+    FILES=$( ls ${FILES} ); fi
   # check if archive already exists
   echo "${FILES}   >>>   ${HTAR}" # print feedback
   hsi -q ls "${HTAR}" # quiet mode
@@ -205,6 +230,9 @@ function RETRIEVEHTAR () {
   local HTAR="${DST}/${1}" # archive file (absolute path on HPSS)
   local FILES=${2} # list of files to extract
   local MISS=0 # exit code
+  # evaluate globbing expression
+  if [[ "${GLOB}" == 'GLOB' ]]; then
+    FILES=$( ls ${FILES} ); fi
   echo "${HTAR}   >>>   ${FILES}" # print feedback
   # check if archive exists and verify integrity (VERIFYHTAR checks existence)
   if [[ "${VERIFY}" == 'VERIFY' ]]; then
@@ -222,12 +250,18 @@ function RETRIEVEHTAR () {
 	echo "Warning: cannot verify archive ${HTAR} - aborting!"
   else
     echo "Archive ${HTAR} exists - contents OK."
-    # check which files already exist
-    NFS=''; for F in ${FILES}; do # no quotes! white space delimited list!
-      if [[ ! -e "${F}" ]]; then NFS="${NFS} ${F}"; fi; done
-    # extract archive
-    htar -xpmf "${HTAR}" -Hcrc -Hverify=1 ${NFS}
-    MISS=$?
+    # evaluate globbing expression
+    if [[ "${GLOB}" == 'GLOB' ]]; then
+      # extract archive
+      htar -xpmf "${HTAR}" -Hcrc -Hverify=1 # all files: globbing!
+    else
+      # check which files already exist
+      NFS=''; for F in ${FILES}; do # no quotes! white space delimited list!
+	if [[ ! -e "${F}" ]]; then NFS="${NFS} ${F}"; fi; done
+      # extract archive
+      htar -xpmf "${HTAR}" -Hcrc -Hverify=1 ${NFS}
+      MISS=$?
+    fi # $GLOB
     # TODO: here some logic to skip already existing files might be useful...
     # for example, existing files could be removed from the file list
   fi
@@ -240,8 +274,11 @@ function PROCESSDATASET () {
   local DATE="${1}" # the current $TAG, in this context (WRF) the date...
   local ERR=0 # error counter
   ## define datasets
-  # full backup
-  if [[ "${DATASET}" == 'FULL' ]]; then
+  # use globbing expression if asked
+  if [[ "${GLOB}" == 'GLOB' ]]; then
+    DATE="${DATE}-[01][0-9]"; fi
+  # full backup (d01+d02)
+  if [[ "${DATASET}" == 'FULL_D12' ]]; then
     local STATIC="static.tgz wrfconst_d01.nc wrfconst_d02.nc" # only on cold start, otherwise skip
     local LOGS="${DATE}_pyWPS.tgz ${DATE}_real.tgz ${DATE}_wrf.tgz"
     local DIAGS="wrfxtrm_d01_${DATE}-01_00:00:00.nc wrfsrfc_d01_${DATE}-01_00:00:00.nc wrfplev3d_d01_${DATE}-01_00:00:00.nc wrfxtrm_d02_${DATE}-01_00:00:00.nc wrfsrfc_d02_${DATE}-01_00:00:00.nc wrfplev3d_d02_${DATE}-01_00:00:00.nc"
@@ -249,40 +286,53 @@ function PROCESSDATASET () {
     local DYN_D2="wrfdrydyn3d_d02_${DATE}-01_00:00:00.nc"
     local MISC_D1="wrfmoist3d_d01_${DATE}-01_00:00:00.nc wrflsm_d01_${DATE}-01_00:00:00.nc wrfrad_d01_${DATE}-01_00:00:00.nc wrfhydro_d01_${DATE}-01_00:00:00.nc wrffdda_d01_${DATE}-01_00:00:00.nc"
     local MISC_D2="wrfmoist3d_d02_${DATE}-01_00:00:00.nc wrflsm_d02_${DATE}-01_00:00:00.nc wrfrad_d02_${DATE}-01_00:00:00.nc wrfhydro_d02_${DATE}-01_00:00:00.nc"
-  elif [[ "${DATASET}" == 'DIAGS' ]]; then
+  # full backup for domain 1 (d01)
+  elif [[ "${DATASET}" == 'FULL_D1' ]]; then
+    unset DYN_D2 MISC_D2
+    local STATIC="static.tgz wrfconst_d01.nc wrfconst_d02.nc" # only on cold start, otherwise skip
+    local LOGS="${DATE}_pyWPS.tgz ${DATE}_real.tgz ${DATE}_wrf.tgz"
+    local DIAGS="wrfxtrm_d01_${DATE}-01_00:00:00.nc wrfsrfc_d01_${DATE}-01_00:00:00.nc wrfplev3d_d01_${DATE}-01_00:00:00.nc"
+    local DYN_D1="wrfdrydyn3d_d01_${DATE}-01_00:00:00.nc"
+    local MISC_D1="wrfmoist3d_d01_${DATE}-01_00:00:00.nc wrflsm_d01_${DATE}-01_00:00:00.nc wrfrad_d01_${DATE}-01_00:00:00.nc wrfhydro_d01_${DATE}-01_00:00:00.nc wrffdda_d01_${DATE}-01_00:00:00.nc"
+  # only smaller diagnostics (d01+d02)
+  elif [[ "${DATASET}" == 'DIAGS_D12' ]]; then
     unset DYN_D1 DYN_D2 MISC_D1 MISC_D2
     local STATIC="static.tgz wrfconst_d01.nc wrfconst_d02.nc" # only on cold start, otherwise skip
     local LOGS="${DATE}_pyWPS.tgz ${DATE}_real.tgz ${DATE}_wrf.tgz"
     local DIAGS="wrfxtrm_d01_${DATE}-01_00:00:00.nc wrfsrfc_d01_${DATE}-01_00:00:00.nc wrfplev3d_d01_${DATE}-01_00:00:00.nc wrfxtrm_d02_${DATE}-01_00:00:00.nc wrfsrfc_d02_${DATE}-01_00:00:00.nc wrfplev3d_d02_${DATE}-01_00:00:00.nc"
-  elif [[ "${DATASET}" == 'MISC3D' ]]; then
+  # all 3D fields  (d01+d02)
+  elif [[ "${DATASET}" == 'MISC3D_D12' ]]; then
     unset STATIC LOGS DIAGS
     local DYN_D1="wrfdrydyn3d_d01_${DATE}-01_00:00:00.nc"
     local DYN_D2="wrfdrydyn3d_d02_${DATE}-01_00:00:00.nc"
     local MISC_D1="wrfmoist3d_d01_${DATE}-01_00:00:00.nc wrflsm_d01_${DATE}-01_00:00:00.nc wrfrad_d01_${DATE}-01_00:00:00.nc wrffdda_d01_${DATE}-01_00:00:00.nc"
     local MISC_D2="wrfmoist3d_d02_${DATE}-01_00:00:00.nc wrflsm_d02_${DATE}-01_00:00:00.nc wrfrad_d02_${DATE}-01_00:00:00.nc"
-  elif [[ "${DATASET}" == 'DYN3D' ]]; then
+  # all 3D dry dynamics  (d01+d02)
+  elif [[ "${DATASET}" == 'DYN3D_D12' ]]; then
     unset STATIC LOGS DIAGS MISC_D1 MISC_D2
     local DYN_D1="wrfdrydyn3d_d01_${DATE}-01_00:00:00.nc"
     local DYN_D2="wrfdrydyn3d_d02_${DATE}-01_00:00:00.nc"
-  elif [[ "${DATASET}" == 'D13D' ]]; then
+  # dry dynamics for domain 1 (d01)
+  elif [[ "${DATASET}" == 'MISC3D_D1' ]]; then
     unset STATIC LOGS DIAGS MISC_D2 DYN_D2
     local DYN_D1="wrfdrydyn3d_d01_${DATE}-01_00:00:00.nc"
     local MISC_D1="wrfmoist3d_d01_${DATE}-01_00:00:00.nc wrflsm_d01_${DATE}-01_00:00:00.nc wrfrad_d01_${DATE}-01_00:00:00.nc wrffdda_d01_${DATE}-01_00:00:00.nc"
-  elif [[ "${DATASET}" == 'D23D' ]]; then
+  # dry dynamics for domain 2 (d02)
+  elif [[ "${DATASET}" == 'MISC3D_D2' ]]; then
     unset STATIC LOGS DIAGS MISC_D1 DYN_D1
     local DYN_D2="wrfdrydyn3d_d02_${DATE}-01_00:00:00.nc"
     local MISC_D2="wrfmoist3d_d02_${DATE}-01_00:00:00.nc wrflsm_d02_${DATE}-01_00:00:00.nc wrfrad_d02_${DATE}-01_00:00:00.nc"
+  # just log files
   elif [[ "${DATASET}" == 'LOGS' ]]; then
     unset DIAGS MISC_D1 DYN_D1 MISC_D2 DYN_D2
     local STATIC="static.tgz wrfconst_d01.nc wrfconst_d02.nc" # only on cold start, otherwise skip
     local LOGS="${DATE}_pyWPS.tgz ${DATE}_real.tgz ${DATE}_wrf.tgz"
   fi # $DATASET
-  # only large and unnecessary files
   # determine if this is a cold start or a restart
   if [[ -e "${SRC}/wrfrst_d01_${DATE}-01_00:00:00" ]]; then
     # restart run: backup restart file
-	if [[ -n "${MISC_D1}" ]]; then MISC_D1="${MISC_D1} wrfrst_d01_${DATE}-01_00:00:00"; fi
-	if [[ -n "${MISC_D2}" ]]; then MISC_D2="${MISC_D2} wrfrst_d02_${DATE}-01_00:00:00"; fi
+    if [[ -n "${MISC_D1}" ]]; then MISC_D1="${MISC_D1} wrfrst_d01_${DATE}-01_00:00:00"; fi
+    if [[ -n "${MISC_D2}" ]]; then MISC_D2="${MISC_D2} wrfrst_d02_${DATE}-01_00:00:00"; fi
     unset STATIC # skip this step
     # cold start: backup data tables, constants, and geogrid files
   fi
@@ -333,6 +383,11 @@ function PROCESSDATASET () {
 }
 
 ## execution
+
+# set up directories
+hsi mkdir -p "${DST}"
+cd "${SRC}"
+
 # feedback
 echo
 echo
@@ -340,16 +395,28 @@ echo '  Settings'
 echo "Operation to perform: MODE=${MODE}"
 echo "Delete source files? RMSRC=${RMSRC}"
 echo "Verify tarball integrity? VERIFY=${VERIFY}"
+echo "Use globbing expressions: GLOB=${GLOB}"
+echo '  Dataset'
 echo "File sets to work on: DATASET=${DATASET}"
+echo "Archiving interval: INTERVAL=${INTERVAL}"
 echo '  Data Folders'
 echo "Archive folder: DST=${DST}"
 echo "Source (disk) folder: SRC=${SRC}"
 echo
 echo
 
-# set up directories
-hsi mkdir -p "${DST}"
-cd "${SRC}"
+# if no TAGS are given, use file pattern to guess
+if [[ -z "${TAGS}" ]] && [[ -n "${PATTERN}" ]]; then
+  echo "Inferring TAGS from pattern: PATTERN=${PATTERN}"
+  for T in $( ls *${PATTERN} ); do
+    TAGS="${TAGS} ${T%${PATTERN}}"; done # extract $TAG from filename
+  echo "TAGS=${TAGS}"
+else
+  echo "TAGS provided by caller:"
+  echo "TAGS=${TAGS}"
+fi # if no $TAGS
+echo
+echo
 
 # set counter
 ERRORS=0
@@ -371,10 +438,12 @@ trap - TERM INT
 echo
 if [ ${ERRORS} == 0 ]; then
   echo "   <<<   ALL ${OPERATIONS} OPERATIONS OK   >>>   "
+  echo
+  exit 0
 else
   echo "   >>>   WARNING: ${ERRORS} OPERATIONS FAILD OR INCOMPLETE!   <<<   "
   echo "   >>>                 ${OPERATIONS} OPERATIONS OK             <<<   "
+  echo
   # /scinet/gpc/bin/exit2msg ${ERRORS} # translate exit codes to human-readable messages
   exit ${ERRORS}
 fi
-echo
