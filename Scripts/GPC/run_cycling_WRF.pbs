@@ -19,11 +19,13 @@
 # batch (default), debug, largemem
 #PBS -q batch
 
-# check if $NEXTSTEP is set, and exit, if not
 set -e # abort if anything goes wrong
-if [[ -z "${NEXTSTEP}" ]]; then exit 1; fi
+# check if $NEXTSTEP is set, and exit, if not
+if [[ -z "${NEXTSTEP}" ]]; then
+  echo 'Environment variable $NEXTSTEP not set - aborting!'
+  exit 1
+fi
 CURRENTSTEP="${NEXTSTEP}" # $NEXTSTEP will be overwritten
-
 
 ## job settings
 export SCRIPTNAME="run_cycling_WRF.pbs" # WRF suffix assumed
@@ -41,11 +43,6 @@ export RUNNAME="${CURRENTSTEP}" # strip WRF suffix
 export WORKDIR="${INIDIR}/${RUNNAME}/"
 export RAMDISK="/dev/shm/aerler/"
 
-## real.exe settings
-# optional arguments: $RUNREAL, $RAMIN, $RAMOUT
-# folders: $REALIN, $REALOUT
-# N.B.: RAMIN/OUT only works within a single node!
-
 ## WRF settings
 # optional arguments: $RUNWRF, $GHG ($RAD, $LSM)
 export GHG='' # GHG emission scenario
@@ -57,59 +54,47 @@ export WRFIN="${WORKDIR}" # same as $REALOUT
 export WRFOUT="${INIDIR}/wrfout/" # output directory
 export RSTDIR="${WRFOUT}"
 
-
-## setup environment
+# setup environment
 cd "${INIDIR}"
 source setup_GPC.sh # load machine-specific stuff
 
-
-## start execution
-# work in existing work dir, created by caller instance
+## pre-processing
+# work in existing work dir, created by previous job
 # N.B.: don't remove namelist files in working directory
 
 # read next step from stepfile
 NEXTSTEP=$(python cycling.py ${CURRENTSTEP})
 
-# launch WPS for next step (if $NEXTSTEP is not empty)
-if [[ -n "${NEXTSTEP}" ]] && [[ ! $NOWPS == 1 ]]
- then
-	# this is only for the first instance; unset for next
-	echo "   ***   Launching WPS for next step: ${NEXTSTEP}   ***   "
-	echo
-	# submitting independent WPS job
-	ssh gpc01 "cd ${INIDIR}; qsub ./${DEPENDENCY} -v NEXTSTEP=${NEXTSTEP}"
-else
-    echo '   >>>   Skipping WPS!   <<<'
-    echo
-fi
-# this is only for the first instance; unset for next
-unset NOWPS
+# launch WPS for next step
+./launchPreP.sh # primarily for WPS and real.exe
 
+# prepare directory
+cd "${INIDIR}"
+./prepWorkDir.sh # don't remove working directory ($CLEARWDIR=0)
 
 ## run WRF for this step
+# start timing
 echo
 echo "   ***   Launching WRF for current step: ${CURRENTSTEP}   ***   "
 date
 echo
 
-# prepare directory
-cd "${INIDIR}"
-./prepWorkDir.sh # don't remove working directory ($CLEARWDIR=0)
 # run script
 ./execWRF.sh
+ERR=$? # capture exit code
 # mock restart files for testing (correct linking)
 #if [[ -n "${NEXTSTEP}" ]]; then
 #	touch "${WORKDIR}/wrfrst_d01_${NEXTSTEP}_00"
 #	touch "${WORKDIR}/wrfrst_d01_${NEXTSTEP}_01"
 #fi
-ERR=$? # capture exit code
+
 if [[ $ERR != 0 ]]; then
   # end timing
   echo
   echo "   ###   WARNING: WRF step ${CURRENTSTEP} failed   ###   "
   date
   echo
-  exit ${ERR}
+  exit ${ERR} # abort if error occured!
 fi # if error
 
 # end timing
@@ -118,43 +103,11 @@ echo "   ***   WRF step ${CURRENTSTEP} completed   ***   "
 date
 echo
 
+## launch post-processing
+./launchPostP.sh # mainly archiving, but may include actual post-processing
+
+## resubmit job for next step
+./resubJob.sh # requires submission command from setup script
+
 # copy driver script into work dir to signal completion
 cp "${INIDIR}/${SCRIPTNAME}" "${WORKDIR}"
-
-# launch archive script if specified
-if [[ -n "${ARSCRIPT}" ]]; then
-  # check trigger interval
-  ARTAG=''
-  if [[ "${ARINTERVAL}" == 'YEARLY' ]] && [[ "${CURRENTSTEP}" == ????-12 ]]; then
-    ARTAG="${CURRENTSTEP%'-12'}" # isolate interval, cut off rest
-  elif [[ "${ARINTERVAL}" == 'MONTHLY' ]] && [[ "${CURRENTSTEP}" == ????-?? ]]; then
-    ARTAG="${CURRENTSTEP}" # just the step tag
-  else
-    ARTAG="${CURRENTSTEP}"; fi
-  # decide to launch or not
-  if [[ -n "${ARTAG}" ]]; then
-    echo
-    echo "   ***   Launching archive script for WRF output: ${CURRENTSTEP}   ***   "
-    echo
-    ssh gpc-f104n084 "cd ${INIDIR}; qsub ./${ARSCRIPT} -v TAGS=${ARTAG},MODE=BACKUP,INTERVAL=${ARINTERVAL}"
-    # additional default options set in archive script: RMSRC, VERIFY, DATASET, DST, SRC
-fi; fi
-
-## launch WRF for next step (if $NEXTSTEP is not empty)
-if [[ -n "${NEXTSTEP}" ]]; then
-    RSTDATE=$(sed -n "/${NEXTSTEP}/ s/${NEXTSTEP}\s.\(.*\).\s.*$/\1/p" stepfile)
-    NEXTDIR="${INIDIR}/${NEXTSTEP}" # next $WORKDIR
-    cd "${NEXTDIR}"
-    # link restart files
-    echo
-    echo "Linking restart files to next working directory:"
-    echo "${NEXTDIR}"
-    for RESTART in "${RSTDIR}"/wrfrst_d??_"${RSTDATE}"; do
-	ln -sf "${RESTART}"; done
-    # start next cycle
-    cd "${INIDIR}"
-    echo
-    echo "   ***   Launching WRF for next step: ${NEXTSTEP}   ***   "
-    echo
-    ssh gpc01 "cd ${INIDIR}; qsub ./${SCRIPTNAME} -v NEXTSTEP=${NEXTSTEP}"
-fi
