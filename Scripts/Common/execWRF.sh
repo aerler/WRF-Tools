@@ -2,7 +2,7 @@
 # driver script to run WRF itself: runs real.exe and wrf.exe
 # created 25/06/2012 by Andre R. Erler, GPL v3
 
-# variable defined in driver script: 
+# variable defined in driver script:
 # $TASKS, $THREADS, $HYBRIDRUN, $INIDIR, $WORKDIR
 # for real.exe
 # $RUNREAL, $REALIN, $RAMIN, REALOUT, $RAMOUT
@@ -12,6 +12,7 @@
 #set -e # abort if anything goes wrong
 
 ## prepare environment
+SCRIPTDIR=${SCRIPTDIR:-"${PWD}"} # script location
 NOCLOBBER=${NOCLOBBER:-'-n'} # prevent 'cp' from overwriting existing files
 # real.exe
 RAMDATA=/dev/shm/aerler/data/ # RAM disk data folder
@@ -32,10 +33,10 @@ TABLES=${TABLES:-"${INIDIR}/tables/"} # folder for WRF data tables
 #LSM=${LSM:-'Noah'} # output folder for WRF
 WRFLOG="wrf" # log folder for wrf.exe
 WRFTGZ="${RUNNAME}_${WRFLOG}.tgz" # archive for log folder
-# N.B.: tgz-extension also used later in cp *.tgz $WRFOUT 
+# N.B.: tgz-extension also used later in cp *.tgz $WRFOUT
 
 # assuming working directory is already present
-cp "${INIDIR}/execWRF.sh" "${WORKDIR}"
+cp "${SCRIPTDIR}/execWRF.sh" "${WORKDIR}"
 
 
 ## run WRF pre-processor: real.exe
@@ -53,7 +54,7 @@ if [[ ${RAMIN} == 1 ]] || [[ ${RAMOUT} == 1 ]]; then
     mkdir -p "${RAMDATA}" # create data folder on ramdisk
 fi # if using RAM disk
 # if working on RAM disk get data from hard disk
-if [[ ${RAMIN} == 1 ]]; then 
+if [[ ${RAMIN} == 1 ]]; then
 	echo
 	echo ' Copying metgrid data to ramdisk.'
 	echo
@@ -98,8 +99,8 @@ echo "Writing output to ${REALDIR}"
 echo
 time -p ${HYBRIDRUN} ./real.exe
 # check REAL exit status
-if [[ -n $(grep 'SUCCESS COMPLETE REAL_EM INIT' rsl.error.0000) ]]; 
-  then REALERR=0; 
+if [[ -n $(grep 'SUCCESS COMPLETE REAL_EM INIT' rsl.error.0000) ]];
+  then REALERR=0;
   else REALERR=1; fi
 # REALERR=$? # save WRF error code and pass on to exit
 echo
@@ -113,17 +114,17 @@ cd "$REALDIR"
 mv rsl.*.???? namelist.input namelist.output real.exe "${REALLOG}"
 tar czf ${REALTGZ} "${REALLOG}" # archive logs with data
 if [[ ! "$REALDIR" == "${WORKDIR}" ]]; then
-	rm -rf "${WORKDIR}/${REALLOG}" # remove existing logs, just in case 
+	rm -rf "${WORKDIR}/${REALLOG}" # remove existing logs, just in case
 	mv "${REALLOG}" "${WORKDIR}" # move log folder to working directory
 fi
 # copy/move date to output directory (hard disk) if necessary
-if [[ ! "$REALDIR" == "${REALOUT}" ]]; then 
+if [[ ! "$REALDIR" == "${REALOUT}" ]]; then
 	echo "Copying data to ${REALOUT}"
 	time -p mv wrf* ${REALTGZ} "${REALOUT}"
 fi
 # clean-up RAM disk
 if [[ ${RAMIN} == 1 ]] || [[ ${RAMOUT} == 1 ]]; then
-	rm -rf "${RAMDATA}" 
+	rm -rf "${RAMDATA}"
 fi
 
 # finish
@@ -147,7 +148,7 @@ echo
 
 ## link/copy relevant input files
 WRFDIR="${WORKDIR}" # could potentially be executed in RAM disk as well...
-mkdir -p "${WRFOUT}" # make sure data destination folder exists 
+mkdir -p "${WRFOUT}" # make sure data destination folder exists
 # essentials
 cd "${INIDIR}" # folder containing input files
 cp -P wrf.exe "${WRFDIR}"
@@ -163,14 +164,14 @@ if [[ -n "${SEDRAD}" ]]; then
 fi
 # select scheme and print confirmation
 if [[ ${RAD} == 'RRTM' ]] || [[ ${RAD} == 1 ]]; then
-	echo "Using RRTM radiation scheme." 
+	echo "Using RRTM radiation scheme."
     RADTAB="RRTM_DATA RRTM_DATA_DBL"
-elif [[ ${RAD} == 'CAM' ]] || [[ ${RAD} == 3 ]]; then 
+elif [[ ${RAD} == 'CAM' ]] || [[ ${RAD} == 3 ]]; then
 	echo "Using CAM radiation scheme."
     RADTAB="CAM_ABS_DATA CAM_AEROPT_DATA ozone.formatted ozone_lat.formatted ozone_plev.formatted"
     #RADTAB="${RADTAB} CAMtr_volume_mixing_ratio" # this is handled below
 elif [[ ${RAD} == 'RRTMG' ]] || [[ ${RAD} == 4 ]]; then
-	echo "Using RRTMG radiation scheme." 
+	echo "Using RRTMG radiation scheme."
     RADTAB="RRTMG_LW_DATA RRTMG_LW_DATA_DBL RRTMG_SW_DATA RRTMG_SW_DATA_DBL"
 else
     echo 'WARNING: no radiation scheme selected!'
@@ -184,33 +185,33 @@ if [[ -n "${SEDLSM}" ]]; then
 fi
 # select scheme and print confirmation
 if [[ ${LSM} == 'Diff' ]] || [[ ${LSM} == 1 ]]; then
-	echo "Using diffusive land-surface scheme." 
+	echo "Using diffusive land-surface scheme."
     LSMTAB="LANDUSE.TBL"
 elif [[ ${LSM} == 'Noah' ]] || [[ ${LSM} == 2 ]]; then
 	echo "Using Noah land-surface scheme."
     LSMTAB="SOILPARM.TBL VEGPARM.TBL GENPARM.TBL LANDUSE.TBL"
-elif [[ ${LSM} == 'RUC' ]] || [[ ${LSM} == 3 ]]; then 
+elif [[ ${LSM} == 'RUC' ]] || [[ ${LSM} == 3 ]]; then
 	echo "Using RUC land-surface scheme."
     LSMTAB="SOILPARM.TBL VEGPARM.TBL GENPARM.TBL LANDUSE.TBL"
-elif [[ ${LSM} == 'Noah-MP' ]] || [[ ${LSM} == 4 ]]; then 
+elif [[ ${LSM} == 'Noah-MP' ]] || [[ ${LSM} == 4 ]]; then
 	echo "Using Noah-MP land-surface scheme."
-    LSMTAB="SOILPARM.TBL VEGPARM.TBL GENPARM.TBL LANDUSE.TBL MPTABLE.TBL"    
+    LSMTAB="SOILPARM.TBL VEGPARM.TBL GENPARM.TBL LANDUSE.TBL MPTABLE.TBL"
 else
     echo 'WARNING: no land-surface model selected!'
     # this will only happen if no defaults are set and inferring from namelist via 'sed' failed
 fi
-# copy appropriate tables for physics options 
+# copy appropriate tables for physics options
 cd "${TABLES}"
 cp ${NOCLOBBER} ${RADTAB} ${LSMTAB} "${WRFDIR}"
 # copy data file for emission scenario, if applicable
 if [[ -n "${GHG}" ]]; then # only if $GHG is defined!
 	echo
-	if [[ ${RAD} == 'CAM' ]] || [[ ${RAD} == 3 ]]; then				 
-		echo "GHG emission scenario: ${GHG}"    	
+	if [[ ${RAD} == 'CAM' ]] || [[ ${RAD} == 3 ]]; then
+		echo "GHG emission scenario: ${GHG}"
 		cp ${NOCLOBBER} "CAMtr_volume_mixing_ratio.${GHG}" "${WRFDIR}/CAMtr_volume_mixing_ratio"
 	else
 		echo "WARNING: variable GHG emission scenarios not available with the ${RAD} scheme!"
-		unset GHG 
+		unset GHG
 		# N.B.: $GHG is used later to test if a variable GHG scenario has been used (for logging purpose)fi
 	fi
 	echo
@@ -219,12 +220,12 @@ fi
 # link to input data, if necessary
 cd "${WRFDIR}"
 if [[ "${WRFIN}" != "${WRFDIR}" ]]; then
-	echo 
+	echo
 	echo "Linking input data from location:"
 	echo "${WRFIN}"
 	for INPUT in "${WRFIN}"/wrf*_d??; do
 		ln -s "${INPUT}"
-	done 
+	done
 	echo
 fi
 ## run and time hybrid (mpi/openmp) job
@@ -236,8 +237,8 @@ echo
 # launch
 time -p ${HYBRIDRUN} ./wrf.exe
 # check WRF exit status
-if [[ -n $(grep 'SUCCESS COMPLETE WRF' 'rsl.error.0000') ]]; 
-  then WRFERR=0; 
+if [[ -n $(grep 'SUCCESS COMPLETE WRF' 'rsl.error.0000') ]];
+  then WRFERR=0;
   else WRFERR=1; fi
 # WRFERR=$? # save WRF error code and pass on to exit
 echo
@@ -248,17 +249,17 @@ rm -rf "${WORKDIR}/${WRFLOG}" # remove old logs
 mkdir -p "${WRFLOG}" # make folder for log files locally
 #cd "${WORKDIR}"
 # save log files and meta data
-mv rsl.*.???? namelist.output "${WRFLOG}" # do not add tables to logs: ${RADTAB} ${LSMTAB} 
+mv rsl.*.???? namelist.output "${WRFLOG}" # do not add tables to logs: ${RADTAB} ${LSMTAB}
 cp -P namelist.input wrf.exe "${WRFLOG}" # leave namelist in place
 if [[ -n "${GHG}" ]]; then # also add emission scenario to log
 	mv 'CAMtr_volume_mixing_ratio' "${WRFLOG}/CAMtr_volume_mixing_ratio.${GHG}"
 fi
 tar czf ${WRFTGZ} "${WRFLOG}" # archive logs with data
-if [[ ! "${WRFDIR}" == "${WORKDIR}" ]]; then 
+if [[ ! "${WRFDIR}" == "${WORKDIR}" ]]; then
 	mv "${WRFLOG}" "${WORKDIR}" # move log folder to working directory
 fi
 # copy/move data to output directory (hard disk) if necessary
-if [[ ! "${WRFDIR}" == "${WRFOUT}" ]]; then 
+if [[ ! "${WRFDIR}" == "${WRFOUT}" ]]; then
 	# move new restart files as well
 	for RESTART in "${WORKDIR}"/wrfrst_d??_????-??-??_??:??:??; do
 	    if [[ ! -h "${RESTART}" ]]; then

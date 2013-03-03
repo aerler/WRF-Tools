@@ -12,6 +12,7 @@ ARINTERVAL='YEARLY' # default is monthly (after every run), but yearly is prefer
 
 ## namelist definition section
 # list of namelist groups and used snippets
+MAXDOM=2 # number of domains in WRF and WPS
 # WRF
 TIME_CONTROL="cycling,$IO"
 DIAGS='hitop'
@@ -26,9 +27,6 @@ NAMELIST_QUILT=''
 SHARE='d02'
 GEOGRID="${DOMAINS}"
 METGRID='pywps'
-## some shortcuts for WRF/WPS settings
-MAXDOM=2 # number of domains in WRF and WPS
-FEEDBACK=0 # WRF nesting option: one-way=0 or two-way=1
 
 ## configure data sources
 RUNDIR="${PWD}"
@@ -40,9 +38,9 @@ GEOGRIDTBL="GEOGRID.TBL.FLAKE"
 METGRIDTBL="METGRID.TBL.CESM"
 
 ## system settings
-WRFTOOLS="${MODEL_ROOT}/WRF Tools/"
+WRFTOOLS="${MODEL_ROOT}/WRF-Tools-tmp/"
 # WPS executables
-WPSSYS="GPC-lm" # also affects unccsm.exe
+WPSSYS="GPC" # also affects unccsm.exe
 # set path for metgrid.exe and real.exe explicitly using METEXE and REALEXE
 # WRF executable
 WRFSYS="GPC"

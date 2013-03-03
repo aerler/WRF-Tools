@@ -1,44 +1,89 @@
 #!/bin/bash
-# mock script to launch execWPS.sh on my local system (i.e. without queue system)
-# created 08/07/2012 by Andre R. Erler, GPL v3
+# script to run a WPScycle in Bash (local)
+# created 02/03/2013 by Andre R. Erler, GPL v3
 
-# check if $STEP is set, and exit, if not
 set -e # abort if anything goes wrong
-if [[ -z "${NEXTSTEP}" ]]; then exit 1; fi
+# check if $NEXTSTEP is set, and exit, if not
+if [[ -z "${NEXTSTEP}" ]]; then
+  echo 'Environment variable $NEXTSTEP not set - aborting!'
+  exit 1
+fi
 CURRENTSTEP="${NEXTSTEP}" # $NEXTSTEP will be overwritten
 
-# parallelization
-export NODES=1 # only one available
-export TASKS=2
-export THREADS=1 # ${OMP_NUM_THREADS}
-#export OMP_NUM_THREADS=$THREADS
-export HYBRIDRUN="mpirun -n $((TASKS*NODES))" # OpenMPI, not Intel
-export NOCLOBBER='-n' # don't overwrite existing content
 
-# RAM disk (also set in Python script)
-export RAMDISK="/media/tmp/" # my local machines
-#export RAMDISK="/dev/shm/aerler/" # SciNet (GPC & P7 only)
-# working directories
-export RUNNAME="${CURRENTSTEP}" # $*STEP is provided by calling instance
-export INIDIR="$PWD"
+## job settings
+export JOBNAME='test' # job name (dummy variable, since there is no queue)
+export SCRIPTNAME="run_cycling_WPS.sh" # WPS suffix assumed
+# run configuration
+export NODES=1 # only one for WPS!
+export TASKS=16 # number of MPI task per node (Hpyerthreading?)
+export THREADS=1 # number of OpenMP threads
+# directory setup
+export INIDIR="${PWD}"
+export RUNNAME="${CURRENTSTEP}" # step name, not job name!
 export WORKDIR="${INIDIR}/${RUNNAME}/"
+export SCRIPTDIR="./scripts/" # location of component scripts (pre/post processing etc.)
+# N.B.: use relative path with './' or absolute path without
 
-# optional arguments
+## WPS settings
+# optional arguments $RUNPYWPS, $RUNREAL, $RAMIN, $RAMOUT
 export RUNPYWPS=1
 export RUNREAL=1
-# folders: $METDATA, $REALIN, $RAMIN, $REALOUT, $RAMOUT
-export RAMIN=1
-export RAMOUT=1
-export METDATA="${WORKDIR}" # actually we don't output metgrid data anyway
-export REALOUT="${WORKDIR}"
-# N.B.: this should actually all be default anyway...
+# RAM-disk settings: infer from queue
+if [[ "${PBS_QUEUE}" == 'largemem' ]]; then
+  export RAMIN=1
+  export RAMOUT=1
+  RAMMSG="Running on ${PBS_QUEUE} queue; using RAM disk for input and output." # displayed later
+else
+  export RAMIN=1
+  export RAMOUT=0
+  RAMMSG="Running on ${PBS_QUEUE} queue; using hard disk for input only." # displayed later
+fi # PBS_QUEUE
+# folders: $METDATA, $REALIN, $REALOUT
+export METDATA="" # to output metgrid data set "ldisk = True" in meta/namelist.py
+export REALOUT="${WORKDIR}" # this should be default anyway
 
-## start execution
-# work in existing work dir, created by caller instance
-# N.B.: don't remove namelist files in working directory
-# run script
-./execWPS.sh
+# setup environment
+cd "${INIDIR}"
+source "${SCRIPTDIR}/setup_i7.sh" # load machine-specific stuff
+# display message from before after setup display
+echo
+echo "${RAMMSG}"
+echo
 
-# copy driver script into work dir
-cp "${INIDIR}/execWPS.sh" "${WORKDIR}"
-cp "${INIDIR}/$0" "${WORKDIR}" 
+
+## run WPS for this step
+# start timing
+echo
+echo "   ***   Launching WPS for current step: ${CURRENTSTEP}   ***   "
+date
+echo
+
+# run WPS driver script
+cd "${INIDIR}"
+# eval "${SCRIPTDIR}/execWPS.sh"
+# ERR=$? # capture exit code
+# mock input files for testing
+ERR=0
+if [[ -n "${NEXTSTEP}" ]]; then
+	touch "${WORKDIR}/wrfinput_d01"
+	touch "${WORKDIR}/wrfinput_d02"
+fi
+
+if [[ $ERR != 0 ]]; then
+  # end timing
+  echo
+  echo "   ###   WARNING: WRF step ${CURRENTSTEP} failed   ###   "
+  date
+  echo
+  exit ${ERR} # abort if error occured!
+fi # if error
+
+# end timing
+echo
+echo "   ***   WPS step ${CURRENTSTEP} completed   ***   "
+date
+echo
+
+# copy driver script into work dir to signal completion
+cp "${INIDIR}/${SCRIPTNAME}" "${WORKDIR}"

@@ -9,7 +9,7 @@ cd "${INIDIR}"
 	echo
 if [[ $CLEARWDIR == 1 ]]; then
 	# only delete folder if we are running real.exe or input data is coming from elsewhere
-	echo 'Removing old working directory:' 
+	echo 'Removing old working directory:'
 	rm -rf "${WORKDIR}"
 	mkdir -p "${WORKDIR}"
 else

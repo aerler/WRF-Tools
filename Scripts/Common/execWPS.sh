@@ -2,12 +2,13 @@
 # driver script to run WRF pre-processing: runs pyWPS.py and real.exe on RAM disk
 # created 25/06/2012 by Andre R. Erler, GPL v3
 
-# variable defined in driver script: 
+# variable defined in driver script:
 # $TASKS, $THREADS, $HYBRIDRUN, ${WORKDIR}, $WORKDIR, $RAMDISK
 # optional arguments:
 # $RUNPYWPS, $METDATA, $RUNREAL, $REALIN, $RAMIN, $REALOUT, $RAMOUT
 
 ## prepare environment
+SCRIPTDIR=${SCRIPTDIR:-"${PWD}"} # script location
 NOCLOBBER=${NOCLOBBER:-'-n'} # prevent 'cp' from overwriting existing files
 # RAM disk
 RAMDATA="${RAMDISK}/data/" # data folder used by Python script
@@ -15,9 +16,9 @@ RAMTMP="${RAMDISK}/tmp/" # temporary folder used by Python script
 # pyWPS.py
 RUNPYWPS=${RUNPYWPS:-1} # whether to run runWPS.py
 PYDATA="${WORKDIR}/data/" # data folder used by Python script
-PYLOG="pyWPS" # log folder for Python script (use relative path for tar) 
+PYLOG="pyWPS" # log folder for Python script (use relative path for tar)
 PYTGZ="${RUNNAME}_${PYLOG}.tgz" # archive for log folder
-METDATA=${METDATA:-"${INIDIR}/metgrid/"} # final destination for metgrid data 
+METDATA=${METDATA:-"${INIDIR}/metgrid/"} # final destination for metgrid data
 # real.exe
 RUNREAL=${RUNREAL:-1} # whether to run real.exe
 REALIN=${REALIN:-"${METDATA}"} # location of metgrid files
@@ -28,7 +29,7 @@ REALLOG="real" # log folder for real.exe
 REALTGZ="${RUNNAME}_${REALLOG}.tgz" # archive for log folder
 
 # assuming working directory is already present
-cp "${INIDIR}/execWPS.sh" "${WORKDIR}"
+cp "${SCRIPTDIR}/execWPS.sh" "${WORKDIR}"
 # remove and recreate temporary folder (ramdisk)
 rm -rf "${RAMDATA}"
 mkdir -p "${RAMDATA}" # create data folder on ramdisk
@@ -47,7 +48,7 @@ echo
 # specific environment for pyWPS.py
 # N.B.: ´mkdir $RAMTMP´ is actually done by Python script
 # copy links to source data (or create links)
-cd "${INIDIR}" 
+cd "${INIDIR}"
 cp ${NOCLOBBER} -P atm lnd ice pyWPS.py unccsm.ncl unccsm.exe metgrid.exe "${WORKDIR}"
 cp ${NOCLOBBER} -r meta/ "${WORKDIR}"
 cp ${NOCLOBBER} -P geo_em.d??.nc "${WORKDIR}" # copy or link to geogrid files
@@ -75,7 +76,7 @@ rm "${RAMTMP}"/*.nc "${RAMTMP}"/*/*.nc # remove data files
 rm -rf "${WORKDIR}/${PYLOG}/" # remove existing logs, just in case
 cp -r "${RAMTMP}" "${WORKDIR}/${PYLOG}/" # copy entire folder and rename
 rm -rf "${RAMTMP}"
-# archive log files 
+# archive log files
 tar czf ${PYTGZ} "${PYLOG}/"
 # move metgrid data to final destination (if pyWPS wrote data to disk)
 if [[ -e "${PYDATA}" ]] && [[ ! "${METDATA}" == "${WORKDIR}" ]]; then
@@ -91,7 +92,7 @@ echo ' >>> WPS finished <<< '
 echo
 
 # if not running Python script, get data from disk
-elif [[ ${RAMIN} == 1 ]]; then 
+elif [[ ${RAMIN} == 1 ]]; then
 	echo
 	echo ' Copying source data to ramdisk.'
 	echo
@@ -99,7 +100,7 @@ elif [[ ${RAMIN} == 1 ]]; then
 fi # if RUNPYWPS
 
 
-echo 
+echo
 echo '   ***   ***   '
 echo
 
@@ -116,7 +117,7 @@ echo
 # copy namelist and link to real.exe into working directory
 cp ${NOCLOBBER} -P "${INIDIR}/real.exe" "${WORKDIR}" # link to executable real.exe
 cp ${NOCLOBBER} "${INIDIR}/namelist.input" "${WORKDIR}" # copy namelists
-# N.B.: this is necessary so that already existing files in $WORKDIR are used 
+# N.B.: this is necessary so that already existing files in $WORKDIR are used
 
 # resolve working directory for real.exe
 if [[ ${RAMOUT} == 1 ]]; then
@@ -153,8 +154,8 @@ echo "Writing output to ${REALDIR}"
 echo
 time -p ${HYBRIDRUN} ./real.exe
 # check REAL exit status
-if [[ -n $(grep 'SUCCESS COMPLETE REAL_EM INIT' rsl.error.0000) ]]; 
-  then REALERR=0; 
+if [[ -n $(grep 'SUCCESS COMPLETE REAL_EM INIT' rsl.error.0000) ]];
+  then REALERR=0;
   else REALERR=1; fi
 # REALERR=$? # save WRF error code and pass on to exit
 echo
@@ -168,11 +169,11 @@ mv rsl.*.???? namelist.output "${REALLOG}"
 cp -P namelist.input real.exe "${REALLOG}" # leave namelist in place
 tar czf ${REALTGZ} "${REALLOG}" # archive logs with data
 if [[ ! "${REALDIR}" == "${WORKDIR}" ]]; then
-	rm -rf "${WORKDIR}/${REALLOG}" # remove existing logs, just in case 
+	rm -rf "${WORKDIR}/${REALLOG}" # remove existing logs, just in case
 	mv "${REALLOG}" "${WORKDIR}" # move log folder to working directory
 fi
 # copy/move date to output directory (hard disk) if necessary
-if [[ ! "${REALDIR}" == "${REALOUT}" ]]; then 
+if [[ ! "${REALDIR}" == "${REALOUT}" ]]; then
 	echo "Copying data to ${REALOUT}"
 	time -p mv wrf* ${REALTGZ} "${REALOUT}"
 fi

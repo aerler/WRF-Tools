@@ -2,6 +2,14 @@
 # source script to load GPC-specific settings for pyWPS, WPS, and WRF
 # created 06/07/2012 by Andre R. Erler, GPL v3
 
+# launch feedback etc.
+echo
+hostname
+uname
+echo
+echo "   ***   ${PBS_JOBNAME}   ***   "
+echo
+
 # load modules
 module purge
 module load intel/12.1.3 intelmpi/4.0.3.008 hdf5/187-v18-serial-intel netcdf/4.1.3_hdf5_serial-intel
@@ -27,5 +35,8 @@ export RAMDISK="/dev/shm/aerler/"
 #export KMP_AFFINITY=verbose,granularity=thread,compact
 #export I_MPI_PIN_DOMAIN=omp
 export I_MPI_DEBUG=1 # less output (currently no problems)
-# launch Intel hybrid (mpi/openmp) job
-export HYBRIDRUN="mpirun -ppn ${TASKS} -np $((NODES*TASKS))" # only one node for WPS!
+# Intel hybrid (mpi/openmp) job launch command
+export HYBRIDRUN='mpirun -ppn ${TASKS} -np $((NODES*TASKS))' # evaluated by execWRF and execWPS
+
+# job submission command (for next step)
+export RESUBJOB='ssh gpc01 "cd ${INIDIR}; qsub ./${SCRIPTNAME} -v NEXTSTEP=${NEXTSTEP}"' # evaluated by resubJob
