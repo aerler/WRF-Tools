@@ -24,5 +24,11 @@ export RAMDISK="/media/tmp/"
 #export OMP_NUM_THREADS=$THREADS
 export HYBRIDRUN="mpirun -n $((TASKS*NODES))" # OpenMPI, not Intel
 
+# WPS/preprocessing submission command (for next step)
+export SUBMITWPS='cd ${INIDIR}; export NEXTSTEP=${NEXTSTEP}; ./${DEPENDENCY} &' # evaluated by resubJob
+
+# archive submission command (for last step)
+export SUBMITAR='echo "cd ${INIDIR}; TAGS=${ARTAG}; export MODE=BACKUP; export INTERVAL=${ARINTERVAL}; ./${ARSCRIPT}"'
+
 # job submission command (for next step)
 export RESUBJOB='cd ${INIDIR}; export NEXTSTEP=${NEXTSTEP}; ./${SCRIPTNAME} &' # evaluated by resubJob

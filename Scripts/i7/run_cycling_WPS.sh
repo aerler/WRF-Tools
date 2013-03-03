@@ -23,22 +23,13 @@ export INIDIR="${PWD}"
 export RUNNAME="${CURRENTSTEP}" # step name, not job name!
 export WORKDIR="${INIDIR}/${RUNNAME}/"
 export SCRIPTDIR="./scripts/" # location of component scripts (pre/post processing etc.)
+export BINDIR="./bin/" # location of executables (WRF and WPS)
 # N.B.: use relative path with './' or absolute path without
 
 ## WPS settings
 # optional arguments $RUNPYWPS, $RUNREAL, $RAMIN, $RAMOUT
 export RUNPYWPS=1
 export RUNREAL=1
-# RAM-disk settings: infer from queue
-if [[ "${PBS_QUEUE}" == 'largemem' ]]; then
-  export RAMIN=1
-  export RAMOUT=1
-  RAMMSG="Running on ${PBS_QUEUE} queue; using RAM disk for input and output." # displayed later
-else
-  export RAMIN=1
-  export RAMOUT=0
-  RAMMSG="Running on ${PBS_QUEUE} queue; using hard disk for input only." # displayed later
-fi # PBS_QUEUE
 # folders: $METDATA, $REALIN, $REALOUT
 export METDATA="" # to output metgrid data set "ldisk = True" in meta/namelist.py
 export REALOUT="${WORKDIR}" # this should be default anyway
@@ -48,7 +39,17 @@ cd "${INIDIR}"
 source "${SCRIPTDIR}/setup_i7.sh" # load machine-specific stuff
 # display message from before after setup display
 echo
-echo "${RAMMSG}"
+# RAM-disk settings
+if [[ -e "${RAMDISK}" ]]; then
+  export RAMIN=1
+  export RAMOUT=1
+  echo "RAM-disk found at ${RAMDISK}"
+  echo 'Using RAM disk for input and output.'
+else
+  export RAMIN=0
+  export RAMOUT=0
+  echo 'No RAM-disk found - using hard disk for input and output.'
+fi # RAMDISK
 echo
 
 

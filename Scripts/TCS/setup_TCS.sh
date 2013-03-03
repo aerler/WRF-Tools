@@ -54,5 +54,11 @@ export HYBRIDRUN='poe ccsm_launch'
 # tasks must match the task_geometry statement describing the process placement
 # on the nodes.
 
+# WPS/preprocessing submission command (for next step)
+export SUBMITWPS='ssh gpc01 "cd ${INIDIR}; qsub ./${DEPENDENCY} -v NEXTSTEP=${NEXTSTEP}"'
+
+# archive submission command (for last step)
+export SUBMITAR='ssh gpc-f104n084 "cd ${INIDIR}; qsub ./${ARSCRIPT} -v TAGS=${ARTAG},MODE=BACKUP,INTERVAL=${ARINTERVAL}"'
+
 # job submission command (for next step)
 export RESUBJOB='ssh tcs-f11n06 "cd \"${INIDIR}\"; export NEXTSTEP=${NEXTSTEP}; llsubmit ./${SCRIPTNAME}"' # evaluated by resubJob

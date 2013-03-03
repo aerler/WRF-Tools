@@ -9,14 +9,15 @@ set -e # abort if anything goes wrong
 export STEPFILE=${STEPFILE:-'stepfile'} # file in $INIDIR
 export INIDIR=${INIDIR:-"${PWD}"} # current directory
 export SCRIPTDIR=${SCRIPTDIR:-"./scripts"} # location of the setup-script
+export BINDIR="./bin/" # location of geogrid.exe
 export METDATA=${METDATA:-''} # don't save metgrid output
 export WRFOUT=${WRFOUT:-"${INIDIR}/wrfout/"} # WRF output folder
 export WPSSCRIPT=${WPSSCRIPT:-'run_cycling_WPS.ll'} # WPS run-scripts
 export WRFSCRIPT=${WRFSCRIPT:-'run_cycling_WRF.ll'} # WRF run-scripts
 export STATICTGZ=${STATICTGZ:-'static.tgz'} # file for static data backup
 # geogrid command (executed during machine-independent setup)
-export GEOGRID=${GEOGRID:-'mpiexec -n 8 ./geogrid.exe > /dev/null'} # hide stdout
-# 'ssh gpc04 "cd ${INIDIR}; source setup_GPC.sh; mpirun -n 4 ./geogrid.exe" > /dev/null' # run on GPC via ssh
+export GEOGRID=${GEOGRID:-"mpiexec -n 8 ${BINDIR}/geogrid.exe > /dev/null"} # hide stdout
+# export GEOGRID=${GEOGRID:-"ssh gpc04 \"cd ${INIDIR}; source setup_GPC.sh; mpirun -n 4 ${BINDIR}/geogrid.exe\" > /dev/null"} # hide stdout; run on GPC via ssh
 
 # translate arguments
 export MODE="${1}" # NOGEO*, RESTART, START

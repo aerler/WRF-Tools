@@ -34,6 +34,8 @@ if [[ -z "${NEXTSTEP}" ]]; then
   exit 1
 fi
 CURRENTSTEP="${NEXTSTEP}" # $NEXTSTEP will be overwritten
+export NEXTSTEP
+export CURRENTSTEP
 
 
 ## job settings
@@ -51,6 +53,7 @@ export INIDIR="${LOADL_STEP_INITDIR}" # launch directory
 export RUNNAME="${CURRENTSTEP}" # step name, not job name!
 export WORKDIR="${INIDIR}/${RUNNAME}/"
 export SCRIPTDIR="./scripts/" # location of component scripts (pre/post processing etc.)
+export BINDIR="./bin/" # location of executables (WRF and WPS)
 # N.B.: use relative path with './' or absolute path without
 
 ## real.exe settings

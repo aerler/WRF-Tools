@@ -22,7 +22,10 @@ if [[ -n "${ARSCRIPT}" ]]
 	echo
 	echo "   ***   Launching archive script for WRF output: ${CURRENTSTEP}   ***   "
 	echo
-	ssh gpc-f104n084 "cd ${INIDIR}; qsub ./${ARSCRIPT} -v TAGS=${ARTAG},MODE=BACKUP,INTERVAL=${ARINTERVAL}"
+	echo "Command: ${SUBMITAR}" # print command
+	echo "Variables: INIDIR=${INIDIR}, ARSCRIPT=${ARSCRIPT}, ARTAG=${ARTAG}, ARINTERVAL=${ARINTERVAL}"
+	eval "${SUBMITAR}" # using variables: $ARTAG, $ARINTERVAL
+	# using these default options: TAGS=${ARTAG},MODE=BACKUP,INTERVAL=${ARINTERVAL}
 	# additional default options set in archive script: RMSRC, VERIFY, DATASET, DST, SRC
     fi # $ARTAG
 

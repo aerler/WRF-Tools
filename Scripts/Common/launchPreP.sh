@@ -14,12 +14,16 @@ if [[ -n "${NEXTSTEP}" ]] && [[ ! $NOWPS == 1 ]]
     echo "   ***   Launching WPS for next step: ${NEXTSTEP}   ***   "
     echo
     # submitting independent WPS job
-    ssh gpc01 "cd ${INIDIR}; qsub ./${DEPENDENCY} -v NEXTSTEP=${NEXTSTEP}"
+    echo "Command: "${SUBMITWPS} # print command
+    echo "Variables: INIDIR=${INIDIR}, NEXTSTEP=${NEXTSTEP}, DEPENDENCY=${DEPENDENCY}"
+    eval "${SUBMITWPS}" # using variables: $INIDIR, $DEPENDENCY, $NEXTSTEP
 
 else
+
     echo
     echo '   >>>   Skipping WPS!   <<<'
     echo
+
 fi # WPS?
 
 # this is only for the first instance; unset for next

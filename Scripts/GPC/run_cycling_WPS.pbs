@@ -39,6 +39,7 @@ export INIDIR="${PBS_O_WORKDIR}"
 export RUNNAME="${CURRENTSTEP}" # step name, not job name!
 export WORKDIR="${INIDIR}/${RUNNAME}/"
 export SCRIPTDIR="./scripts/" # location of component scripts (pre/post processing etc.)
+export BINDIR="./bin/" # location of executables (WRF and WPS)
 # N.B.: use relative path with './' or absolute path without
 
 ## WPS settings

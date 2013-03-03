@@ -9,13 +9,15 @@ if [[ -z "${NEXTSTEP}" ]]; then
   exit 1
 fi
 CURRENTSTEP="${NEXTSTEP}" # $NEXTSTEP will be overwritten
+export NEXTSTEP
+export CURRENTSTEP
 
 
 ## job settings
 export JOBNAME='test' # job name (dummy variable, since there is no queue)
 export SCRIPTNAME="run_cycling_WRF.sh" # WRF suffix assumed
 export DEPENDENCY="run_cycling_WPS.sh" # WRF suffix assumed, WPS suffix substituted: ${JOBNAME%_WRF}_WPS
-export ARSCRIPT="" # archive script to be executed after WRF finishes
+export ARSCRIPT="DUMMY" # archive script to be executed after WRF finishes
 export ARINTERVAL="" # default: every time
 export WAITFORWPS='NO' # stay on compute node until WPS for next step finished, in order to submit next WRF job
 # run configuration
@@ -27,6 +29,7 @@ export INIDIR="${PWD}" # experiment root (launch directory)
 export RUNNAME="${CURRENTSTEP}" # step name, not job name!
 export WORKDIR="${INIDIR}/${RUNNAME}/" # step folder
 export SCRIPTDIR="./scripts/" # location of component scripts (pre/post processing etc.)
+export BINDIR="./bin/" # location of executables (WRF and WPS)
 # N.B.: use relative path with './' or absolute path without
 
 ## real.exe settings

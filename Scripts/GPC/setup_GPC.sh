@@ -38,5 +38,11 @@ export I_MPI_DEBUG=1 # less output (currently no problems)
 # Intel hybrid (mpi/openmp) job launch command
 export HYBRIDRUN='mpirun -ppn ${TASKS} -np $((NODES*TASKS))' # evaluated by execWRF and execWPS
 
+# WPS/preprocessing submission command (for next step)
+export SUBMITWPS='ssh gpc01 "cd ${INIDIR}; qsub ./${DEPENDENCY} -v NEXTSTEP=${NEXTSTEP}"'
+
+# archive submission command (for last step)
+export SUBMITAR='ssh gpc-f104n084 "cd ${INIDIR}; qsub ./${ARSCRIPT} -v TAGS=${ARTAG},MODE=BACKUP,INTERVAL=${ARINTERVAL}"'
+
 # job submission command (for next step)
 export RESUBJOB='ssh gpc01 "cd ${INIDIR}; qsub ./${SCRIPTNAME} -v NEXTSTEP=${NEXTSTEP}"' # evaluated by resubJob
