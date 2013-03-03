@@ -3,7 +3,7 @@
 
 ## queue/PBS settings
 # 72h is maximum for long queue, 1h for short
-#PBS -l walltime=3:00:00
+#PBS -l walltime=72:00:00
 # merge standard error and output stream
 #PBS -j oe
 #PBS -o $PBS_JOBNAME.$PBS_JOBID.out
@@ -12,7 +12,7 @@
 #PBS -M aerler@atmosp.physics.utoronto.ca
 #PBS -m a
 # job name
-#PBS -N ar_test
+#PBS -N ar_new_hitop
 ## submit to queue (NB: this has to be the last PBS line!)
 #PBS -q archive
 
@@ -21,7 +21,8 @@ trap "echo 'Job script not completed';exit 129" TERM INT
 # Note that your initial directory in HPSS will be /archive/$(id -gn)/$(whoami)/
 
 ## definitions
-# operation to perform: CHECK, LIST, REMOVE, BACKUP, RETRIEVE
+# set $TAGS to determine, which file sets to archive
+# operation to perform: CHECK, LIST, VERIFY, REMOVE, BACKUP, RETRIEVE
 MODE=${MODE:-'BACKUP'} # default operation: 'BACKUP'
 RMSRC=${RMSRC:-'NO'} # set to 'RMSRC' to actually perform deletion
 VERIFY=${VERIFY:-'VERIFY'} # verify tarballs; can slow down operations significantly
@@ -327,6 +328,13 @@ function PROCESSDATASET () {
     unset DIAGS MISC_D1 DYN_D1 MISC_D2 DYN_D2
     local STATIC="static.tgz wrfconst_d01.nc wrfconst_d02.nc" # only on cold start, otherwise skip
     local LOGS="${DATE}_pyWPS.tgz ${DATE}_real.tgz ${DATE}_wrf.tgz"
+  # return error if dataset not found
+  else
+    unset DIAGS MISC_D1 DYN_D1 MISC_D2 DYN_D2 STATIC LOGS
+    echo
+    echo "   >>>   WARNING: dataset ${DATASET} not found! (aborting)   <<<   "
+    echo
+    return 1
   fi # $DATASET
   # determine if this is a cold start or a restart
   if [[ -e "${SRC}/wrfrst_d01_${DATE}-01_00:00:00" ]]; then
