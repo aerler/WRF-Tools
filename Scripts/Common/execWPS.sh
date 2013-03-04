@@ -48,10 +48,9 @@ if [[ ${RUNPYWPS} == 1 ]]
 
     # specific environment for pyWPS.py
     # N.B.: ´mkdir $RAMTMP´ is actually done by Python script
-    # copy links to source data (or create links)
-    cd "${BINDIR}"
-    cp ${NOCLOBBER} -P "${BINDIR}/pyWPS.py" "${BINDIR}/unccsm.ncl" "${BINDIR}/unccsm.exe" "${BINDIR}/metgrid.exe" "${WORKDIR}"
     cd "${INIDIR}"
+    # copy links to source data (or create links)
+    cp ${NOCLOBBER} -P "${BINDIR}/pyWPS.py" "${BINDIR}/unccsm.ncl" "${BINDIR}/unccsm.exe" "${BINDIR}/metgrid.exe" "${WORKDIR}"
     cp ${NOCLOBBER} -P "${INIDIR}/atm" "${INIDIR}/lnd" "${INIDIR}/ice" "${WORKDIR}"
     cp ${NOCLOBBER} -r "${INIDIR}/meta/" "${WORKDIR}"
     cp ${NOCLOBBER} -P "${INIDIR}/"geo_em.d??.nc "${WORKDIR}" # copy or link to geogrid files

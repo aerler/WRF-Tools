@@ -2,14 +2,6 @@
 # source script to load GPC-specific settings for pyWPS, WPS, and WRF
 # created 06/07/2012 by Andre R. Erler, GPL v3
 
-# launch feedback etc.
-echo
-hostname
-uname
-echo
-echo "   ***   ${PBS_JOBNAME}   ***   "
-echo
-
 # load modules
 module purge
 module load intel/12.1.3 intelmpi/4.0.3.008 hdf5/187-v18-serial-intel netcdf/4.1.3_hdf5_serial-intel
@@ -39,10 +31,10 @@ export I_MPI_DEBUG=1 # less output (currently no problems)
 export HYBRIDRUN='mpirun -ppn ${TASKS} -np $((NODES*TASKS))' # evaluated by execWRF and execWPS
 
 # WPS/preprocessing submission command (for next step)
-export SUBMITWPS='ssh gpc01 "cd ${INIDIR}; qsub ./${DEPENDENCY} -v NEXTSTEP=${NEXTSTEP}"'
+export SUBMITWPS='ssh gpc01 "cd \"${INIDIR}\"; qsub ./${WPSSCRIPT} -v NEXTSTEP=${NEXTSTEP}"'
 
 # archive submission command (for last step)
-export SUBMITAR='ssh gpc-f104n084 "cd ${INIDIR}; qsub ./${ARSCRIPT} -v TAGS=${ARTAG},MODE=BACKUP,INTERVAL=${ARINTERVAL}"'
+export SUBMITAR='ssh gpc-f104n084 "cd \"${INIDIR}\"; qsub ./${ARSCRIPT} -v TAGS=${ARTAG},MODE=BACKUP,INTERVAL=${ARINTERVAL}"'
 
 # job submission command (for next step)
-export RESUBJOB='ssh gpc01 "cd ${INIDIR}; qsub ./${SCRIPTNAME} -v NEXTSTEP=${NEXTSTEP}"' # evaluated by resubJob
+export RESUBJOB='ssh gpc01 "cd \"${INIDIR}\"; qsub ./${WRFSCRIPT} -v NEXTSTEP=${NEXTSTEP}"' # evaluated by resubJob

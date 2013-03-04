@@ -18,7 +18,7 @@ TIME_CONTROL="cycling,$IO"
 DIAGS='hitop'
 PHYSICS='clim'
 NOAH_MP=''
-DOMAINS='wc02'
+DOMAINS='wc03'
 FDDA='spectral'
 DYNAMICS='default'
 BDY_CONTROL='clim'
@@ -29,13 +29,13 @@ GEOGRID="${DOMAINS}"
 METGRID='pywps'
 
 ## configure data sources
-RUNDIR="${PWD}"
+RUNDIR="${PWD}" # must not contain spaces!
 # source data definition
 DATATYPE='CESM'
 DATADIR="/scratch/p/peltier/marcdo/archive/tb20trcn1x1/"
 
 ## system settings
-WRFTOOLS="${MODEL_ROOT}/WRF-Tools-tmp/"
+WRFTOOLS="${MODEL_ROOT}/WRF\ Tools/"
 # WPS executables
 WPSSYS="GPC" # also affects unccsm.exe
 # set path for metgrid.exe and real.exe explicitly using METEXE and REALEXE

@@ -52,8 +52,9 @@ export CURRENTSTEP
 
 
 ## job settings
-export SCRIPTNAME="run_cycling_WRF.ll" # WRF suffix assumed
-export DEPENDENCY="run_cycling_WPS.pbs" # run WPS on GPC (WPS suffix substituted for WRF): ${LOADL_JOB_NAME%_WRF}_WPS
+export JOBNAME="${LOADL_JOB_NAME}"
+export WRFSCRIPT="run_cycling_WRF.ll" # WRF suffix assumed
+export WPSSCRIPT="run_cycling_WPS.pbs" # run WPS on GPC (WPS suffix substituted for WRF): ${LOADL_JOB_NAME%_WRF}_WPS
 export ARSCRIPT="" # archive script to be executed after WRF finishes
 export ARINTERVAL="" # default: every time
 export WAITFORWPS='WAIT' # stay on compute node until WPS for next step finished, in order to submit next WRF job
@@ -65,9 +66,16 @@ export THREADS=1 # number of OpenMP threads
 export INIDIR="${LOADL_STEP_INITDIR}" # experiment root (launch directory)
 export RUNNAME="${CURRENTSTEP}" # step name, not job name!
 export WORKDIR="${INIDIR}/${RUNNAME}/" # step folder
-export SCRIPTDIR="./scripts/" # location of component scripts (pre/post processing etc.)
-export BINDIR="./bin/" # location of executables (WRF and WPS)
-# N.B.: use relative path with './' or absolute path without
+export SCRIPTDIR="${INIDIR}/scripts/" # location of component scripts (pre/post processing etc.)
+export BINDIR="${INIDIR}/bin/" # location of executables (WRF and WPS)
+# N.B.: use absolute path for script and bin folders
+
+echo "Host list: ${LOADL_PROCESSOR_LIST}"
+
+###                                                                    ##
+###   ***   Below this line nothing should be machine-specific   ***   ##
+###                                                                    ##
+
 
 ## real.exe settings
 export RUNREAL=0 # don't run real.exe again (requires metgrid.exe output)
@@ -88,13 +96,7 @@ export RSTDIR="${WRFOUT}"
 
 ## setup job environment
 cd "${INIDIR}"
-source "${SCRIPTDIR}/setup_P7.sh" # load machine-specific stuff
-
-
-###                                                                    ##
-###   ***   Below this line nothing should be machine-specific   ***   ##
-###                                                                    ##
-
+source "${SCRIPTDIR}/setup_machine.sh" # load machine-specific stuff
 
 ## run WPS/pre-processing for next step
 # read next step from stepfile
@@ -148,4 +150,4 @@ eval "${SCRIPTDIR}/resubJob.sh" # requires submission command from setup script
 
 
 # copy driver script into work dir to signal completion
-cp "${INIDIR}/${SCRIPTNAME}" "${WORKDIR}"
+cp "${INIDIR}/${WRFSCRIPT}" "${WORKDIR}"

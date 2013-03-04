@@ -7,7 +7,7 @@ GHG='RCP8.5' # CAMtr_volume_mixing_ratio.* file to be used
 CYCLING="hourly.test" # stepfile to be used (leave empty if not cycling)
 # I/O and archiving
 IO='fineIO' # this is used for namelist construction and archiving
-ARSCRIPT='DUMMY' # set ARSCRIPT='DEFAULT' to let $IO control archiving
+ARSCRIPT='DEFAULT' # set ARSCRIPT='DEFAULT' to let $IO control archiving
 ARINTERVAL='' # default is monthly (after every run), but yearly is preferable
 
 ## namelist definition section
@@ -18,7 +18,7 @@ TIME_CONTROL="cycling,$IO"
 DIAGS='hitop'
 PHYSICS='clim'
 NOAH_MP=''
-DOMAINS='wc02'
+DOMAINS='wc02-test'
 FDDA='spectral'
 DYNAMICS='default'
 BDY_CONTROL='clim'
@@ -29,7 +29,7 @@ GEOGRID="${DOMAINS}"
 METGRID='pywps'
 
 ## configure data sources
-RUNDIR="${PWD}"
+RUNDIR="${PWD}" # must not contain spaces!
 # source data definition
 DATATYPE='CESM'
 DATADIR='/home/DATA/DATA/CESM/CESM-HF-test/'
@@ -37,7 +37,7 @@ DATADIR='/home/DATA/DATA/CESM/CESM-HF-test/'
 GEODATA='/home/DATA/DATA/WRF/geog'
 
 ## system settings
-WRFTOOLS="${MODEL_ROOT}/WRF-Tools-tmp/"
+WRFTOOLS="${MODEL_ROOT}/WRF Tools/"
 # WPS executables
 WPSSYS="i7" # also affects unccsm.exe
 # set path for metgrid.exe and real.exe explicitly using METEXE and REALEXE

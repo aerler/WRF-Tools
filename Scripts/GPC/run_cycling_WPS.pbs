@@ -29,7 +29,9 @@ CURRENTSTEP="${NEXTSTEP}" # $NEXTSTEP will be overwritten
 
 
 ## job settings
-export SCRIPTNAME="run_cycling_WPS.pbs" # WPS suffix assumed
+export JOBNAME="${PBS_JOBNAME}"
+export WRFSCRIPT="run_cycling_WRF.pbs" # WRF suffix assumed (not used here)
+export WPSSCRIPT="run_cycling_WPS.pbs" # WRF suffix assumed, WPS suffix substituted: ${JOBNAME%_WRF}_WPS
 # run configuration
 export NODES=1 # only one for WPS!
 export TASKS=16 # number of MPI task per node (Hpyerthreading?)
@@ -38,9 +40,9 @@ export THREADS=1 # number of OpenMP threads
 export INIDIR="${PBS_O_WORKDIR}"
 export RUNNAME="${CURRENTSTEP}" # step name, not job name!
 export WORKDIR="${INIDIR}/${RUNNAME}/"
-export SCRIPTDIR="./scripts/" # location of component scripts (pre/post processing etc.)
-export BINDIR="./bin/" # location of executables (WRF and WPS)
-# N.B.: use relative path with './' or absolute path without
+export SCRIPTDIR="${INIDIR}/scripts/" # location of component scripts (pre/post processing etc.)
+export BINDIR="${INIDIR}/bin/" # location of executables (WRF and WPS)
+# N.B.: use absolute path for script and bin folders
 
 ## WPS settings
 # optional arguments $RUNPYWPS, $RUNREAL, $RAMIN, $RAMOUT
@@ -62,8 +64,16 @@ export REALOUT="${WORKDIR}" # this should be default anyway
 
 # setup environment
 cd "${INIDIR}"
-source "${SCRIPTDIR}/setup_GPC.sh" # load machine-specific stuff
+source "${SCRIPTDIR}/setup_machine.sh" # load machine-specific stuff
 # display message from before after setup display
+
+
+# launch feedback
+echo
+hostname
+uname
+echo
+echo "   ***   ${JOBNAME}   ***   "
 echo
 echo "${RAMMSG}"
 echo
@@ -102,4 +112,4 @@ date
 echo
 
 # copy driver script into work dir to signal completion
-cp "${INIDIR}/${SCRIPTNAME}" "${WORKDIR}"
+cp "${INIDIR}/${WPSSCRIPT}" "${WORKDIR}"

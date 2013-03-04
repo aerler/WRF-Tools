@@ -13,18 +13,18 @@ CURRENTSTEP="${NEXTSTEP}" # $NEXTSTEP will be overwritten
 
 ## job settings
 export JOBNAME='test' # job name (dummy variable, since there is no queue)
-export SCRIPTNAME="run_cycling_WPS.sh" # WPS suffix assumed
-# run configuration
+export WRFSCRIPT="run_cycling_WRF.sh" # WRF suffix assumed
+export WPSSCRIPT="run_cycling_WPS.sh" # WRF suffix assumed, WPS suffix substituted: # run configuration
 export NODES=1 # only one for WPS!
-export TASKS=16 # number of MPI task per node (Hpyerthreading?)
+export TASKS=2 # number of MPI task per node (Hpyerthreading?)
 export THREADS=1 # number of OpenMP threads
 # directory setup
 export INIDIR="${PWD}"
 export RUNNAME="${CURRENTSTEP}" # step name, not job name!
 export WORKDIR="${INIDIR}/${RUNNAME}/"
-export SCRIPTDIR="./scripts/" # location of component scripts (pre/post processing etc.)
-export BINDIR="./bin/" # location of executables (WRF and WPS)
-# N.B.: use relative path with './' or absolute path without
+export SCRIPTDIR="${INIDIR}/scripts/" # location of component scripts (pre/post processing etc.)
+export BINDIR="${INIDIR}/bin/" # location of executables (WRF and WPS)
+# N.B.: use absolute path for script and bin folders
 
 ## WPS settings
 # optional arguments $RUNPYWPS, $RUNREAL, $RAMIN, $RAMOUT
@@ -36,22 +36,31 @@ export REALOUT="${WORKDIR}" # this should be default anyway
 
 # setup environment
 cd "${INIDIR}"
-source "${SCRIPTDIR}/setup_i7.sh" # load machine-specific stuff
+source "${SCRIPTDIR}/setup_machine.sh" # load machine-specific stuff
 # display message from before after setup display
 echo
 # RAM-disk settings
 if [[ -e "${RAMDISK}" ]]; then
   export RAMIN=1
   export RAMOUT=1
-  echo "RAM-disk found at ${RAMDISK}"
-  echo 'Using RAM disk for input and output.'
+  RAMMSG="RAM-disk found at ${RAMDISK} - using RAM disk for input and output."
 else
   export RAMIN=0
   export RAMOUT=0
-  echo 'No RAM-disk found - using hard disk for input and output.'
+  RAMMSG='No RAM-disk found - using hard disk for input and output.'
 fi # RAMDISK
 echo
 
+
+# launch feedback
+echo
+hostname
+uname
+echo
+echo "   ***   ${JOBNAME}   ***   "
+echo
+echo "${RAMMSG}"
+echo
 
 ## run WPS for this step
 # start timing
@@ -62,14 +71,14 @@ echo
 
 # run WPS driver script
 cd "${INIDIR}"
-# eval "${SCRIPTDIR}/execWPS.sh"
-# ERR=$? # capture exit code
+eval "${SCRIPTDIR}/execWPS.sh"
+ERR=$? # capture exit code
 # mock input files for testing
-ERR=0
-if [[ -n "${NEXTSTEP}" ]]; then
-	touch "${WORKDIR}/wrfinput_d01"
-	touch "${WORKDIR}/wrfinput_d02"
-fi
+# ERR=0
+# if [[ -n "${NEXTSTEP}" ]]; then
+# 	touch "${WORKDIR}/wrfinput_d01"
+# 	touch "${WORKDIR}/wrfinput_d02"
+# fi
 
 if [[ $ERR != 0 ]]; then
   # end timing
@@ -87,4 +96,4 @@ date
 echo
 
 # copy driver script into work dir to signal completion
-cp "${INIDIR}/${SCRIPTNAME}" "${WORKDIR}"
+cp "${INIDIR}/${WPSSCRIPT}" "${WORKDIR}"

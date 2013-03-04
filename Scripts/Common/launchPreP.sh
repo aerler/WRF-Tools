@@ -15,7 +15,7 @@ if [[ -n "${NEXTSTEP}" ]] && [[ ! $NOWPS == 1 ]]
     echo
     # submitting independent WPS job
     echo "Command: "${SUBMITWPS} # print command
-    echo "Variables: INIDIR=${INIDIR}, NEXTSTEP=${NEXTSTEP}, DEPENDENCY=${DEPENDENCY}"
+    echo "Variables: INIDIR=${INIDIR}, NEXTSTEP=${NEXTSTEP}, DEPENDENCY=${WPSSCRIPT}"
     eval "${SUBMITWPS}" # using variables: $INIDIR, $DEPENDENCY, $NEXTSTEP
 
 else

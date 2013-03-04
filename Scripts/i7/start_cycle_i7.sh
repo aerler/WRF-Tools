@@ -31,7 +31,7 @@ NEXTSTEP=$( python "${SCRIPTDIR}/cycling.py" "${LASTSTEP}" )
 export NEXTSTEP
 
 # run (machine-independent) setup:
-eval "${SCRIPTDIR}/setup_cycle.sh" # requires geogrid command
+eval "'${SCRIPTDIR}/setup_cycle.sh'" # requires geogrid command
 
 
 ## launch jobs

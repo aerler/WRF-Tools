@@ -7,6 +7,51 @@
 
 set -e # abort if anything goes wrong
 
+## functions
+
+# function to change common variables in run-scripts
+function RENAME () {
+    # use global variables:
+    local FILE="$1" # file name
+    # infer queue system
+    local Q="${FILE##*.}" # strip of everything before last '.' (and '.')
+    # feedback
+    echo "Defining experiment name in run script ${FILE}"
+    ## queue dependent changes
+    # WPS run-script
+    if [[ "${FILE}" == *WPS* ]] && [[ "${WPSQ}" == "${Q}" ]]; then
+	if [[ "${WPSQ}" == "pbs" ]]; then
+	    sed -i "/#PBS -N/ s/#PBS -N\s.*$/#PBS -N ${NAME}_WPS/" "${FILE}"
+	else
+	    sed -i "/export JOBNAME/ s+export\sJOBNAME=.*$+export JOBNAME=${NAME}_WPS  # job name (dummy variable, since there is no queue)+" "${FILE}"
+	fi # $Q
+    fi # if WPS
+    # WRF run-script
+    if [[ "${FILE}" == *WRF* ]] && [[ "${WRFQ}" == "${Q}" ]]; then
+	if [[ "${WRFQ}" == "pbs" ]]; then
+	    sed -i "/#PBS -N/ s/#PBS -N\s.*$/#PBS -N ${NAME}_WRF/" "run_${CASETYPE}_WRF.${WRFQ}"
+	    sed -i "/#PBS -W/ s/#PBS -W\s.*$/#PBS -W depend:afterok:${NAME}_WPS/" "${FILE}"
+	elif [[ "${WRFQ}" == "ll" ]]; then
+	    sed -i "/#\s*@\s*job_name/ s/#\s*@\s*job_name\s*=.*$/# @ job_name = ${NAME}_WRF/" "${FILE}"
+	else
+	    sed -i "/export JOBNAME/ s+export\sJOBNAME=.*$+export JOBNAME=${NAME}_WPS  # job name (dummy variable, since there is no queue)+" "${FILE}"
+	fi # $Q
+    fi # if WRF
+    ## queue independent changes
+    # WPS script
+    sed -i "/WPSSCRIPT/ s/WPSSCRIPT=.*$/WPSSCRIPT=\'run_${CASETYPE}_WPS.${WPSQ}\' # WPS run-scripts/" "${FILE}" # WPS run-script
+    # WRF script
+    sed -i "/WRFSCRIPT/ s/WRFSCRIPT=.*$/WRFSCRIPT=\'run_${CASETYPE}_WRF.${WRFQ}\' # WRF run-scripts/" "${FILE}" # WPS run-script
+    # script folder
+    sed -i '/export SCRIPTDIR/ s+export\sSCRIPTDIR=.*$+export SCRIPTDIR="${INIDIR}/scripts/"  # location of component scripts (pre/post processing etc.)+' "${FILE}"
+    # executable folder
+    sed -i '/export BINDIR/ s+export\sBINDIR=.*$+export BINDIR="${INIDIR}/bin/"  # location of executables nd scripts (WPS and WRF)+' "${FILE}"
+    # archive script
+    sed -i "/export ARSCRIPT/ s/export\sARSCRIPT=.*$/export ARSCRIPT=\'${ARSCRIPT}\' # archive script to be executed in specified intervals/" "${FILE}"
+    # archive interval
+    sed -i "/export ARINTERVAL/ s/export\ARINTERVAL=.*$/export ARINTERVAL=\'${ARINTERVAL}\' # interval in which the archive script is to be executed/" "${FILE}"
+} # fct. RENAME
+
 ## scenario definition section
 # defaults (may be set or overwritten in xconfig.sh)
 NAME='test'
@@ -161,18 +206,16 @@ echo "Linking WPS scripts and executable (${WRFTOOLS})"
 echo "  system: ${WPSSYS}, queue: ${WPSQ}"
 # user scripts (in root folder)
 cd "${RUNDIR}"
-if [[ "${WPSQ}" != "sh" ]]; then # if it has a queue system, it has to have a setup script...
-    ln -sf "${WRFTOOLS}/Scripts/${WPSSYS}/setup_${WPSSYS}.sh"; fi
 # WPS run script
 cp "${WRFTOOLS}/Scripts/${WPSSYS}/run_${CASETYPE}_WPS.${WPSQ}" .
+RENAME "run_${CASETYPE}_WPS.${WPSQ}"
 # run-script components (go into folder 'scripts')
-sed -i "/export SCRIPTDIR/ s+export\sSCRIPTDIR=.*$+export SCRIPTDIR='./scripts/'  # location of component scripts (pre/post processing etc.)+" "run_${CASETYPE}_WPS.${WPSQ}"
 mkdir -p "${RUNDIR}/scripts/"
 cd "${RUNDIR}/scripts/"
 ln -sf "${WRFTOOLS}/Scripts/Common/execWPS.sh"
+ln -sf "${WRFTOOLS}/Scripts/${WPSSYS}/setup_${WPSSYS}.sh" 'setup_machine.sh' # renaming
 cd "${RUNDIR}"
 # WPS/real executables (go into folder 'bin')
-sed -i "/export BINDIR/ s+export\sBINDIR=.*$+export BINDIR='./bin/'  # location of executables nd scripts (WPS and WRF)+" "run_${CASETYPE}_WPS.${WPSQ}"
 mkdir -p "${RUNDIR}/bin/"
 cd "${RUNDIR}/bin/"
 ln -sf "${WRFTOOLS}/Python/pyWPS.py"
@@ -190,21 +233,22 @@ echo "  system: ${WRFSYS}, queue: ${WRFQ}"
 # user scripts (go into root folder)
 cd "${RUNDIR}"
 if [[ -n "${CYCLING}" ]]; then
-    ln -sf "${WRFTOOLS}/Scripts/${WRFSYS}/start_cycle_${WRFSYS}.sh"
-    sed -i "/export SCRIPTDIR/ s+export\sSCRIPTDIR=.*$+export SCRIPTDIR='./scripts/'  # location of component scripts (pre/post processing etc.)+" "start_cycle_${WRFSYS}.sh"
-    sed -i "/export BINDIR/ s+export\sBINDIR=.*$+export BINDIR='./bin/'  # location of executables nd scripts (WPS and WRF)+" "start_cycle_${WRFSYS}.sh"
     cp "${WRFTOOLS}/misc/stepfiles/stepfile.${CYCLING}" 'stepfile'
+    cp "${WRFTOOLS}/Scripts/${WRFSYS}/start_cycle_${WRFSYS}.sh" .
+    RENAME "start_cycle_${WRFSYS}.sh"
 fi # if cycling
 if [[ "${WRFQ}" == "ll" ]]; then # because LL does not support dependencies
-    ln -sf "${WRFTOOLS}/Scripts/${WRFSYS}/sleepCycle.sh"; fi
+    cp "${WRFTOOLS}/Scripts/${WRFSYS}/sleepCycle.sh" .
+    sleepCycle.sh
+fi # if LL
 # WRF run-script
 cp "${WRFTOOLS}/Scripts/${WRFSYS}/run_${CASETYPE}_WRF.${WRFQ}" .
-sed -i "/export SCRIPTDIR/ s+export\sSCRIPTDIR=.*$+export SCRIPTDIR='./scripts/'  # location of component scripts (pre/post processing etc.)+" "run_${CASETYPE}_WRF.${WRFQ}"
+RENAME "run_${CASETYPE}_WRF.${WRFQ}"
 # run-script component scripts (go into folder 'scripts')
 mkdir -p "${RUNDIR}/scripts/"
 cd "${RUNDIR}/scripts/"
 ln -sf "${WRFTOOLS}/Scripts/Common/execWRF.sh"
-ln -sf "${WRFTOOLS}/Scripts/${WRFSYS}/setup_${WRFSYS}.sh"
+ln -sf "${WRFTOOLS}/Scripts/${WRFSYS}/setup_${WRFSYS}.sh" 'setup_machine.sh' # renaming
 if [[ -n "${CYCLING}" ]]; then
     ln -sf "${WRFTOOLS}/Scripts/Setup/setup_cycle.sh"
     ln -sf "${WRFTOOLS}/Scripts/Common/launchPreP.sh"
@@ -214,51 +258,15 @@ if [[ -n "${CYCLING}" ]]; then
 fi # if cycling
 cd "${RUNDIR}"
 # WRF executable (go into folder 'bin')
-sed -i "/export BINDIR/ s+export\sBINDIR=.*$+export BINDIR='./bin/'  # location of executables nd scripts (WPS and WRF)+" "run_${CASETYPE}_WRF.${WRFQ}"
 mkdir -p "${RUNDIR}/bin/"
 cd "${RUNDIR}/bin/"
 ln -sf "${WRFEXE}"
 cd "${RUNDIR}"
 
-## insert name into run scripts (queue-dependent!)
-echo "Defining experiment name in run scripts:"
-# name of experiment (and WRF dependency) depends on queue system
-# WPS run-script
-if [[ "${WPSQ}" == "pbs" ]]; then
-    sed -i "/#PBS -N/ s/#PBS -N\s.*$/#PBS -N ${NAME}_WPS/" "run_${CASETYPE}_WPS.${WPSQ}"
-else
-    sed -i "/export JOBNAME/ s+export\sJOBNAME=.*$+export JOBNAME=${NAME}_WPS  # job name (dummy variable, since there is no queue)+" "run_${CASETYPE}_WPS.${WPSQ}"
-fi
-echo "  run_${CASETYPE}_WPS.${WRFQ}"
-# WRF run-script
-if [[ "${WRFQ}" == "pbs" ]]; then
-    sed -i "/#PBS -N/ s/#PBS -N\s.*$/#PBS -N ${NAME}_WRF/" "run_${CASETYPE}_WRF.${WRFQ}"
-    sed -i "/#PBS -W/ s/#PBS -W\s.*$/#PBS -W depend:afterok:${NAME}_WPS/" "run_${CASETYPE}_WRF.${WRFQ}"
-elif [[ "${WRFQ}" == "ll" ]]; then
-    sed -i "/#\s*@\s*job_name/ s/#\s*@\s*job_name\s*=.*$/# @ job_name = ${NAME}_WRF/" "run_${CASETYPE}_WRF.${WRFQ}"
-else
-    sed -i "/export JOBNAME/ s+export\sJOBNAME=.*$+export JOBNAME=${NAME}_WPS  # job name (dummy variable, since there is no queue)+" "run_${CASETYPE}_WRF.${WRFQ}"
-fi
-echo "  run_${CASETYPE}_WRF.${WRFQ}"
-# start_cycle-script
-if [[ -n "${CYCLING}" ]]; then
-    sed -i "/WPSSCRIPT/ s/WPSSCRIPT=.*$/WPSSCRIPT=\'run_${CASETYPE}_WPS.${WPSQ}\' # WPS run-scripts/" "start_cycle_${WRFSYS}.sh" # WPS run-script
-    sed -i "/WRFSCRIPT/ s/WRFSCRIPT=.*$/WRFSCRIPT=\'run_${CASETYPE}_WRF.${WRFQ}\' # WRF run-scripts/" "start_cycle_${WRFSYS}.sh" # WPS run-script
-fi
-# LL sleeper scripts
-if [[ "${WRFQ}" == "ll" ]]; then
-    sed -i "/WPSSCRIPT/ s/WPSSCRIPT=.*$/WPSSCRIPT=\'run_${CASETYPE}_WPS.${WPSQ}\' # WPS run-scripts/" "sleepCycle.sh" # TCS sleeper script
-    sed -i "/WRFSCRIPT/ s/WRFSCRIPT=.*$/WRFSCRIPT=\'run_${CASETYPE}_WRF.${WRFQ}\' # WRF run-scripts/" "sleepCycle.sh" # TCS sleeper script
-fi
-
 
 ## setup archiving
 # default archive script name (no $ARSCRIPT means no archiving)
 if [[ "${ARSCRIPT}" == 'DEFAULT' ]] && [[ -n "${IO}" ]]; then ARSCRIPT="ar_wrfout_${IO}.pbs"; fi
-# archive script
-sed -i "/export ARSCRIPT/ s/export\sARSCRIPT=.*$/export ARSCRIPT=\'${ARSCRIPT}\' # archive script to be executed in specified intervals/" "run_${CASETYPE}_WRF.${WRFQ}"
-# archive interval
-sed -i "/export ARINTERVAL/ s/export\ARINTERVAL=.*$/export ARINTERVAL=\'${ARINTERVAL}\' # interval in which the archive script is to be executed/" "run_${CASETYPE}_WRF.${WRFQ}"
 # prepare archive script
 if [[ -n "${ARSCRIPT}" ]]; then
     # copy script and change job name

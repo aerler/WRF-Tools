@@ -18,12 +18,12 @@ if [[ -n "${NEXTSTEP}" ]]
 	ln -sf "${RESTART}"; done
 
     # check for WRF input files (in next working directory)
-    if [[ "${WAITFORWPS}" == 'WAIT' ]] && [[ ! -e "${INIDIR}/${NEXTSTEP}/${DEPENDENCY}" ]]
+    if [[ "${WAITFORWPS}" == 'WAIT' ]] && [[ ! -e "${INIDIR}/${NEXTSTEP}/${WPSSCRIPT}" ]]
       then
 	echo
 	echo "   ***   Waiting for WPS to complete...   ***"
 	echo
-	while [[ ! -e "${INIDIR}/${NEXTSTEP}/${DEPENDENCY}" ]]; do
+	while [[ ! -e "${INIDIR}/${NEXTSTEP}/${WPSSCRIPT}" ]]; do
 		sleep 5 # need faster turnover to submit next step
 	done
     fi # $WAITFORWPS
@@ -35,7 +35,7 @@ if [[ -n "${NEXTSTEP}" ]]
     echo
     # execute submission command (set in setup-script; machine-specific)
     echo "Command: " ${RESUBJOB} # print command
-    echo "Variables: INIDIR=${INIDIR}, NEXTSTEP=${NEXTSTEP}, SCRIPTNAME=${SCRIPTNAME}"
+    echo "Variables: INIDIR=${INIDIR}, NEXTSTEP=${NEXTSTEP}, SCRIPTNAME=${WRFSCRIPT}"
     eval "${RESUBJOB}" # execute command
 
 fi # $NEXTSTEP

@@ -2,14 +2,6 @@
 # source script to load i7-specific settings for pyWPS, WPS, and WRF
 # created 02/03/2013 by Andre R. Erler, GPL v3
 
-# launch feedback etc.
-echo
-hostname
-uname
-echo
-echo "   ***   ${JOBNAME}   ***   "
-echo
-
 # unlimit stack size (unfortunately necessary with WRF to prevent segmentation faults)
 ulimit -s unlimited
 
@@ -25,10 +17,10 @@ export RAMDISK="/media/tmp/"
 export HYBRIDRUN="mpirun -n $((TASKS*NODES))" # OpenMPI, not Intel
 
 # WPS/preprocessing submission command (for next step)
-export SUBMITWPS='cd ${INIDIR}; export NEXTSTEP=${NEXTSTEP}; ./${DEPENDENCY} &' # evaluated by resubJob
+export SUBMITWPS='cd "${INIDIR}"; export NEXTSTEP=${NEXTSTEP}; ./${WPSSCRIPT} &' # evaluated by resubJob
 
 # archive submission command (for last step)
-export SUBMITAR='echo "cd ${INIDIR}; TAGS=${ARTAG}; export MODE=BACKUP; export INTERVAL=${ARINTERVAL}; ./${ARSCRIPT}"'
+export SUBMITAR='echo "cd \"${INIDIR}\"; TAGS=${ARTAG}; export MODE=BACKUP; export INTERVAL=${ARINTERVAL}; ./${ARSCRIPT}"'
 
 # job submission command (for next step)
-export RESUBJOB='cd ${INIDIR}; export NEXTSTEP=${NEXTSTEP}; ./${SCRIPTNAME} &' # evaluated by resubJob
+export RESUBJOB='cd "${INIDIR}"; export NEXTSTEP=${NEXTSTEP}; ./${WRFSCRIPT} &' # evaluated by resubJob

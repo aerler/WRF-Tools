@@ -2,17 +2,6 @@
 # source script to load TCS-specific settings for WRF
 # created 06/07/2012 by Andre R. Erler, GPL v3
 
-# launch feedback etc.
-echo
-hostname
-uname
-echo
-echo "Host list: ${LOADL_PROCESSOR_LIST}"
-echo
-echo "   ***   ${LOADL_JOB_NAME}   ***   "
-echo
-
-
 # load modules
 module purge
 module load xlf/14.1 vacpp/12.1 hdf5/187-v18-serial-xlc netcdf/4.1.3_hdf5_serial-xlc python/2.3.4
@@ -55,10 +44,10 @@ export HYBRIDRUN='poe ccsm_launch'
 # on the nodes.
 
 # WPS/preprocessing submission command (for next step)
-export SUBMITWPS='ssh gpc01 "cd ${INIDIR}; qsub ./${DEPENDENCY} -v NEXTSTEP=${NEXTSTEP}"'
+export SUBMITWPS='ssh gpc01 "cd \"${INIDIR}\"; qsub ./${WPSSCRIPT} -v NEXTSTEP=${NEXTSTEP}"'
 
 # archive submission command (for last step)
-export SUBMITAR='ssh gpc-f104n084 "cd ${INIDIR}; qsub ./${ARSCRIPT} -v TAGS=${ARTAG},MODE=BACKUP,INTERVAL=${ARINTERVAL}"'
+export SUBMITAR='ssh gpc-f104n084 "cd \"${INIDIR}\"; qsub ./${ARSCRIPT} -v TAGS=${ARTAG},MODE=BACKUP,INTERVAL=${ARINTERVAL}"'
 
 # job submission command (for next step)
-export RESUBJOB='ssh tcs-f11n06 "cd \"${INIDIR}\"; export NEXTSTEP=${NEXTSTEP}; llsubmit ./${SCRIPTNAME}"' # evaluated by resubJob
+export RESUBJOB='ssh tcs-f11n06 "cd \"${INIDIR}\"; export NEXTSTEP=${NEXTSTEP}; llsubmit ./${WRFSCRIPT}"' # evaluated by resubJob
