@@ -57,7 +57,7 @@ echo '***   BZIP   ***'
 time -p tar -chjf "${SRC}/test.tar.bz2" original.nc
 echo
 echo '***   LZMA   ***'
-time -p tar --lzma -chf "${SRC}/test.tar.lzma" original.nc 
+time -p tar --lzma -chf "${SRC}/test.tar.lzma" original.nc
 echo
 echo '***   ZIP   ***'
 time -p zip "${SRC}/test.tar.zip" original.nc

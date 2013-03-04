@@ -7,6 +7,8 @@ echo
 hostname
 uname
 echo
+echo "Host list: ${LOADL_PROCESSOR_LIST}"
+echo
 echo "   ***   ${LOADL_JOB_NAME}   ***   "
 echo
 
@@ -29,4 +31,13 @@ export NOCLOBBER='-n'
 export RAMDISK="/dev/shm/aerler/"
 
 # launch executable
-export HYBRIDRUN="poe"
+export HYBRIDRUN='poe' # evaluated by execWRF and execWPS
+
+# WPS/preprocessing submission command (for next step)
+export SUBMITWPS='ssh gpc01 "cd ${INIDIR}; qsub ./${DEPENDENCY} -v NEXTSTEP=${NEXTSTEP}"'
+
+# archive submission command (for last step)
+export SUBMITAR='ssh gpc-f104n084 "cd ${INIDIR}; qsub ./${ARSCRIPT} -v TAGS=${ARTAG},MODE=BACKUP,INTERVAL=${ARINTERVAL}"'
+
+# job submission command (for next step)
+export RESUBJOB='ssh p7n01 "cd \"${INIDIR}\"; export NEXTSTEP=${NEXTSTEP}; llsubmit ./${SCRIPTNAME}"' # evaluated by resubJob

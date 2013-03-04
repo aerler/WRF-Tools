@@ -21,8 +21,8 @@ hsi -q rm -R ${DST}
 hsi -q mkdir ${DST}
 
 # echo '***   Two Separate HTAR with ISH  ***'
-# time -p /scinet/gpc/bin/ish htar -cphf "${DST}/original_1.tar" original_1.nc 
-# time -p /scinet/gpc/bin/ish htar -cphf "${DST}/original_2.tar" original_2.nc 
+# time -p /scinet/gpc/bin/ish htar -cphf "${DST}/original_1.tar" original_1.nc
+# time -p /scinet/gpc/bin/ish htar -cphf "${DST}/original_2.tar" original_2.nc
 # status=$?
 # if [ ! $status == 0 ]; then
 #     echo "HTAR (#2) returned non-zero exit code: $status"
@@ -31,9 +31,9 @@ hsi -q mkdir ${DST}
 # /scinet/gpc/bin/ish original_1.tar.igz ls
 # /scinet/gpc/bin/ish original_2.tar.igz ls
 # echo
-# 
+#
 # echo '***   One Aggregated HTAR with ISH  ***'
-# time -p /scinet/gpc/bin/ish htar -cphf "${DST}/aggregate.tar" original_1.nc original_2.nc 
+# time -p /scinet/gpc/bin/ish htar -cphf "${DST}/aggregate.tar" original_1.nc original_2.nc
 # status=$?
 # echo
 # if [ ! $status == 0 ]; then
@@ -41,7 +41,7 @@ hsi -q mkdir ${DST}
 #     /scinet/gpc/bin/exit2msg $status
 # fi
 # /scinet/gpc/bin/ish aggregate.tar.igz
-# 
+#
 # echo
 # echo '***   Parallel Performance Benchmark Finished   ***'
 # echo

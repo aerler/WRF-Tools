@@ -16,7 +16,7 @@
 ## submit to queue (NB: this has to be the last PBS line!)
 #PBS -q archive
 
-set -o pipefail # through error (in exit code) if pipe fails 
+#set -o pipefail # through error (in exit code) if pipe fails
 trap "echo 'Job script not completed';exit 129" TERM INT
 # Note that your initial directory in HPSS will be /archive/$(id -gn)/$(whoami)/
 
@@ -26,15 +26,15 @@ RMSRC=${RMSRC:-'NO'} # set to 'RMSRC'
 # N.B.: do not edit these variable; instead pass them as environment variables
 # data folder
 DST="${ARCHIVE}/Downscaling/${PBS_O_WORKDIR##*/}" # remove parent folder (= run name)
-SRC="${PBS_O_WORKDIR}/wrfout/" 
+SRC="${PBS_O_WORKDIR}/wrfout/"
 # if no dates given, process all datasets in current directory
 cd "${SRC}"
-if [[ -z "${DATES}" ]]; then DATES=$( ls ????-??_wrf.tgz ); fi # if no $DATES 
+if [[ -z "${DATES}" ]]; then DATES=$( ls ????-??_wrf.tgz ); fi # if no $DATES
 
 ## function to verify the contents of an HTAR archive
 function VERIFYHTAR () {
   local HTAR=${1} # archive file (absolute pass on HPSS)
-  local FILES=${2} # 
+  local FILES=${2} #
   local LIST=$( htar -vtf "${HTAR}" | awk '{print $7}' ) # column 7 are the file names
   local MISS=0 # missing file counter
   # loop over files in list and check presence in HTAR list
@@ -50,7 +50,7 @@ function VERIFYHTAR () {
     fi
   done
   # return number of missing files
-  return ${MISS}    
+  return ${MISS}
 }
 
 ## function to to back up one output dataset
@@ -58,7 +58,7 @@ function BACKUPDATASET () {
   local DATE="${1}"
   local ERR=0 # error counter
   # files to be backed up
-  local LOGS=$( ls ${DATE}_*.tgz ) # "${1}_pyWPS.tgz ${1}_real.tgz ${1}_wrf.tgz" 
+  local LOGS=$( ls ${DATE}_*.tgz ) # "${1}_pyWPS.tgz ${1}_real.tgz ${1}_wrf.tgz"
   local SMALL=$( ls wrfxtrm_d??_${DATE}* wrfflake_d??_${DATE}* )
   local BIG=$( ls wrfout_d??_${DATE}* ) # $BIG filenames will get trimmed below ($NEWNAME)
   echo
@@ -76,7 +76,7 @@ function BACKUPDATASET () {
   echo ${LOGS}
   echo ${SMALL}
   if [[ ${BACKUP} == 'BACKUP' ]]
-    then htar -cpf "${DST}/wrfextra_${DATE}.tar" -Hcrc -Hverify=1 ${LOGS} ${SMALL} # /scinet/gpc/bin/ish 
+    then htar -cpf "${DST}/wrfextra_${DATE}.tar" -Hcrc -Hverify=1 ${LOGS} ${SMALL} # /scinet/gpc/bin/ish
   fi
   VERIFYHTAR "${DST}/wrfextra_${DATE}.tar" "${LOGS} ${SMALL}"
   ERR=$(( ${ERR} + $? )) # VERIFYHTAR returns the number of missing files as exit code
@@ -86,7 +86,7 @@ function BACKUPDATASET () {
     do
       local NEWNAME="${FILE%${DATE}*}${DATE}" # cut off what does beyond $DATE
       if [[ ${BACKUP} == 'BACKUP' ]]
-        then htar -cpf "${DST}/${NEWNAME}.tar" -Hcrc -Hverify=1 ${FILE} # /scinet/gpc/bin/ish 
+        then htar -cpf "${DST}/${NEWNAME}.tar" -Hcrc -Hverify=1 ${FILE} # /scinet/gpc/bin/ish
       fi
       VERIFYHTAR "${DST}/${NEWNAME}.tar" "${FILE}"
       ERR=$(( ${ERR} + $? )) # VERIFYHTAR returns the number of missing files as exit code
@@ -118,9 +118,9 @@ do
   else ERRORS=$(( ${ERRORS} + 1 )); fi
 done
 hsi -q ls "${DST}"
- 
+
 trap - TERM INT
- 
+
 if [ ! ${ERRORS} == 0 ]; then
   echo
   echo "   >>>   WARNING: THERE WERE ${ERRORS} ERRORS!   <<<   "

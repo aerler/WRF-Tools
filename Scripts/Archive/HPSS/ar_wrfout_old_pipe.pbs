@@ -16,20 +16,20 @@
 ## submit to queue (NB: this has to be the last PBS line!)
 #PBS -q archive
 
-set -o pipefail # through error (in exit code) if pipe fails 
+set -o pipefail # through error (in exit code) if pipe fails
 trap "echo 'Job script not completed';exit 129" TERM INT
 # Note that your initial directory in HPSS will be /archive/$(id -gn)/$(whoami)/
 
 ## definitions
 # data folder
 DST="${ARCHIVE}/test/${PBS_O_WORKDIR##*/}" # remove parent folder (= run name)
-SRC="${PBS_O_WORKDIR}/wrfout/" 
+SRC="${PBS_O_WORKDIR}/wrfout/"
 
 ## function to to back up one output dataset
 function BACKUPDATASET () {
   ERR=0 # error counter
   # files to be backed up
-  LOGS="${1}_*.tgz" # "${1}_pyWPS.tgz ${1}_real.tgz ${1}_wrf.tgz" 
+  LOGS="${1}_*.tgz" # "${1}_pyWPS.tgz ${1}_real.tgz ${1}_wrf.tgz"
   SMALL="wrfxtrm_d??_${DATE}* wrfflake_d??_${1}*"
   BIG="wrfout_d??_${1}*" # $BIG filenames will get trimmed below ($NEWNAME)
   echo
@@ -82,9 +82,9 @@ if [[ -n "${DATE}" ]]
   done
   hsi -q ls "${DST}"
 fi # if $DATE
- 
+
 trap - TERM INT
- 
+
 if [ ! ${ERRORS} == 0 ]; then
   echo
   echo "   >>>   WARNING: THERE WERE ${ERRORS} ERRORS!   <<<   "

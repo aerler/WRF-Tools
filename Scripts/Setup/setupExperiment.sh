@@ -7,28 +7,57 @@
 
 set -e # abort if anything goes wrong
 
-## defaults (may be set or overwritten in xconfig.sh)
-# folders
+## scenario definition section
+# defaults (may be set or overwritten in xconfig.sh)
+NAME='test'
 RUNDIR="${PWD}"
+# GHG emission scenario
+GHG='RCP8.5' # CAMtr_volume_mixing_ratio.* file to be used
+# time period and cycling interval
+CYCLING="monthly.1979-2009" # stepfile to be used (leave empty if not cycling)
+# boundary data
+DATADIR='' # root directory for data
+DATATYPE='CESM' # boundary forcing type
+## run configuration
 WRFTOOLS="${MODEL_ROOT}/WRF Tools/"
+# I/O and archiving
+IO='fineIO' # this is used for namelist construction and archiving
 ARSCRIPT='DEFAULT' # this is a dummy name...
 ARINTERVAL='MONTHLY' # default: archive after every job
-# WPS and WRF executables
-WPSSYS="GPC" # WPS
-WRFSYS="GPC" # WRF
+## WPS
+WPSSYS='' # WPS - define in xconfig.sh
+# other WPS configuration files
+GEODATA="${PROJECT}/geog/" # location of geogrid data
+## WRF
+WRFSYS='' # WRF - define in xconfig.sh
 POLARWRF=0 # PolarWRF switch
-## some shortcuts for WRF/WPS settings
+FLAKE=1 # use FLake
+# some settings depend on the number of domains
 MAXDOM=2 # number of domains in WRF and WPS
-FEEDBACK=0 # WRF nesting option: one-way=0 or two-way=1
+
 ## load configuration
 source xconfig.sh
-# default archive script name (no $ARSCRIPT means no archiving)
-if [[ "${ARSCRIPT}" == 'DEFAULT' ]] && [[ -n "${IO}" ]]; then ARSCRIPT="ar_wrfout_${IO}.pbs"; fi # always runs from GPC
+
 # infer default $CASETYPE (can also set $CASETYPE in xconfig.sh)
 if [[ -z "${CASETYPE}" ]]; then
   if [[ -n "${CYCLING}" ]]; then CASETYPE='cycling';
   else CASETYPE='test'; fi
 fi
+
+# boundary data definition for WPS
+if [[ "${DATATYPE}" == 'CESM' ]]; then
+  POPMAP=${POPMAP:-'map_gx1v6_to_fv0.9x1.25_aave_da_090309.nc'} # ocean grid definition
+  METGRIDTBL=${METGRIDTBL:-'METGRID.TBL.CESM'}
+else # WPS default
+  METGRIDTBL=${METGRIDTBL:-'METGRID.TBL.V3.4'}
+fi # $DATATYPE
+
+if [[ ${FLAKE} == 1 ]]; then
+  GEOGRIDTBL=${GEOGRIDTBL:-'GEOGRID.TBL.FLAKE'}
+else
+  GEOGRIDTBL=${GEOGRIDTBL:-'GEOGRID.TBL.V3.4'}
+fi # $FLAKE
+
 # look up default configurations
 if [ ${POLARWRF} == 1 ]; then
   WPSBLD="Clim-fineIO" # not yet polar...
@@ -40,35 +69,40 @@ fi # if PolarWRF
 
 # default WPS and real executables
 if [[ "${WPSSYS}" == "GPC" ]]; then
-	METEXE=${METEXE:-"${WPSSRC}/GPC-MPI/${WPSBLD}/O3xHost/metgrid.exe"}
-	REALEXE=${REALEXE:-"${WRFSRC}/GPC-MPI/${WRFBLD}/O3xHost/real.exe"}
-elif [[ "${WPSSYS}" == "GPC-lm" ]]; then
-	METEXE=${METEXE:-"${WPSSRC}/GPC-MPI/${WPSBLD}/O3xSSSE3/metgrid.exe"}
-	REALEXE=${REALEXE:-"${WRFSRC}/GPC-MPI/${WRFBLD}/O3xSSSE3/real.exe"}
+    WPSQ='pbs' # queue system
+    METEXE=${METEXE:-"${WPSSRC}/GPC-MPI/${WPSBLD}/O3xSSSE3/metgrid.exe"}
+    REALEXE=${REALEXE:-"${WRFSRC}/GPC-MPI/${WRFBLD}/O3xSSSE3/real.exe"}
 elif [[ "${WPSSYS}" == "i7" ]]; then
-	METEXE=${METEXE:-"${WPSSRC}/i7-MPI/${WPSBLD}/O3xHost/metgrid.exe"}
-	REALEXE=${REALEXE:-"${WRFSRC}/i7-MPI/${WRFBLD}/O3xHost/real.exe"}
+    WPSQ='sh' # no queue system
+    METEXE=${METEXE:-"${WPSSRC}/i7-MPI/${WPSBLD}/O3xHost/metgrid.exe"}
+    REALEXE=${REALEXE:-"${WRFSRC}/i7-MPI/${WRFBLD}/O3xHostNC4/real.exe"}
 fi
 
 # default WRF and geogrid executables
-  if [[ "${WRFSYS}" == "GPC" ]]; then
-	  GEOEXE=${GEOEXE:-"${WPSSRC}/GPC-MPI/${WPSBLD}/O3xHost/geogrid.exe"}
-	  WRFEXE=${WRFEXE:-"${WRFSRC}/GPC-MPI/${WRFBLD}/O3xHostNC4/wrf.exe"}
-  elif [[ "${WRFSYS}" == "TCS" ]]; then
-	  GEOEXE=${GEOEXE:-"${WPSSRC}/TCS-MPI/${WPSBLD}/O3/geogrid.exe"}
-	  WRFEXE=${WRFEXE:-"${WRFSRC}/TCS-MPI/${WRFBLD}/O3NC4/wrf.exe"}
-  elif [[ "${WRFSYS}" == "P7" ]]; then
-	  GEOEXE=${GEOEXE:-"${WPSSRC}/GPC-MPI/${WPSBLD}/O3xHost/geogrid.exe"}
-	  WRFEXE=${WRFEXE:-"${WRFSRC}/P7-MPI/${WRFBLD}/O3pwr7NC4/wrf.exe"}
-  elif [[ "${WRFSYS}" == "i7" ]]; then
-	  GEOEXE=${GEOEXE:-"${WPSSRC}/i7-MPI/${WPSBLD}/O3xHost/geogrid.exe"}
-	  WRFEXE=${WRFEXE:-"${WRFSRC}/i7-MPI/${WRFBLD}/O3xHostNC4/wrf.exe"}
-  fi
+if [[ "${WRFSYS}" == "GPC" ]]; then
+    WRFQ='pbs' # queue system
+    GEOEXE=${GEOEXE:-"${WPSSRC}/GPC-MPI/${WPSBLD}/O3xHost/geogrid.exe"}
+    WRFEXE=${WRFEXE:-"${WRFSRC}/GPC-MPI/${WRFBLD}/O3xHostNC4/wrf.exe"}
+elif [[ "${WRFSYS}" == "TCS" ]]; then
+    WRFQ='ll' # queue system
+    GEOEXE=${GEOEXE:-"${WPSSRC}/TCS-MPI/${WPSBLD}/O3/geogrid.exe"}
+    WRFEXE=${WRFEXE:-"${WRFSRC}/TCS-MPI/${WRFBLD}/O3NC4/wrf.exe"}
+elif [[ "${WRFSYS}" == "P7" ]]; then
+    WRFQ='ll' # queue system
+    GEOEXE=${GEOEXE:-"${WPSSRC}/GPC-MPI/${WPSBLD}/O3xHost/geogrid.exe"}
+    WRFEXE=${WRFEXE:-"${WRFSRC}/P7-MPI/${WRFBLD}/O3pwr7NC4/wrf.exe"}
+elif [[ "${WRFSYS}" == "i7" ]]; then
+    WRFQ='sh' # queue system
+    GEOEXE=${GEOEXE:-"${WPSSRC}/i7-MPI/${WPSBLD}/O3xHost/geogrid.exe"}
+    WRFEXE=${WRFEXE:-"${WRFSRC}/i7-MPI/${WRFBLD}/O3xHostNC4/wrf.exe"}
+fi
+
 # create run folder
 echo
 echo "   Creating Root Directory for Experiment ${NAME}"
 echo
 mkdir -p "${RUNDIR}"
+
 
 ## create namelist files
 # export relevant variables so that writeNamelist.sh can read them
@@ -89,9 +123,13 @@ export METGRID
 # create namelists
 echo "Creating WRF and WPS namelists (using ${WRFTOOLS}/Scripts/writeNamelists.sh)"
 cd "${RUNDIR}"
-ln -sf "${WRFTOOLS}/Scripts/writeNamelists.sh"
-./writeNamelists.sh
-rm writeNamelists.sh
+mkdir -p "${RUNDIR}/scripts/"
+ln -sf "${WRFTOOLS}/Scripts/Setup/writeNamelists.sh"
+mv writeNamelists.sh scripts/
+./scripts/writeNamelists.sh
+# number of domains (WRF and WPS namelist!)
+sed -i "/max_dom/ s/^\s*max_dom\s*=\s*.*$/ max_dom = ${MAXDOM}, ! this entry was edited by the setup script/" namelist.input namelist.wps
+
 
 ## link data and meta data
 # link meta data
@@ -109,93 +147,119 @@ rm -f 'atm' 'lnd' 'ice' # remove old links
 ln -s "${DATADIR}/atm/hist/" 'atm' # atmosphere
 ln -s "${DATADIR}/lnd/hist/" 'lnd' # land surface
 ln -s "${DATADIR}/ice/hist/" 'ice' # sea ice
+# set correct path for geogrid data
+echo "Setting path for geogrid data"
+if [[ -n "${GEODATA}" ]]; then
+  sed -i "/geog_data_path/ s+\s*geog_data_path\s*=\s*.*$+ geog_data_path = \'${GEODATA}\',+" namelist.wps
+  echo "  ${GEODATA}"
+else echo "WARNING: no geogrid path selected!"; fi
+
 
 ## link in WPS stuff
-# queue system
-if [[ "${WPSSYS}" == "GPC"* ]]; then
-	WPSQ='pbs' # GPC standard and largemem nodes
-elif [[ "${WPSSYS}" == "P7" ]]; then
-	WPSQ='ll'
-else
-	WPSQ='sh' # just a shell script on local system
-fi
+# WPS scripts
 echo "Linking WPS scripts and executable (${WRFTOOLS})"
 echo "  system: ${WPSSYS}, queue: ${WPSQ}"
-# WPS scripts
-ln -sf "${WRFTOOLS}/Scripts/prepWorkDir.sh"
-ln -sf "${WRFTOOLS}/Scripts/execWPS.sh"
+# user scripts (in root folder)
+cd "${RUNDIR}"
+if [[ "${WPSQ}" != "sh" ]]; then # if it has a queue system, it has to have a setup script...
+    ln -sf "${WRFTOOLS}/Scripts/${WPSSYS}/setup_${WPSSYS}.sh"; fi
+# WPS run script
+cp "${WRFTOOLS}/Scripts/${WPSSYS}/run_${CASETYPE}_WPS.${WPSQ}" .
+# run-script components (go into folder 'scripts')
+sed -i "/export SCRIPTDIR/ s+export\sSCRIPTDIR=.*$+export SCRIPTDIR='./scripts/'  # location of component scripts (pre/post processing etc.)+" "run_${CASETYPE}_WPS.${WPSQ}"
+mkdir -p "${RUNDIR}/scripts/"
+cd "${RUNDIR}/scripts/"
+ln -sf "${WRFTOOLS}/Scripts/Common/execWPS.sh"
+cd "${RUNDIR}"
+# WPS/real executables (go into folder 'bin')
+sed -i "/export BINDIR/ s+export\sBINDIR=.*$+export BINDIR='./bin/'  # location of executables nd scripts (WPS and WRF)+" "run_${CASETYPE}_WPS.${WPSQ}"
+mkdir -p "${RUNDIR}/bin/"
+cd "${RUNDIR}/bin/"
 ln -sf "${WRFTOOLS}/Python/pyWPS.py"
 ln -sf "${WRFTOOLS}/NCL/unccsm.ncl"
-# platform dependent stuff
 ln -sf "${WRFTOOLS}/bin/${WPSSYS}/unccsm.exe"
-if [[ "${WPSQ}" == "pbs" ]] || [[ "${WPSQ}" == "ll" ]]; then # if it has a queue system, it has to have a setup script...
-	ln -sf "${WRFTOOLS}/Scripts/${WPSSYS}/setup_${WPSSYS}.sh"; fi
-# if cycling
-cp "${WRFTOOLS}/Scripts/${WPSSYS}/run_${CASETYPE}_WPS.${WPSQ}" .
-# WPS/WRF executables
 ln -sf "${GEOEXE}"
 ln -sf "${METEXE}"
 ln -sf "${REALEXE}"
+cd "${RUNDIR}"
 
 ## link in WRF stuff
-# queue system
-if [[ "${WRFSYS}" == "GPC" ]]; then
-	WRFQ='pbs' # GPC standard and largemem nodes
-elif [[ "${WRFSYS}" == "TCS" ]] || [[ "${WRFSYS}" == "P7" ]] || [[ "${WRFSYS}" == "BGQ" ]]; then
-	WRFQ='ll'
-else
-	WRFQ='sh' # just a shell script on local system
-fi
 # WRF scripts
 echo "Linking WRF scripts and executable (${WRFTOOLS})"
 echo "  system: ${WRFSYS}, queue: ${WRFQ}"
+# user scripts (go into root folder)
 cd "${RUNDIR}"
-ln -sf "${WRFTOOLS}/Scripts/prepWorkDir.sh"
-ln -sf "${WRFTOOLS}/Scripts/execWRF.sh"
-#ln -sf "${WRFTOOLS}/misc/tables" # WRF default tables
-#ln -sf "${WRFTOOLS}/misc/tables-NoahMP" 'tables' # new tables including Noah-MP stuff
-# if cycling
-if [[ "${WRFQ}" == "pbs" ]] || [[ "${WRFQ}" == "ll" ]]; then # if it has a queue system, it has to have a setup script...
-	ln -sf "${WRFTOOLS}/Scripts/${WRFSYS}/setup_${WRFSYS}.sh"; fi
-if [[ "${WRFQ}" == "ll" ]]; then
-    ln -sf "${WRFTOOLS}/Scripts/${WRFSYS}/sleepCycle.sh"; fi
 if [[ -n "${CYCLING}" ]]; then
-	ln -sf "${WRFTOOLS}/Scripts/${WRFSYS}/start_cycle_${WRFQ}.sh"
-	ln -sf "${WRFTOOLS}/Python/cycling.py"
-	cp "${WRFTOOLS}/misc/stepfiles/stepfile.${CYCLING}" 'stepfile'
-fi
+    ln -sf "${WRFTOOLS}/Scripts/${WRFSYS}/start_cycle_${WRFSYS}.sh"
+    sed -i "/export SCRIPTDIR/ s+export\sSCRIPTDIR=.*$+export SCRIPTDIR='./scripts/'  # location of component scripts (pre/post processing etc.)+" "start_cycle_${WRFSYS}.sh"
+    sed -i "/export BINDIR/ s+export\sBINDIR=.*$+export BINDIR='./bin/'  # location of executables nd scripts (WPS and WRF)+" "start_cycle_${WRFSYS}.sh"
+    cp "${WRFTOOLS}/misc/stepfiles/stepfile.${CYCLING}" 'stepfile'
+fi # if cycling
+if [[ "${WRFQ}" == "ll" ]]; then # because LL does not support dependencies
+    ln -sf "${WRFTOOLS}/Scripts/${WRFSYS}/sleepCycle.sh"; fi
+# WRF run-script
 cp "${WRFTOOLS}/Scripts/${WRFSYS}/run_${CASETYPE}_WRF.${WRFQ}" .
-# WRF executable
+sed -i "/export SCRIPTDIR/ s+export\sSCRIPTDIR=.*$+export SCRIPTDIR='./scripts/'  # location of component scripts (pre/post processing etc.)+" "run_${CASETYPE}_WRF.${WRFQ}"
+# run-script component scripts (go into folder 'scripts')
+mkdir -p "${RUNDIR}/scripts/"
+cd "${RUNDIR}/scripts/"
+ln -sf "${WRFTOOLS}/Scripts/Common/execWRF.sh"
+ln -sf "${WRFTOOLS}/Scripts/${WRFSYS}/setup_${WRFSYS}.sh"
+if [[ -n "${CYCLING}" ]]; then
+    ln -sf "${WRFTOOLS}/Scripts/Setup/setup_cycle.sh"
+    ln -sf "${WRFTOOLS}/Scripts/Common/launchPreP.sh"
+    ln -sf "${WRFTOOLS}/Scripts/Common/launchPostP.sh"
+    ln -sf "${WRFTOOLS}/Scripts/Common/resubJob.sh"
+    ln -sf "${WRFTOOLS}/Python/cycling.py"
+fi # if cycling
+cd "${RUNDIR}"
+# WRF executable (go into folder 'bin')
+sed -i "/export BINDIR/ s+export\sBINDIR=.*$+export BINDIR='./bin/'  # location of executables nd scripts (WPS and WRF)+" "run_${CASETYPE}_WRF.${WRFQ}"
+mkdir -p "${RUNDIR}/bin/"
+cd "${RUNDIR}/bin/"
 ln -sf "${WRFEXE}"
+cd "${RUNDIR}"
 
-## insert name into run scripts
+## insert name into run scripts (queue-dependent!)
 echo "Defining experiment name in run scripts:"
 # name of experiment (and WRF dependency) depends on queue system
+# WPS run-script
 if [[ "${WPSQ}" == "pbs" ]]; then
-	sed -i "/#PBS -N/ s/#PBS -N\s.*$/#PBS -N ${NAME}_WPS/" "run_${CASETYPE}_WPS.${WPSQ}"
-    echo "  run_${CASETYPE}_WPS.${WRFQ}"
+    sed -i "/#PBS -N/ s/#PBS -N\s.*$/#PBS -N ${NAME}_WPS/" "run_${CASETYPE}_WPS.${WPSQ}"
+else
+    sed -i "/export JOBNAME/ s+export\sJOBNAME=.*$+export JOBNAME=${NAME}_WPS  # job name (dummy variable, since there is no queue)+" "run_${CASETYPE}_WPS.${WPSQ}"
 fi
+echo "  run_${CASETYPE}_WPS.${WRFQ}"
+# WRF run-script
 if [[ "${WRFQ}" == "pbs" ]]; then
-	sed -i "/#PBS -N/ s/#PBS -N\s.*$/#PBS -N ${NAME}_WRF/" "run_${CASETYPE}_WRF.${WRFQ}"
-	sed -i "/#PBS -W/ s/#PBS -W\s.*$/#PBS -W depend:afterok:${NAME}_WPS/" "run_${CASETYPE}_WRF.${WRFQ}"
-    echo "  run_${CASETYPE}_WRF.${WRFQ}"
+    sed -i "/#PBS -N/ s/#PBS -N\s.*$/#PBS -N ${NAME}_WRF/" "run_${CASETYPE}_WRF.${WRFQ}"
+    sed -i "/#PBS -W/ s/#PBS -W\s.*$/#PBS -W depend:afterok:${NAME}_WPS/" "run_${CASETYPE}_WRF.${WRFQ}"
 elif [[ "${WRFQ}" == "ll" ]]; then
-	sed -i "/#\s*@\s*job_name/ s/#\s*@\s*job_name\s*=.*$/# @ job_name = ${NAME}_WRF/" "run_${CASETYPE}_WRF.${WRFQ}"
-    echo "  run_${CASETYPE}_WRF.${WRFQ}"
+    sed -i "/#\s*@\s*job_name/ s/#\s*@\s*job_name\s*=.*$/# @ job_name = ${NAME}_WRF/" "run_${CASETYPE}_WRF.${WRFQ}"
+else
+    sed -i "/export JOBNAME/ s+export\sJOBNAME=.*$+export JOBNAME=${NAME}_WPS  # job name (dummy variable, since there is no queue)+" "run_${CASETYPE}_WRF.${WRFQ}"
+fi
+echo "  run_${CASETYPE}_WRF.${WRFQ}"
+# start_cycle-script
+if [[ -n "${CYCLING}" ]]; then
+    sed -i "/WPSSCRIPT/ s/WPSSCRIPT=.*$/WPSSCRIPT=\'run_${CASETYPE}_WPS.${WPSQ}\' # WPS run-scripts/" "start_cycle_${WRFSYS}.sh" # WPS run-script
+    sed -i "/WRFSCRIPT/ s/WRFSCRIPT=.*$/WRFSCRIPT=\'run_${CASETYPE}_WRF.${WRFQ}\' # WRF run-scripts/" "start_cycle_${WRFSYS}.sh" # WPS run-script
+fi
+# LL sleeper scripts
+if [[ "${WRFQ}" == "ll" ]]; then
     sed -i "/WPSSCRIPT/ s/WPSSCRIPT=.*$/WPSSCRIPT=\'run_${CASETYPE}_WPS.${WPSQ}\' # WPS run-scripts/" "sleepCycle.sh" # TCS sleeper script
     sed -i "/WRFSCRIPT/ s/WRFSCRIPT=.*$/WRFSCRIPT=\'run_${CASETYPE}_WRF.${WRFQ}\' # WRF run-scripts/" "sleepCycle.sh" # TCS sleeper script
-else
-    echo "  N/A"
 fi
-# run_cycle-script
-if [[ -n "${CYCLING}" ]]; then
-    sed -i "/WPSSCRIPT/ s/WPSSCRIPT=.*$/WPSSCRIPT=\'run_${CASETYPE}_WPS.${WPSQ}\' # WPS run-scripts/" "start_cycle_${WRFQ}.sh" # WPS run-script
-    sed -i "/WRFSCRIPT/ s/WRFSCRIPT=.*$/WRFSCRIPT=\'run_${CASETYPE}_WRF.${WRFQ}\' # WRF run-scripts/" "start_cycle_${WRFQ}.sh" # WPS run-script
-fi
+
+
+## setup archiving
+# default archive script name (no $ARSCRIPT means no archiving)
+if [[ "${ARSCRIPT}" == 'DEFAULT' ]] && [[ -n "${IO}" ]]; then ARSCRIPT="ar_wrfout_${IO}.pbs"; fi
 # archive script
 sed -i "/export ARSCRIPT/ s/export\sARSCRIPT=.*$/export ARSCRIPT=\'${ARSCRIPT}\' # archive script to be executed in specified intervals/" "run_${CASETYPE}_WRF.${WRFQ}"
 # archive interval
 sed -i "/export ARINTERVAL/ s/export\ARINTERVAL=.*$/export ARINTERVAL=\'${ARINTERVAL}\' # interval in which the archive script is to be executed/" "run_${CASETYPE}_WRF.${WRFQ}"
+# prepare archive script
 if [[ -n "${ARSCRIPT}" ]]; then
     # copy script and change job name
     cp -f "${WRFTOOLS}/Scripts/HPSS/${ARSCRIPT}" .
@@ -210,20 +274,9 @@ if [[ -n "${ARSCRIPT}" ]]; then
       echo
       echo "WARNING: Number of domains (${MAXDOM}) incompatible with available archiving options."
       echo
-    fi
-fi
+    fi # $MAXDOM
+fi # $ARSCRIPT
 
-## set correct path for geogrid data
-echo "Setting path for geogrid data"
-if [[ "${WPSSYS}" == "GPC"* ]] || [[ "${WPSSYS}" == "P7" ]]; then
-	sed -i "/geog_data_path/ s+\s*geog_data_path\s*=\s*.*$+ geog_data_path = \'${SCRATCH}/data/geog/\',+" namelist.wps
-    echo "  ${SCRATCH}/data/geog/"
-elif [[ "${WPSSYS}" == "i7" ]]; then
-	sed -i "/geog_data_path/ s+\s*geog_data_path\s*=\s*.*$+ geog_data_path = \'/media/data/DATA/WRF/geog/\',+" namelist.wps
-    echo '  /media/data/DATA/WRF/geog/'
-else
-    echo "WARNING: no geogrid path selected!"
-fi
 
 ## copy data tables for selected physics options
 # radiation scheme
@@ -297,11 +350,6 @@ cd "${RUNDIR}" # return to run directory
 # GHG emission scenario (if no GHG scenario is selected, the variable will be empty)
 sed -i "/export GHG/ s/export\sGHG=.*$/export GHG=\'${GHG}\' # GHG emission scenario set by setup script/" "run_${CASETYPE}_WRF.${WRFQ}"
 
-## shortcuts for some WRF/WPS options
-# number of domains (WRF and WPS namelist!)
-sed -i "/max_dom/ s/^\s*max_dom\s*=\s*.*$/ max_dom = ${MAXDOM}, ! this entry was edited by the setup script/" namelist.input namelist.wps
-# nesting option
-sed -i "/feedback/ s/^\s*feedback\s*=\s*.*$/ feedback = ${FEEDBACK}, ! this entry was edited by the setup script/" namelist.input
 
 ## finish up
 # prompt user to create data links

@@ -17,6 +17,7 @@
 # batch (default), debug, largemem
 #PBS -q batch
 
+set -e # abort if anything goes wrong
 
 ## job settings
 export SCRIPTNAME="run_${PBS_JOBNAME}.pbs" # WPS suffix assumed
@@ -30,6 +31,7 @@ export INIDIR="${PBS_O_WORKDIR}"
 export RUNNAME="${PBS_JOBNAME%_*}" # strip WPS suffix
 export WORKDIR="${INIDIR}/${RUNNAME}/"
 
+## WPS settings
 # optional arguments $RUNPYWPS, $RUNREAL, $RAMIN, $RAMOUT
 export RUNPYWPS=1
 export RUNREAL=1
@@ -39,7 +41,7 @@ export RAMOUT=0
 export METDATA="${INIDIR}/metgrid/"
 export REALOUT="${WORKDIR}"
 
-# whether or not to clear job folder (default: yes)
+# whether or not to clear job folder (yes)
 if [[ -z "$CLEARWDIR" ]]; then CLEARWDIR=1; fi
 
 
@@ -54,7 +56,7 @@ source setup_GPC.sh # load machine-specific stuff
 echo
 echo '   ***   Start Time    ***   '
 date
-echo 
+echo
 
 # prepare directory
 cd "${INIDIR}"

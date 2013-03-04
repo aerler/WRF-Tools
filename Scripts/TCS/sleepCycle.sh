@@ -14,7 +14,7 @@ WRFSCRIPT="run_cycling_WRF.ll"
 echo
 echo "   Next Step: ${NEXTSTEP}"
 # echo "   Root Dir: ${INIDIR}"
-echo 
+echo
 
 # submit first independent WPS job to GPC (not TCS!)
 echo
