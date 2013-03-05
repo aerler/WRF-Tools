@@ -36,7 +36,7 @@ export REALOUT="${WORKDIR}" # this should be default anyway
 
 # setup environment
 cd "${INIDIR}"
-source "${SCRIPTDIR}/setup_machine.sh" # load machine-specific stuff
+source "${SCRIPTDIR}/setup_WPS.sh" # load machine-specific stuff
 # display message from before after setup display
 echo
 # RAM-disk settings
@@ -52,6 +52,11 @@ fi # RAMDISK
 echo
 
 
+###                                                                    ##
+###   ***   Below this line nothing should be machine-specific   ***   ##
+###                                                                    ##
+
+
 # launch feedback
 echo
 hostname
@@ -61,6 +66,12 @@ echo "   ***   ${JOBNAME}   ***   "
 echo
 echo "${RAMMSG}"
 echo
+
+
+# setup environment
+cd "${INIDIR}"
+source "${SCRIPTDIR}/setup_WPS.sh" # load machine-specific stuff
+# display message from before after setup display
 
 ## run WPS for this step
 # start timing
@@ -74,11 +85,10 @@ cd "${INIDIR}"
 eval "${SCRIPTDIR}/execWPS.sh"
 ERR=$? # capture exit code
 # mock input files for testing
-# ERR=0
-# if [[ -n "${NEXTSTEP}" ]]; then
-# 	touch "${WORKDIR}/wrfinput_d01"
-# 	touch "${WORKDIR}/wrfinput_d02"
-# fi
+#if [[ -n "${NEXTSTEP}" ]]; then
+#	touch "${WORKDIR}/wrfinput_d01"
+#	touch "${WORKDIR}/wrfinput_d02"
+#fi
 
 if [[ $ERR != 0 ]]; then
   # end timing

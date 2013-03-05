@@ -101,7 +101,7 @@ if [[ "${RESTART}" == 'RESTART' ]]
     rm -rf 'static/'
     mkdir -p 'static'
     echo $( cp -P * 'static/' &> /dev/null ) # trap this error and hide output
-    cp -rL 'meta/' 'tables/' 'static/'
+    cp -rL 'scripts/' 'bin/' 'meta/' 'tables/' 'static/'
     tar czf "${STATICTGZ}" 'static/'
     rm -r 'static/'
     mv "${STATICTGZ}" "${WRFOUT}"

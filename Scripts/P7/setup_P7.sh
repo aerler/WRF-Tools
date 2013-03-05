@@ -11,8 +11,6 @@ if [[ ${RUNPYWPS} == 1 ]]; then
     module load ncl/6.0.0 python/2.7.2
     #module load gcc/4.6.1 centos5-compat/lib64 ncl/6.0.0 python/2.7.2
 fi
-module list
-echo
 
 # cp-flag to prevent overwriting existing content
 export NOCLOBBER='-n'
@@ -24,7 +22,7 @@ export RAMDISK="/dev/shm/aerler/"
 export HYBRIDRUN='poe' # evaluated by execWRF and execWPS
 
 # WPS/preprocessing submission command (for next step)
-export SUBMITWPS='ssh gpc01 "cd \"${INIDIR}\"; qsub ./${WPSSCRIPT} -v NEXTSTEP=${NEXTSTEP}"'
+export SUBMITWPS='ssh gpc-f102n084 "cd \"${INIDIR}\"; qsub ./${WPSSCRIPT} -v NEXTSTEP=${NEXTSTEP}"'
 
 # archive submission command (for last step)
 export SUBMITAR='ssh gpc-f104n084 "cd \"${INIDIR}\"; qsub ./${ARSCRIPT} -v TAGS=${ARTAG},MODE=BACKUP,INTERVAL=${ARINTERVAL}"'

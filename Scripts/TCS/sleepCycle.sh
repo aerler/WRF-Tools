@@ -12,7 +12,7 @@ WPSSCRIPT="run_cycling_WPS.pbs"
 WRFSCRIPT="run_cycling_WRF.ll"
 
 # source launch commands
-source "${SCRIPTDIR}/setup_machine.sh"
+source "${SCRIPTDIR}/setup_WRF.sh"
 
 # launch feedback
 echo

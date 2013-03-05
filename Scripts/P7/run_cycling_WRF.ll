@@ -70,11 +70,25 @@ export SCRIPTDIR="${INIDIR}/scripts/" # location of component scripts (pre/post 
 export BINDIR="${INIDIR}/bin/" # location of executables (WRF and WPS)
 # N.B.: use absolute path for script and bin folders
 
+echo
 echo "Host list: ${LOADL_PROCESSOR_LIST}"
+echo
+module list
+echo
+
 
 ###                                                                    ##
 ###   ***   Below this line nothing should be machine-specific   ***   ##
 ###                                                                    ##
+
+
+# launch feedback
+echo
+hostname
+uname
+echo
+echo "   ***   ${JOBNAME}   ***   "
+echo
 
 
 ## real.exe settings
@@ -96,7 +110,7 @@ export RSTDIR="${WRFOUT}"
 
 ## setup job environment
 cd "${INIDIR}"
-source "${SCRIPTDIR}/setup_machine.sh" # load machine-specific stuff
+source "${SCRIPTDIR}/setup_WRF.sh" # load machine-specific stuff
 
 ## run WPS/pre-processing for next step
 # read next step from stepfile

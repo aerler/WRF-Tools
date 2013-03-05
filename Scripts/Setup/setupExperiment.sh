@@ -52,6 +52,7 @@ function RENAME () {
     sed -i "/export ARINTERVAL/ s/export\ARINTERVAL=.*$/export ARINTERVAL=\'${ARINTERVAL}\' # interval in which the archive script is to be executed/" "${FILE}"
 } # fct. RENAME
 
+
 ## scenario definition section
 # defaults (may be set or overwritten in xconfig.sh)
 NAME='test'
@@ -142,11 +143,26 @@ elif [[ "${WRFSYS}" == "i7" ]]; then
     WRFEXE=${WRFEXE:-"${WRFSRC}/i7-MPI/${WRFBLD}/O3xHostNC4/wrf.exe"}
 fi
 
+## ***                                            ***
+## ***   now we actually start doing something!   ***
+## ***                                            ***
+
 # create run folder
 echo
 echo "   Creating Root Directory for Experiment ${NAME}"
 echo
 mkdir -p "${RUNDIR}"
+
+# backup existing files
+echo 'Backing-up existing files (moved to folder "backup/")'
+echo
+rm -rf 'backup/'
+mkdir -p 'backup'
+eval $( cp -df --preserve=all * 'backup/' &> /dev/null ) # trap this error and hide output
+eval $( cp -dRf --preserve=all 'scripts/' 'bin/' 'meta/' 'tables/' 'backup/' &> /dev/null ) # trap this error and hide output
+eval $( rm -rf 'scripts/' 'bin/' 'meta/' 'tables/' ) # delete script and data folders
+eval $( rm -f *.sh *.pbs *.ll &> /dev/null ) # delete scripts
+cp -P backup/setupExperiment.sh backup/xconfig.sh .
 
 
 ## create namelist files
@@ -213,7 +229,7 @@ RENAME "run_${CASETYPE}_WPS.${WPSQ}"
 mkdir -p "${RUNDIR}/scripts/"
 cd "${RUNDIR}/scripts/"
 ln -sf "${WRFTOOLS}/Scripts/Common/execWPS.sh"
-ln -sf "${WRFTOOLS}/Scripts/${WPSSYS}/setup_${WPSSYS}.sh" 'setup_machine.sh' # renaming
+ln -sf "${WRFTOOLS}/Scripts/${WPSSYS}/setup_${WPSSYS}.sh" 'setup_WPS.sh' # renaming
 cd "${RUNDIR}"
 # WPS/real executables (go into folder 'bin')
 mkdir -p "${RUNDIR}/bin/"
@@ -239,7 +255,7 @@ if [[ -n "${CYCLING}" ]]; then
 fi # if cycling
 if [[ "${WRFQ}" == "ll" ]]; then # because LL does not support dependencies
     cp "${WRFTOOLS}/Scripts/${WRFSYS}/sleepCycle.sh" .
-    sleepCycle.sh
+    RENAME sleepCycle.sh
 fi # if LL
 # WRF run-script
 cp "${WRFTOOLS}/Scripts/${WRFSYS}/run_${CASETYPE}_WRF.${WRFQ}" .
@@ -248,7 +264,7 @@ RENAME "run_${CASETYPE}_WRF.${WRFQ}"
 mkdir -p "${RUNDIR}/scripts/"
 cd "${RUNDIR}/scripts/"
 ln -sf "${WRFTOOLS}/Scripts/Common/execWRF.sh"
-ln -sf "${WRFTOOLS}/Scripts/${WRFSYS}/setup_${WRFSYS}.sh" 'setup_machine.sh' # renaming
+ln -sf "${WRFTOOLS}/Scripts/${WRFSYS}/setup_${WRFSYS}.sh" 'setup_WRF.sh' # renaming
 if [[ -n "${CYCLING}" ]]; then
     ln -sf "${WRFTOOLS}/Scripts/Setup/setup_cycle.sh"
     ln -sf "${WRFTOOLS}/Scripts/Common/launchPreP.sh"

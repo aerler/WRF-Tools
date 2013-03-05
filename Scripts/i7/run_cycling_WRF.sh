@@ -57,7 +57,7 @@ export RSTDIR="${WRFOUT}"
 
 ## setup job environment
 cd "${INIDIR}"
-source "${SCRIPTDIR}/setup_machine.sh" # load machine-specific stuff
+source "${SCRIPTDIR}/setup_WRF.sh" # load machine-specific stuff
 
 ## run WPS/pre-processing for next step
 # read next step from stepfile

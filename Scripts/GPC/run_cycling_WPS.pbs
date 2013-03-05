@@ -62,10 +62,14 @@ fi # PBS_QUEUE
 export METDATA="" # to output metgrid data set "ldisk = True" in meta/namelist.py
 export REALOUT="${WORKDIR}" # this should be default anyway
 
-# setup environment
-cd "${INIDIR}"
-source "${SCRIPTDIR}/setup_machine.sh" # load machine-specific stuff
-# display message from before after setup display
+echo
+module list
+echo
+
+
+###                                                                    ##
+###   ***   Below this line nothing should be machine-specific   ***   ##
+###                                                                    ##
 
 
 # launch feedback
@@ -78,6 +82,11 @@ echo
 echo "${RAMMSG}"
 echo
 
+
+# setup environment
+cd "${INIDIR}"
+source "${SCRIPTDIR}/setup_WPS.sh" # load machine-specific stuff
+# display message from before after setup display
 
 ## run WPS for this step
 # start timing

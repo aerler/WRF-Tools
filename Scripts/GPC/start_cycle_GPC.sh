@@ -27,7 +27,7 @@ export LASTSTEP="${2}" # previous step in stepfile (leave blank if this is the f
 cd "${INIDIR}"
 
 # read first entry in stepfile
-NEXTSTEP=$( python cycling.py "${LASTSTEP}" )
+NEXTSTEP=$( python "${SCRIPTDIR}/cycling.py" "${LASTSTEP}" )
 export NEXTSTEP
 
 # run (machine-independent) setup:

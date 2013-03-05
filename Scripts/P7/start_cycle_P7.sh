@@ -16,7 +16,7 @@ export WPSSCRIPT=${WPSSCRIPT:-'run_cycling_WPS.ll'} # WPS run-scripts
 export WRFSCRIPT=${WRFSCRIPT:-'run_cycling_WRF.ll'} # WRF run-scripts
 export STATICTGZ=${STATICTGZ:-'static.tgz'} # file for static data backup
 # geogrid command (executed during machine-independent setup)
-export GEOGRID=${GEOGRID:-"ssh gpc04 \"cd ${INIDIR}; source setup_GPC.sh; mpirun -n 4 ${BINDIR}/geogrid.exe\" > /dev/null"} # hide stdout; run on GPC via ssh
+export GEOGRID=${GEOGRID:-"ssh gpc04 \"cd ${INIDIR}; source setup_WRF.sh; mpirun -n 4 ${BINDIR}/geogrid.exe\" > /dev/null"} # hide stdout; run on GPC via ssh
 # export GEOGRID=${GEOGRID:-"mpiexec -n 8 ${BINDIR}/geogrid.exe > /dev/null"} # run locally
 
 # translate arguments
@@ -28,7 +28,7 @@ export LASTSTEP="${2}" # previous step in stepfile (leave blank if this is the f
 cd "${INIDIR}"
 
 # read first entry in stepfile
-NEXTSTEP=$( python cycling.py "${LASTSTEP}" )
+NEXTSTEP=$( python "${SCRIPTDIR}/cycling.py" "${LASTSTEP}" )
 export NEXTSTEP
 
 # run (machine-independent) setup:
