@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -l # make sure it is a login shell - AIX doesn't get that...
 
 ###                                                                                     ##
 ###   ***   Everything below this line was inserted from run_cycling_WRF.common   ***   ##
