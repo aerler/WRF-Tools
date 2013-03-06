@@ -2,10 +2,15 @@
 # source script to load TCS-specific settings for WRF
 # created 06/07/2012 by Andre R. Erler, GPL v3
 
+echo
+echo "Host list: ${LOADL_PROCESSOR_LIST}"
+echo
 # load modules
 module purge
 module load xlf/14.1 vacpp/12.1 hdf5/187-v18-serial-xlc netcdf/4.1.3_hdf5_serial-xlc python/2.3.4
 #module load xlf/13.1 vacpp/11.1 hdf5/187-v18-serial-xlc netcdf/4.1.3_hdf5_serial-xlc
+module list
+echo
 
 # no RAM disk on TCS!
 export RAMIN=0
@@ -14,9 +19,12 @@ export RAMOUT=0
 # cp-flag to prevent overwriting existing content
 export NOCLOBBER='-i --reply=no'
 
+# run configuration
+export NODES=${NODES:-$( echo "${LOADL_PROCESSOR_LIST}" | wc -w )} # infer from host list; set in LL section
+export TASKS=${TASKS:-64} # number of MPI task per node (Hpyerthreading!)
+export THREADS=${THREADS:-1} # number of OpenMP threads
 # set up hybrid envionment: OpenMP and MPI (Intel)
 export TARGET_CPU_RANGE=-1
-
 # next variable is for performance, so that memory is allocated as
 # close to the cpu running the task as possible (NUMA architecture)
 export MEMORY_AFFINITY=MCM
@@ -28,9 +36,8 @@ for ((i=1; i<$((NODES*TASKS)); i++)); do
     THPT="${THPT}:${THREADS}";
 done
 export THRDS_PER_TASK="${THPT}"
-
 # launch executable
-export HYBRIDRUN='poe ccsm_launch'
+export HYBRIDRUN=${HYBRIDRUN:-'poe ccsm_launch'} # evaluated by execWRF and execWPS
 
 # ccsm_launch is a "hybrid program launcher" for MPI-OpenMP programs
 # poe reads from a commands file, where each MPI task is launched
@@ -42,10 +49,11 @@ export HYBRIDRUN='poe ccsm_launch'
 # on the nodes.
 
 # WPS/preprocessing submission command (for next step)
-export SUBMITWPS='ssh gpc-f102n084 "cd \"${INIDIR}\"; qsub ./${WPSSCRIPT} -v NEXTSTEP=${NEXTSTEP}"'
+export SUBMITWPS=${SUBMITWPS:-'ssh gpc-f102n084 "cd \"${INIDIR}\"; qsub ./${WPSSCRIPT} -v NEXTSTEP=${NEXTSTEP}"'} # evaluated by launchPreP
+export WAITFORWPS=${WAITFORWPS:-'WAIT'} # stay on compute node until WPS for next step finished, in order to submit next WRF job
 
 # archive submission command (for last step)
-export SUBMITAR='ssh gpc-f104n084 "cd \"${INIDIR}\"; qsub ./${ARSCRIPT} -v TAGS=${ARTAG},MODE=BACKUP,INTERVAL=${ARINTERVAL}"'
+export SUBMITAR=${SUBMITAR:-'ssh gpc-f104n084 "cd \"${INIDIR}\"; qsub ./${ARSCRIPT} -v TAGS=${ARTAG},MODE=BACKUP,INTERVAL=${ARINTERVAL}"'} # evaluated by launchPostP
 
 # job submission command (for next step)
-export RESUBJOB='ssh tcs-f11n06 "cd \"${INIDIR}\"; export NEXTSTEP=${NEXTSTEP}; llsubmit ./${WRFSCRIPT}"' # evaluated by resubJob
+export RESUBJOB=${RESUBJOB-'ssh tcs-f11n06 "cd \"${INIDIR}\"; export NEXTSTEP=${NEXTSTEP}; llsubmit ./${WRFSCRIPT}"'} # evaluated by resubJob

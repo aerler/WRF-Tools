@@ -19,106 +19,17 @@
 #PBS -q largemem
 # N.B.: the queue setting may have been changed by the last submitting instance
 
-set -e # abort if anything goes wrong
-# check if $NEXTSTEP is set, and exit, if not
-if [[ -z "${NEXTSTEP}" ]]; then
-  echo 'Environment variable $NEXTSTEP not set - aborting!'
-  exit 1
-fi
-CURRENTSTEP="${NEXTSTEP}" # $NEXTSTEP will be overwritten
-
 
 ## job settings
-export JOBNAME="${PBS_JOBNAME}"
-export WRFSCRIPT="run_cycling_WRF.pbs" # WRF suffix assumed (not used here)
-export WPSSCRIPT="run_cycling_WPS.pbs" # WRF suffix assumed, WPS suffix substituted: ${JOBNAME%_WRF}_WPS
-# run configuration
-export NODES=1 # only one for WPS!
-export TASKS=16 # number of MPI task per node (Hpyerthreading?)
-export THREADS=1 # number of OpenMP threads
+# get PBS names (needed for folder names)
+export JOBNAME="${PBS_JOBNAME}" # not the $RUNNAME
+export INIDIR="${PBS_O_WORKDIR}" # experiment root (launch directory)
 # directory setup
-export INIDIR="${PBS_O_WORKDIR}"
 export RUNNAME="${CURRENTSTEP}" # step name, not job name!
-export WORKDIR="${INIDIR}/${RUNNAME}/"
+export WORKDIR="${INIDIR}/${RUNNAME}/" # step folder
 export SCRIPTDIR="${INIDIR}/scripts/" # location of component scripts (pre/post processing etc.)
 export BINDIR="${INIDIR}/bin/" # location of executables (WRF and WPS)
 # N.B.: use absolute path for script and bin folders
-
-## WPS settings
-# optional arguments $RUNPYWPS, $RUNREAL, $RAMIN, $RAMOUT
-export RUNPYWPS=1
-export RUNREAL=1
-# RAM-disk settings: infer from queue
-if [[ "${PBS_QUEUE}" == 'largemem' ]]; then
-  export RAMIN=1
-  export RAMOUT=1
-  RAMMSG="Running on ${PBS_QUEUE} queue; using RAM disk for input and output." # displayed later
-else
-  export RAMIN=1
-  export RAMOUT=0
-  RAMMSG="Running on ${PBS_QUEUE} queue; using hard disk for input only." # displayed later
-fi # PBS_QUEUE
-# folders: $METDATA, $REALIN, $REALOUT
-export METDATA="" # to output metgrid data set "ldisk = True" in meta/namelist.py
-export REALOUT="${WORKDIR}" # this should be default anyway
-
-echo
-module list
-echo
-
-
-###                                                                    ##
-###   ***   Below this line nothing should be machine-specific   ***   ##
-###                                                                    ##
-
-
-# launch feedback
-echo
-hostname
-uname
-echo
-echo "   ***   ${JOBNAME}   ***   "
-echo
-echo "${RAMMSG}"
-echo
-
-
-# setup environment
-cd "${INIDIR}"
-source "${SCRIPTDIR}/setup_WPS.sh" # load machine-specific stuff
-# display message from before after setup display
-
-## run WPS for this step
-# start timing
-echo
-echo "   ***   Launching WPS for current step: ${CURRENTSTEP}   ***   "
-date
-echo
-
-# run WPS driver script
-cd "${INIDIR}"
-eval "${SCRIPTDIR}/execWPS.sh"
-ERR=$? # capture exit code
-# mock input files for testing
-#if [[ -n "${NEXTSTEP}" ]]; then
-#	touch "${WORKDIR}/wrfinput_d01"
-#	touch "${WORKDIR}/wrfinput_d02"
-#fi
-
-if [[ $ERR != 0 ]]; then
-  # end timing
-  echo
-  echo "   ###   WARNING: WRF step ${CURRENTSTEP} failed   ###   "
-  date
-  echo
-  exit ${ERR} # abort if error occured!
-fi # if error
-
-# end timing
-echo
-echo "   ***   WPS step ${CURRENTSTEP} completed   ***   "
-date
-echo
-
-# copy driver script into work dir to signal completion
-cp "${INIDIR}/${WPSSCRIPT}" "${WORKDIR}"
+export WPSSCRIPT="run_cycling_WPS.pbs" # WRF suffix assumed, WPS suffix substituted: ${JOBNAME%_WRF}_WPS
+# WPS wallclock  time limits (no way to query from queue system)
+export WPSWCT='' # WPS wallclock  time limit; e.g. '01:00:00'

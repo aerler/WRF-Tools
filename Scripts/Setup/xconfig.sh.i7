@@ -1,4 +1,5 @@
 #!/bin/bash
+WRFTOOLS="${MODEL_ROOT}/WRF Tools-tmp/"
 ## scenario definition section
 NAME='test'
 # GHG emission scenario
@@ -24,9 +25,8 @@ DYNAMICS='default'
 BDY_CONTROL='clim'
 NAMELIST_QUILT=''
 # WPS
-SHARE='d02'
-GEOGRID="${DOMAINS}"
-METGRID='pywps'
+# SHARE, GEOGRID, METGRID
+# N.B.: usually don't have to be set manually
 
 ## configure data sources
 RUNDIR="${PWD}" # must not contain spaces!
@@ -37,12 +37,14 @@ DATADIR='/home/DATA/DATA/CESM/CESM-HF-test/'
 GEODATA='/home/DATA/DATA/WRF/geog'
 
 ## system settings
-WRFTOOLS="${MODEL_ROOT}/WRF Tools/"
+WPSWCT='00:45:00'
+WRFWCT='05:00:00'
+WRFNODES=4
 # WPS executables
-WPSSYS="i7" # also affects unccsm.exe
+WPSSYS="GPC" # also affects unccsm.exe
 # set path for metgrid.exe and real.exe explicitly using METEXE and REALEXE
 # WRF executable
 POLARWRF=0 # use PolarWRF
 FLAKE=1 # use FLake
-WRFSYS="i7"
+WRFSYS="TCS"
 # set path for geogrid.exe and wrf.exe eplicitly using GEOEXE and WRFEXE

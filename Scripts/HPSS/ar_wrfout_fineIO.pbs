@@ -247,7 +247,7 @@ function RETRIEVEHTAR () {
     CHECKHTAR "${1}" "${2}" 'QUIET' # check contents
     MISS=$?
   fi # $VERIFY
-  if [[ $MISS == 0 ]]; then
+  if [[ $MISS != 0 ]]; then
 	echo "Warning: cannot verify archive ${HTAR} - aborting!"
   else
     echo "Archive ${HTAR} exists - contents OK."
@@ -348,9 +348,11 @@ function PROCESSDATASET () {
   # operation feedback
   echo "   ***   ${MODE} ${DATE}   ***   "
   # delete source or not?
-  if [[ ${RMSRC} == 'RMSRC' ]]
+  if [[ ${MODE} == 'RETRIEVE' ]]
+    then echo " (Overwriting source files!) "
+  elif [[ ${RMSRC} == 'RMSRC' ]]
     then echo " ++  Removing source files!  ++ "
-    else echo "   (leaving source files untouched)   "
+    else echo " (leaving source files untouched)   "
   fi
   echo
   ## process file lists (skip empty ones)

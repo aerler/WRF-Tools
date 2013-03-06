@@ -27,128 +27,29 @@
 #=====================================
 # @ queue
 
-# check if $NEXTSTEP is set, and exit, if not
-set -e # abort if anything goes wrong
-if [[ -z "${NEXTSTEP}" ]]; then
-  echo 'Environment variable $NEXTSTEP not set - aborting!'
-  exit 1
-fi
-CURRENTSTEP="${NEXTSTEP}" # $NEXTSTEP will be overwritten
-export NEXTSTEP
-export CURRENTSTEP
-
 
 ## job settings
+# get PBS names (needed for folder names)
 export JOBNAME="${LOADL_JOB_NAME}"
-export WRFSCRIPT="run_cycling_WRF.ll" # WRF suffix assumed
-export WPSSCRIPT="run_cycling_WPS.pbs" # run WPS on GPC (WPS suffix substituted for WRF): ${LOADL_JOB_NAME%_WRF}_WPS
-export ARSCRIPT="" # archive script to be executed after WRF finishes
-export ARINTERVAL="" # default: every time
-export WAITFORWPS='WAIT' # stay on compute node until WPS for next step finished, in order to submit next WRF job
-# run configuration
-export NODES=$( echo "${LOADL_PROCESSOR_LIST}" | wc -w ) # infer from host list; set in LL section
-export TASKS=64 # number of MPI task per node (Hpyerthreading!)
-export THREADS=1 # number of OpenMP threads
+export INIDIR="${LOADL_STEP_INITDIR}" # experiment root (launch directory)
 # directory setup
-export INIDIR="${LOADL_STEP_INITDIR}" # launch directory
 export RUNNAME="${CURRENTSTEP}" # step name, not job name!
-export WORKDIR="${INIDIR}/${RUNNAME}/"
+export WORKDIR="${INIDIR}/${RUNNAME}/" # step folder
+export WRFOUT="${INIDIR}/wrfout/" # output directory
 export SCRIPTDIR="${INIDIR}/scripts/" # location of component scripts (pre/post processing etc.)
 export BINDIR="${INIDIR}/bin/" # location of executables (WRF and WPS)
 # N.B.: use absolute path for script and bin folders
-
-echo
-echo "Host list: ${LOADL_PROCESSOR_LIST}"
-echo
-module list
-echo
-
-
-###                                                                    ##
-###   ***   Below this line nothing should be machine-specific   ***   ##
-###                                                                    ##
-
-
-# launch feedback
-echo
-hostname
-uname
-echo
-echo "   ***   ${JOBNAME}   ***   "
-echo
-
-
-## real.exe settings
-export RUNREAL=0 # don't run real.exe again (requires metgrid.exe output)
-# optional arguments: $RUNREAL, $RAMIN, $RAMOUT
-# folders: $REALIN, $REALOUT
-# N.B.: RAMIN/OUT only works within a single node!
+# important scripts
+export WRFSCRIPT="run_cycling_WRF.pbs" # WRF suffix assumed
+export WPSSCRIPT="run_cycling_WPS.pbs" # WRF suffix assumed, WPS suffix substituted: ${JOBNAME%_WRF}_WPS
+export ARINTERVAL="" # default: every time
+export ARSCRIPT="" # archive script to be executed after WRF finishes
+# WRF and WPS wallclock  time limits (no way to query from queue system)
+export WRFWCT='' # WRF wallclock  time limit; e.g. '06:00:00'
+export WPSWCT='' # WPS wallclock  time limit; e.g. '01:00:00'
 
 ## WRF settings
-# optional arguments: $RUNWRF, $GHG ($RAD, $LSM)
+# N.B.: these settings serve as fallback options when inferring from namelist fails
 export GHG='' # GHG emission scenario
 export RAD='' # radiation scheme
 export LSM='' # land surface scheme
-# folders: $WRFIN, $WRFOUT, $TABLES
-export REALOUT="${WORKDIR}" # this should be default anyway
-export WRFIN="${WORKDIR}" # same as $REALOUT
-export WRFOUT="${INIDIR}/wrfout/" # output directory
-export RSTDIR="${WRFOUT}"
-
-## setup job environment
-cd "${INIDIR}"
-source "${SCRIPTDIR}/setup_WRF.sh" # load machine-specific stuff
-
-## run WPS/pre-processing for next step
-# read next step from stepfile
-NEXTSTEP=$(python "${SCRIPTDIR}/cycling.py" "${CURRENTSTEP}")
-
-# launch pre-processing for next step
-eval "${SCRIPTDIR}/launchPreP.sh" # primarily for WPS and real.exe
-
-
-## run WRF for this step
-# N.B.: work in existing work dir, created by caller instance;
-# i.e. don't remove namelist files in working directory!
-
-# start timing
-echo
-echo "   ***   Launching WRF for current step: ${CURRENTSTEP}   ***   "
-date
-echo
-
-# run script
-eval "${SCRIPTDIR}/execWRF.sh"
-ERR=$? # capture exit code
-# mock restart files for testing (correct linking)
-#if [[ -n "${NEXTSTEP}" ]]; then
-#	touch "${WORKDIR}/wrfrst_d01_${NEXTSTEP}_00"
-#	touch "${WORKDIR}/wrfrst_d01_${NEXTSTEP}_01"
-#fi
-
-if [[ $ERR != 0 ]]; then
-  # end timing
-  echo
-  echo "   ###   WARNING: WRF step ${CURRENTSTEP} failed   ###   "
-  date
-  echo
-  exit ${ERR}
-fi # if error
-
-# end timing
-echo
-echo "   ***   WRF step ${CURRENTSTEP} completed   ***   "
-date
-echo
-
-
-## launch post-processing
-eval "${SCRIPTDIR}/launchPostP.sh" # mainly archiving, but may include actual post-processing
-
-
-## resubmit job for next step
-eval "${SCRIPTDIR}/resubJob.sh" # requires submission command from setup script
-
-
-# copy driver script into work dir to signal completion
-cp "${INIDIR}/${WRFSCRIPT}" "${WORKDIR}"

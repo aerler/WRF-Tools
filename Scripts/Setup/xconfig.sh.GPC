@@ -1,4 +1,5 @@
 #!/bin/bash
+WRFTOOLS="${MODEL_ROOT}/WRF\ Tools-tmp/"
 ## scenario definition section
 NAME='test'
 # GHG emission scenario
@@ -24,9 +25,8 @@ DYNAMICS='default'
 BDY_CONTROL='clim'
 NAMELIST_QUILT=''
 # WPS
-SHARE='d02'
-GEOGRID="${DOMAINS}"
-METGRID='pywps'
+# SHARE, GEOGRID, METGRID
+# N.B.: usually don't have to be set manually
 
 ## configure data sources
 RUNDIR="${PWD}" # must not contain spaces!
@@ -35,7 +35,7 @@ DATATYPE='CESM'
 DATADIR="/scratch/p/peltier/marcdo/archive/tb20trcn1x1/"
 
 ## system settings
-WRFTOOLS="${MODEL_ROOT}/WRF\ Tools/"
+# WPSWCT, WRFWCT, WRFNODES # wallclock time and number of nodes
 # WPS executables
 WPSSYS="GPC" # also affects unccsm.exe
 # set path for metgrid.exe and real.exe explicitly using METEXE and REALEXE

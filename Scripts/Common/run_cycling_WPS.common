@@ -1,0 +1,79 @@
+
+
+###                                                                                     ##
+###   ***   Everything below this line was inserted from run_cycling_WPS.common   ***   ##
+###                                                                                     ##
+
+
+# The following environment variables have to be set by now:
+# JOBNAME, INIDIR, NODES, TASKS, THREADS
+# WRFSCRIPT, WPSSCRIPT, SCRIPTDIR, BINDIR
+# Optional:
+
+set -e # abort if anything goes wrong
+
+# launch feedback
+echo
+hostname
+uname
+echo
+echo "   ***   ${JOBNAME}   ***   "
+echo
+
+# check if $NEXTSTEP is set, and exit, if not
+if [[ -z "${NEXTSTEP}" ]]; then
+  echo 'Environment variable $NEXTSTEP not set - aborting!'
+  exit 1
+fi
+CURRENTSTEP="${NEXTSTEP}" # $NEXTSTEP will be overwritten
+export CURRENTSTEP
+
+# more WPS settings (before machine setup)
+# optional arguments $RUNPYWPS, $RUNREAL, $RAMIN, $RAMOUT
+export RUNPYWPS=1
+export RUNREAL=1
+# folders: $METDATA, $REALIN, $REALOUT
+export METDATA="" # to output metgrid data set "ldisk = True" in meta/namelist.py
+
+# setup environment
+cd "${INIDIR}"
+source "${SCRIPTDIR}/setup_WPS.sh" # load machine-specific stuff
+# display message after setup
+
+
+## run WPS for this step
+# start timing
+echo
+echo "   ***   Launching WPS for current step: ${CURRENTSTEP}   ***   "
+date
+echo
+
+# run WPS driver script
+cd "${INIDIR}"
+eval "${SCRIPTDIR}/execWPS.sh"
+ERR=$? # capture exit code
+# mock input files for testing
+# ERR=0 # pretend execution was successful
+#if [[ -n "${NEXTSTEP}" ]]; then
+#	touch "${WORKDIR}/wrfinput_d01"
+#	touch "${WORKDIR}/wrfinput_d02"
+#fi
+
+## check exit code and abort if error occurred
+if [[ $ERR != 0 ]]; then
+  # end timing
+  echo
+  echo "   ###   WARNING: WRF step ${CURRENTSTEP} failed   ###   "
+  date
+  echo
+  exit ${ERR} # abort if error occured!
+fi # if error
+
+# end timing
+echo
+echo "   ***   WPS step ${CURRENTSTEP} completed   ***   "
+date
+echo
+
+# copy driver script into work dir to signal completion
+cp "${INIDIR}/${WPSSCRIPT}" "${WORKDIR}"
