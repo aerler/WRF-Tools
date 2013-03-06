@@ -25,7 +25,7 @@
 export JOBNAME="${PBS_JOBNAME}" # not the $RUNNAME
 export INIDIR="${PBS_O_WORKDIR}" # experiment root (launch directory)
 # directory setup
-export RUNNAME="${CURRENTSTEP}" # step name, not job name!
+export RUNNAME="${NEXTSTEP}" # step name, not job name!
 export WORKDIR="${INIDIR}/${RUNNAME}/" # step folder
 export WRFOUT="${INIDIR}/wrfout/" # output directory
 export SCRIPTDIR="${INIDIR}/scripts/" # location of component scripts (pre/post processing etc.)

@@ -46,7 +46,7 @@
 export JOBNAME="${LOADL_JOB_NAME}"
 export INIDIR="${LOADL_STEP_INITDIR}" # experiment root (launch directory)
 # directory setup
-export RUNNAME="${CURRENTSTEP}" # step name, not job name!
+export RUNNAME="${NEXTSTEP}" # step name, not job name!
 export WORKDIR="${INIDIR}/${RUNNAME}/" # step folder
 export WRFOUT="${INIDIR}/wrfout/" # output directory
 export SCRIPTDIR="${INIDIR}/scripts/" # location of component scripts (pre/post processing etc.)

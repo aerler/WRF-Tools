@@ -42,7 +42,7 @@ export ARINTERVAL="" # default: every time
 export WAITFORWPS='NO' # stay on compute node until WPS for next step finished, in order to submit next WRF job
 # directory setup
 export INIDIR="${PWD}" # experiment root (launch directory)
-export RUNNAME="${CURRENTSTEP}" # step name, not job name!
+export RUNNAME="${NEXTSTEP}" # step name, not job name!
 export WORKDIR="${INIDIR}/${RUNNAME}/" # step folder
 export SCRIPTDIR="${INIDIR}/scripts/" # location of component scripts (pre/post processing etc.)
 export BINDIR="${INIDIR}/bin/" # location of executables (WRF and WPS)

@@ -12,7 +12,7 @@ export THREADS=1 # number of OpenMP threads
 export JOBNAME='test' # job name (dummy variable, since there is no queue)
 export INIDIR="${PWD}" # experiment root (launch directory)
 # directory setup
-export RUNNAME="${CURRENTSTEP}" # step name, not job name!
+export RUNNAME="${NEXTSTEP}" # step name, not job name!
 export WORKDIR="${INIDIR}/${RUNNAME}/" # step folder
 export SCRIPTDIR="${INIDIR}/scripts/" # location of component scripts (pre/post processing etc.)
 export BINDIR="${INIDIR}/bin/" # location of executables (WRF and WPS)

@@ -19,7 +19,8 @@ RUNPYWPS=${RUNPYWPS:-1} # whether to run runWPS.py
 PYDATA="${WORKDIR}/data/" # data folder used by Python script
 PYLOG="pyWPS" # log folder for Python script (use relative path for tar)
 PYTGZ="${RUNNAME}_${PYLOG}.tgz" # archive for log folder
-METDATA=${METDATA:-"${INIDIR}/metgrid/"} # final destination for metgrid data
+METDATA=${METDATA:-''} # final destination for metgrid data
+# N.B.: to output metgrid data set "ldisk = True" in meta/namelist.py
 # real.exe
 RUNREAL=${RUNREAL:-1} # whether to run real.exe
 REALIN=${REALIN:-"${METDATA}"} # location of metgrid files
@@ -66,7 +67,10 @@ if [[ ${RUNPYWPS} == 1 ]]
     echo
     echo "python pyWPS.py"
     echo
-    echo "Writing output to ${METDATA}"
+    if [[ -n "${METDATA}" ]];
+	then echo "Writing metgrid files to ${METDATA}"
+	else echo "Not writing metgrid files to disk."
+    fi
     echo
     eval "time -p python pyWPS.py"
     PYERR=$? # save WRF error code and pass on to exit
