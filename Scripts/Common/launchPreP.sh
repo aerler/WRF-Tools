@@ -2,6 +2,11 @@
 # script to perform pre-processing and submit a WPS job before the next job starts
 # Andre R. Erler, 28/02/2013
 
+# The following environment variables have to be set by the caller:
+# INIDIR, WRFSCRIPT, SUBMITWPS, NEXTSTEP
+# Optional: NOWPS
+
+
 # launch WPS for next step (if $NEXTSTEP is not empty)
 if [[ -n "${NEXTSTEP}" ]] && [[ ! $NOWPS == 1 ]]
   then

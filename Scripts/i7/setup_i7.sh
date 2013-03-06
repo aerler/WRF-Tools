@@ -44,6 +44,7 @@ export SUBMITWPS=${SUBMITWPS:-'cd "${INIDIR}"; export NEXTSTEP=${NEXTSTEP}; ./${
 
 # archive submission command (for last step)
 export SUBMITAR=${SUBMITAR:-'echo "cd \"${INIDIR}\"; TAGS=${ARTAG}; export MODE=BACKUP; export INTERVAL=${ARINTERVAL}; ./${ARSCRIPT}"'} # evaluated by launchPostP
+# N.B.: requires $ARTAG to be set in the launch script
 
 # job submission command (for next step)
 export RESUBJOB=${RESUBJOB-'cd "${INIDIR}"; export NEXTSTEP=${NEXTSTEP}; ./${WRFSCRIPT} &'} # evaluated by resubJob

@@ -64,6 +64,7 @@ export WAITFORWPS=${WAITFORWPS:-'NO'} # stay on compute node until WPS for next 
 
 # archive submission command (for last step)
 export SUBMITAR=${SUBMITAR:-'ssh gpc-f104n084 "cd \"${INIDIR}\"; qsub ./${ARSCRIPT} -v TAGS=${ARTAG},MODE=BACKUP,INTERVAL=${ARINTERVAL}"'} # evaluated by launchPostP
+# N.B.: requires $ARTAG to be set in the launch script
 
 # job submission command (for next step)
 export RESUBJOB=${RESUBJOB-'ssh gpc01 "cd \"${INIDIR}\"; qsub ./${WRFSCRIPT} -v NEXTSTEP=${NEXTSTEP}"'} # evaluated by resubJob

@@ -2,6 +2,11 @@
 # # script to perform post-processing and submit an archive job after the main job completed
 # # Andre R. Erler, 28/02/2013
 
+# The following environment variables have to be set by the caller:
+# INIDIR, ARSCRIPT, SUBMITAR, CURRENTSTEP
+# Optional: ARINTERVAL
+
+
 # launch archive script if specified
 if [[ -n "${ARSCRIPT}" ]]
   then

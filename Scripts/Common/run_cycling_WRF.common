@@ -30,7 +30,8 @@ export NEXTSTEP
 export CURRENTSTEP
 
 # more WRF settings (before machine setup!)
-export RUNWRF=1 # more options: $WRFIN, $WRFOUT, $RSTDIR, $TABLES
+export RUNWRF=1 # more options: $WRFIN, $WRFOUT, $TABLES
+export RSTDIR="${WRFOUT}" # also needed to link restart files
 export RUNREAL=0 # more options: $RUNREAL, $RAMIN, $RAMOUT, $REALIN, $REALOUT
 
 # setup job environment
