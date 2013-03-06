@@ -2,8 +2,17 @@
 # source script to load TCS-specific settings for WRF
 # created 06/07/2012 by Andre R. Erler, GPL v3
 
+# generate list of nodes (without repetition)
+HOSTLIST=''; LH='';
+for H in ${LOADL_PROCESSOR_LIST};
+  do
+    if [[ "${H}" != "${LH}" ]];
+	then HOSTLIST="${HOSTLIST} ${H}"; fi;
+    LH="${H}";
+done # processor list
+
 echo
-echo "Host list: ${LOADL_PROCESSOR_LIST}"
+echo "Host list: ${HOSTLIST}"
 echo
 # load modules
 module purge
@@ -20,7 +29,7 @@ export RAMOUT=0
 export NOCLOBBER='-i --reply=no'
 
 # run configuration
-export NODES=${NODES:-$( echo "${LOADL_PROCESSOR_LIST}" | wc -w )} # infer from host list; set in LL section
+export NODES=${NODES:-$( echo "${HOSTLIST}" | wc -w )} # infer from host list; set in LL section
 export TASKS=${TASKS:-64} # number of MPI task per node (Hpyerthreading!)
 export THREADS=${THREADS:-1} # number of OpenMP threads
 # set up hybrid envionment: OpenMP and MPI (Intel)
