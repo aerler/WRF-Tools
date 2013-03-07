@@ -5,16 +5,17 @@
 # root folder where namelist snippets are located
 # every namelist group is assumed to have its own folder
 # the files will be written to the current directory
-NMLDIR="${MODEL_ROOT}/WRF Tools/misc/namelists"
+WRFTOOLS=${WRFTOOLS:-"${MODEL_ROOT}/WRF Tools/"}
+NMLDIR=${NMLDIR:-"${WRFTOOLS}/misc/namelists/"}
 
 ## definition section
 # list of namelist groups and used snippets
 # WRF
-TIME_CONTROL=${TIME_CONTROL:-'cycling,fineio'}
+TIME_CONTROL=${TIME_CONTROL:-'cycling,fineIO'}
 DIAGS=${DIAGS:-'hitop'}
 PHYSICS=${PHYSICS:-'clim'}
 NOAHMP=${NOAH_MP:-'default'}
-DOMAINS=${DOMAINS:-'wc02'}
+DOMAINS=${DOMAINS:-'wc03'}
 FDDA=${FDDA:-'spectral'}
 DYNAMICS=${DYNAMICS:-'default'}
 BDY_CONTROL=${BDY_CONTROL:-'clim'}
@@ -26,24 +27,45 @@ METGRID=${METGRID:-'pywps'}
 
 ## function to add namelist groups to namelist file
 function WRITENML () {
-	# #1: namelist group, #2: snippet list, #3: filename
-	BEGIN='0,/^\s*&\w.*$/d' # regex matching the namelist group opening
-	END='/^\s*\/\s*$/,$d' # regex matching the namelist group closing
-	# open namelist group
-	echo "&${1}" >> "${3}"
-	# insert snippets
-	for SNIP in ${2//,/ }; do
-		echo " ! --- ${SNIP} ---" >> "${3}" # document origin of snippet
- 		sed -e "${BEGIN}" -e "${END}" "${NMLDIR}/${1}/${1}.${SNIP}" | cat - >> "${3}"
-	done		
-	# close namelist group
-	echo '/' >> "${3}"; echo '' >> "${3}"
+    # #1: namelist group, #2: snippet list, #3: filename, #4: modifications (optional)
+    NMLGRP="$1" # namelist groups
+    SNIPPETS="$2" # snippet list
+    FILENAME="$3" # file name
+    MODLIST="$4" # list of modifications
+    # boundaries
+    BEGIN='0,/^\s*&\w.*$/d' # regex matching the namelist group opening
+    END='/^\s*\/\s*$/,$d' # regex matching the namelist group closing
+    # open namelist group
+    rm -f 'TEMPFILE'; touch 'TEMPFILE' # temporary file
+    echo "&${NMLGRP}" >> 'TEMPFILE'
+    # insert snippets
+    for SNIP in ${SNIPPETS//,/ }; do
+	echo " ! --- ${SNIP} ---" >> 'TEMPFILE' # document origin of snippet
+	sed -e "${BEGIN}" -e "${END}" "${NMLDIR}/${NMLGRP}/${NMLGRP}.${SNIP}" | cat - >> 'TEMPFILE'
+    done
+    # close namelist group
+    echo '/' >> 'TEMPFILE'; echo '' >> 'TEMPFILE'
+    # apply modifications
+    while [[ -n "${MODLIST}" ]] && [[ "${MODLIST}" != "${TOKEN}" ]]
+      do
+	TOKEN="${MODLIST%%:*}" # read first token (cut off all others)
+	MODLIST="${MODLIST#*:}" # cut off first token and save
+	NAME=$( echo ${TOKEN%%=*} | xargs ) # cut off everything after '=' and trim spaces
+	MSG='this namelist entry has been edited by the setup script'
+	sed -i "/${NAME}/ s/^\s*${NAME}\s*=\s*.*$/${TOKEN} ! ${MSG}/" 'TEMPFILE'
+# 	echo "${TOKEN}"
+# 	echo "${MODLIST}"
+# 	echo "${NAME}"
+    done # while $MODLIST
+    # append namelist group
+    cat 'TEMPFILE' >> "${FILENAME}"
+    rm 'TEMPFILE'
 }
 
 # write preamble
 function WRITEPREAMBLE () {
 	DATE=$( date )
-	echo "! This file was automatically generated on $DATE" >> "${1}" 
+	echo "! This file was automatically generated on $DATE" >> "${1}"
 	echo "! The namelist snippets from which this file was concatenated, can be found in" >> "${1}"
 	echo "! ${NMLDIR}" >> "${1}"
 	echo '' >> "${1}"
@@ -56,31 +78,31 @@ rm -f "${NML}"; touch "${NML}"  # create WPS namelist file in current directory
 # write preamble
 WRITEPREAMBLE "${NML}"
 # namelist group &time_control
-WRITENML 'time_control' "${TIME_CONTROL}" "${NML}"
+WRITENML 'time_control' "${TIME_CONTROL}" "${NML}" "${TIME_CONTROL_MOD}"
 # namelist group &diags
-WRITENML 'diags' "${DIAGS}" "${NML}"
+WRITENML 'diags' "${DIAGS}" "${NML}" "${DIAGS_MOD}"
 # namelist group &physics
-WRITENML 'physics' "${PHYSICS}" "${NML}"
+WRITENML 'physics' "${PHYSICS}" "${NML}" "${PHYSICS_MOD}"
 # namelist group &noah_mp
-WRITENML 'noah_mp' "${NOAH_MP}" "${NML}"
+WRITENML 'noah_mp' "${NOAH_MP}" "${NML}" "${NOAH_MP_MOD}"
 # namelist group &domains
-WRITENML 'domains' "${DOMAINS}" "${NML}"
+WRITENML 'domains' "${DOMAINS}" "${NML}" "${DOMAINS_MOD}"
 # namelist group &fdda
-WRITENML 'fdda' "${FDDA}" "${NML}"
+WRITENML 'fdda' "${FDDA}" "${NML}" "${FDDA_MOD}"
 # namelist group &dynamics
-WRITENML 'dynamics' "${DYNAMICS}" "${NML}"
+WRITENML 'dynamics' "${DYNAMICS}" "${NML}" "${DYNAMICS_MOD}"
 # namelist group &bdy_control
-WRITENML 'bdy_control' "${BDY_CONTROL}" "${NML}"
+WRITENML 'bdy_control' "${BDY_CONTROL}" "${NML}" "${BDY_CONTROL_MOD}"
 # namelist group &namelist_quilt
-WRITENML 'namelist_quilt' "${NAMELIST_QUILT}" "${NML}"
+WRITENML 'namelist_quilt' "${NAMELIST_QUILT}" "${NML}" "${NAMELIST_QUILT_MOD}"
 
 ## assemble WPS namelist
 # go over namelist groups and concatenate file
 NML='namelist.wps'
 rm -f "${NML}"; touch "${NML}"  # create WPS namelist file in current directory
 # namelist group &share
-WRITENML 'share' "${SHARE}" "${NML}"
+WRITENML 'share' "${SHARE}" "${NML}" "${SHARE_MOD}"
 # namelist group &geogrid
-WRITENML 'geogrid' "${GEOGRID}" "${NML}"
+WRITENML 'geogrid' "${GEOGRID}" "${NML}" "${GEOGRID_MOD}"
 # namelist group &metgrid
-WRITENML 'metgrid' "${METGRID}" "${NML}"
+WRITENML 'metgrid' "${METGRID}" "${NML}" "${METGRID_MOD}"

@@ -27,6 +27,11 @@ NAMELIST_QUILT=''
 # WPS
 # SHARE, GEOGRID, METGRID
 # N.B.: usually don't have to be set manually
+## namelist modifications by group
+# you can make modifications to namelist groups in the {NMLGRP}_MOD variables
+# the line in the *_MOD variable will replace the corresponding entry in the template
+# you can separate multiple modifications by colons ':'
+#PHYSICS_MOD=' cu_physics = 3, 3, 3,: shcu_physics = 0, 0, 0,: sf_surface_physics = 4, 4, 4,'
 
 ## configure data sources
 RUNDIR="${PWD}" # must not contain spaces!
@@ -37,14 +42,14 @@ DATADIR='/home/DATA/DATA/CESM/CESM-HF-test/'
 GEODATA='/home/DATA/DATA/WRF/geog'
 
 ## system settings
-WPSWCT='00:45:00'
-WRFWCT='05:00:00'
-WRFNODES=4
+WPSWCT='00:03:00'
+WRFWCT='00:15:00'
+WRFNODES=1
 # WPS executables
-WPSSYS="GPC" # also affects unccsm.exe
+WPSSYS="i7" # also affects unccsm.exe
 # set path for metgrid.exe and real.exe explicitly using METEXE and REALEXE
 # WRF executable
 POLARWRF=0 # use PolarWRF
 FLAKE=1 # use FLake
-WRFSYS="TCS"
+WRFSYS="i7"
 # set path for geogrid.exe and wrf.exe eplicitly using GEOEXE and WRFEXE

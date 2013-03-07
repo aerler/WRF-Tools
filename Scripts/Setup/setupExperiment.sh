@@ -190,18 +190,30 @@ cp -P backup/setupExperiment.sh backup/xconfig.sh .
 # export relevant variables so that writeNamelist.sh can read them
 # WRF
 export TIME_CONTROL
+export TIME_CONTROL_MOD
 export DIAGS
+export DIAGS_MOD
 export PHYSICS
+export PHYSICS_MOD
 export NOAH_MP
+export NOAH_MP_MOD
 export DOMAINS
+export DOMAINS_MOD
 export FDDA
+export FDDA_MOD
 export DYNAMICS
+export DYNAMICS_MOD
 export BDY_CONTROL
+export BDY_CONTROL_MOD
 export NAMELIST_QUILT
+export NAMELIST_QUILT_MOD
 # WPS
 export SHARE
+export SHARE_MOD
 export GEOGRID
+export GEOGRID_MOD
 export METGRID
+export METGRID_MOD
 # create namelists
 echo "Creating WRF and WPS namelists (using ${WRFTOOLS}/Scripts/writeNamelists.sh)"
 cd "${RUNDIR}"

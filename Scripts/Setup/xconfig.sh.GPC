@@ -27,6 +27,11 @@ NAMELIST_QUILT=''
 # WPS
 # SHARE, GEOGRID, METGRID
 # N.B.: usually don't have to be set manually
+## namelist modifications by group
+# you can make modifications to namelist groups in the {NMLGRP}_MOD variables
+# the line in the *_MOD variable will replace the corresponding entry in the template
+# you can separate multiple modifications by colons ':'
+#PHYSICS_MOD=' cu_physics = 3, 3, 3,: shcu_physics = 0, 0, 0,: sf_surface_physics = 4, 4, 4,'
 
 ## configure data sources
 RUNDIR="${PWD}" # must not contain spaces!
