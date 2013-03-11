@@ -2,15 +2,6 @@
 # source script to load i7-specific settings for pyWPS, WPS, and WRF
 # created 02/03/2013 by Andre R. Erler, GPL v3
 
-# RAM disk folder (cleared and recreated if needed)
-export RAMDISK=${RAMDISK:-'/media/tmp/'}
-# check if the RAM=disk is actually there
-if [[ ! -e "${RAMDISK}" ]]; then
-  echo
-  echo "   >>>   WARNING: RAM-disk at RAMDISK=${RAMDISK} - folder does not exist!   <<<"
-  echo
-fi # no RAMDISK
-
 # RAM-disk settings: infer from queue
 if [[ ${RUNPYWPS} == 1 ]] && [[ ${RUNREAL} == 1 ]]
   then
@@ -23,6 +14,20 @@ fi # if WPS
 echo
 echo "Running on ${PBS_QUEUE} queue; RAMIN=${RAMIN} and RAMOUT=${RAMOUT}"
 echo
+
+# RAM disk folder (cleared and recreated if needed)
+export RAMDISK="/dev/shm/${USER}/"
+# check if the RAM=disk is actually there
+if [[ ${RAMIN}==1 ]] || [[ ${RAMOUT}==1 ]]; then
+    # create RAM-disk directory
+    mkdir -p "${RAMDISK}"
+    # report problems
+    if [[ $? != 0 ]]; then
+      echo
+      echo "   >>>   WARNING: RAM-disk at RAMDISK=${RAMDISK} - folder does not exist!   <<<"
+      echo
+    fi # no RAMDISK
+fi # RAMIN/OUT
 
 # unlimit stack size (unfortunately necessary with WRF to prevent segmentation faults)
 ulimit -s unlimited

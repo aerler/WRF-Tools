@@ -43,13 +43,18 @@ echo
 export NOCLOBBER='-n'
 
 # RAM disk folder (cleared and recreated if needed)
-export RAMDISK="/dev/shm/aerler/"
+export RAMDISK="/dev/shm/${USER}/"
 # check if the RAM=disk is actually there
-if [[ ! -e "${RAMDISK}" ]]; then
-  echo
-  echo "   >>>   WARNING: RAM-disk at RAMDISK=${RAMDISK} - folder does not exist!   <<<"
-  echo
-fi # no RAMDISK
+if [[ ${RAMIN}==1 ]] || [[ ${RAMOUT}==1 ]]; then
+    # create RAM-disk directory
+    mkdir -p "${RAMDISK}"
+    # report problems
+    if [[ $? != 0 ]]; then
+      echo
+      echo "   >>>   WARNING: RAM-disk at RAMDISK=${RAMDISK} - folder does not exist!   <<<"
+      echo
+    fi # no RAMDISK
+fi # RAMIN/OUT
 
 # launch executable
 export NODES=${NODES:-$( echo "${HOSTLIST}" | wc -w )} # infer from host list; set in LL section

@@ -49,7 +49,9 @@ function RENAME () {
     sed -i "/WRFSCRIPT/ s/WRFSCRIPT=.*$/WRFSCRIPT=\'run_${CASETYPE}_WRF.${WRFQ}\' # WRF run-scripts/" "${FILE}" # WPS run-script
     # WPS script
     sed -i "/WPSSCRIPT/ s/WPSSCRIPT=.*$/WPSSCRIPT=\'run_${CASETYPE}_WPS.${WPSQ}\' # WPS run-scripts/" "${FILE}" # WPS run-script
-    # WRF wallclock  time limit
+    # script folder
+    sed -i '/WRFOUT/ s+WRFOUT=.*$+WRFOUT="${INIDIR}/wrfout/"  # WRF output folder+' "${FILE}"
+    # WRF output folder (used by WRF run-script and archive script)
     sed -i "/WRFWCT/ s/WRFWCT=.*$/WRFWCT=\'${WRFWCT}\' # WRF wallclock time/" "${FILE}" # used for queue time estimate
     # WPS wallclock  time limit
     sed -i "/WPSWCT/ s/WPSWCT=.*$/WPSWCT=\'${WPSWCT}\' # WPS wallclock time/" "${FILE}" # used for queue time estimate
@@ -58,7 +60,7 @@ function RENAME () {
     # executable folder
     sed -i '/BINDIR/ s+BINDIR=.*$+BINDIR="${INIDIR}/bin/"  # location of executables nd scripts (WPS and WRF)+' "${FILE}"
     # archive script
-    sed -i "/ARSCRIPT/ s/export\sARSCRIPT=.*$/ARSCRIPT=\'${ARSCRIPT}\' # archive script to be executed in specified intervals/" "${FILE}"
+    sed -i "/ARSCRIPT/ s/ARSCRIPT=.*$/ARSCRIPT=\'${ARSCRIPT}\' # archive script to be executed in specified intervals/" "${FILE}"
     # archive interval
     sed -i "/ARINTERVAL/ s/ARINTERVAL=.*$/ARINTERVAL=\'${ARINTERVAL}\' # interval in which the archive script is to be executed/" "${FILE}"
 } # fct. RENAME
@@ -67,7 +69,8 @@ function RENAME () {
 ## scenario definition section
 # defaults (may be set or overwritten in xconfig.sh)
 NAME='test'
-RUNDIR="${PWD}"
+RUNDIR="${PWD}" # experiment root
+WRFOUT="${RUNDIR}/wrfout/" # folder to collect output data
 # GHG emission scenario
 GHG='RCP8.5' # CAMtr_volume_mixing_ratio.* file to be used
 # time period and cycling interval
@@ -94,6 +97,9 @@ MAXDOM=2 # number of domains in WRF and WPS
 
 ## load configuration file
 source xconfig.sh
+
+## fix default settings
+
 # WPS defaults
 if [[ ${MAXDOM} == 1 ]]; then SHARE=${SHARE:-'d01'}
 elif [[ ${MAXDOM} == 2 ]]; then SHARE=${SHARE:-'d02'}
@@ -106,6 +112,10 @@ if [[ -z "${CASETYPE}" ]]; then
   if [[ -n "${CYCLING}" ]]; then CASETYPE='cycling';
   else CASETYPE='test'; fi
 fi
+
+# default archive script name (no $ARSCRIPT means no archiving)
+if [[ "${ARSCRIPT}" == 'DEFAULT' ]] && [[ -n "${IO}" ]]
+    then ARSCRIPT="ar_wrfout_${IO}.pbs"; fi
 
 # boundary data definition for WPS
 if [[ "${DATATYPE}" == 'CESM' ]]; then
@@ -289,7 +299,7 @@ if [[ -n "${CYCLING}" ]]; then
 fi # if cycling
 if [[ "${WRFQ}" == "ll" ]]; then # because LL does not support dependencies
     cp "${WRFTOOLS}/Scripts/${WRFSYS}/sleepCycle.sh" .
-    RENAME sleepCycle.sh
+    RENAME 'sleepCycle.sh'
 fi # if LL
 # WRF run-script (cat machine specific and common component)
 cat "${WRFTOOLS}/Scripts/${WRFSYS}/run_${CASETYPE}_WRF.${WRFQ}" > "run_${CASETYPE}_WRF.${WRFQ}"
@@ -316,8 +326,6 @@ cd "${RUNDIR}"
 
 
 ## setup archiving
-# default archive script name (no $ARSCRIPT means no archiving)
-if [[ "${ARSCRIPT}" == 'DEFAULT' ]] && [[ -n "${IO}" ]]; then ARSCRIPT="ar_wrfout_${IO}.pbs"; fi
 # prepare archive script
 if [[ -n "${ARSCRIPT}" ]]; then
     # copy script and change job name
@@ -334,6 +342,8 @@ if [[ -n "${ARSCRIPT}" ]]; then
       echo "WARNING: Number of domains (${MAXDOM}) incompatible with available archiving options."
       echo
     fi # $MAXDOM
+    # update folder names
+    RENAME "${ARSCRIPT}"
 fi # $ARSCRIPT
 
 

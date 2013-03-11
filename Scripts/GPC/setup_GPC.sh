@@ -33,20 +33,25 @@ echo
 echo "Running on ${PBS_QUEUE} queue; RAMIN=${RAMIN} and RAMOUT=${RAMOUT}"
 echo
 
+# RAM disk folder (cleared and recreated if needed)
+export RAMDISK="/dev/shm/${USER}/"
+# check if the RAM=disk is actually there
+if [[ ${RAMIN}==1 ]] || [[ ${RAMOUT}==1 ]]; then
+    # create RAM-disk directory
+    mkdir -p "${RAMDISK}"
+    # report problems
+    if [[ $? != 0 ]]; then
+      echo
+      echo "   >>>   WARNING: RAM-disk at RAMDISK=${RAMDISK} - folder does not exist!   <<<"
+      echo
+    fi # no RAMDISK
+fi # RAMIN/OUT
+
 # unlimit stack size (unfortunately necessary with WRF to prevent segmentation faults)
 ulimit -s unlimited
 
 # cp-flag to prevent overwriting existing content
 export NOCLOBBER='-n'
-
-# RAM disk folder (cleared and recreated if needed)
-export RAMDISK=${RAMDISK:-'/dev/shm/aerler/'}
-# check if the RAM=disk is actually there
-if [[ ! -e "${RAMDISK}" ]]; then
-  echo
-  echo "   >>>   WARNING: RAM-disk at RAMDISK=${RAMDISK} - folder does not exist!   <<<"
-  echo
-fi # no RAMDISK
 
 # set up hybrid envionment: OpenMP and MPI (Intel)
 export NODES=${NODES:-${PBS_NUM_NODES}} # set in PBS section

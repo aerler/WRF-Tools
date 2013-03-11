@@ -3,7 +3,7 @@
 
 ## queue/PBS settings
 # 72h is maximum for long queue, 1h for short
-#PBS -l walltime=72:00:00
+#PBS -l walltime=03:00:00
 # merge standard error and output stream
 #PBS -j oe
 #PBS -o $PBS_JOBNAME.$PBS_JOBID.out
@@ -32,19 +32,23 @@ DATASET=${DATASET:-'FULL_D12'} # default dataset: everything
 INTERVAL=${INTERVAL:-'MONTHLY'} # default is monthly
 # N.B.: the datasets are defined in PROCESSDATASET below
 # data folder
-DST=${DST:-"${ARCHIVE}/${PBS_O_WORKDIR#/*/$(whoami)/}/"} # replicate directory tree
+DST=${DST:-"${ARCHIVE}/${PBS_O_WORKDIR#/*/${USER}/}/"} # replicate directory tree
 # replace things like '/scratch/g/group/user/' with $ARCHIVE
-SRC=${SRC:-"${PBS_O_WORKDIR}/wrfout/"} # output folder... where data is
+INIDIR="${PBS_O_WORKDIR}"
+WRFOUT="${INIDIR}/wrfout/" # output folder
+SRC=${SRC:-"${WRFOUT}"} # where the data is (on disk)
 
 # configure file according to archiving interval
 if [[ "${INTERVAL}" == "YEARLY" ]]; then
   # use this filename pattern to infer list of $TAGS
   PATTERN='-12_wrf.tgz' # filename "${TAG}${PATTERN}": remove $PATTERN, keep $TAG
   GLOB='GLOB' # use globbing expressions in filenames
+  DATEGLOB='-[01][0-9]' # match all months (01-12)
 elif [[ "${INTERVAL}" == "MONTHLY" ]]; then
   # use this filename pattern to infer list of $TAGS
   PATTERN='_wrf.tgz' # filename "${TAG}${PATTERN}": remove $PATTERN, keep $TAG
-  GLOB='NO' # use globbing expressions in filenames
+  GLOB='GLOB' # use globbing expressions in filenames
+  DATEGLOB='' # actually no globbing necessary
 fi # ${INTERVAL}
 
 ## function to check the contents of an HTAR archive
@@ -56,7 +60,7 @@ function CHECKHTAR () {
   local MISS=0 # missing file counter
   # evaluate globbing expression
   if [[ "${GLOB}" == 'GLOB' ]]; then
-    FILES=$( ls ${FILES} ); fi
+    FILES=$( ls -C ${FILES} ); fi
   # print expected archive contents
   if [[ "${QUIET}" != 'QUIET' ]]; then
     echo "${HTAR}   :::   ${FILES}"; fi # print feedback
@@ -79,7 +83,7 @@ function LISTHTAR () {
   local MISS=0 # error code
   echo "${HTAR} ::: *" # print feedback
   # check if archive exists
-  hsi -q ls "${HTAR}" # quiet mode
+  hsi -q ls "${HTAR}" &> /dev/null # quiet mode
   if [[ $? != 0 ]]; then
 	echo "Warning: archive ${HTAR} does not exist."
 	MISS=1
@@ -100,12 +104,12 @@ function VERIFYHTAR () {
   local MISS=0 # error code
   # evaluate globbing expression
   if [[ "${GLOB}" == 'GLOB' ]]; then
-    FILES=$( ls ${FILES} ); fi
+    FILES=$( ls -C ${FILES} ); fi
   # print expected archive contents
   if [[ "${QUIET}" != 'QUIET' ]]; then
       echo "${HTAR}   :::   ${FILES}"; fi # print feedback
   # check if archive exists
-  hsi -q ls "${HTAR}" # quiet mode
+  hsi -q ls "${HTAR}" &> /dev/null # quiet mode
   if [[ $? != 0 ]]; then
 	echo "Warning: archive ${HTAR} does not exist."
 	MISS=1
@@ -140,7 +144,7 @@ function REMOVEHTAR () {
   # check files on disk
   if [[ "${GLOB}" == 'GLOB' ]]; then
     # evaluate globbing expression
-    FILES=$( ls ${FILES} )
+    FILES=$( ls -C ${FILES} )
   else # OR
     # check if any of the files still exist
     CNT=0; for F in "${FILES}"; do
@@ -193,10 +197,10 @@ function BACKUPHTAR () {
   local FILES=${2} #
   # evaluate globbing expression
   if [[ "${GLOB}" == 'GLOB' ]]; then
-    FILES=$( ls ${FILES} ); fi
+    FILES=$( ls -C ${FILES} ); fi # display output in columns (i.e. long lines)
   # check if archive already exists
   echo "${FILES}   >>>   ${HTAR}" # print feedback
-  hsi -q ls "${HTAR}" # quiet mode
+  hsi -q ls "${HTAR}" &> /dev/null # quiet mode
   if [[ $? == 0 ]]; then
     echo "Warning: archive ${HTAR} already exists - checking contents."
     CHECKHTAR "${1}" "${2}" 'QUIET' # check contents
@@ -233,7 +237,7 @@ function RETRIEVEHTAR () {
   local MISS=0 # exit code
   # evaluate globbing expression
   if [[ "${GLOB}" == 'GLOB' ]]; then
-    FILES=$( ls ${FILES} ); fi
+    FILES=$( ls -C ${FILES} ); fi
   echo "${HTAR}   >>>   ${FILES}" # print feedback
   # check if archive exists and verify integrity (VERIFYHTAR checks existence)
   if [[ "${VERIFY}" == 'VERIFY' ]]; then
@@ -275,9 +279,10 @@ function PROCESSDATASET () {
   local DATE="${1}" # the current $TAG, in this context (WRF) the date...
   local ERR=0 # error counter
   ## define datasets
+  DATENAME="$DATE" # used in archive file names etc.
   # use globbing expression if asked
   if [[ "${GLOB}" == 'GLOB' ]]; then
-    DATE="${DATE}-[01][0-9]"; fi
+      DATE="${DATE}${DATEGLOB}"; fi # GLOB
   # full backup (d01+d02)
   if [[ "${DATASET}" == 'FULL_D12' ]]; then
     local STATIC="static.tgz wrfconst_d01.nc wrfconst_d02.nc" # only on cold start, otherwise skip
@@ -290,7 +295,7 @@ function PROCESSDATASET () {
   # full backup for domain 1 (d01)
   elif [[ "${DATASET}" == 'FULL_D1' ]]; then
     unset DYN_D2 MISC_D2
-    local STATIC="static.tgz wrfconst_d01.nc wrfconst_d02.nc" # only on cold start, otherwise skip
+    local STATIC="static.tgz wrfconst_d01.nc" # only on cold start, otherwise skip
     local LOGS="${DATE}_pyWPS.tgz ${DATE}_real.tgz ${DATE}_wrf.tgz"
     local DIAGS="wrfxtrm_d01_${DATE}-01_00:00:00.nc wrfsrfc_d01_${DATE}-01_00:00:00.nc wrfplev3d_d01_${DATE}-01_00:00:00.nc"
     local DYN_D1="wrfdrydyn3d_d01_${DATE}-01_00:00:00.nc"
@@ -346,7 +351,7 @@ function PROCESSDATASET () {
   fi
   echo
   # operation feedback
-  echo "   ***   ${MODE} ${DATE}   ***   "
+  echo "   ***   ${MODE} ${DATENAME}   ***   "
   # delete source or not?
   if [[ ${MODE} == 'RETRIEVE' ]]
     then echo " (Overwriting source files!) "
@@ -363,23 +368,23 @@ function PROCESSDATASET () {
     ERR=$(( ${ERR} + $? ))
   fi; if [[ -n "${DIAGS}" ]] || [[ -n "${LOGS}" ]]; then
 	echo '  Pressure level and surface fields, log files (both domains):' # short description of archive
-	"${MODE}HTAR" "wrfdiags_${DATE}.tar" "${DIAGS} ${LOGS}"
+	"${MODE}HTAR" "wrfdiags_${DATENAME}.tar" "${DIAGS} ${LOGS}"
 	ERR=$(( ${ERR} + $? )) # CHECKHTAR returns the number of missing files as exit code
   fi; if [[ -n "${MISC_D1}" ]]; then
 	echo '  Miscellaneous field, including 3D moisture (outer domain):'
-	"${MODE}HTAR" "wrfmisc_d01_${DATE}.tar" "${MISC_D1}"
+	"${MODE}HTAR" "wrfmisc_d01_${DATENAME}.tar" "${MISC_D1}"
 	ERR=$(( ${ERR} + $? ))
   fi; if [[ -n "${MISC_D2}" ]]; then
 	echo '  Miscellaneous field, including 3D moisture (inner domain):'
-	"${MODE}HTAR" "wrfmisc_d02_${DATE}.tar" "${MISC_D2}"
+	"${MODE}HTAR" "wrfmisc_d02_${DATENAME}.tar" "${MISC_D2}"
 	ERR=$(( ${ERR} + $? ))
   fi; if [[ -n "${DYN_D1}" ]]; then
 	echo '  3D dry dynamics fields (outer domain):'
-	"${MODE}HTAR" "wrfdrydyn_d01_${DATE}.tar" "${DYN_D1}"
+	"${MODE}HTAR" "wrfdrydyn_d01_${DATENAME}.tar" "${DYN_D1}"
 	ERR=$(( ${ERR} + $? ))
   fi; if [[ -n "${DYN_D2}" ]]; then
 	echo '  3D dry dynamics fields (inner domain):'
-	"${MODE}HTAR" "wrfdrydyn_d02_${DATE}.tar" "${DYN_D2}"
+	"${MODE}HTAR" "wrfdrydyn_d02_${DATENAME}.tar" "${DYN_D2}"
 	ERR=$(( ${ERR} + $? ))
   fi
   # check for errors
@@ -387,7 +392,7 @@ function PROCESSDATASET () {
     echo "   >>>   WARNING: there were ${ERR} errors!   <<<   "
     return 1
   else
-    echo "${MODE} ${DATE} OK!"
+    echo "${MODE} ${DATENAME} OK!"
     return 0
   fi
 }
