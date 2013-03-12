@@ -44,7 +44,8 @@ export THREADS=${THREADS:-1} # number of OpenMP threads
 export HYBRIDRUN=${HYBRIDRUN:-"mpirun -n $((TASKS*NODES))"} # OpenMPI, not Intel
 
 # WPS/preprocessing submission command (for next step)
-export SUBMITWPS=${SUBMITWPS:-'cd "${INIDIR}"; export NEXTSTEP=${NEXTSTEP}; ./${WPSSCRIPT}'} # evaluated by launchPreP
+export SUBMITWPS=${SUBMITWPS:-'ssh localhost "cd \"${INIDIR}\"; export NEXTSTEP=${NEXTSTEP}; export WPSSCRIPT=${WPSSCRIPT}; python ${SCRIPTDIR}/estimateQueue.py"'} # evaluated by launchPreP
+# export SUBMITWPS=${SUBMITWPS:-'cd "${INIDIR}"; export NEXTSTEP=${NEXTSTEP}; ./${WPSSCRIPT}'} # evaluated by launchPreP
 # N.B.: do not us '&' to spin off, otherwise output gets mangled and the system overloads
 
 # archive submission command (for last step)
@@ -52,4 +53,4 @@ export SUBMITAR=${SUBMITAR:-'echo "cd \"${INIDIR}\"; TAGS=${ARTAG}; export MODE=
 # N.B.: requires $ARTAG to be set in the launch script
 
 # job submission command (for next step)
-export RESUBJOB=${RESUBJOB-'cd "${INIDIR}"; export NEXTSTEP=${NEXTSTEP}; ./${WRFSCRIPT} &'} # evaluated by resubJob
+export RESUBJOB=${RESUBJOB-'ssh localhost "cd \"${INIDIR}\"; export NEXTSTEP=${NEXTSTEP}; ./${WRFSCRIPT}"'} # evaluated by resubJob

@@ -20,7 +20,9 @@ import datetime # to compute run time
 import calendar # to locate leap years
 
 ## Settings
-# environment variables
+# environment variables (set by caller instance)
+WRFWCT = os.getenv('WRFWCT')
+WPSWCT = os.getenv('WPSWCT')
 WPSSCRIPT = os.getenv('WPSSCRIPT')
 NEXTSTEP = os.getenv('NEXTSTEP')
 # machine-specific setup
@@ -39,6 +41,23 @@ elif ('gpc' in hostname):
   showq = 'showq -w class=largemem' # queue query command
   submitPrimary = 'qsub %s -v NEXTSTEP=%s -l nodes=1:m128g:ppn=16 -q largemem'%(WPSSCRIPT,NEXTSTEP)
   submitSecondary = 'qsub %s -v NEXTSTEP=%s -l nodes=1:m32g:ppn=8 -q batch'%(WPSSCRIPT,NEXTSTEP)
+
+## functions
+
+# convert time format...
+def convertTime(timeString):
+  # split into components, delimited by ':'
+  tmp = timeString.split(':')
+  # determine format
+  if len(tmp) == 3: # hours:minutes:seconds
+    time = int(tmp[0])*3600 + int(tmp[1])*60 + int(tmp[2])
+  elif len(tmp) == 4: # days:hours:minutes:seconds
+    time = int(tmp[0])*86400 + int(tmp[1])*3600 + int(tmp[2])*60 + int(tmp[3])
+  else: # unknown
+    warnings.warn('WARNING: invalid time format encountered: %s'%time)
+    time = 0
+  # return value in seconds (integer)
+  return time
 
 if __name__ == '__main__':
 
@@ -63,14 +82,8 @@ if __name__ == '__main__':
 #      # print times
 #      if lrun: print 'Running: %s'%time
 #      elif lidl: print 'Idle: %s'%time
-      # convert time format...
-      tmp = time.split(':')
-      if len(tmp) == 3:
-        time = int(tmp[0])*3600 + int(tmp[1])*60 + int(tmp[2])
-      elif len(tmp) == 4:
-        time = int(tmp[0])*86400 + int(tmp[1])*3600 + int(tmp[2])*60 + int(tmp[3])
-      else:
-        warnings.warn('WARNING: invalid time format encountered: %s'%time)
+      # convert time string to integer seconds
+      time = convertTime(time)
       # save timings
       while np > 0:
         if lrun: running.append(time)
@@ -90,8 +103,22 @@ if __name__ == '__main__':
     slots[slots.argmin()] += idle[i]
 #  print slots
 
-  ## return estimated wait time
+  ## launch WPS according to estimated wait time
   waittime = slots.min()
-#  print waittime
-  print('%i'%waittime)
+  #  print waittime
+  print('\nEstimated queue wait time is %3.2f hours\n'%(waittime/3600))
+  # determine acceptable wait time
+  timelimit = 0
+  if WPSWCT: timelimit += convertTime(WPSWCT)
+  if WRFWCT: timelimit += convertTime(WRFWCT)
+  # launch WPS
+  if waittime < timelimit:
+    print('   >>> submitting to primary queue system:')
+    print(submitPrimary)
+    subprocess.Popen(submitPrimary, shell=True)
+  else:
+    print('   >>> submitting to secondary queue system:')
+    print(submitSecondary)
+    subprocess.Popen(submitSecondary, shell=True)
+
 

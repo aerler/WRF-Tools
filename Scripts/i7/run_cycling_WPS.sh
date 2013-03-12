@@ -19,4 +19,4 @@ export BINDIR="${INIDIR}/bin/" # location of executables (WRF and WPS)
 # N.B.: use absolute path for script and bin folders
 export WPSSCRIPT="run_cycling_WPS.pbs" # WRF suffix assumed, WPS suffix substituted: ${JOBNAME%_WRF}_WPS
 # WPS wallclock  time limits (no way to query from queue system)
-export WPSWCT='' # WPS wallclock  time limit; e.g. '01:00:00'
+export WPSWCT='01:00:00' # WPS wallclock  time limit; dummy variable

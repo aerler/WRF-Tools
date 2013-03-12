@@ -269,11 +269,15 @@ cd "${RUNDIR}"
 cat "${WRFTOOLS}/Scripts/${WPSSYS}/run_${CASETYPE}_WPS.${WPSQ}" > "run_${CASETYPE}_WPS.${WPSQ}"
 cat "${WRFTOOLS}/Scripts/Common/run_${CASETYPE}_WPS.common" >> "run_${CASETYPE}_WPS.${WPSQ}"
 RENAME "run_${CASETYPE}_WPS.${WPSQ}"
+if [[ "${WPSQ}" == "sh" ]]; then # make executable in shell
+    chmod u+x "run_${CASETYPE}_WPS.${WPSQ}"; fi # if shell
 # run-script components (go into folder 'scripts')
 mkdir -p "${RUNDIR}/scripts/"
 cd "${RUNDIR}/scripts/"
 ln -sf "${WRFTOOLS}/Scripts/Common/execWPS.sh"
 ln -sf "${WRFTOOLS}/Scripts/${WPSSYS}/setup_${WPSSYS}.sh" 'setup_WPS.sh' # renaming
+if [[ "${WPSSYS}" == "GPC" ]] || [[ "${WPSSYS}" == "i7" ]]; then # link to
+    ln -sf "${WRFTOOLS}/Python/estimateQueue.py"; fi # if shell
 cd "${RUNDIR}"
 # WPS/real executables (go into folder 'bin')
 mkdir -p "${RUNDIR}/bin/"
@@ -305,6 +309,8 @@ fi # if LL
 cat "${WRFTOOLS}/Scripts/${WRFSYS}/run_${CASETYPE}_WRF.${WRFQ}" > "run_${CASETYPE}_WRF.${WRFQ}"
 cat "${WRFTOOLS}/Scripts/Common/run_${CASETYPE}_WRF.common" >> "run_${CASETYPE}_WRF.${WRFQ}"
 RENAME "run_${CASETYPE}_WRF.${WRFQ}"
+if [[ "${WRFQ}" == "sh" ]]; then # make executable in shell
+    chmod u+x "run_${CASETYPE}_WRF.${WRFQ}"; fi # if shell
 # run-script component scripts (go into folder 'scripts')
 mkdir -p "${RUNDIR}/scripts/"
 cd "${RUNDIR}/scripts/"

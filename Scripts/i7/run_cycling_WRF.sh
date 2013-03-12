@@ -24,8 +24,8 @@ export WPSSCRIPT="run_cycling_WPS.pbs" # WRF suffix assumed, WPS suffix substitu
 export ARSCRIPT="" # archive script to be executed after WRF finishes
 export ARINTERVAL="" # default: every time
 # WRF and WPS wallclock  time limits (no way to query from queue system)
-export WRFWCT='' # WRF wallclock  time limit; e.g. '06:00:00'
-export WPSWCT='' # WPS wallclock  time limit; e.g. '01:00:00'
+export WRFWCT='06:00:00' # WRF wallclock  time limit; dummy variable
+export WPSWCT='01:00:00' # WPS wallclock  time limit; dummy variable
 
 ## WRF settings
 # N.B.: these settings serve as fallback options when inferring from namelist fails
