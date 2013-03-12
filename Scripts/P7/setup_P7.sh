@@ -63,7 +63,8 @@ export THREADS=${THREADS:-1} # number of OpenMP threads
 export HYBRIDRUN=${HYBRIDRUN:-'poe'} # evaluated by execWRF and execWPS
 
 # WPS/preprocessing submission command (for next step)
-export SUBMITWPS=${SUBMITWPS:-'ssh gpc-f102n084 "cd \"${INIDIR}\"; qsub ./${WPSSCRIPT} -v NEXTSTEP=${NEXTSTEP}"'} # evaluated by launchPreP
+# export SUBMITWPS=${SUBMITWPS:-'ssh gpc-f102n084 "cd \"${INIDIR}\"; qsub ./${WPSSCRIPT} -v NEXTSTEP=${NEXTSTEP}"'} # evaluated by launchPreP
+export SUBMITWPS=${SUBMITWPS:-'ssh gpc-f102n084 "cd \"${INIDIR}\"; export WRFWCT=${WRFWCT}; export WPSWCT=${WPSWCT}; export NEXTSTEP=${NEXTSTEP}; export WPSSCRIPT=${WPSSCRIPT}; python ${SCRIPTDIR}/selectWPSqueue.py"'} # use Python script to estimate queue time and choose queue
 export WAITFORWPS=${WAITFORWPS:-'WAIT'} # stay on compute node until WPS for next step finished, in order to submit next WRF job
 
 # archive submission command (for last step)

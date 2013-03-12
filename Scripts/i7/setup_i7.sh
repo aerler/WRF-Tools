@@ -44,7 +44,7 @@ export THREADS=${THREADS:-1} # number of OpenMP threads
 export HYBRIDRUN=${HYBRIDRUN:-"mpirun -n $((TASKS*NODES))"} # OpenMPI, not Intel
 
 # WPS/preprocessing submission command (for next step)
-export SUBMITWPS=${SUBMITWPS:-'ssh localhost "cd \"${INIDIR}\"; export NEXTSTEP=${NEXTSTEP}; export WPSSCRIPT=${WPSSCRIPT}; python ${SCRIPTDIR}/estimateQueue.py"'} # evaluated by launchPreP
+export SUBMITWPS=${SUBMITWPS:-'ssh localhost "cd \"${INIDIR}\"; export NEXTSTEP=${NEXTSTEP}; export WPSSCRIPT=${WPSSCRIPT}; python ${SCRIPTDIR}/selectWPSqueue.py"'} # evaluated by launchPreP
 # export SUBMITWPS=${SUBMITWPS:-'cd "${INIDIR}"; export NEXTSTEP=${NEXTSTEP}; ./${WPSSCRIPT}'} # evaluated by launchPreP
 # N.B.: do not us '&' to spin off, otherwise output gets mangled and the system overloads
 

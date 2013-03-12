@@ -277,7 +277,7 @@ cd "${RUNDIR}/scripts/"
 ln -sf "${WRFTOOLS}/Scripts/Common/execWPS.sh"
 ln -sf "${WRFTOOLS}/Scripts/${WPSSYS}/setup_${WPSSYS}.sh" 'setup_WPS.sh' # renaming
 if [[ "${WPSSYS}" == "GPC" ]] || [[ "${WPSSYS}" == "i7" ]]; then # link to
-    ln -sf "${WRFTOOLS}/Python/estimateQueue.py"; fi # if shell
+    ln -sf "${WRFTOOLS}/Python/selectWPSqueue.py"; fi # if shell
 cd "${RUNDIR}"
 # WPS/real executables (go into folder 'bin')
 mkdir -p "${RUNDIR}/bin/"
