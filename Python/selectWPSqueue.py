@@ -13,11 +13,11 @@ import warnings
 import numpy
 # maybe imports ...
 import os # directory operations
-import fileinput # reading and writing config files
-import shutil # file operations
-import sys # writing to stdout
-import datetime # to compute run time
-import calendar # to locate leap years
+#import fileinput # reading and writing config files
+#import shutil # file operations
+#import sys # writing to stdout
+#import datetime # to compute run time
+#import calendar # to locate leap years
 
 ## Settings
 # environment variables (set by caller instance)
@@ -76,7 +76,7 @@ if __name__ == '__main__':
     # process time
     if lrun or lidl:
       np =  int(linesplit[3])
-      assert np == 16 or np == 32, warnings.warn('WARNING: invalid number of processes: %i'%np)
+      if np != 16 and np != 32: print('WARNING: strange number of processes: %i'%np)
       np = np / ppn
       time = linesplit[4]
 #      # print times
