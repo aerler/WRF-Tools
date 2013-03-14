@@ -13,10 +13,12 @@ if [[ -n "${ARSCRIPT}" ]]
 
     # check trigger interval
     ARTAG=''
-    if [[ "${ARINTERVAL}" == 'YEARLY' ]] && [[ "${CURRENTSTEP}" == ????-12 ]]; then
-	ARTAG="${CURRENTSTEP%'-12'}" # isolate interval, cut off rest
-    elif [[ "${ARINTERVAL}" == 'MONTHLY' ]] && [[ "${CURRENTSTEP}" == ????-?? ]]; then
-	ARTAG="${CURRENTSTEP}" # just the step tag
+    if [[ "${ARINTERVAL}" == 'YEARLY' ]]; then
+    	if [[ "${CURRENTSTEP}" == ????-12 ]]; then
+			ARTAG="${CURRENTSTEP%'-12'}"; fi # isolate interval, cut off rest
+    elif [[ "${ARINTERVAL}" == 'MONTHLY' ]]; then
+		if [[ "${CURRENTSTEP}" == ????-?? ]]; then
+			ARTAG="${CURRENTSTEP}"; fi # just the step tag
     else
       ARTAG="${CURRENTSTEP}"
     fi # $ARINTERVAL

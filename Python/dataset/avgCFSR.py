@@ -14,12 +14,14 @@ from numpy import arange, array, zeros
 from netcdf import Dataset, copy_ncatts, copy_vars, copy_dims, add_coord
 
 ## settings
-CFSRroot = '/media/data/DATA/CFSR/'
+CFSRroot = '/home/DATA/DATA/CFSR/'
 test = ''
 # output settings
-finyr = 7; finmon = 6 # same as 
-fnoutfile = 'CFSRclimFineRes1979-1986_6.nc'
-hioutfile = 'CFSRclimHighRes1979-1986_6.nc'
+finyr = 10; finmon = 0 # same as 
+datestr = '1979-%04i'%(1979+finyr)
+if finmon: datestr = '%s_%02i'(datestr,finmon)
+fnoutfile = 'CFSRclimFineRes%s.nc'%datestr
+hioutfile = 'CFSRclimHighRes%s.nc'%datestr
 #test = 'test/'
 # files
 zsfile = 'flxf06.gdas.HGT.SFC.grb2.nc' # topography (surface geopotential)
@@ -48,7 +50,7 @@ if __name__ == '__main__':
 
   ## open input datasets
   fnstatset = dict(); fndynset = dict(); hidynset = dict() 
-  for (key,value) in fnstatfile.iteritems(): fnstatset[key] = Dataset(CFSRroot+value, 'r') 
+  for (key,value) in fnstatfile.iteritems(): fnstatset[key] = Dataset(CFSRroot+value, 'r')
   for (key,value) in fndynfile.iteritems(): fndynset[key] = Dataset(CFSRroot+value, 'r')
   for (key,value) in hidynfile.iteritems(): hidynset[key] = Dataset(CFSRroot+value, 'r')
   fnshape = fndynset['prt'].variables[fndynvar['prt']].shape # (time, lat, lon)
@@ -94,12 +96,17 @@ if __name__ == '__main__':
     for m in xrange(ntime): 
       for n in xrange(9): coord[m,n] = months[m][n]
   # global attributes
-  fngrp.description = 'Climatology of CFSR monthly means, averaged from January 1979 to %s $04i'%(months[finmon],finyr)
-  fngrp.creator = 'Andre R. Erler'
+  if finmon: description = \
+    'Climatology of CFSR monthly means, averaged from January 1979 to %s %04i'%(months[finmon],1979+finyr)
+  else: description = 'Climatology of CFSR monthly means, averaged from 1979 to %04i'%(1979+finyr)
+  creator = 'Andre R. Erler'
+  # fine grid
+  fngrp.description = description
+  fngrp.creator = creator 
   copy_ncatts(fngrp,fndynset['prt'],prefix='CFSR_')
 #  for att in fndynset['prt'].ncattrs(): fngrp.setncattr('SRC_'+att,fndynset['prt'].getncattr(att))
-  higrp.description = 'Climatology of CFSR monthly means, averaged over 1979 - 2010'
-  higrp.creator = 'Andre R. Erler'
+  higrp.description = description
+  higrp.creator = creator 
   copy_ncatts(fngrp,hidynset['pmsl'],prefix='CFSR_')
   # create old lat/lon dimensions and coordinate variables
   copy_dims(fngrp, fndynset['prt'], dimlist=fndim.keys(), namemap=fndim, copy_coords=True)
