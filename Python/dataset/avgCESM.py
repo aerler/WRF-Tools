@@ -23,7 +23,7 @@ cesmexp['tb20trcn1x1'] = 'ctrl-1'
 from socket import gethostname
 hostname = gethostname()
 if hostname=='komputer':
-  CESMroot = '/media/data/DATA/CESM/'
+  CESMroot = '/home/DATA/DATA/CESM/'
   cesmname = 'tb20trcn1x1' 
   exp = cesmexp[cesmname]
   folder = CESMroot + exp + '/'
