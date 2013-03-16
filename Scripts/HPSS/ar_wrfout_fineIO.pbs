@@ -346,7 +346,8 @@ function PROCESSDATASET () {
     # restart run: backup restart file
     if [[ -n "${MISC_D1}" ]]; then MISC_D1="${MISC_D1} wrfrst_d01_${DATE}-01_00:00:00"; fi
     if [[ -n "${MISC_D2}" ]]; then MISC_D2="${MISC_D2} wrfrst_d02_${DATE}-01_00:00:00"; fi
-    unset STATIC # skip this step
+    if [[ "${GLOB}" != 'GLOB' ]]; then
+      unset STATIC; fi # skip this step, if no globbing is used
     # cold start: backup data tables, constants, and geogrid files
   fi
   echo
