@@ -4,12 +4,14 @@
 
 # settings
 set -e # abort if anything goes wrong
-NEXTSTEP="$1" # step name/folder as first argument
-NOWPS="$2" # to run or not to run WPS
-INIDIR=${INIDIR:-"${PWD}"} # current directory
-SCRIPTDIR="${INIDIR}/scripts/"
-WPSSCRIPT="run_cycling_WPS.pbs"
-WRFSCRIPT="run_cycling_WRF.ll"
+export NEXTSTEP="$1" # step name/folder as first argument
+export NOWPS="$2" # to run or not to run WPS
+export INIDIR=${INIDIR:-"${PWD}"} # current directory
+export SCRIPTDIR="${INIDIR}/scripts/"
+export WPSSCRIPT="run_cycling_WPS.pbs"
+export WPSWCT=''
+export WRFSCRIPT="run_cycling_WRF.ll"
+export WRFWCT=''
 
 # source launch commands
 source "${SCRIPTDIR}/setup_WRF.sh"
