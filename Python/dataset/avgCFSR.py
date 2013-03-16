@@ -15,9 +15,10 @@ from netcdf import Dataset, copy_ncatts, copy_vars, copy_dims, add_coord
 
 ## settings
 CFSRroot = '/home/DATA/DATA/CFSR/'
+CFSRdata = CFSRroot + 'Monthly/'
 test = ''
 # output settings
-finyr = 10; finmon = 0 # same as 
+finyr = 30; finmon = 0 # same as 
 datestr = '1979-%04i'%(1979+finyr)
 if finmon: datestr = '%s_%02i'(datestr,finmon)
 fnoutfile = 'CFSRclimFineRes%s.nc'%datestr
@@ -31,13 +32,16 @@ psfile = 'flxf06.gdas.PRES.SFC.grb2.nc' # surface pressure
 pmslfile = 'pgbh06.gdas.PRMSL.MSL.grb2.nc' # MSL pressure (lower resolution!)
 T2file = 'flxf06.gdas.TMP.2m.grb2.nc' # 2m temperature
 Tsfile = 'flxf06.gdas.TMP.SFC.grb2.nc' # skin temperature
+snowhfile = 'flxf06.gdas.SNO_D.SFC.grb2.nc' # snow depth
+snowfile = 'flxf06.gdas.WEASD.SFC.grb2.nc' # water-equivalent of accumulated snow  
 # data groups
 # static highest resolution gaussian grid (lat = 576 / lon = 1152)
 fnstatfile = dict(zs=zsfile, lnd=lndfile) 
 fnstatvar = dict(zs='HGT_L1', lnd='LAND_L1')
-# time-dependent highest resolution gaussian grid (lat = 576 / lon = 1152)
-fndynfile = dict(prt=prtfile, ps=psfile, Ts=Tsfile, T2=T2file)
-fndynvar = dict(prt='PRATE_L1', ps='PRES_L1', Ts='TMP_L1', T2='TMP_L103_Avg')
+# time-dependent fine (highest) resolution gaussian grid (lat = 576 / lon = 1152)
+fndynfile = dict(rain=prtfile, ps=psfile, Ts=Tsfile, T2=T2file, snowh=snowhfile, snow=snowfile)
+fndynvar = dict(rain='PRATE_L1', ps='PRES_L1', Ts='TMP_L1', T2='TMP_L103_Avg', 
+                snowh='SNO_D_L1', snow='WEASD_L1')
 # time-dependent high resolution regular 0.5 deg lat/lon grid (lat = 361 / lon = 720)
 hidynfile = dict(pmsl=pmslfile) 
 hidynvar = dict(pmsl='PRMSL_L101') 
@@ -50,10 +54,10 @@ if __name__ == '__main__':
 
   ## open input datasets
   fnstatset = dict(); fndynset = dict(); hidynset = dict() 
-  for (key,value) in fnstatfile.iteritems(): fnstatset[key] = Dataset(CFSRroot+value, 'r')
-  for (key,value) in fndynfile.iteritems(): fndynset[key] = Dataset(CFSRroot+value, 'r')
-  for (key,value) in hidynfile.iteritems(): hidynset[key] = Dataset(CFSRroot+value, 'r')
-  fnshape = fndynset['prt'].variables[fndynvar['prt']].shape # (time, lat, lon)
+  for (key,value) in fnstatfile.iteritems(): fnstatset[key] = Dataset(CFSRdata+value, 'r')
+  for (key,value) in fndynfile.iteritems(): fndynset[key] = Dataset(CFSRdata+value, 'r')
+  for (key,value) in hidynfile.iteritems(): hidynset[key] = Dataset(CFSRdata+value, 'r')
+  fnshape = fndynset['rain'].variables[fndynvar['rain']].shape # (time, lat, lon)
   hishape = hidynset['pmsl'].variables[hidynvar['pmsl']].shape # (time, lat, lon)  
   
   ## perform actual computation of climatologies
@@ -78,7 +82,6 @@ if __name__ == '__main__':
     hidynclim[key] = tmp / (cnt/12-1)
       
   ## initialize netcdf dataset structure
-#  outgrp = Dataset(CFSRroot+'climatology1979-2011.nc', 'w', format='NETCDF4')
   # create groups for different resolution
   fngrp = Dataset(CFSRroot+test+fnoutfile, 'w', format='NETCDF4') # outgrp.createGroup('fineres')
   higrp = Dataset(CFSRroot+test+hioutfile, 'w', format='NETCDF4') # outgrp.createGroup('highres')
@@ -103,13 +106,13 @@ if __name__ == '__main__':
   # fine grid
   fngrp.description = description
   fngrp.creator = creator 
-  copy_ncatts(fngrp,fndynset['prt'],prefix='CFSR_')
+  copy_ncatts(fngrp,fndynset['rain'],prefix='CFSR_')
 #  for att in fndynset['prt'].ncattrs(): fngrp.setncattr('SRC_'+att,fndynset['prt'].getncattr(att))
   higrp.description = description
   higrp.creator = creator 
   copy_ncatts(fngrp,hidynset['pmsl'],prefix='CFSR_')
   # create old lat/lon dimensions and coordinate variables
-  copy_dims(fngrp, fndynset['prt'], dimlist=fndim.keys(), namemap=fndim, copy_coords=True)
+  copy_dims(fngrp, fndynset['rain'], dimlist=fndim.keys(), namemap=fndim, copy_coords=True)
   copy_dims(higrp, hidynset['pmsl'], dimlist=hidim.keys(), namemap=hidim, copy_coords=True)
   # copy static variables into new dataset
   for (key,value) in fnstatset.iteritems():
