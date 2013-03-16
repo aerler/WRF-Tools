@@ -433,7 +433,6 @@ echo
 echo "Remaining tasks:"
 echo " * review meta data and namelists"
 echo " * edit run scripts, if necessary,"
-echo "   e.g. adjust wallclock time"
 echo
 # count number of broken links
 for FILE in * bin/* scripts/* meta/* tables/*; do # need to list meta/ and table/ extra, because */ includes data links (e.g. atm/)

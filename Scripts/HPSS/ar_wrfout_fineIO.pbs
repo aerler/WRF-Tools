@@ -41,7 +41,8 @@ SRC=${SRC:-"${WRFOUT}"} # where the data is (on disk)
 # configure file according to archiving interval
 if [[ "${INTERVAL}" == "YEARLY" ]]; then
   # use this filename pattern to infer list of $TAGS
-  PATTERN='-12_wrf.tgz' # filename "${TAG}${PATTERN}": remove $PATTERN, keep $TAG
+  PATTERN='-01_wrf.tgz' # filename "${TAG}${PATTERN}": remove $PATTERN, keep $TAG
+  # N.B.: this option will usually only be relevant for bulk jobs; using '-01' makes sure incomplete years are not omitted
   GLOB='GLOB' # use globbing expressions in filenames
   DATEGLOB='-[01][0-9]' # match all months (01-12)
 elif [[ "${INTERVAL}" == "MONTHLY" ]]; then
