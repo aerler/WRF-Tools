@@ -51,9 +51,11 @@ function RENAME () {
     sed -i "/WPSSCRIPT/ s/WPSSCRIPT=.*$/WPSSCRIPT=\'run_${CASETYPE}_WPS.${WPSQ}\' # WPS run-scripts/" "${FILE}" # WPS run-script
     # script folder
     sed -i '/WRFOUT/ s+WRFOUT=.*$+WRFOUT="${INIDIR}/wrfout/"  # WRF output folder+' "${FILE}"
-    # WRF output folder (used by WRF run-script and archive script)
+    # WRF wallclock time limit
     sed -i "/WRFWCT/ s/WRFWCT=.*$/WRFWCT=\'${WRFWCT}\' # WRF wallclock time/" "${FILE}" # used for queue time estimate
-    # WPS wallclock  time limit
+    # number of WRF nodes on given system
+    sed -i "/NODES/ s/NODES=.*$/NODES=${WRFNODES} # number of nodes/" "${FILE}" # use for TCS setup
+    # WPS wallclock time limit
     sed -i "/WPSWCT/ s/WPSWCT=.*$/WPSWCT=\'${WPSWCT}\' # WPS wallclock time/" "${FILE}" # used for queue time estimate
     # script folder
     sed -i '/SCRIPTDIR/ s+SCRIPTDIR=.*$+SCRIPTDIR="${INIDIR}/scripts/"  # location of component scripts (pre/post processing etc.)+' "${FILE}"

@@ -29,7 +29,7 @@ export RAMOUT=0
 export NOCLOBBER='-i --reply=no'
 
 # run configuration
-export NODES=${NODES:-$( echo "${HOSTLIST}" | wc -w )} # infer from host list; set in LL section
+export NODES=${NODES:-$( echo "${HOSTLIST}" | wc -w )} # inferring from host list doesn't work on TCS - set in run-script
 export TASKS=${TASKS:-64} # number of MPI task per node (Hpyerthreading!)
 export THREADS=${THREADS:-1} # number of OpenMP threads
 # set up hybrid envionment: OpenMP and MPI (Intel)
