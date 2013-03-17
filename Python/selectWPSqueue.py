@@ -109,8 +109,8 @@ if __name__ == '__main__':
   print('\nEstimated queue wait time is %3.2f hours\n'%(waittime/3600))
   # determine acceptable wait time
   timelimit = 0
-  if WPSWCT: timelimit += convertTime(WPSWCT)
-  if WRFWCT: timelimit += convertTime(WRFWCT)
+  if WRFWCT: timelimit += convertTime(WRFWCT) # basic time limit from WRF execution time
+  if WPSWCT: timelimit -= convertTime(WPSWCT) # subtract execution time for WPS
   # launch WPS
   if timelimit <= 0:
     print('WARNING: invalid timelimit: %i'%timelimit)
