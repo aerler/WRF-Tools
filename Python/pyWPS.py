@@ -2,9 +2,10 @@
 
 '''
 Created on 2012-03-20
+Revised on 2013-03-19
 
-Script to prepare CCSM/CESM input data and run the WPS/metgrid_exe.exe tool chain, 
-in order to generate input data for WRF/real.exe.
+Script to prepare input data from various sources (including CESM/CCSM) and run the 
+WPS/metgrid.exe tool chain, in order to generate input data for WRF/real.exe
 
 @author: Andre R. Erler
 '''
@@ -50,50 +51,39 @@ METGRID = './' + metgrid_exe
 
 ##  determine if we are on SciNet or my local machine
 hostname = socket.gethostname()
-if (hostname=='komputer'):
+
+if ('gpc' in hostname) or ('p7' in hostname):
+  # SciNet
+  lscinet = True
+else:
   # my local workstation
   lscinet = False
-  Ram = '/media/tmp/' # ramdisk folder to be used for temporary storage
-  Root = ''
   # use this cmd to mount: sudo mount -t ramfs -o size=100m ramfs /media/tmp/
   # followed by: sudo chown me /media/tmp/
   # sudo mount -t ramfs -o size=100m ramfs /media/tmp/ && sudo chown me /media/tmp/
   # and this to unmount:   sudo umount /media/tmp/
-  Model = '/home/me/Models/'
-  NCARG = '/usr/local/ncarg/'
-  NCL = '/usr/local/ncarg/bin/ncl'
-  NP = 2
-elif (hostname=='erlkoenig'):
-  # my laptop
-  lscinet = False
-  Ram = '/media/tmp/' # tmpfs folder to be used for temporary storage
-  # (leave Ram directory blank if tmpfs will be in test directory)
-  Root = '' # '/media/data/DATA/WRF/test/WPS/'
-  # use this cmd to mount: 
-  # sudo mount -t tmpfs -o size=200m tmpfs /media/tmp/ && sudo chown me /media/tmp/
-  # and this to unmount: sudo umount /media/tmp/
-  Model = '/home/me/Models/'
-  NCARG = '/usr/local/ncarg/'
-  NCL = '/usr/local/ncarg/bin/ncl'
-  NP = 1
-elif ('gpc' in hostname):
-  # SciNet
-  lscinet = True
-  Ram = '/dev/shm/aerler/' # ramdisk/tmpfs folder to be used for temporary storage
-  Root = '' # use current directory
-  Model = '/home/p/peltier/aerler/'
-  NCARG = '/scinet/gpc/Applications/ncl/6.0.0/'
-  NCL = '/scinet/gpc/Applications/ncl/6.0.0/bin/ncl'
-  NP = 16 # either hyperthreading or largemem nodes
-elif ('p7' in hostname):
-  # SciNet
-  lscinet = True
-  Ram = '/dev/shm/aerler/' # ramdisk/tmpfs folder to be used for temporary storage
-  Root = '' # use current directory
-  Model = '/home/p/peltier/aerler/'
-  NCARG = '/scinet/p7/Applications/ncl/6.0.0/'
-  NCL = '/scinet/p7/Applications/ncl/6.0.0/bin/ncl'
-  NP = 32
+
+## read environment variables (overrides defaults)
+# defaults are set above (some machine specific)
+# model root folder (instalation folder of 'WRF Tools'
+if os.environ.has_key('MODEL_ROOT'): Model = os.environ['MODEL_ROOT']
+# NCARG installation folder (for NCL)
+if os.environ.has_key('NCARG_ROOT'): 
+  NCARG = os.environ['NCARG_ROOT']
+  NCL = NCARG + '/bin/ncl'
+# RAM disk
+if os.environ.has_key('RAMDISK'): Ram = os.environ['RAMDISK']
+# save metgrid data
+if os.environ.has_key('PYWPS_MET_DATA'):
+  Disk = os.environ['PYWPS_MET_DATA']
+  ldisk = True
+else: ldisk = False
+# number of processes NP 
+if os.environ.has_key('PYWPS_THREADS'): NP = int(os.environ['PYWPS_THREADS'])
+# dataset specific stuff
+if os.environ.has_key('PYWPS_DATA_SOURCE'): 
+  dataset = os.environ['PYWPS_DATA_SOURCE']
+else: dataset = None
 
 
 ## dataset manager parent class
@@ -153,24 +143,21 @@ class CESM(Dataset):
   icepfx = '.cice.h1_inst.'
   icelnk = 'icefile.nc'
 
-  def __init__(self, folder=None, source=None, prefix=None, lregex=False, lsymlink=False):
+  def __init__(self, folder=None, prefix=None):
     
-    # if source is given, perform setup
-    if source: self.setup(source=source, lsymlink=lsymlink) 
-        
-    # CESM specific files and folders (only necessary for file operations)
+    assert folder, 'Warning: need to specify root folder!'
+    
+    ## CESM specific files and folders (only necessary for file operations)
     self.folder = folder # needs to be set externally for different applicatiosn
-    if folder:
-      self.MyDir = folder
-      self.AtmDir = os.readlink(folder + self.atmdir[:-1])
-      self.LndDir = os.readlink(folder + self.lnddir[:-1])
-      self.IceDir = os.readlink(folder + self.icedir[:-1])
-      self.NCL_ETA2P = NCL + ' ' + self.unncl_ncl
-      self.UNCCSM = './' + self.unccsm_exe
-      # set environment variable for NCL (on tmp folder)   
-      os.putenv('NCARG_ROOT', NCARG) 
-      os.putenv('NCL_POP_REMAP', meta) # NCL is finicky about space characters in the path statement, so relative path is saver
-      os.putenv('MODEL_ROOT', Model) # also for NCL (where personal function libs are)
+    self.AtmDir = os.readlink(folder + self.atmdir[:-1])
+    self.LndDir = os.readlink(folder + self.lnddir[:-1])
+    self.IceDir = os.readlink(folder + self.icedir[:-1])
+    self.NCL_ETA2P = NCL + ' ' + self.unncl_ncl
+    self.UNCCSM = './' + self.unccsm_exe
+    # set environment variable for NCL (on tmp folder)   
+    os.putenv('NCARG_ROOT', NCARG) 
+    os.putenv('NCL_POP_REMAP', meta) # NCL is finicky about space characters in the path statement, so relative path is saver
+    os.putenv('MODEL_ROOT', Model) # also for NCL (where personal function libs are)
       
     # figure out source file prefix (only needs to be determined once)
     if not prefix: 
@@ -190,19 +177,12 @@ class CESM(Dataset):
     if prefix: self.icepfx = prefix+self.icepfx
     self.prefix = prefix
 
-    # compile regular expressions (needed to extract dates)
-    self.lregex = lregex
-    if lregex:      
-      # use atmosphere files as master list 
-      self.atmrgx = re.compile(self.atmpfx+self.dateform+self.ncext+'$')
-      # regex to extract dates from filenames
-      self.dateregx = re.compile(self.dateform)
+    ## compile regular expressions (needed to extract dates)
+    # use atmosphere files as master list 
+    self.atmrgx = re.compile(self.atmpfx+self.dateform+self.ncext+'$')
+    # regex to extract dates from filenames
+    self.dateregx = re.compile(self.dateform)
       
-  def getPrefix(self):
-    # universal wrapper method for folder with "master-filelist"
-    if self.prefix: return self.prefix # CESM datasets have variable prefixes 
-    else: return None # None if no folder is set
-  
   def getDataDir(self):
     # universal wrapper method for folder with "master-filelist"
     if self.folder: return self.AtmDir # use atmosphere folder as master
@@ -226,26 +206,28 @@ class CESM(Dataset):
       hour = int(second)/3600 
       return (year, month, day, hour)
   
-  def setup(self, source, lsymlink=False):          
-    # method to copy dataset specific files and folders working directory 
-    # links to data folders
-    os.symlink(os.readlink(source+self.atmdir[:-1]),self.atmdir[:-1])
-    os.symlink(os.readlink(source+self.lnddir[:-1]),self.lnddir[:-1])
-    os.symlink(os.readlink(source+self.icedir[:-1]),self.icedir[:-1])
+  def setup(self, src, dst, lsymlink=False):          
+    # method to copy dataset specific files and folders working directory
     # executables   
     if lsymlink:
+      cwd = os.getcwd()
+      os.chdir(dst)
       # use current directory
-      os.symlink(source+self.unccsm_exe, self.unccsm_exe)
-      os.symlink(source+self.unncl_ncl, self.unncl_ncl)
+      os.symlink(src+self.unccsm_exe, self.unccsm_exe)
+      os.symlink(src+self.unncl_ncl, self.unncl_ncl)
+      os.chdir(cwd)
     else:
-      shutil.copy(source+self.unccsm_exe, os.getcwd())
-      shutil.copy(source+self.unncl_ncl, os.getcwd())
+      shutil.copy(src+self.unccsm_exe, dst)
+      shutil.copy(src+self.unncl_ncl, dst)
 
-  def cleanup(self):
+  def cleanup(self, tgt):
     # method to remove dataset specific files and links
-    # use current directory
+    cwd = os.getcwd()
+    os.chdir(tgt)
+    # use current directory    
     os.remove(self.unccsm_exe)
     os.remove(self.unncl_ncl)
+    os.chdir(cwd)
 
   def ungrib(self, date, mytag):
     # method that generates the WRF IM file for metgrid.exe
@@ -331,12 +313,11 @@ def processFiles(filelist, queue):
 #  atmfiles = [match.group() for match in files if not match is None] # list of time steps from atmospheric output
 #  files = [dateregx.search(atmfile) for atmfile in atmfiles]
 #  dates = [match.group() for match in files if not match is None]
-  dataset = masterset.__class__(prefix=prefix,lregex=True)
   okdates = [] # list of valid dates
   # loop over dates
   for filename in filelist:
     # figure out time and date
-    date = dataset.extractDate(filename)
+    date = masterset.extractDate(filename)
     # collect valid dates
     if date: # i.e. not 'None'
       # check date for validity (only need to check first/master domain)      
@@ -345,8 +326,7 @@ def processFiles(filelist, queue):
       if lok: okdates.append(date)
   # return list of valid datestrs
   queue.put(okdates)
-  del dataset # clean up
-
+  
 
 ## primary parallel processing function: workload for each process
 # N.B.: this function has a lot of shared variable for folder and file names etc.
@@ -364,10 +344,8 @@ def processTimesteps(myid, dates):
   shutil.copy(nmlstwps, mydir)
   # change working directory to process sub-folder
   os.chdir(mydir)
-  # initialize dataset manager of same class as master
-  dataset = masterset.__class__(folder=MyDir, source=Tmp, prefix=prefix, lsymlink=True)
   # link dataset specific files
-#  dataset.setup(source=Tmp, lsymlink=True)
+  masterset.setup(src=Tmp, dst=MyDir, lsymlink=True)
   # link other source files
   os.symlink(Meta, meta[:-1]) # link to folder
   # link geogrid (data) and metgrid
@@ -399,7 +377,7 @@ def processTimesteps(myid, dates):
       
     ## prepare WPS processing 
     # run ungrib.exe or equivalent operation
-    preimfile = dataset.ungrib(date, mytag) # need 'mytag' for status messages
+    preimfile = masterset.ungrib(date, mytag) # need 'mytag' for status messages
     # rename intermediate file according to WPS convention (by date)
     os.rename(preimfile, imfile) # not the same as 'move'
     
@@ -435,8 +413,7 @@ def processTimesteps(myid, dates):
   ## clean up after all time-steps
   # link other source files
   os.remove(meta[:-1]) # link to folder
-  dataset.cleanup() 
-  del dataset # probably unnecessary 
+  masterset.cleanup(tgt=MyDir) 
   os.remove(metgrid_exe)
   for i in doms: # loop over all geogrid domains
     os.remove(geopfx%(i)+ncext)
@@ -447,30 +424,20 @@ if __name__ == '__main__':
         
     ##  prepare environment
     # figure out root folder
-    if Root:
-      Root = Root + '/' # assume GCM name as subdirectory
-      os.chdir(Root) # change to Root directory
-    else:
-      Root = os.getcwd() + '/' # use current directory
+    Root = os.getcwd() + '/' # use current directory
     # direct temporary storage
     if Ram:       
       Tmp = Ram + tmp # direct temporary storage to ram disk
       if ldata: Data = Ram + data # temporary data storage (in memory)
-      # provide link to ram disk directory for convenience (unless on SciNet)      
-      if not lscinet and not (os.path.isdir(ramlnk) or os.path.islink(ramlnk[:-1])):
-        os.symlink(Ram, ramlnk)
+#      # provide link to ram disk directory for debugging      
+#      if not lscinet and not (os.path.isdir(ramlnk) or os.path.islink(ramlnk[:-1])):
+#        os.symlink(Ram, ramlnk)
     else:      
       Tmp = Root + tmp # use local directory
       if ldata: Data = Root + data # temporary data storage (just moves here, no copy)      
     # create temporary storage  (file system or ram disk alike)
     if os.path.isdir(Tmp):       
       shutil.rmtree(Tmp) # clean out entire directory
-#      for name in os.listdir(Tmp):
-#        path = Tmp + name
-#        if os.path.isdir(path) and not os.path.islink(path):
-#          shutil.rmtree(path)
-#        else: os.remove(path)
-#    else:                 
     os.mkdir(Tmp) # otherwise create folder 
     # create temporary data collection folder
     if ldata:
@@ -507,19 +474,16 @@ if __name__ == '__main__':
     # change working directory to tmp folder
     os.chdir(Tmp)
     
-    # number of processes NP 
-    if os.environ.has_key('PYWPS_THREADS'):
-      NP = int(os.environ['PYWPS_THREADS']) # default is set above (machine specific)
-      
-    # dataset specific stuff
-    if os.environ.has_key('DATA_SOURCE') and os.environ['DATA_SOURCE'] == 'CESM': 
-      masterset = CESM(folder=Tmp)
+    # create dataset instance
+    if dataset  == 'CESM': 
+      masterset = CESM(folder=Root)
     else:
       # for backwards compatibility
-      masterset = CESM(folder=Tmp, source=Root)
+      masterset = CESM(folder=Root)
     # setup working directory with dataset specific stuff
+    masterset.setup(src=Root, dst=Tmp) # 
     DataDir = masterset.getDataDir() # should be absolute path   
-    prefix = masterset.getPrefix() # save prefix, if any    
+    
     
     ## multiprocessing
     
@@ -541,7 +505,6 @@ if __name__ == '__main__':
     
     # divide up dates and process time-steps
     listofdates = divideList(dates, NP)   
-    print listofdates 
     # create processes
     procs = []; ilo = 0; ihi = 0
     for pid in xrange(NP):
@@ -554,6 +517,6 @@ if __name__ == '__main__':
       
     # clean up files
     os.chdir(Tmp)
-    masterset.cleanup()
+    masterset.cleanup(tgt=Tmp)
     os.remove(metgrid_exe)
     # N.B.: remember to remove *.nc files in meta-folder!

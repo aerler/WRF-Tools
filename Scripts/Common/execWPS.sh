@@ -3,7 +3,7 @@
 # created 25/06/2012 by Andre R. Erler, GPL v3
 
 # variable defined in driver script:
-# $TASKS, $THREADS, $HYBRIDRUN, ${WORKDIR}, $WORKDIR, $RAMDISK
+# $TASKS, $THREADS, $HYBRIDRUN, $WORKDIR, $RAMDISK
 # optional arguments:
 # $RUNPYWPS, $METDATA, $RUNREAL, $REALIN, $RAMIN, $REALOUT, $RAMOUT
 
@@ -16,6 +16,7 @@ RAMDATA="${RAMDISK}/data/" # data folder used by Python script
 RAMTMP="${RAMDISK}/tmp/" # temporary folder used by Python script
 # pyWPS.py
 RUNPYWPS=${RUNPYWPS:-1} # whether to run runWPS.py
+DATASOURCE=${DATASOURCE:-'CESM'} # data source also see $PYWPS_DATA_SOURCE
 PYDATA="${WORKDIR}/data/" # data folder used by Python script
 PYLOG="pyWPS" # log folder for Python script (use relative path for tar)
 PYTGZ="${RUNNAME}_${PYLOG}.tgz" # archive for log folder
@@ -59,11 +60,17 @@ if [[ ${RUNPYWPS} == 1 ]]
 
     # run and time main pre-processing script (Python)
     cd "${WORKDIR}" # using current working directory
+	# some influential environment variables
     export OMP_NUM_THREADS=1 # set OpenMP environment
+	# read by Python script pyWPS
     export PYWPS_THREADS=$(( TASKS*THREADS ))
+    export PYWPS_DATA_SOURCE="${DATASOURCE}"
+    export PYWPS_MET_DATA="${METDATA}"
     echo
     echo "OMP_NUM_THREADS=${OMP_NUM_THREADS}"
     echo "PYWPS_THREADS=${PYWPS_THREADS}"
+    echo "PYWPS_DATA_SOURCE=${DATASOURCE}"
+    echo "PYWPS_MET_DATA=${METDATA}"
     echo
     echo "python pyWPS.py"
     echo
@@ -86,10 +93,10 @@ if [[ ${RUNPYWPS} == 1 ]]
     tar czf ${PYTGZ} "${PYLOG}/"
     # move metgrid data to final destination (if pyWPS wrote data to disk)
     if [[ -e "${PYDATA}" ]] && [[ ! "${METDATA}" == "${WORKDIR}" ]]; then
-	mkdir -p "${METDATA}"
-	mv ${PYTGZ} "${METDATA}"
-	mv "${PYDATA}"/* "${METDATA}"
-	rm -r "${PYDATA}"
+		mkdir -p "${METDATA}"
+		mv ${PYTGZ} "${METDATA}"
+		mv "${PYDATA}"/* "${METDATA}"
+		rm -r "${PYDATA}"
     fi
 
     # finish

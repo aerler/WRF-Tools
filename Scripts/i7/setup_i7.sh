@@ -16,7 +16,7 @@ echo "Running on ${PBS_QUEUE} queue; RAMIN=${RAMIN} and RAMOUT=${RAMOUT}"
 echo
 
 # RAM disk folder (cleared and recreated if needed)
-export RAMDISK="/dev/shm/${USER}/"
+export RAMDISK="/media/tmp/"
 # check if the RAM=disk is actually there
 if [[ ${RAMIN}==1 ]] || [[ ${RAMOUT}==1 ]]; then
     # create RAM-disk directory
