@@ -11,7 +11,6 @@ in order to generate input data for WRF/real.exe.
 
 ##  imports
 import socket # recognizing host 
-import imp # to import namelist variables
 import os # directory operations
 import shutil # copy and move
 import re # regular expressions
@@ -19,6 +18,35 @@ import subprocess # launching external programs
 import multiprocessing # parallelization
 # my modules
 from namelist import time
+
+##  Default Settings (may be overwritten by in meta/namelist.py)
+tmp = 'tmp/'
+meta = 'meta/'
+# metgrid
+impfx = 'FILE:'
+imform = '%04.0f-%02.0f-%02.0f_%02.0f'
+metpfx = 'met_em.d%02.0f.'
+metsfx = ':00:00.nc'
+geopfx = 'geo_em.d%02.0f'
+# parallelization
+pname = 'proc%02.0f'
+pdir = 'proc%02.0f/'  
+# destination folder(s)
+ramlnk = 'ram' # automatically generated link to ramdisk (if applicable)
+data = 'data/' # data folder in ram
+ldata = True # whether or not to keep data in memory  
+disk = 'data/' # destination folder on hard disk
+Disk = '' # default: Root + disk
+ldisk = False # don't write metgrid files to hard disk
+## Commands
+# metgrid
+metgrid_exe = 'metgrid.exe'
+metgrid_log = 'metgrid.exe.log'
+nmlstwps = 'namelist.wps'
+ncext = '.nc' # also used for geogrid files
+# dependent variables 
+METGRID = './' + metgrid_exe
+
 
 ##  determine if we are on SciNet or my local machine
 hostname = socket.gethostname()
@@ -66,56 +94,207 @@ elif ('p7' in hostname):
   NCARG = '/scinet/p7/Applications/ncl/6.0.0/'
   NCL = '/scinet/p7/Applications/ncl/6.0.0/bin/ncl'
   NP = 32
+
+
+## dataset manager parent class
+class Dataset():
+  # a class that encapsulates meta data and operations specific to certain datasets
+  # note that this class does not hold any actual data 
+  # ungrib
+  ungrib_exe = 'ungrib.exe'
+  ungrib_log = 'ungrib.exe.log'
+  # ungrib input filename is always GRIBFILE.AAA
+  def __init__(self):
+    # currently no function
+    pass
+  def dataDir(self):
+    # universal wrapper method for folder with "master-filelist"
+    pass
+  def extractDate(self):
+    # method to generate date tuple from date string in filename 
+    pass
+  def setup(self):
+    # method to link dataset specific files and folders
+    pass
+  def cleanup(self):
+    # method to remove dataset specific links
+    pass
+  def ungrib(self):
+    # method that generates the WRF IM file for metgrid.exe
+    pass 
   
-##  Default Settings (may be overwritten by in meta/namelist.py)
-prefix = '' # 'cesm19752000v2', 'cesmpdwrf1x1'
-tmp = 'tmp/'
-meta = 'meta/'
-nclfile = 'intermed.nc'
-preimfile = 'FILEOUT'
-impfx = 'FILE:'
-imform = '%04.0f-%02.0f-%02.0f_%02.0f'
-metpfx = 'met_em.d%02.0f.'
-metsfx = ':00:00.nc'
-geopfx = 'geo_em.d%02.0f'
-# parallelization
-pname = 'proc%02.0f'
-pdir = 'proc%02.0f/'  
-# destination folder(s)
-ramlnk = 'ram' # automatically generated link to ramdisk (if applicable)
-data = 'data/' # data folder in ram
-ldata = True # whether or not to keep data in memory  
-disk = 'data/' # destination folder on hard disk
-Disk = '' # default: Root + disk
-ldisk = False # don't write metgrid files to hard disk
-## Commands
-unncl_ncl = 'unccsm.ncl'
-unncl_log = 'unccsm.ncl.log'
-unccsm_exe = 'unccsm.exe'
-unccsm_log = 'unccsm.exe.log'
-metgrid_exe = 'metgrid.exe'
-metgrid_log = 'metgrid.exe.log'
-nmlstwps = 'namelist.wps'
-##  data sources
-ncext = '.nc'
-dateform = '\d\d\d\d-\d\d-\d\d-\d\d\d\d\d'
-# atmosphere
-atmdir = 'atm/'
-atmpfx = '.cam2.h1.'
-atmlnk = 'atmfile.nc'
-# land
-lnddir = 'lnd/'
-lndpfx = '.clm2.h1.'
-lndlnk = 'lndfile.nc'
-# ice
-icedir = 'ice/'
-icepfx = '.cice.h1_inst.'
-icelnk = 'icefile.nc'
+## CESM
+class CESM(Dataset):
+  # a class that holds meta data and implements operations specific to CESM data
+  # note that this class does not hold any actual data
+  # unccsm executables
+  unncl_ncl = 'unccsm.ncl'
+  unncl_log = 'unccsm.ncl.log'
+  unccsm_exe = 'unccsm.exe'
+  unccsm_log = 'unccsm.exe.log'
+  # unccsm temporary files
+  nclfile = 'intermed.nc'
+  preimfile = 'FILEOUT' 
+  # CESM data source
+  prefix = '' # 'cesm19752000v2', 'cesmpdwrf1x1'
+  ncext = ncext
+  dateform = '\d\d\d\d-\d\d-\d\d-\d\d\d\d\d'
+  datestr = '%04i-%02i-%02i-%05i' # year, month, day, seconds
+  # atmosphere
+  atmdir = 'atm/'
+  atmpfx = '.cam2.h1.'
+  atmlnk = 'atmfile.nc'
+  # land
+  lnddir = 'lnd/'
+  lndpfx = '.clm2.h1.'
+  lndlnk = 'lndfile.nc'
+  # ice
+  icedir = 'ice/'
+  icepfx = '.cice.h1_inst.'
+  icelnk = 'icefile.nc'
+
+  def __init__(self, folder=None, source=None, prefix=None, lregex=False, lsymlink=False):
+    
+    # if source is given, perform setup
+    if source: self.setup(source=source, lsymlink=lsymlink) 
+        
+    # CESM specific files and folders (only necessary for file operations)
+    self.folder = folder # needs to be set externally for different applicatiosn
+    if folder:
+      self.MyDir = folder
+      self.AtmDir = os.readlink(folder + self.atmdir[:-1])
+      self.LndDir = os.readlink(folder + self.lnddir[:-1])
+      self.IceDir = os.readlink(folder + self.icedir[:-1])
+      self.NCL_ETA2P = NCL + ' ' + self.unncl_ncl
+      self.UNCCSM = './' + self.unccsm_exe
+      # set environment variable for NCL (on tmp folder)   
+      os.putenv('NCARG_ROOT', NCARG) 
+      os.putenv('NCL_POP_REMAP', meta) # NCL is finicky about space characters in the path statement, so relative path is saver
+      os.putenv('MODEL_ROOT', Model) # also for NCL (where personal function libs are)
+      
+    # figure out source file prefix (only needs to be determined once)
+    if not prefix: 
+      # get file prefix for data files
+      # use only atmosphere files
+      prergx = re.compile(self.atmpfx+self.dateform+self.ncext+'$')
+      # search for first valid filename
+      for filename in os.listdir(self.AtmDir):
+        match = prergx.search(filename) 
+        if match: break
+      prefix = filename[0:match.start()] # use everything before the pattern as prefix
+      # print prefix
+      print('\n No data prefix defined; inferring prefix from valid data files in directory '+self.AtmDir)
+      print('  prefix = '+prefix)
+    if prefix: self.atmpfx = prefix+self.atmpfx
+    if prefix: self.lndpfx = prefix+self.lndpfx
+    if prefix: self.icepfx = prefix+self.icepfx
+    self.prefix = prefix
+
+    # compile regular expressions (needed to extract dates)
+    self.lregex = lregex
+    if lregex:      
+      # use atmosphere files as master list 
+      self.atmrgx = re.compile(self.atmpfx+self.dateform+self.ncext+'$')
+      # regex to extract dates from filenames
+      self.dateregx = re.compile(self.dateform)
+      
+  def getPrefix(self):
+    # universal wrapper method for folder with "master-filelist"
+    if self.prefix: return self.prefix # CESM datasets have variable prefixes 
+    else: return None # None if no folder is set
+  
+  def getDataDir(self):
+    # universal wrapper method for folder with "master-filelist"
+    if self.folder: return self.AtmDir # use atmosphere folder as master
+    else: return None # None if no folder is set
+    
+  def extractDate(self, filename, zero=2000):
+    # method to generate date tuple from date string in filename
+    # match valid filenames
+    match = self.atmrgx.match(filename) # return match object
+    if match is None:
+      return None # if the filename doesn't match the regex
+    else:
+      # extract date string
+      datestr = self.dateregx.search(filename).group()
+      # split date string into tuple 
+      year, month, day, second = datestr.split('-')
+#      if year[0] == '0': year = int(year)+zero # start at year 2000 (=0000)
+#      else: 
+      year = int(year)
+      month = int(month); day = int(day)
+      hour = int(second)/3600 
+      return (year, month, day, hour)
+  
+  def setup(self, source, lsymlink=False):          
+    # method to copy dataset specific files and folders working directory 
+    # links to data folders
+    os.symlink(os.readlink(source+self.atmdir[:-1]),self.atmdir[:-1])
+    os.symlink(os.readlink(source+self.lnddir[:-1]),self.lnddir[:-1])
+    os.symlink(os.readlink(source+self.icedir[:-1]),self.icedir[:-1])
+    # executables   
+    if lsymlink:
+      # use current directory
+      os.symlink(source+self.unccsm_exe, self.unccsm_exe)
+      os.symlink(source+self.unncl_ncl, self.unncl_ncl)
+    else:
+      shutil.copy(source+self.unccsm_exe, os.getcwd())
+      shutil.copy(source+self.unncl_ncl, os.getcwd())
+
+  def cleanup(self):
+    # method to remove dataset specific files and links
+    # use current directory
+    os.remove(self.unccsm_exe)
+    os.remove(self.unncl_ncl)
+
+  def ungrib(self, date, mytag):
+    # method that generates the WRF IM file for metgrid.exe
+    # create formatted date string
+    datestr = self.datestr%(date[0],date[1],date[2],date[3]*3600) # not hours, but seconds...
+    # create links to relevant source data (requires full path for linked files)
+    atmfile = self.atmpfx+datestr+self.ncext
+    os.symlink(self.AtmDir+atmfile,self.atmlnk)
+    lndfile = self.lndpfx+datestr+self.ncext
+    os.symlink(self.LndDir+lndfile,self.lndlnk)
+    icefile = self.icepfx+datestr+self.ncext
+    print self.IceDir+icefile
+    if os.path.exists(self.IceDir+icefile):
+      os.symlink(self.IceDir+icefile,self.icelnk)
+      print('\n '+mytag+' Processing time-step:  '+datestr+'\n    '+atmfile+'\n    '+lndfile+'\n    '+icefile)
+    else:
+      print('\n '+mytag+' Processing time-step:  '+datestr+'\n    '+atmfile+'\n    '+lndfile)
+    
+    ##  convert data to intermediate files
+    # run unccsm tool chain
+    # run NCL script (suppressing output)
+    print('\n  * '+mytag+' interpolating to pressure levels (eta2p.ncl)')
+    fncl = open(self.unncl_log, 'a') # NCL output and error log
+    if lscinet:
+      # On SciNet we have to pass this command through the shell, so that the NCL module is loaded.
+      subprocess.call(self.NCL_ETA2P, shell=True, stdout=fncl, stderr=fncl)
+    else:
+      # otherwise we don't need the shell and it's a security risk
+      subprocess.call([NCL,self.unncl_ncl], stdout=fncl, stderr=fncl)  
+    fncl.close()          
+    # run unccsm.exe
+    print('\n  * '+mytag+' writing to WRF IM format (unccsm.exe)')
+    funccsm = open(self.unccsm_log, 'a') # unccsm.exe output and error log
+    subprocess.call([self.UNCCSM], stdout=funccsm, stderr=funccsm)   
+    funccsm.close()
+    # cleanup
+    os.remove(self.atmlnk)
+    os.remove(self.lndlnk)
+    os.remove(self.icelnk)
+    os.remove(self.nclfile)    # temporary file generated by NCL script 
+    # renaming happens outside, so we don't have to know about metgrid format
+    return self.preimfile
+    
 
 ## import local settings from file
 #sys.path.append(os.getcwd()+'/meta')
 #from namelist import *
 #print('\n Loading namelist parameters from '+meta+'/namelist.py:')
+#import imp # to import namelist variables
 #nmlstpy = imp.load_source('namelist_py',meta+'/namelist.py') # avoid conflict with module 'namelist'
 #localvars = locals()
 ## loop over variables defined in module/namelist  
@@ -126,37 +305,12 @@ icelnk = 'icefile.nc'
 #    print('   '+var+' = '+str(localvars[var]))
 #print('')
 
-# dependent variables 
-NCL_ETA2P = NCL + ' ' + unncl_ncl
-UNCCSM = './' + unccsm_exe
-METGRID = './' + metgrid_exe
 
 ## subroutines
 
-# remove tmp files and links
-def clean(folder, filelist=None, all=False):
-  if all:
-    # clean out entire directory
-    for path in os.listdir(folder):
-      if os.path.isdir(folder+path):
-        shutil.rmtree(folder+path)
-      else:
-        os.remove(folder+path)
-  else:
-    # clean out statics
-    if os.path.exists(folder+atmlnk): os.remove(folder+atmlnk)
-    if os.path.exists(folder+lndlnk): os.remove(folder+lndlnk)
-    if os.path.exists(folder+icelnk): os.remove(folder+icelnk)
-    if os.path.exists(folder+nclfile): os.remove(folder+nclfile)
-    # remove other stuff
-    if filelist is not None:
-      for file in filelist:
-        if os.path.exists(folder+file): os.remove(folder+file)     
-
-
-# function to divide a list fairly evenly 
-def divideList(list, n):
-  nlist = len(list) # total number of items
+## function to divide a list fairly evenly 
+def divideList(genericlist, n):
+  nlist = len(genericlist) # total number of items
   items = nlist // n # items per sub-list
   rem = nlist - items*n
   # distribute list items
@@ -164,32 +318,34 @@ def divideList(list, n):
   for i in xrange(n):
     ilo = ihi; ihi += items # next interval
     if i < rem: ihi += 1 # these intervals get one more
-    listoflists.append(list[ilo:ihi]) # append interval to list of lists
+    listoflists.append(genericlist[ilo:ihi]) # append interval to list of lists
   # return list of sublists
   return listoflists
 
 ## parallel pre-processing function
 # N.B.: this function has some shared variables for folder names and regx'
 # function to process filenames and check dates
-def processFiles(id, filelist, queue):
-  # parse (partial) filelist for atmospheric model (CAM) output
-  files = [atmrgx.match(file) for file in filelist]
-  # list of time steps from atmospheric output
-  atmfiles = [match.group() for match in files if not match is None]
-  files = [dateregx.search(atmfile) for atmfile in atmfiles]
-  dates = [match.group() for match in files if not match is None]
+def processFiles(filelist, queue):
+#  # some old code with interesting regex handling
+#  files = [atmrgx.match(file) for file in filelist] # parse (partial) filelist for atmospheric model (CAM) output  
+#  atmfiles = [match.group() for match in files if not match is None] # list of time steps from atmospheric output
+#  files = [dateregx.search(atmfile) for atmfile in atmfiles]
+#  dates = [match.group() for match in files if not match is None]
+  dataset = masterset.__class__(prefix=prefix,lregex=True)
   okdates = [] # list of valid dates
   # loop over dates
-  for datestr in dates:
+  for filename in filelist:
     # figure out time and date
-    date = time.splitDateCCSM(datestr)
-    # check date for validity (only need to check first/master domain)
-    lok = time.checkDate(date, starts[0], ends[0])
+    date = dataset.extractDate(filename)
     # collect valid dates
-    if lok: 
-      okdates.append(datestr)
+    if date: # i.e. not 'None'
+      # check date for validity (only need to check first/master domain)      
+      lok = time.checkDate(date, starts[0], ends[0])
+      # collect dates within range
+      if lok: okdates.append(date)
   # return list of valid datestrs
   queue.put(okdates)
+  del dataset # clean up
 
 
 ## primary parallel processing function: workload for each process
@@ -208,10 +364,13 @@ def processTimesteps(myid, dates):
   shutil.copy(nmlstwps, mydir)
   # change working directory to process sub-folder
   os.chdir(mydir)
+  # initialize dataset manager of same class as master
+  dataset = masterset.__class__(folder=MyDir, source=Tmp, prefix=prefix, lsymlink=True)
+  # link dataset specific files
+#  dataset.setup(source=Tmp, lsymlink=True)
   # link other source files
   os.symlink(Meta, meta[:-1]) # link to folder
-  os.symlink(Tmp+unccsm_exe, unccsm_exe)
-  os.symlink(Tmp+unncl_ncl, unncl_ncl)
+  # link geogrid (data) and metgrid
   os.symlink(Tmp+metgrid_exe, metgrid_exe)
   for i in doms: # loop over all geogrid domains
     geoname = geopfx%(i)+ncext
@@ -220,58 +379,31 @@ def processTimesteps(myid, dates):
   ## loop over (atmospheric) time steps
   if dates: print('\n '+mytag+' Looping over Time-steps:')
   else: print('\n '+mytag+' Nothing to do!')
-
-  for datestr in dates:
+  # loop over date-tuples
+  for date in dates:
     
-    # convert time and date
-    date = time.splitDateCCSM(datestr)
     # figure out sub-domains
     ldoms = [True,]*maxdom # first domain is always computed
     for i in xrange(1,maxdom): # check sub-domains
       ldoms[i] = time.checkDate(date, starts[i], ends[i])
-      
-    # prepare processing 
-    # create links to relevant source data (requires full path for linked files)
-    atmfile = atmpfx+datestr+ncext
-    os.symlink(AtmDir+atmfile,atmlnk)
-    lndfile = lndpfx+datestr+ncext
-    os.symlink(LndDir+lndfile,lndlnk)
-    icefile = icepfx+datestr+ncext
-    if os.path.exists(IceDir+icefile):
-      os.symlink(IceDir+icefile,icelnk)
-      print('\n '+mytag+' Processing time-step:  '+datestr+'\n    '+atmfile+'\n    '+lndfile+'\n    '+icefile)
-    else:
-      print('\n '+mytag+' Processing time-step:  '+datestr+'\n    '+atmfile+'\n    '+lndfile)
+    # update date string in namelist.wps
+    imdate = imform%date
+    imfile = impfx+imdate
+    time.writeNamelist(nmlstwps, ldoms, imdate, imd, isd, ied)
     
-    ##  convert data to intermediate files
-    # run NCL script (suppressing output)
-    print('\n  * '+mytag+' interpolating to pressure levels (eta2p.ncl)')
-    fncl = open(unncl_log, 'a') # NCL output and error log
-    if lscinet:
-      # On SciNet we have to pass this command through the shell, so that the NCL module is loaded.
-      subprocess.call(NCL_ETA2P, shell=True, stdout=fncl, stderr=fncl)
-    else:
-      # otherwise we don't need the shell and it's a security risk
-      subprocess.call([NCL,unncl_ncl], stdout=fncl, stderr=fncl)  
-    fncl.close()      
-    # run unccsm.exe
-    print('\n  * '+mytag+' writing to WRF IM format (unccsm.exe)')
-    funccsm = open(unccsm_log, 'a') # unccsm.exe output and error log
-    subprocess.call([UNCCSM], stdout=funccsm, stderr=funccsm)   
-    funccsm.close()
     # N.B.: in case the stack size limit causes segmentation faults, here are some workarounds
     # subprocess.call(r'ulimit -s unlimited; ./unccsm.exe', shell=True)
     # import resource
     # subprocess.call(['./unccsm.exe'], preexec_fn=resource.setrlimit(resource.RLIMIT_STACK,(-1,-1)))
     # print resource.getrlimit(resource.RLIMIT_STACK)
+      
+    ## prepare WPS processing 
+    # run ungrib.exe or equivalent operation
+    preimfile = dataset.ungrib(date, mytag) # need 'mytag' for status messages
+    # rename intermediate file according to WPS convention (by date)
+    os.rename(preimfile, imfile) # not the same as 'move'
     
     ## run WPS' metgrid.exe on intermediate file
-    # rename intermediate file according to WPS convention (by date)
-    imdate = imform%date
-    imfile = impfx+imdate
-    os.rename(preimfile, imfile) # not the same as 'move'
-    # update date string in namelist.wps
-    time.writeNamelist(nmlstwps, ldoms, imdate, imd, isd, ied)
     # run metgrid_exe.exe
     print('\n  * '+mytag+' interpolating to WRF grid (metgrid.exe)')
     fmetgrid = open(metgrid_log, 'a') # metgrid.exe standard out and error log    
@@ -279,6 +411,7 @@ def processTimesteps(myid, dates):
     fmetgrid.close()
     
     ## finish time-step
+    os.remove(MyDir+imfile) # remove intermediate file after metgrid.exe completes
     # copy/move data back to disk (one per domain) and/or keep in memory
     tmpstr = '\n '+mytag+' Writing output to disk: ' # gather output for later display
     for i in xrange(maxdom):
@@ -296,15 +429,14 @@ def processTimesteps(myid, dates):
           os.remove(metfile) # metgrid.exe may create more files than needed
     # finish time-step
     tmpstr += '\n\n   ============================== finished '+imdate+' ==============================   \n'
-    print(tmpstr)
-    # clean up (also renamed intermediate file)
-    clean(MyDir, filelist=[imfile])
+    print(tmpstr)    
+    
       
   ## clean up after all time-steps
   # link other source files
   os.remove(meta[:-1]) # link to folder
-  os.remove(unccsm_exe)
-  os.remove(unncl_ncl)
+  dataset.cleanup() 
+  del dataset # probably unnecessary 
   os.remove(metgrid_exe)
   for i in doms: # loop over all geogrid domains
     os.remove(geopfx%(i)+ncext)
@@ -331,10 +463,15 @@ if __name__ == '__main__':
       Tmp = Root + tmp # use local directory
       if ldata: Data = Root + data # temporary data storage (just moves here, no copy)      
     # create temporary storage  (file system or ram disk alike)
-    if os.path.isdir(Tmp):        
-      clean(Tmp, all=True) # if folder already there, clean
-    else:                 
-      os.mkdir(Tmp) # otherwise create folder 
+    if os.path.isdir(Tmp):       
+      shutil.rmtree(Tmp) # clean out entire directory
+#      for name in os.listdir(Tmp):
+#        path = Tmp + name
+#        if os.path.isdir(path) and not os.path.islink(path):
+#          shutil.rmtree(path)
+#        else: os.remove(path)
+#    else:                 
+    os.mkdir(Tmp) # otherwise create folder 
     # create temporary data collection folder
     if ldata:
       if os.path.isdir(Data) or os.path.islink(Data[:-1]):
@@ -353,9 +490,6 @@ if __name__ == '__main__':
       
     # directory shortcuts
     Meta = Tmp + meta
-    AtmDir = Root + atmdir
-    LndDir = Root + lnddir
-    IceDir = Root + icedir
     # parse namelist parameters
     imd, maxdom, isd, startdates, ied, enddates = time.readNamelist(nmlstwps)
     # figure out domains
@@ -364,9 +498,7 @@ if __name__ == '__main__':
     doms = range(1,maxdom+1) # list of domain indices
         
     # copy meta data to temporary folder
-    shutil.copytree(meta,Tmp+meta)
-    shutil.copy(unccsm_exe, Tmp)
-    shutil.copy(unncl_ncl, Tmp)
+    shutil.copytree(meta,Meta)
     shutil.copy(metgrid_exe, Tmp)
     shutil.copy(nmlstwps, Tmp)
     for i in doms: # loop over all geogrid domains
@@ -374,65 +506,46 @@ if __name__ == '__main__':
     # N.B.: shutil.copy copies the actual file that is linked to, not just the link
     # change working directory to tmp folder
     os.chdir(Tmp)
-    # set environment variable for NCL (on tmp folder)   
-    os.putenv('NCARG_ROOT', NCARG) 
-    os.putenv('NCL_POP_REMAP', meta) # NCL is finicky about space characters in the path statement, so relative path is saver
-    os.putenv('MODEL_ROOT', Model) # also for NCL (where personal function libs are)
     
     # number of processes NP 
     if os.environ.has_key('PYWPS_THREADS'):
       NP = int(os.environ['PYWPS_THREADS']) # default is set above (machine specific)
+      
+    # dataset specific stuff
+    if os.environ.has_key('DATA_SOURCE') and os.environ['DATA_SOURCE'] == 'CESM': 
+      masterset = CESM(folder=Tmp)
+    else:
+      # for backwards compatibility
+      masterset = CESM(folder=Tmp, source=Root)
+    # setup working directory with dataset specific stuff
+    DataDir = masterset.getDataDir() # should be absolute path   
+    prefix = masterset.getPrefix() # save prefix, if any    
     
-    # get file prefix for data files
-    if not prefix:
-#      prefix = 'cesmpdwrf1x1' # or 'tb20trcn1x1' file prefix for CESM output
-      # use only atmosphere files
-      prergx = re.compile(atmpfx+dateform+ncext+'$')
-      # search for first valid filename
-      for file in os.listdir(AtmDir):
-        match = prergx.search(file) 
-        if match: break
-      prefix = file[0:match.start()] # use everything before the pattern as prefix
-      # print prefix
-      print('\n No data prefix defined; inferring prefix from valid data files in directory '+AtmDir)
-      print('  prefix = '+prefix)
-    
-    # compile regular expressions
-    dateregx = re.compile(dateform)
-    # atmosphere
-    if prefix: atmpfx = prefix+atmpfx
-    atmrgx = re.compile(atmpfx+dateform+ncext+'$')
-    # land
-    if prefix: lndpfx = prefix+lndpfx
-    lndrgx = re.compile(lndpfx+dateform+ncext+'$')
-    # ice
-    if prefix: icepfx = prefix+icepfx
-    icergx = re.compile(icepfx+dateform+ncext+'$')
-
     ## multiprocessing
     
     # search for files and check dates for validity
-    listoffilelists = divideList(os.listdir(AtmDir), NP)
+    listoffilelists = divideList(os.listdir(DataDir), NP)
     # divide file processing among processes
     procs = []; queues = []
-    for id in xrange(NP):
+    for pid in xrange(NP):
       q = multiprocessing.Queue()
       queues.append(q)
-      p = multiprocessing.Process(name=pname%id, target=processFiles, args=(id, listoffilelists[id], q))
+      p = multiprocessing.Process(name=pname%pid, target=processFiles, args=(listoffilelists[pid], q))
       procs.append(p)
       p.start() 
     # terminate sub-processes and collect results    
     dates = [] # new date list with valid dates only
-    for id in xrange(NP):
-      dates += queues[id].get()
-      procs[id].join()
+    for pid in xrange(NP):
+      dates += queues[pid].get()
+      procs[pid].join()
     
     # divide up dates and process time-steps
-    listofdates = divideList(dates, NP)    
+    listofdates = divideList(dates, NP)   
+    print listofdates 
     # create processes
     procs = []; ilo = 0; ihi = 0
-    for id in xrange(NP):
-      p = multiprocessing.Process(name=pname%id, target=processTimesteps, args=(id, listofdates[id]))
+    for pid in xrange(NP):
+      p = multiprocessing.Process(name=pname%pid, target=processTimesteps, args=(pid, listofdates[pid]))
       procs.append(p)
       p.start()     
     # terminate sub-processes
@@ -441,7 +554,6 @@ if __name__ == '__main__':
       
     # clean up files
     os.chdir(Tmp)
-    os.remove(unncl_ncl)
-    os.remove(unccsm_exe)
+    masterset.cleanup()
     os.remove(metgrid_exe)
     # N.B.: remember to remove *.nc files in meta-folder!
