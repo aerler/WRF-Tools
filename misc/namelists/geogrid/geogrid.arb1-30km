@@ -1,0 +1,13 @@
+&geogrid
+ geog_data_res = 'usgs_lakes+10m', 'usgs_lakes+30s',
+ dx = 30000,
+ dy = 30000,
+ map_proj = 'lambert',
+ ref_lat   =  57.,
+ ref_lon   = -137.0,
+ truelat1  =  53.,
+ truelat2  =  53.,
+ stand_lon = -130,
+ geog_data_path = '/project/p/peltier/aerler/geog/',
+ opt_geogrid_tbl_path = 'meta/'
+/

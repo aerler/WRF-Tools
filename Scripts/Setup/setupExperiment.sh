@@ -106,7 +106,6 @@ source xconfig.sh
 if [[ ${MAXDOM} == 1 ]]; then SHARE=${SHARE:-'d01'}
 elif [[ ${MAXDOM} == 2 ]]; then SHARE=${SHARE:-'d02'}
 fi # MAXDOM
-GEOGRID=${GEOGRID:-"${DOMAINS}"}
 METGRID=${METGRID:-'pywps'}
 
 # infer default $CASETYPE (can also set $CASETYPE in xconfig.sh)

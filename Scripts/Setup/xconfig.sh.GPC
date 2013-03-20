@@ -14,19 +14,20 @@ ARINTERVAL='YEARLY' # default is monthly (after every run), but yearly is prefer
 ## namelist definition section
 # list of namelist groups and used snippets
 MAXDOM=2 # number of domains in WRF and WPS
+DOM='arb2-30km'
 # WRF
 TIME_CONTROL="cycling,$IO"
 DIAGS='hitop'
 PHYSICS='clim'
 NOAH_MP=''
-DOMAINS='wc03'
+DOMAINS="cesm-30km,${DOM}-grid"
 FDDA='spectral'
 DYNAMICS='default'
 BDY_CONTROL='clim'
 NAMELIST_QUILT=''
 # WPS
-# SHARE, GEOGRID, METGRID
-# N.B.: usually don't have to be set manually
+# SHARE,GEOGRID, and METGRID usually don't have to be set manually
+GEOGRID="${DOM},${DOM}-grid"
 ## namelist modifications by group
 # you can make modifications to namelist groups in the {NMLGRP}_MOD variables
 # the line in the *_MOD variable will replace the corresponding entry in the template
