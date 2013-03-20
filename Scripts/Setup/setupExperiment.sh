@@ -123,6 +123,13 @@ if [[ "${ARSCRIPT}" == 'DEFAULT' ]] && [[ -n "${IO}" ]]
 if [[ "${DATATYPE}" == 'CESM' ]]; then
   POPMAP=${POPMAP:-'map_gx1v6_to_fv0.9x1.25_aave_da_090309.nc'} # ocean grid definition
   METGRIDTBL=${METGRIDTBL:-'METGRID.TBL.CESM'}
+# elif [[ "${DATATYPE}" == 'CCSM' ]]; then
+#   POPMAP=${POPMAP:-''} # ocean grid definition
+#   METGRIDTBL=${METGRIDTBL:-'METGRID.TBL.CCSM'}
+elif [[ "${DATATYPE}" == 'CFSR' ]]; then
+  VTABLE_PLEV=${VTABLE_PLEV:-'Vtable.CFSR_press_pgbh06'}
+  VTABLE_SRFC=${VTABLE_SRFC:-'Vtable.CFSR_sfc_flxf06'}
+  METGRIDTBL=${METGRIDTBL:-'METGRID.TBL.V3.4'}
 else # WPS default
   METGRIDTBL=${METGRIDTBL:-'METGRID.TBL.V3.4'}
 fi # $DATATYPE
@@ -133,13 +140,21 @@ else
   GEOGRIDTBL=${GEOGRIDTBL:-'GEOGRID.TBL.V3.4'}
 fi # $FLAKE
 
-# look up default configurations
-if [ ${POLARWRF} == 1 ]; then
-  WPSBLD="Clim-fineIO" # not yet polar...
-  WRFBLD="Polar-Clim-fineIOv2"
+# figure out WRF and WPS build
+WPSBLD="Clim-fineIO" # there is basically only one build...
+WRFBLD="${IO}v2" # current I/O version
+# GCM or reanalysis
+if [[ "${DATATYPE}" == 'CESM' ]] || [[ "${DATATYPE}" == 'CCSM' ]]; then
+  WRFBLD="Clim-${WRFBLD}" # variable GHG scenarios and no leap-years
+elif [[ "${DATATYPE}" == 'CFSR' ]]; then
+  WRFBLD="ReA-${WRFBLD}" # variable GHG scenarios with leap-years
 else
-  WPSBLD="Clim-fineIO"
-  WRFBLD="Clim-fineIOv2"
+  WRFBLD="Default-${WRFBLD}" # standard WRF build
+fi # $DATATYPE
+# Standard or PolarWRF
+if [ ${POLARWRF} == 1 ]; then
+#   WPSBLD="Clim-fineIO" # not yet polar...
+  WRFBLD="Polar-${WRFBLD}"
 fi # if PolarWRF
 
 # default WPS and real executables
@@ -148,11 +163,13 @@ if [[ "${WPSSYS}" == "GPC" ]]; then
     WPSWCT=${WPSWCT:-'01:00:00'} # WPS wallclock time
     METEXE=${METEXE:-"${WPSSRC}/GPC-MPI/${WPSBLD}/O3xSSSE3/metgrid.exe"}
     REALEXE=${REALEXE:-"${WRFSRC}/GPC-MPI/${WRFBLD}/O3xSSSE3/real.exe"}
+    UNGRIBEXE=${UNGRIBEXE:-"${WPSSRC}/GPC-MPI/${WPSBLD}/O3xSSSE3/ungrib.exe"}
 elif [[ "${WPSSYS}" == "i7" ]]; then
     WPSQ='sh' # no queue system
     WPSWCT=${WPSWCT:-'0:00:00'} # WPS wallclock time
     METEXE=${METEXE:-"${WPSSRC}/i7-MPI/${WPSBLD}/O3xHost/metgrid.exe"}
     REALEXE=${REALEXE:-"${WRFSRC}/i7-MPI/${WRFBLD}/O3xHostNC4/real.exe"}
+    UNGRIBEXE=${UNGRIBEXE:-"${WPSSRC}/i7-MPI/${WPSBLD}/O3xHost/ungrib.exe"}
 fi
 
 # default WRF and geogrid executables
@@ -244,17 +261,26 @@ sed -i "/max_dom/ s/^\s*max_dom\s*=\s*.*$/ max_dom = ${MAXDOM}, ! this entry was
 echo "Linking WPS meta data and tables (${WRFTOOLS}/misc/data/)"
 mkdir -p "${RUNDIR}/meta"
 cd "${RUNDIR}/meta"
-ln -sf "${WRFTOOLS}/misc/data/${POPMAP}"
 ln -sf "${WRFTOOLS}/misc/data/${GEOGRIDTBL}" 'GEOGRID.TBL'
 ln -sf "${WRFTOOLS}/misc/data/${METGRIDTBL}" 'METGRID.TBL'
-#ln -sf "${WRFTOOLS}/misc/data/${NCL}" 'setup.ncl'
+if [[ "${DATATYPE}" == 'CESM' ]] || [[ "${DATATYPE}" == 'CCSM' ]]; then
+  ln -sf "${WRFTOOLS}/misc/data/${POPMAP}"
+elif [[ "${DATATYPE}" == 'CFSR' ]]; then
+  ln -sf "${WRFTOOLS}/misc/data/VTables/${VTABLE_PLEV}" 'Vtable.CFSR_plev'
+  ln -sf "${WRFTOOLS}/misc/data/VTables/${VTABLE_SRFC}" 'Vtable.CFSR_srfc'
+fi # $DATATYPE
 # link boundary data
 echo "Linking boundary data: ${DATADIR}"
+echo "(Boundary data type: ${DATATYPE})"
 cd "${RUNDIR}"
-rm -f 'atm' 'lnd' 'ice' # remove old links
-ln -s "${DATADIR}/atm/hist/" 'atm' # atmosphere
-ln -s "${DATADIR}/lnd/hist/" 'lnd' # land surface
-ln -s "${DATADIR}/ice/hist/" 'ice' # sea ice
+if [[ "${DATATYPE}" == 'CESM' ]] || [[ "${DATATYPE}" == 'CCSM' ]]; then
+  ln -sf "${DATADIR}/atm/hist/" 'atm' # atmosphere
+  ln -sf "${DATADIR}/lnd/hist/" 'lnd' # land surface
+  ln -sf "${DATADIR}/ice/hist/" 'ice' # sea ice
+elif [[ "${DATATYPE}" == 'CFSR' ]]; then
+  ln -sf "${DATADIR}/PLEV/" 'plev' # pressure level date (3D, 0.5 deg)
+  ln -sf "${DATADIR}/SRFC/" 'srfc' # surface date (2D, 0.33 deg)
+fi # $DATATYPE
 # set correct path for geogrid data
 echo "Setting path for geogrid data"
 if [[ -n "${GEODATA}" ]]; then
@@ -287,11 +313,15 @@ cd "${RUNDIR}"
 mkdir -p "${RUNDIR}/bin/"
 cd "${RUNDIR}/bin/"
 ln -sf "${WRFTOOLS}/Python/pyWPS.py"
-ln -sf "${WRFTOOLS}/NCL/unccsm.ncl"
-ln -sf "${WRFTOOLS}/bin/${WPSSYS}/unccsm.exe"
 ln -sf "${GEOEXE}"
 ln -sf "${METEXE}"
 ln -sf "${REALEXE}"
+if [[ "${DATATYPE}" == 'CESM' ]] || [[ "${DATATYPE}" == 'CCSM' ]]; then
+  ln -sf "${WRFTOOLS}/NCL/unccsm.ncl"
+  ln -sf "${WRFTOOLS}/bin/${WPSSYS}/unccsm.exe"
+else
+  ln -sf "${UNGRIBEXE}"
+fi # $DATATYPE
 cd "${RUNDIR}"
 
 ## link in WRF stuff

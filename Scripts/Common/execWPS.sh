@@ -16,7 +16,7 @@ RAMDATA="${RAMDISK}/data/" # data folder used by Python script
 RAMTMP="${RAMDISK}/tmp/" # temporary folder used by Python script
 # pyWPS.py
 RUNPYWPS=${RUNPYWPS:-1} # whether to run runWPS.py
-DATASOURCE=${DATASOURCE:-'CESM'} # data source also see $PYWPS_DATA_SOURCE
+DATATYPE=${DATATYPE:-'CESM'} # data source also see $PYWPS_DATA_SOURCE
 PYDATA="${WORKDIR}/data/" # data folder used by Python script
 PYLOG="pyWPS" # log folder for Python script (use relative path for tar)
 PYTGZ="${RUNNAME}_${PYLOG}.tgz" # archive for log folder
@@ -52,8 +52,16 @@ if [[ ${RUNPYWPS} == 1 ]]
     # N.B.: ´mkdir $RAMTMP´ is actually done by Python script
     cd "${INIDIR}"
     # copy links to source data (or create links)
-    cp ${NOCLOBBER} -P "${BINDIR}/pyWPS.py" "${BINDIR}/unccsm.ncl" "${BINDIR}/unccsm.exe" "${BINDIR}/metgrid.exe" "${WORKDIR}"
-    cp ${NOCLOBBER} -P "${INIDIR}/atm" "${INIDIR}/lnd" "${INIDIR}/ice" "${WORKDIR}"
+    cp ${NOCLOBBER} -P "${BINDIR}/pyWPS.py" "${BINDIR}/metgrid.exe" "${WORKDIR}"    
+    if [[ "${DATASOURCE}" == 'CESM' ]] || [[ "${DATASOURCE}" == 'CCSM' ]]; then
+    	# CESM/CCSM Global Climate Model
+	    cp ${NOCLOBBER} -P "${INIDIR}/atm" "${INIDIR}/lnd" "${INIDIR}/ice" "${WORKDIR}"
+	    cp ${NOCLOBBER} -P "${BINDIR}/unccsm.ncl" "${BINDIR}/unccsm.exe" "${WORKDIR}"
+	elif [[ "${DATASOURCE}" == 'CFSR' ]]; then
+		# CFSR Reanalysis Data
+		cp ${NOCLOBBER} -P "${INIDIR}/plev" "${INIDIR}/srfc" "${WORKDIR}"
+		cp ${NOCLOBBER} -P "${BINDIR}/ungrib.exe" "${WORKDIR}"
+	fi # $DATASOURCE
     cp ${NOCLOBBER} -r "${INIDIR}/meta/" "${WORKDIR}"
     cp ${NOCLOBBER} -P "${INIDIR}/"geo_em.d??.nc "${WORKDIR}" # copy or link to geogrid files
     cp ${NOCLOBBER} "${INIDIR}/namelist.wps" "${WORKDIR}" # configuration file
@@ -64,12 +72,12 @@ if [[ ${RUNPYWPS} == 1 ]]
     export OMP_NUM_THREADS=1 # set OpenMP environment
 	# read by Python script pyWPS
     export PYWPS_THREADS=$(( TASKS*THREADS ))
-    export PYWPS_DATA_SOURCE="${DATASOURCE}"
+    export PYWPS_DATA_TYPE="${DATATYPE}"
     export PYWPS_MET_DATA="${METDATA}"
     echo
     echo "OMP_NUM_THREADS=${OMP_NUM_THREADS}"
     echo "PYWPS_THREADS=${PYWPS_THREADS}"
-    echo "PYWPS_DATA_SOURCE=${DATASOURCE}"
+    echo "PYWPS_DATA_TYPE=${DATATYPE}"
     echo "PYWPS_MET_DATA=${METDATA}"
     echo
     echo "python pyWPS.py"

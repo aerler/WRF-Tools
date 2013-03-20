@@ -81,8 +81,8 @@ else: ldisk = False
 # number of processes NP 
 if os.environ.has_key('PYWPS_THREADS'): NP = int(os.environ['PYWPS_THREADS'])
 # dataset specific stuff
-if os.environ.has_key('PYWPS_DATA_SOURCE'): 
-  dataset = os.environ['PYWPS_DATA_SOURCE']
+if os.environ.has_key('PYWPS_DATA_TYPE'): 
+  dataset = os.environ['PYWPS_DATA_TYPE']
 else: dataset = None
 
 

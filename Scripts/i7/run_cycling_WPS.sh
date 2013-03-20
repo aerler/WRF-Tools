@@ -21,4 +21,4 @@ export WPSSCRIPT="run_cycling_WPS.sh" # WRF suffix assumed, WPS suffix substitut
 # WPS wallclock  time limits (no way to query from queue system)
 export WPSWCT='01:00:00' # WPS wallclock  time limit; dummy variable
 # input data source
-export DATASOURCE='CESM'
+export DATATYPE='CESM'

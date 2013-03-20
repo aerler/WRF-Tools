@@ -34,4 +34,4 @@ export WPSSCRIPT="run_cycling_WPS.pbs" # WRF suffix assumed, WPS suffix substitu
 # WPS wallclock  time limits (no way to query from queue system)
 export WPSWCT='' # WPS wallclock  time limit; e.g. '01:00:00'
 # input data source
-export DATASOURCE='CESM'
+export DATATYPE='CESM'
