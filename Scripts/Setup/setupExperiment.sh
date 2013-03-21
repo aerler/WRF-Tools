@@ -65,6 +65,8 @@ function RENAME () {
     sed -i "/ARSCRIPT/ s/ARSCRIPT=.*$/ARSCRIPT=\'${ARSCRIPT}\' # archive script to be executed in specified intervals/" "${FILE}"
     # archive interval
     sed -i "/ARINTERVAL/ s/ARINTERVAL=.*$/ARINTERVAL=\'${ARINTERVAL}\' # interval in which the archive script is to be executed/" "${FILE}"
+    # type of initial and boundary focing  data (mainly for WPS)
+	sed -i "/DATATYPE/ s/DATATYPE=.*$/DATATYPE=\'${DATATYPE}\' # type of initial and boundary focing  data /" "${FILE}"
 } # fct. RENAME
 
 
@@ -184,7 +186,7 @@ elif [[ "${WRFSYS}" == "TCS" ]]; then
     WRFEXE=${WRFEXE:-"${WRFSRC}/TCS-MPI/${WRFBLD}/O3NC4/wrf.exe"}
 elif [[ "${WRFSYS}" == "P7" ]]; then
     WRFQ='ll' # queue system
-    WRFWCT=${WRFWCT:-'18:00:00'}; WRFNODES=1 # WRF resource config on P7
+    WRFWCT=${WRFWCT:-'13:00:00'}; WRFNODES=1 # WRF resource config on P7
     GEOEXE=${GEOEXE:-"${WPSSRC}/GPC-MPI/${WPSBLD}/O3xHost/geogrid.exe"}
     WRFEXE=${WRFEXE:-"${WRFSRC}/P7-MPI/${WRFBLD}/O3pwr7NC4/wrf.exe"}
 elif [[ "${WRFSYS}" == "i7" ]]; then

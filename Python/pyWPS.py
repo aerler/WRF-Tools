@@ -24,8 +24,9 @@ from namelist import time
 tmp = 'tmp/'
 meta = 'meta/'
 # metgrid
+nmlform = '%04.0f-%02.0f-%02.0f_%02.0f:00:00' # date in namelist.wps
+imform = '%04.0f-%02.0f-%02.0f_%02.0f' # date in IM filename 
 impfx = 'FILE:'
-imform = '%04.0f-%02.0f-%02.0f_%02.0f'
 metpfx = 'met_em.d%02.0f.'
 metsfx = ':00:00.nc'
 geopfx = 'geo_em.d%02.0f'
@@ -93,9 +94,11 @@ class Dataset():
   prefix = '' # reanalysis generally doesn't have a prefix'
   # ungrib
   grbext = '.grb' # this may vary...
+  vtable = 'Vtable'
   ungrib_exe = 'ungrib.exe'
   ungrib_log = 'ungrib.exe.log'
   gribname = 'GRIBFILE.AAA' # first (only) ungrib input filename is always GRIBFILE.AAA
+  ungribout = 'FILE:%04i-%02i-%02i_%02i' # YYYY-MM-DD_HH ungrib.exe output format
   ## these functions will be very similar for all datasets using ungrib.exe (overload when not using ungrib.exe)
   def setup(self, src, dst, lsymlink=False):
     # method to copy dataset specific files and folders working directory
@@ -137,14 +140,17 @@ class CFSR(Dataset):
   # CFSR data source
   prefix = '' # reanalysis generally doesn't have a prefix'
   grbext = '.grb2' # probably not needed
+  tmpfile = 'TMP%02i' # temporary files created during ungribbing (including an iterator)
   preimfile = 'FILEOUT'
   dateform = '\d\d\d\d\d\d\d\d\d\d00' # YYYYMMDDHHMM
   datestr = '%04i%02i%02i%02i00' # year, month, day, hour (and minutes=00)
   # pressure levels (3D)
   plevdir = 'plev/'
+  plevvtable = 'Vtable.CFSR_plev'
   plevstr = '.pgbh06.gdas.grb2' # including filename extension
   # surface data
   srfcdir = 'srfc/'
+  srfcvtable = 'Vtable.CFSR_srfc'
   srfcstr = '.flxf06.gdas.grb2' # including filename extension
 
   def __init__(self, folder=None):
@@ -155,20 +161,6 @@ class CFSR(Dataset):
     self.PlevDir = os.readlink(folder + self.plevdir[:-1])
     self.SrfcDir = os.readlink(folder + self.srfcdir[:-1])
     self.UNGRIB = './' + self.ungrib_exe
-
-    # figure out source file prefix (only needs to be determined once)
-    if not prefix:
-      # get file prefix for data files
-      # use only atmosphere files
-      prergx = re.compile(self.dateform+self.plevstr+'$')
-      # search for first valid filename
-      for filename in os.listdir(self.PlevDir):
-        match = prergx.search(filename)
-        if match: break
-      prefix = filename[0:match.start()] # use everything before the pattern as prefix
-      # print prefix
-      print('\n No data prefix defined; inferring prefix from valid data files in directory '+self.AtmDir)
-      print('  prefix = '+prefix)
 
     ## compile regular expressions (needed to extract dates)
     # use pressure level files as master list
@@ -191,51 +183,49 @@ class CFSR(Dataset):
       # extract date string
       datestr = self.dateregx.search(filename).group()
       # split date string into tuple
-      year = int(datestr[0:3])
-      month = int(datestr[4:5])
-      day = int(datestr[6:7])
-      hour = int(datestr[8:9])
+      year = int(datestr[0:4])
+      month = int(datestr[4:6])
+      day = int(datestr[6:8])
+      hour = int(datestr[8:10])
       return (year, month, day, hour)
 
   def ungrib(self, date, mytag):
     # method that generates the WRF IM file for metgrid.exe
     # create formatted date string
-    datestr = self.datestr%(date[0],date[1],date[2],date[3]) # not hours, but seconds...
+    datestr = self.datestr%date # (years, months, days, hours)
     # create links to relevant source data (requires full path for linked files)
-    plevfile = datestr+self.plevstr
-    srfcfile = datestr+self.srfcstr
-    if os.path.exists(self.SrfcDir+srfcfile):
+    plevfile = datestr+self.plevstr; Plevfile = self.PlevDir+plevfile
+    srfcfile = datestr+self.srfcstr; Srfcfile = self.SrfcDir+srfcfile
+    if os.path.exists(Srfcfile): 
       print('\n '+mytag+' Processing time-step:  '+datestr+'\n    '+plevfile+'\n    '+srfcfile)
+      gribfiles = (Plevfile, Srfcfile)
+      vtables = (self.plevvtable, self.srfcvtable)
     else:
       print('\n '+mytag+' Processing time-step:  '+datestr+'\n    '+plevfile)
-
-    os.symlink(self.PlevDir+plevfile,self.gribname)
-    os.symlink(self.SrfcDir+srfcfile,self.gribname)
-    #TODO:
-    # * loop over gribfiles: link, run ungrib, rename (temporary)
-    # * then concatenate the two files (name: self.preimfile)
-    ##  convert data to intermediate files
-    # run unccsm tool chain
-    # run NCL script (suppressing output)
-    print('\n  * '+mytag+' interpolating to pressure levels (eta2p.ncl)')
-    fncl = open(self.unncl_log, 'a') # NCL output and error log
-    if lscinet:
-      # On SciNet we have to pass this command through the shell, so that the NCL module is loaded.
-      subprocess.call(self.NCL_ETA2P, shell=True, stdout=fncl, stderr=fncl)
-    else:
-      # otherwise we don't need the shell and it's a security risk
-      subprocess.call([NCL,self.unncl_ncl], stdout=fncl, stderr=fncl)
-    fncl.close()
-    # run unccsm.exe
-    print('\n  * '+mytag+' writing to WRF IM format (unccsm.exe)')
-    funccsm = open(self.unccsm_log, 'a') # unccsm.exe output and error log
-    subprocess.call([self.UNCCSM], stdout=funccsm, stderr=funccsm)
-    funccsm.close()
-    # cleanup
-    os.remove(self.atmlnk)
-    os.remove(self.lndlnk)
-    os.remove(self.icelnk)
-    os.remove(self.nclfile)    # temporary file generated by NCL script
+      print('\n '+mytag+'   ***   WARNING: no surface data - this may not work!   ***')
+      gribfiles = (Plevfile,)
+      vtables = (self.plevvtable,)
+      
+    ## loop: process grib files and concatenate resulting IM files     
+    print('\n  * '+mytag+' converting Grib2 to WRF IM format (ungrib.exe)')
+    ungribout = self.ungribout%date # ungrib.exe names output files in a specific format
+    preimfile = open(self.preimfile,'wb') # open final (combined) WRF IM file 
+    # N.B.: binary mode 'b' is not really necessary on Unix
+    fungrib = open(self.ungrib_log, 'a') # ungrib.exe output and error log
+    for i in xrange(len(gribfiles)):
+      os.symlink(gribfiles[i],self.gribname) # link current file
+      os.symlink(Meta+vtables[i],self.vtable) # link VTable
+      # run ungrib.exe
+      subprocess.call([self.UNGRIB], stdout=fungrib, stderr=fungrib)
+      os.remove(self.gribname) # remove link for next step
+      os.remove(self.vtable) # remove link for next step
+      # append output to single WRF IM files (preimfile)
+      shutil.copyfileobj(open(ungribout,'rb'),preimfile)
+      os.remove(ungribout) # cleanup for next file      
+    # finish concatenation of ungrib.exe output
+    preimfile.close()
+    fungrib.close() # close log file for ungrib
+    
     # renaming happens outside, so we don't have to know about metgrid format
     return self.preimfile
   
@@ -490,9 +480,10 @@ def processTimesteps(myid, dates):
     for i in xrange(1,maxdom): # check sub-domains
       ldoms[i] = time.checkDate(date, starts[i], ends[i])
     # update date string in namelist.wps
-    imdate = imform%date
+    imdate = imform%date    
     imfile = impfx+imdate
-    time.writeNamelist(nmlstwps, ldoms, imdate, imd, isd, ied)
+    nmldate = nmlform%date # also used by metgrid
+    time.writeNamelist(nmlstwps, ldoms, nmldate, imd, isd, ied)
     
     # N.B.: in case the stack size limit causes segmentation faults, here are some workarounds
     # subprocess.call(r'ulimit -s unlimited; ./unccsm.exe', shell=True)
@@ -518,7 +509,7 @@ def processTimesteps(myid, dates):
     # copy/move data back to disk (one per domain) and/or keep in memory
     tmpstr = '\n '+mytag+' Writing output to disk: ' # gather output for later display
     for i in xrange(maxdom):
-      metfile = metpfx%(i+1)+imdate+metsfx
+      metfile = metpfx%(i+1)+nmldate+ncext
       if ldoms[i]:
         tmpstr += '\n                           '+metfile
         if ldisk: 
@@ -602,6 +593,8 @@ if __name__ == '__main__':
     # create dataset instance
     if dataset  == 'CESM': 
       dataset = CESM(folder=Root)
+    elif dataset  == 'CFSR': 
+      dataset = CFSR(folder=Root)
     else:
       # for backwards compatibility
       dataset = CESM(folder=Root)
@@ -629,7 +622,7 @@ if __name__ == '__main__':
       procs[pid].join()
     
     # divide up dates and process time-steps
-    listofdates = divideList(dates, NP)   
+    listofdates = divideList(dates, NP)
     # create processes
     procs = []; ilo = 0; ihi = 0
     for pid in xrange(NP):

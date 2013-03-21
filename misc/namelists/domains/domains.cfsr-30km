@@ -8,7 +8,7 @@
  p_top_requested                     =  5000,
  feedback                            = 0,
  smooth_option                       = 0,
- num_metgrid_levels                  = 36,
+ num_metgrid_levels                  = 38,
  num_metgrid_soil_levels             = 4,
  force_sfc_in_vinterp                = 1,
  interp_type                         = 1,
