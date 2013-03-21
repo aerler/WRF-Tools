@@ -239,7 +239,6 @@ class CESM(Dataset):
     lndfile = self.lndpfx+datestr+self.ncext
     os.symlink(self.LndDir+lndfile,self.lndlnk)
     icefile = self.icepfx+datestr+self.ncext
-    print self.IceDir+icefile
     if os.path.exists(self.IceDir+icefile):
       os.symlink(self.IceDir+icefile,self.icelnk)
       print('\n '+mytag+' Processing time-step:  '+datestr+'\n    '+atmfile+'\n    '+lndfile+'\n    '+icefile)
@@ -317,7 +316,7 @@ def processFiles(filelist, queue):
   # loop over dates
   for filename in filelist:
     # figure out time and date
-    date = masterset.extractDate(filename)
+    date = dataset.extractDate(filename)
     # collect valid dates
     if date: # i.e. not 'None'
       # check date for validity (only need to check first/master domain)      
@@ -345,7 +344,7 @@ def processTimesteps(myid, dates):
   # change working directory to process sub-folder
   os.chdir(mydir)
   # link dataset specific files
-  masterset.setup(src=Tmp, dst=MyDir, lsymlink=True)
+  dataset.setup(src=Tmp, dst=MyDir, lsymlink=True)
   # link other source files
   os.symlink(Meta, meta[:-1]) # link to folder
   # link geogrid (data) and metgrid
@@ -377,7 +376,7 @@ def processTimesteps(myid, dates):
       
     ## prepare WPS processing 
     # run ungrib.exe or equivalent operation
-    preimfile = masterset.ungrib(date, mytag) # need 'mytag' for status messages
+    preimfile = dataset.ungrib(date, mytag) # need 'mytag' for status messages
     # rename intermediate file according to WPS convention (by date)
     os.rename(preimfile, imfile) # not the same as 'move'
     
@@ -413,7 +412,7 @@ def processTimesteps(myid, dates):
   ## clean up after all time-steps
   # link other source files
   os.remove(meta[:-1]) # link to folder
-  masterset.cleanup(tgt=MyDir) 
+  dataset.cleanup(tgt=MyDir)
   os.remove(metgrid_exe)
   for i in doms: # loop over all geogrid domains
     os.remove(geopfx%(i)+ncext)
@@ -476,13 +475,13 @@ if __name__ == '__main__':
     
     # create dataset instance
     if dataset  == 'CESM': 
-      masterset = CESM(folder=Root)
+      dataset = CESM(folder=Root)
     else:
       # for backwards compatibility
-      masterset = CESM(folder=Root)
+      dataset = CESM(folder=Root)
     # setup working directory with dataset specific stuff
-    masterset.setup(src=Root, dst=Tmp) # 
-    DataDir = masterset.getDataDir() # should be absolute path   
+    dataset.setup(src=Root, dst=Tmp) #
+    DataDir = dataset.getDataDir() # should be absolute path
     
     
     ## multiprocessing
@@ -517,6 +516,6 @@ if __name__ == '__main__':
       
     # clean up files
     os.chdir(Tmp)
-    masterset.cleanup(tgt=Tmp)
+    dataset.cleanup(tgt=Tmp)
     os.remove(metgrid_exe)
     # N.B.: remember to remove *.nc files in meta-folder!

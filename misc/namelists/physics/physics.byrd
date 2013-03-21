@@ -27,7 +27,6 @@
  flake_update                        = 1,
  tsk_flake                           = 1,
  lake_depth_limit                    = 70,
- prec_acc_opt                        = 1 ! accumulate precip internally
  prec_acc_dt                         = 1440 ! daily accumulation
  /
  

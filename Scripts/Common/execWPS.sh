@@ -53,15 +53,15 @@ if [[ ${RUNPYWPS} == 1 ]]
     cd "${INIDIR}"
     # copy links to source data (or create links)
     cp ${NOCLOBBER} -P "${BINDIR}/pyWPS.py" "${BINDIR}/metgrid.exe" "${WORKDIR}"    
-    if [[ "${DATASOURCE}" == 'CESM' ]] || [[ "${DATASOURCE}" == 'CCSM' ]]; then
+    if [[ "${DATATYPE}" == 'CESM' || "${DATATYPE}" == 'CCSM' ]]; then
     	# CESM/CCSM Global Climate Model
 	    cp ${NOCLOBBER} -P "${INIDIR}/atm" "${INIDIR}/lnd" "${INIDIR}/ice" "${WORKDIR}"
 	    cp ${NOCLOBBER} -P "${BINDIR}/unccsm.ncl" "${BINDIR}/unccsm.exe" "${WORKDIR}"
-	elif [[ "${DATASOURCE}" == 'CFSR' ]]; then
+	elif [[ "${DATATYPE}" == 'CFSR' ]]; then
 		# CFSR Reanalysis Data
 		cp ${NOCLOBBER} -P "${INIDIR}/plev" "${INIDIR}/srfc" "${WORKDIR}"
 		cp ${NOCLOBBER} -P "${BINDIR}/ungrib.exe" "${WORKDIR}"
-	fi # $DATASOURCE
+	fi # $DATATYPE
     cp ${NOCLOBBER} -r "${INIDIR}/meta/" "${WORKDIR}"
     cp ${NOCLOBBER} -P "${INIDIR}/"geo_em.d??.nc "${WORKDIR}" # copy or link to geogrid files
     cp ${NOCLOBBER} "${INIDIR}/namelist.wps" "${WORKDIR}" # configuration file
@@ -100,9 +100,9 @@ if [[ ${RUNPYWPS} == 1 ]]
     # archive log files
     tar czf ${PYTGZ} "${PYLOG}/"
     # move metgrid data to final destination (if pyWPS wrote data to disk)
-    if [[ -e "${PYDATA}" ]] && [[ ! "${METDATA}" == "${WORKDIR}" ]]; then
+    if [[ -n "${PYWPS_MET_DATA}" && "${METDATA}" != "${WORKDIR}" ]]; then
 		mkdir -p "${METDATA}"
-		mv ${PYTGZ} "${METDATA}"
+		cp ${PYTGZ} "${METDATA}"
 		mv "${PYDATA}"/* "${METDATA}"
 		rm -r "${PYDATA}"
     fi
@@ -186,13 +186,16 @@ if [[ ${RUNREAL} == 1 ]]
     fi
 
     # clean-up and move output to hard disk
-    mkdir "${REALLOG}" # make folder for log files locally
+    if [[ "${REALDIR}" == "${WORKDIR}" ]]; then
+	rm -rf "${WORKDIR}/${REALLOG}" # remove existing logs, just in case
+    fi
+    mkdir -p "${REALLOG}" # make folder for log files locally
     #cd "${REALDIR}"
     # save log files and meta data
     mv rsl.*.???? namelist.output "${REALLOG}"
     cp -P namelist.input real.exe "${REALLOG}" # leave namelist in place
     tar czf ${REALTGZ} "${REALLOG}" # archive logs with data
-    if [[ ! "${REALDIR}" == "${WORKDIR}" ]]; then
+    if [[ "${REALDIR}" != "${WORKDIR}" ]]; then
 	rm -rf "${WORKDIR}/${REALLOG}" # remove existing logs, just in case
 	mv "${REALLOG}" "${WORKDIR}" # move log folder to working directory
     fi

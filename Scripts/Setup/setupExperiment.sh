@@ -207,13 +207,19 @@ mkdir -p "${RUNDIR}"
 # backup existing files
 echo 'Backing-up existing files (moved to folder "backup/")'
 echo
-rm -rf 'backup/'
+if [[ -e 'backup' ]]; then mv 'backup' 'backup_backup'; fi # because things can go wrong during backup...
 mkdir -p 'backup'
 eval $( cp -df --preserve=all * 'backup/' &> /dev/null ) # trap this error and hide output
 eval $( cp -dRf --preserve=all 'scripts/' 'bin/' 'meta/' 'tables/' 'backup/' &> /dev/null ) # trap this error and hide output
-eval $( rm -rf 'scripts/' 'bin/' 'meta/' 'tables/' ) # delete script and data folders
-eval $( rm -f *.sh *.pbs *.ll &> /dev/null ) # delete scripts
-cp -P backup/setupExperiment.sh backup/xconfig.sh .
+# N.B.: the eval $() combination purposely suppresses exit codes, so that errors are not handled correctly
+if [[ -e 'backup/xconfig.sh' && -e 'backup/setupExperiment.sh' ]]
+  then # presumably everything went OK, if these two are in the backup folder
+    eval $( rm -f *.sh *.pbs *.ll &> /dev/null ) # delete scripts
+    eval $( rm -rf 'scripts/' 'bin/' 'meta/' 'tables/' &> /dev/null ) # delete script and data folders
+    cp -P 'backup/setupExperiment.sh' 'backup/xconfig.sh' .
+    rm -rf 'backup_backup/' # remove backup of backup, because we have a new backup
+  else echo 'ERROR: backup failed - aborting!'; exit 1
+fi 
 
 
 ## create namelist files
@@ -250,6 +256,7 @@ cd "${RUNDIR}"
 mkdir -p "${RUNDIR}/scripts/"
 ln -sf "${WRFTOOLS}/Scripts/Setup/writeNamelists.sh"
 mv writeNamelists.sh scripts/
+export WRFTOOLS
 ./scripts/writeNamelists.sh
 # number of domains (WRF and WPS namelist!)
 sed -i "/max_dom/ s/^\s*max_dom\s*=\s*.*$/ max_dom = ${MAXDOM}, ! this entry was edited by the setup script/" namelist.input namelist.wps
@@ -273,6 +280,7 @@ echo "Linking boundary data: ${DATADIR}"
 echo "(Boundary data type: ${DATATYPE})"
 cd "${RUNDIR}"
 if [[ "${DATATYPE}" == 'CESM' ]] || [[ "${DATATYPE}" == 'CCSM' ]]; then
+  rm -f 'atm' 'lnd' 'ice'
   ln -sf "${DATADIR}/atm/hist/" 'atm' # atmosphere
   ln -sf "${DATADIR}/lnd/hist/" 'lnd' # land surface
   ln -sf "${DATADIR}/ice/hist/" 'ice' # sea ice
@@ -385,6 +393,8 @@ if [[ -n "${ARSCRIPT}" ]]; then
     RENAME "${ARSCRIPT}"
 fi # $ARSCRIPT
 
+## link averaging script
+ln -sf "${WRFTOOLS}/Python/dataset/avgWRF.py"
 
 ## copy data tables for selected physics options
 # radiation scheme

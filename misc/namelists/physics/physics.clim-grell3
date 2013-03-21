@@ -30,6 +30,5 @@
  lake_depth_limit                    = 70,
  bucket_mm                           = 100.0, ! precip
  bucket_J                            = 1.e9, ! rad flx
- prec_acc_opt                        = 1 ! accumulate precip internally
  prec_acc_dt                         = 1440 ! daily accumulation
  / 
