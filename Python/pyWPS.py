@@ -90,10 +90,32 @@ else: dataset = None
 class Dataset():
   # a class that encapsulates meta data and operations specific to certain datasets
   # note that this class does not hold any actual data 
+  prefix = '' # reanalysis generally doesn't have a prefix'
   # ungrib
+  grbext = '.grb' # this may vary...
   ungrib_exe = 'ungrib.exe'
   ungrib_log = 'ungrib.exe.log'
-  # ungrib input filename is always GRIBFILE.AAA
+  gribname = 'GRIBFILE.AAA' # first (only) ungrib input filename is always GRIBFILE.AAA
+  ## these functions will be very similar for all datasets using ungrib.exe (overload when not using ungrib.exe)
+  def setup(self, src, dst, lsymlink=False):
+    # method to copy dataset specific files and folders working directory
+    # executables
+    if lsymlink:
+      cwd = os.getcwd()
+      os.chdir(dst)
+      # use current directory
+      os.symlink(src+self.ungrib_exe, self.ungrib_exe)
+      os.chdir(cwd)
+    else:
+      shutil.copy(src+self.ungrib_exe, dst)
+  def cleanup(self, tgt):
+    # method to remove dataset specific files and links
+    cwd = os.getcwd()
+    os.chdir(tgt)
+    # use current directory
+    os.remove(self.ungrib_exe)
+    os.chdir(cwd)
+  ## these functions are dataset specific and have to be implemented in the child class
   def __init__(self):
     # currently no function
     pass
@@ -103,15 +125,119 @@ class Dataset():
   def extractDate(self):
     # method to generate date tuple from date string in filename 
     pass
-  def setup(self):
-    # method to link dataset specific files and folders
-    pass
-  def cleanup(self):
-    # method to remove dataset specific links
-    pass
   def ungrib(self):
     # method that generates the WRF IM file for metgrid.exe
     pass 
+
+## CFSR
+class CFSR(Dataset):
+  # a class that holds meta data and implements operations specific to CFSR data
+  # note that this class does not hold any actual data
+  # N.B.: ungrib.exe must be Grib2 capable!
+  # CFSR data source
+  prefix = '' # reanalysis generally doesn't have a prefix'
+  grbext = '.grb2' # probably not needed
+  preimfile = 'FILEOUT'
+  dateform = '\d\d\d\d\d\d\d\d\d\d00' # YYYYMMDDHHMM
+  datestr = '%04i%02i%02i%02i00' # year, month, day, hour (and minutes=00)
+  # pressure levels (3D)
+  plevdir = 'plev/'
+  plevstr = '.pgbh06.gdas.grb2' # including filename extension
+  # surface data
+  srfcdir = 'srfc/'
+  srfcstr = '.flxf06.gdas.grb2' # including filename extension
+
+  def __init__(self, folder=None):
+
+    assert folder, 'Warning: need to specify root folder!'
+    ## CESM specific files and folders (only necessary for file operations)
+    self.folder = folder # needs to be set externally for different applications
+    self.PlevDir = os.readlink(folder + self.plevdir[:-1])
+    self.SrfcDir = os.readlink(folder + self.srfcdir[:-1])
+    self.UNGRIB = './' + self.ungrib_exe
+
+    # figure out source file prefix (only needs to be determined once)
+    if not prefix:
+      # get file prefix for data files
+      # use only atmosphere files
+      prergx = re.compile(self.dateform+self.plevstr+'$')
+      # search for first valid filename
+      for filename in os.listdir(self.PlevDir):
+        match = prergx.search(filename)
+        if match: break
+      prefix = filename[0:match.start()] # use everything before the pattern as prefix
+      # print prefix
+      print('\n No data prefix defined; inferring prefix from valid data files in directory '+self.AtmDir)
+      print('  prefix = '+prefix)
+
+    ## compile regular expressions (needed to extract dates)
+    # use pressure level files as master list
+    self.plevrgx = re.compile(self.dateform+self.plevstr+'$')
+    # regex to extract dates from filenames
+    self.dateregx = re.compile(self.dateform)
+
+  def getDataDir(self):
+    # universal wrapper method for folder with "master-filelist"
+    if self.folder: return self.PlevDir # use atmosphere folder as master
+    else: return None # None if no folder is set
+
+  def extractDate(self, filename):
+    # method to generate date tuple from date string in filename
+    # match valid filenames
+    match = self.plevrgx.match(filename) # return match object
+    if match is None:
+      return None # if the filename doesn't match the regex
+    else:
+      # extract date string
+      datestr = self.dateregx.search(filename).group()
+      # split date string into tuple
+      year = int(datestr[0:3])
+      month = int(datestr[4:5])
+      day = int(datestr[6:7])
+      hour = int(datestr[8:9])
+      return (year, month, day, hour)
+
+  def ungrib(self, date, mytag):
+    # method that generates the WRF IM file for metgrid.exe
+    # create formatted date string
+    datestr = self.datestr%(date[0],date[1],date[2],date[3]) # not hours, but seconds...
+    # create links to relevant source data (requires full path for linked files)
+    plevfile = datestr+self.plevstr
+    srfcfile = datestr+self.srfcstr
+    if os.path.exists(self.SrfcDir+srfcfile):
+      print('\n '+mytag+' Processing time-step:  '+datestr+'\n    '+plevfile+'\n    '+srfcfile)
+    else:
+      print('\n '+mytag+' Processing time-step:  '+datestr+'\n    '+plevfile)
+
+    os.symlink(self.PlevDir+plevfile,self.gribname)
+    os.symlink(self.SrfcDir+srfcfile,self.gribname)
+    #TODO:
+    # * loop over gribfiles: link, run ungrib, rename (temporary)
+    # * then concatenate the two files (name: self.preimfile)
+    ##  convert data to intermediate files
+    # run unccsm tool chain
+    # run NCL script (suppressing output)
+    print('\n  * '+mytag+' interpolating to pressure levels (eta2p.ncl)')
+    fncl = open(self.unncl_log, 'a') # NCL output and error log
+    if lscinet:
+      # On SciNet we have to pass this command through the shell, so that the NCL module is loaded.
+      subprocess.call(self.NCL_ETA2P, shell=True, stdout=fncl, stderr=fncl)
+    else:
+      # otherwise we don't need the shell and it's a security risk
+      subprocess.call([NCL,self.unncl_ncl], stdout=fncl, stderr=fncl)
+    fncl.close()
+    # run unccsm.exe
+    print('\n  * '+mytag+' writing to WRF IM format (unccsm.exe)')
+    funccsm = open(self.unccsm_log, 'a') # unccsm.exe output and error log
+    subprocess.call([self.UNCCSM], stdout=funccsm, stderr=funccsm)
+    funccsm.close()
+    # cleanup
+    os.remove(self.atmlnk)
+    os.remove(self.lndlnk)
+    os.remove(self.icelnk)
+    os.remove(self.nclfile)    # temporary file generated by NCL script
+    # renaming happens outside, so we don't have to know about metgrid format
+    return self.preimfile
   
 ## CESM
 class CESM(Dataset):
@@ -148,7 +274,7 @@ class CESM(Dataset):
     assert folder, 'Warning: need to specify root folder!'
     
     ## CESM specific files and folders (only necessary for file operations)
-    self.folder = folder # needs to be set externally for different applicatiosn
+    self.folder = folder # needs to be set externally for different applications
     self.AtmDir = os.readlink(folder + self.atmdir[:-1])
     self.LndDir = os.readlink(folder + self.lnddir[:-1])
     self.IceDir = os.readlink(folder + self.icedir[:-1])
@@ -377,8 +503,8 @@ def processTimesteps(myid, dates):
     ## prepare WPS processing 
     # run ungrib.exe or equivalent operation
     preimfile = dataset.ungrib(date, mytag) # need 'mytag' for status messages
-    # rename intermediate file according to WPS convention (by date)
-    os.rename(preimfile, imfile) # not the same as 'move'
+    # rename intermediate file according to WPS convention (by date), if necessary
+    if preimfile: os.rename(preimfile, imfile) # not the same as 'move'
     
     ## run WPS' metgrid.exe on intermediate file
     # run metgrid_exe.exe
