@@ -75,7 +75,7 @@ if os.environ.has_key('NCARG_ROOT'):
 # RAM disk
 if os.environ.has_key('RAMDISK'): Ram = os.environ['RAMDISK']
 # save metgrid data
-if os.environ.has_key('PYWPS_MET_DATA'):
+if os.environ.has_key('PYWPS_MET_DATA') and os.environ['PYWPS_MET_DATA']:
   Disk = os.environ['PYWPS_MET_DATA']
   ldisk = True
 else: ldisk = False
