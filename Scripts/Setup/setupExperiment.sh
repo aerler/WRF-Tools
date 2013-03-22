@@ -142,7 +142,7 @@ else
 fi # $FLAKE
 
 # figure out WRF and WPS build
-WPSBLD="Clim-fineIO" # there is basically only one build...
+WPSBLD="Clim-fineIOv2" # there is basically only one build...
 WRFBLD="${IO}v2" # current I/O version
 # GCM or reanalysis
 if [[ "${DATATYPE}" == 'CESM' ]] || [[ "${DATATYPE}" == 'CCSM' ]]; then
