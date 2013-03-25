@@ -11,7 +11,6 @@ import socket # recognizing host
 import subprocess
 import warnings
 import numpy
-# maybe imports ...
 import os # directory operations
 #import fileinput # reading and writing config files
 #import shutil # file operations
@@ -76,8 +75,8 @@ if __name__ == '__main__':
     # process time
     if lrun or lidl:
       np =  int(linesplit[3])
-      if np != 16 and np != 32: print('WARNING: strange number of processes: %i'%np)
-      np = np / ppn
+      if np != 16 and np != 32: print('WARNING: strange number of processes: %i --- rounding up.'%np)
+      np = numpy.ceil(np / ppn) # next full multiple of ppn
       time = linesplit[4]
 #      # print times
 #      if lrun: print 'Running: %s'%time
