@@ -29,6 +29,7 @@
 
 
 ## job settings
+export NODES=4 # number of nodes (necessary for TCS threading setup)
 # get PBS names (needed for folder names)
 export JOBNAME="${LOADL_JOB_NAME}"
 export INIDIR="${LOADL_STEP_INITDIR}" # experiment root (launch directory)
@@ -47,7 +48,8 @@ export ARSCRIPT="" # archive script to be executed after WRF finishes
 # WRF and WPS wallclock  time limits (no way to query from queue system)
 export WRFWCT='' # WRF wallclock  time limit; e.g. '06:00:00'
 export WPSWCT='' # WPS wallclock  time limit; e.g. '01:00:00'
-export NODES=4 # number of nodes (necessary for TCS threading setup)
+# input data source (needed for treatment of leap years)
+export DATATYPE='' # type of initial and boundary forcing data
 
 ## WRF settings
 # N.B.: these settings serve as fallback options when inferring from namelist fails

@@ -26,6 +26,8 @@ export ARINTERVAL="" # default: every time
 # WRF and WPS wallclock  time limits (no way to query from queue system)
 export WRFWCT='06:00:00' # WRF wallclock  time limit; dummy variable
 export WPSWCT='01:00:00' # WPS wallclock  time limit; dummy variable
+# input data source (needed for treatment of leap years)
+export DATATYPE='' # type of initial and boundary forcing data
 
 ## WRF settings
 # N.B.: these settings serve as fallback options when inferring from namelist fails

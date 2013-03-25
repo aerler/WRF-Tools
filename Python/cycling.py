@@ -31,6 +31,10 @@ else: stepfile = 'stepfile' # default name
 if os.environ.has_key('INIDIR'):
   IniDir = os.environ['INIDIR'] # where the step file is found
 else: IniDir = os.getcwd() + '/' # current directory
+if os.environ.has_key('DATATYPE'):
+  if os.environ['DATATYPE'] == 'CFSR': lly = True # reanalysis like CFSR have leap-years
+  else: lly = False # GCMs like CESM/CCSM generally don't have leap-years
+else: lly = False # GCMs like CESM/CCSM generally don't have leap-years
 nmlstwps = 'namelist.wps' # WPS namelist file
 nmlstwrf = 'namelist.input' # WRF namelist file
 
@@ -81,10 +85,11 @@ if __name__ == '__main__':
     enddatestr = linesplit[2] # next end date
     enddate = time.splitDateWRF(enddatestr[1:-1])
     # screen for leap days (treat Feb. 29th as 28th)
-    if calendar.isleap(startdate[0]) and startdate[2]==29 and startdate[1]==2:
-      startdate = (startdate[0], startdate[1], 28, startdate[3])
-    if calendar.isleap(enddate[0]) and enddate[2]==29 and enddate[1]==2:
-      enddate = (enddate[0], enddate[1], 28, enddate[3])        
+    if lly == False: # i.e. if we don't use leap-years in WRF
+      if calendar.isleap(startdate[0]) and startdate[2]==29 and startdate[1]==2:
+	startdate = (startdate[0], startdate[1], 28, startdate[3])
+      if calendar.isleap(enddate[0]) and enddate[2]==29 and enddate[1]==2:
+	enddate = (enddate[0], enddate[1], 28, enddate[3])
     # create next step folder
     StepFolder = IniDir + '/' + nextstep + '/'
     if not os.path.isdir(StepFolder):            
@@ -140,18 +145,19 @@ if __name__ == '__main__':
     rtdelta = enddt - startdt # timedelta object
     # handle leap days
     leapdays = 0 # counter for leap days in timedelta
-    # if start and end are in the same year
-    if (startdate[0] == enddate[0]) and calendar.isleap(enddate[0]):
-      if (startdate[1] < 3) and (enddate[1] > 2): 
-        leapdays += 1 # only count if timedelta crosses leap day
-    # if start and end are in different years
-    else:
-      if calendar.isleap(startdate[0]) and (startdate[1] < 3): 
-        leapdays += 1 # first year only if start before March
-      # add leap days in between start and end years
-      leapdays += calendar.leapdays(startdate[0]+1, enddate[0])
-      if calendar.isleap(enddate[0]) and (enddate[1] > 2): 
-        leapdays += 1 # last year only if end after February
+    if lly == False: # if we don't want leap-years, we have to subtract the leap-days
+      # if start and end are in the same year
+      if (startdate[0] == enddate[0]) and calendar.isleap(enddate[0]):
+	if (startdate[1] < 3) and (enddate[1] > 2):
+	  leapdays += 1 # only count if timedelta crosses leap day
+      # if start and end are in different years
+      else:
+	if calendar.isleap(startdate[0]) and (startdate[1] < 3):
+	  leapdays += 1 # first year only if start before March
+	# add leap days in between start and end years
+	leapdays += calendar.leapdays(startdate[0]+1, enddate[0])
+	if calendar.isleap(enddate[0]) and (enddate[1] > 2):
+	  leapdays += 1 # last year only if end after February
     # figure out actual duration in days, hours, and minutes
     rtdays = rtdelta.days - leapdays
     rtmins, rtsecs = divmod(rtdelta.seconds, 60)
