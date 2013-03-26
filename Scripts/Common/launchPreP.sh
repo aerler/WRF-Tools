@@ -11,9 +11,6 @@
 if [[ -n "${NEXTSTEP}" ]] && [[ ! $NOWPS == 1 ]]
   then
 
-    # decide to which queue to submit
-    #TODO: call to Python script to get estimated wait time
-
     # this is only for the first instance; unset for next
     echo
     echo "   ***   Launching WPS for next step: ${NEXTSTEP}   ***   "
@@ -22,6 +19,9 @@ if [[ -n "${NEXTSTEP}" ]] && [[ ! $NOWPS == 1 ]]
     eval "echo ${SUBMITWPS}" # print command
     eval "${SUBMITWPS}" # using variables: $INIDIR, $DEPENDENCY, $NEXTSTEP
 
+    # N.B.: the queue selection process happens in the launch command ($SUBMITWPS),
+    #       which is set in the setup-script
+    
 else
 
     echo
