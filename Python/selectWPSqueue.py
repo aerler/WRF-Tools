@@ -10,7 +10,8 @@ Short script to estimate expected queue wait times.
 import socket # recognizing host
 import subprocess
 import warnings
-import numpy
+import math
+#import numpy
 import os # directory operations
 #import fileinput # reading and writing config files
 #import shutil # file operations
@@ -58,6 +59,20 @@ def convertTime(timeString):
   # return value in seconds (integer)
   return time
 
+# function to find minimum and minimum index in a list
+def findMinimum(values):
+  # initialize
+  jmin = 0
+  vmin = values[jmin]
+  # search list
+  for j in xrange(1,len(values)):
+    if values[j] < vmin:
+      vmin = values[j] # save smallest value
+      jmin = j # index of smallest value
+  # return results
+  return vmin, jmin
+
+
 if __name__ == '__main__':
 
   ## parse queue query output
@@ -76,7 +91,7 @@ if __name__ == '__main__':
     if lrun or lidl:
       np =  int(linesplit[3])
       if np != 16 and np != 32: print('WARNING: strange number of processes: %i --- rounding up.'%np)
-      np = numpy.ceil(np / ppn) # next full multiple of ppn
+      np = math.ceil(np / ppn) # next full multiple of ppn
       time = linesplit[4]
 #      # print times
 #      if lrun: print 'Running: %s'%time
@@ -91,7 +106,8 @@ if __name__ == '__main__':
 
   ## estimate total wait time
   # one time slot for each running process
-  slots = numpy.zeros(nodes,dtype=int) # integer seconds
+  #slots = numpy.zeros(nodes,dtype=int) # integer seconds
+  slots = [int(0) for x in xrange(nodes)]
   # distribute running jobs to nodes
   assert len(running) <= len(slots), warnings.warn('WARNING: number of nodes and number of running jobs inconsistent: %s'%len(running))
   for i in xrange(len(running)):
@@ -99,11 +115,17 @@ if __name__ == '__main__':
 #  print slots
   # distribute idle jobs to nodes
   for i in xrange(len(idle)):
-    slots[slots.argmin()] += idle[i]
+    # find smallest slots
+    vmin, jmin = findMinimum(slots)
+    # assign to smallest slot
+    slots[jmin] = vmin + idle[i]
+    #slots[slots.argmin()] += idle[i]
 #  print slots
 
   ## launch WPS according to estimated wait time
-  waittime = slots.min()
+  vmin, jmin = findMinimum(slots)
+  waittime = vmin
+  #waittime = slots.min()
   #  print waittime
   print('\nEstimated queue wait time is %3.2f hours\n'%(waittime/3600))
   # determine acceptable wait time

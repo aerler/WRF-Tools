@@ -565,11 +565,12 @@ if __name__ == '__main__':
     if ldisk:
       if not Disk: 
         Disk = Root + disk
-      if os.path.isdir(Disk) or os.path.islink(Disk[:-1]):
-        # remove directory if already there
-        shutil.rmtree(Disk)
-      # create new destination folder
-      os.mkdir(Disk)
+      if not ( os.path.isdir(Disk) or os.path.islink(Disk[:-1]) ):
+        # create new destination folder
+        os.mkdir(Disk)
+      ## remove directory if already there
+      #shutil.rmtree(Disk)
+      #os.mkdir(Disk)
       
     # directory shortcuts
     Meta = Tmp + meta
