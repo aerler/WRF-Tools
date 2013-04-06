@@ -129,22 +129,23 @@ if __name__ == '__main__':
   #  print waittime
   print('\nEstimated queue wait time is %3.2f hours\n'%(waittime/3600))
   # determine acceptable wait time
-  timelimit = 0
-  if WRFWCT: timelimit += convertTime(WRFWCT) # basic time limit from WRF execution time
-  if WPSWCT: timelimit -= convertTime(WPSWCT) # subtract execution time for WPS
-  # launch WPS
-  if timelimit <= 0:
+  if WRFWCT:
+    timelimit = convertTime(WRFWCT) # basic time limit from WRF execution time
+    if WPSWCT: timelimit -= convertTime(WPSWCT) # subtract execution time for WPS
+    # launch WPS
+    if waittime < timelimit:    
+      print('   >>> submitting to primary queue system:')
+      print(submitPrimary)
+      subprocess.Popen(submitPrimary, shell=True)
+    else:
+      print('   >>> submitting to secondary queue system:')
+      print(submitSecondary)
+      subprocess.Popen(submitSecondary, shell=True)
+  else:
+    # just launch on primary queue	
     print('WARNING: invalid timelimit: %i'%timelimit)
     print('   >>> submitting to primary queue system:')
     print(submitPrimary)
     subprocess.Popen(submitPrimary, shell=True)
-  elif waittime < timelimit:    
-    print('   >>> submitting to primary queue system:')
-    print(submitPrimary)
-    subprocess.Popen(submitPrimary, shell=True)
-  else:
-    print('   >>> submitting to secondary queue system:')
-    print(submitSecondary)
-    subprocess.Popen(submitSecondary, shell=True)
 
 
