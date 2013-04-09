@@ -11,7 +11,6 @@ WPS/metgrid.exe tool chain, in order to generate input data for WRF/real.exe
 '''
 
 ##  imports
-import socket # recognizing host 
 import os # directory operations
 import shutil # copy and move
 import re # regular expressions
@@ -25,18 +24,18 @@ tmp = 'tmp/'
 meta = 'meta/'
 # metgrid
 nmlform = '%04.0f-%02.0f-%02.0f_%02.0f:00:00' # date in namelist.wps
-imform = '%04.0f-%02.0f-%02.0f_%02.0f' # date in IM filename 
+imform = '%04.0f-%02.0f-%02.0f_%02.0f' # date in IM filename
 impfx = 'FILE:'
 metpfx = 'met_em.d%02.0f.'
 metsfx = ':00:00.nc'
 geopfx = 'geo_em.d%02.0f'
 # parallelization
 pname = 'proc%02.0f'
-pdir = 'proc%02.0f/'  
+pdir = 'proc%02.0f/'
 # destination folder(s)
 ramlnk = 'ram' # automatically generated link to ramdisk (if applicable)
 data = 'data/' # data folder in ram
-ldata = True # whether or not to keep data in memory  
+ldata = True # whether or not to keep data in memory
 disk = 'data/' # destination folder on hard disk
 Disk = '' # default: Root + disk
 ldisk = False # don't write metgrid files to hard disk
@@ -46,23 +45,19 @@ metgrid_exe = 'metgrid.exe'
 metgrid_log = 'metgrid.exe.log'
 nmlstwps = 'namelist.wps'
 ncext = '.nc' # also used for geogrid files
-# dependent variables 
+# dependent variables
 METGRID = './' + metgrid_exe
 
 
-##  determine if we are on SciNet or my local machine
-hostname = socket.gethostname()
+## determine which machine we are on
+#import socket # recognizing host
+#hostname = socket.gethostname()
 
-if ('gpc' in hostname) or ('p7' in hostname):
-  # SciNet
-  lscinet = True
-else:
-  # my local workstation
-  lscinet = False
-  # use this cmd to mount: sudo mount -t ramfs -o size=100m ramfs /media/tmp/
-  # followed by: sudo chown me /media/tmp/
-  # sudo mount -t ramfs -o size=100m ramfs /media/tmp/ && sudo chown me /media/tmp/
-  # and this to unmount:   sudo umount /media/tmp/
+## RAM-disk on a local workstation:
+# use this command to mount: sudo mount -t ramfs -o size=100m ramfs $RAMDISK
+# followed by: sudo chown $USER $RAMDISK
+# and this to unmount:   sudo umount $RAMDISK
+# e.g.: sudo mount -t ramfs -o size=100m ramfs /media/tmp/ && sudo chown $USER /media/tmp/
 
 ## read environment variables (overrides defaults)
 # defaults are set above (some machine specific)
@@ -366,13 +361,11 @@ class CESM(Dataset):
     # run NCL script (suppressing output)
     print('\n  * '+mytag+' interpolating to pressure levels (eta2p.ncl)')
     fncl = open(self.unncl_log, 'a') # NCL output and error log
-    if lscinet:
-      # On SciNet we have to pass this command through the shell, so that the NCL module is loaded.
-      subprocess.call(self.NCL_ETA2P, shell=True, stdout=fncl, stderr=fncl)
-    else:
-      # otherwise we don't need the shell and it's a security risk
-      subprocess.call([NCL,self.unncl_ncl], stdout=fncl, stderr=fncl)  
-    fncl.close()          
+    # On SciNet we have to pass this command through the shell, so that the NCL module is loaded.
+    subprocess.call(self.NCL_ETA2P, shell=True, stdout=fncl, stderr=fncl)
+    ## otherwise we don't need the shell and it's a security risk
+    #subprocess.call([NCL,self.unncl_ncl], stdout=fncl, stderr=fncl)
+    fncl.close()
     # run unccsm.exe
     print('\n  * '+mytag+' writing to WRF IM format (unccsm.exe)')
     funccsm = open(self.unccsm_log, 'a') # unccsm.exe output and error log
@@ -546,7 +539,7 @@ if __name__ == '__main__':
       Tmp = Ram + tmp # direct temporary storage to ram disk
       if ldata: Data = Ram + data # temporary data storage (in memory)
 #      # provide link to ram disk directory for debugging      
-#      if not lscinet and not (os.path.isdir(ramlnk) or os.path.islink(ramlnk[:-1])):
+#      if not (os.path.isdir(ramlnk) or os.path.islink(ramlnk[:-1])):
 #        os.symlink(Ram, ramlnk)
     else:      
       Tmp = Root + tmp # use local directory
