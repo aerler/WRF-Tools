@@ -2,6 +2,10 @@
 # source script to load i7-specific settings for pyWPS, WPS, and WRF
 # created 02/03/2013 by Andre R. Erler, GPL v3
 
+# environment variables for "modules"
+# export NCARG_ROOT='/usr/local/ncarg/'
+# export MODEL_ROOT="${HOME}/Models/"
+
 # RAM-disk settings: infer from queue
 if [[ ${RUNPYWPS} == 1 ]] && [[ ${RUNREAL} == 1 ]]
   then
@@ -44,8 +48,8 @@ export THREADS=${THREADS:-1} # number of OpenMP threads
 export HYBRIDRUN=${HYBRIDRUN:-"mpirun -n $((TASKS*NODES))"} # OpenMPI, not Intel
 
 # WPS/preprocessing submission command (for next step)
-export SUBMITWPS=${SUBMITWPS:-'ssh localhost "cd \"${INIDIR}\"; export NEXTSTEP=${NEXTSTEP}; export WPSSCRIPT=${WPSSCRIPT}; python ${SCRIPTDIR}/selectWPSqueue.py"'} # evaluated by launchPreP
-# export SUBMITWPS=${SUBMITWPS:-'cd "${INIDIR}"; export NEXTSTEP=${NEXTSTEP}; ./${WPSSCRIPT}'} # evaluated by launchPreP
+# export SUBMITWPS=${SUBMITWPS:-'ssh localhost "cd \"${INIDIR}\"; export NEXTSTEP=${NEXTSTEP}; export WPSSCRIPT=${WPSSCRIPT}; python ${SCRIPTDIR}/selectWPSqueue.py"'} # evaluated by launchPreP
+export SUBMITWPS=${SUBMITWPS:-'ssh localhost "cd \"${INIDIR}\"; export NEXTSTEP=${NEXTSTEP}; ./${WPSSCRIPT}"'} # evaluated by launchPreP
 # N.B.: do not us '&' to spin off, otherwise output gets mangled and the system overloads
 
 # archive submission command (for last step)

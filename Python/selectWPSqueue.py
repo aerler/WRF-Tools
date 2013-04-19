@@ -143,7 +143,7 @@ if __name__ == '__main__':
       subprocess.Popen(submitSecondary, shell=True)
   else:
     # just launch on primary queue	
-    print('WARNING: invalid timelimit: %i'%timelimit)
+    print('WARNING: invalid timelimit!')
     print('   >>> submitting to primary queue system:')
     print(submitPrimary)
     subprocess.Popen(submitPrimary, shell=True)

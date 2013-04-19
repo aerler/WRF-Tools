@@ -3,13 +3,13 @@
 # created 02/03/2013 by Andre R. Erler, GPL v3
 
 ## run configuration (otherwise set in queue settings)
-export NODES=1 # there is only one...
+#export NODES=1 # there can be only one...
 export TASKS=4 # number of MPI task per node (Hpyerthreading!)
 export THREADS=1 # number of OpenMP threads
 
 ## job settings
 # set names (needed for folder names)
-export JOBNAME='test' # job name (dummy variable, since there is no queue)
+export JOBNAME='' # job name (dummy variable, since there is no queue)
 export INIDIR="${PWD}" # experiment root (launch directory)
 # directory setup
 export RUNNAME="${CURRENTSTEP}" # step name, not job name!
@@ -24,8 +24,8 @@ export WPSSCRIPT="run_cycling_WPS.pbs" # WRF suffix assumed, WPS suffix substitu
 export ARSCRIPT="" # archive script to be executed after WRF finishes
 export ARINTERVAL="" # default: every time
 # WRF and WPS wallclock  time limits (no way to query from queue system)
-export WRFWCT='06:00:00' # WRF wallclock  time limit; dummy variable
-export WPSWCT='01:00:00' # WPS wallclock  time limit; dummy variable
+export WRFWCT='' # WRF wallclock  time limit; dummy variable
+export WPSWCT='' # WPS wallclock  time limit; dummy variable
 # input data source (needed for treatment of leap years)
 export DATATYPE='' # type of initial and boundary forcing data
 

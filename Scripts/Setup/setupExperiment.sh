@@ -40,7 +40,7 @@ function RENAME () {
 	    sed -i "/#\s*@\s*node/ s/#\s*@\s*node\s*=.*$/# @ node = ${WRFNODES}/" "${FILE}" # number of nodes
 	    sed -i "/#\s*@\s*wall_clock_limit/ s/#\s*@\s*wall_clock_limit\s*=.*$/# @ wall_clock_limit = ${WRFWCT}/" "${FILE}" # wallclock time
 	else
-	    sed -i "/export JOBNAME/ s+export\sJOBNAME=.*$+export JOBNAME=${NAME}_WPS  # job name (dummy variable, since there is no queue)+" "${FILE}" # name
+	    sed -i "/export JOBNAME/ s+export\sJOBNAME=.*$+export JOBNAME=${NAME}_WRF # job name (dummy variable, since there is no queue)+" "${FILE}" # name
 	    sed -i "/export TASKS/ s+export\sTASKS=.*$+export TASKS=${WRFNODES} # number of MPI tasks+" "${FILE}" # number of tasks (instead of nodes...)
 	fi # $Q
     fi # if WRF
@@ -176,22 +176,22 @@ fi
 # default WRF and geogrid executables
 if [[ "${WRFSYS}" == "GPC" ]]; then
     WRFQ='pbs' # queue system
-    WRFWCT=${WRFWCT:-'06:00:00'}; WRFNODES=16 # WRF resource config on GPC
+    WRFWCT=${WRFWCT:-'06:00:00'}; WRFNODES=${WRFNODES:-16} # WRF resource config on GPC
     GEOEXE=${GEOEXE:-"${WPSSRC}/GPC-MPI/${WPSBLD}/O3xHost/geogrid.exe"}
     WRFEXE=${WRFEXE:-"${WRFSRC}/GPC-MPI/${WRFBLD}/O3xHostNC4/wrf.exe"}
 elif [[ "${WRFSYS}" == "TCS" ]]; then
     WRFQ='ll' # queue system
-    WRFWCT=${WRFWCT:-'06:00:00'}; WRFNODES=4 # WRF resource config o TCS
+    WRFWCT=${WRFWCT:-'06:00:00'}; WRFNODES=${WRFNODES:-4} # WRF resource config o TCS
     GEOEXE=${GEOEXE:-"${WPSSRC}/TCS-MPI/${WPSBLD}/O3/geogrid.exe"}
     WRFEXE=${WRFEXE:-"${WRFSRC}/TCS-MPI/${WRFBLD}/O3NC4/wrf.exe"}
 elif [[ "${WRFSYS}" == "P7" ]]; then
     WRFQ='ll' # queue system
-    WRFWCT=${WRFWCT:-'13:00:00'}; WRFNODES=1 # WRF resource config on P7
+    WRFWCT=${WRFWCT:-'13:00:00'}; WRFNODES=${WRFNODES:-1} # WRF resource config on P7
     GEOEXE=${GEOEXE:-"${WPSSRC}/GPC-MPI/${WPSBLD}/O3xSSSE3/geogrid.exe"}
     WRFEXE=${WRFEXE:-"${WRFSRC}/P7-MPI/${WRFBLD}/O3pwr7NC4/wrf.exe"}
 elif [[ "${WRFSYS}" == "i7" ]]; then
     WRFQ='sh' # queue system
-    WRFWCT=${WRFWCT:-'0:00:00'}; WRFNODES=1 # WRF resource config on i7
+    WRFWCT=${WRFWCT:-'0:00:00'}; WRFNODES=${WRFNODES:-1} # WRF resource config on i7
     GEOEXE=${GEOEXE:-"${WPSSRC}/i7-MPI/${WPSBLD}/O3xHost/geogrid.exe"}
     WRFEXE=${WRFEXE:-"${WRFSRC}/i7-MPI/${WRFBLD}/O3xHostNC4/wrf.exe"}
 fi

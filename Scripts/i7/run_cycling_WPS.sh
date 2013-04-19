@@ -3,7 +3,7 @@
 # created 02/03/2013 by Andre R. Erler, GPL v3
 
 ## run configuration (otherwise set in queue settings)
-export NODES=1 # only one for WPS!
+#export NODES=1 # there can be only one...
 export TASKS=2 # number of MPI task per node (Hpyerthreading?)
 export THREADS=1 # number of OpenMP threads
 
