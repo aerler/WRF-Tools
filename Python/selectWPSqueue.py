@@ -27,20 +27,20 @@ WPSSCRIPT = os.getenv('WPSSCRIPT')
 NEXTSTEP = os.getenv('NEXTSTEP')
 # machine-specific setup
 hostname = socket.gethostname()
-if (hostname=='komputer') or (hostname=='erlkoenig'):
-  # this is for test purpose only
-  nodes = 2 # number of nodes
-  ppn = 16 # processes per node
-  showq = 'cat queue-test.txt' # test dummy
-  submitPrimary = 'echo qsub %s -v NEXTSTEP=%s -l nodes=1:m128g:ppn=16 -q largemem'%(WPSSCRIPT,NEXTSTEP)
-  submitSecondary = 'echo qsub %s -v NEXTSTEP=%s -l nodes=1:m32g:ppn=8 -q batch'%(WPSSCRIPT,NEXTSTEP)
-elif ('gpc' in hostname):
+if ('gpc' in hostname):
   # we need to know something about the queue system...
   nodes = 2 # number of nodes
   ppn = 16 # processes per node
   showq = 'showq -w class=largemem' # queue query command
   submitPrimary = 'qsub %s -v NEXTSTEP=%s -l nodes=1:m128g:ppn=16 -q largemem'%(WPSSCRIPT,NEXTSTEP)
   submitSecondary = 'qsub %s -v NEXTSTEP=%s -l nodes=1:m32g:ppn=8 -q batch'%(WPSSCRIPT,NEXTSTEP)
+else:
+  # this is for test purpose only; read file 'queue-test.txt' in same directory
+  nodes = 2 # number of nodes
+  ppn = 16 # processes per node
+  showq = 'cat queue-test.txt' # test dummy
+  submitPrimary = 'echo qsub %s -v NEXTSTEP=%s -l nodes=1:m128g:ppn=16 -q largemem'%(WPSSCRIPT,NEXTSTEP)
+  submitSecondary = 'echo qsub %s -v NEXTSTEP=%s -l nodes=1:m32g:ppn=8 -q batch'%(WPSSCRIPT,NEXTSTEP)
 
 ## functions
 
