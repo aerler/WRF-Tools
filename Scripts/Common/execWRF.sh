@@ -182,6 +182,9 @@ if [[ ${RUNWRF} == 1 ]]
     elif [[ ${LSM} == 'Noah-MP' ]] || [[ ${LSM} == 4 ]]; then
 	echo "Using Noah-MP land-surface scheme."
 	LSMTAB="SOILPARM.TBL VEGPARM.TBL GENPARM.TBL LANDUSE.TBL MPTABLE.TBL"
+    elif [[ ${LSM} == 'CLM4' ]] || [[ ${LSM} == 5 ]]; then
+	echo "Using CLM4 land-surface scheme."
+	LSMTAB="SOILPARM.TBL VEGPARM.TBL GENPARM.TBL LANDUSE.TBL CLM_ALB_ICE_DFS_DATA CLM_ASM_ICE_DFS_DATA CLM_DRDSDT0_DATA CLM_EXT_ICE_DRC_DATA CLM_TAU_DATA CLM_ALB_ICE_DRC_DATA CLM_ASM_ICE_DRC_DATA CLM_EXT_ICE_DFS_DATA CLM_KAPPA_DATA"
     else
 	echo 'WARNING: no land-surface model selected!'
 	# this will only happen if no defaults are set and inferring from namelist via 'sed' failed
