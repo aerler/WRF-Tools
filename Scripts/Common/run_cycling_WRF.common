@@ -10,7 +10,7 @@
 # WRFSCRIPT, WPSSCRIPT, ARSCRIPT, SCRIPTDIR, BINDIR
 # Optional: WAITFORWPS, ARINTERVAL
 
-set -e # abort if anything goes wrong
+# set -e # abort if anything goes wrong
 ERR=0 # initialize Error counter
 
 # launch feedback
