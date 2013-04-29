@@ -382,6 +382,10 @@ if [[ -n "${ARSCRIPT}" ]]; then
     cp -f "${WRFTOOLS}/Scripts/HPSS/${ARSCRIPT}" .
 	sed -i "/#PBS -N/ s/#PBS -N\s.*$/#PBS -N ${NAME}_ar/" "${ARSCRIPT}"
     ls "${ARSCRIPT}"
+    # set archiving interval
+    if [[ -n"${ARINTERVAL}" ]]; then
+	sed -i "/INTERVAL/ s/INTERVAL=.*$/INTERVAL=\'${ARINTERVAL}\' # interval in which the archive script is to be executed/" "${ARSCRIPT}"
+    fi
     # set appropriate dataset variable for number of domains
     if [[ ${MAXDOM} == 1 ]]; then
 	sed -i "/DATASET/ s/DATASET=\${DATASET:-.*}\s.*$/DATASET=\${DATASET:-'FULL_D1'} # default dataset: everything (one domain)/" "${ARSCRIPT}"

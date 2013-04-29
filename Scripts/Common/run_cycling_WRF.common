@@ -11,6 +11,7 @@
 # Optional: WAITFORWPS, ARINTERVAL
 
 set -e # abort if anything goes wrong
+ERR=0 # initialize Error counter
 
 # launch feedback
 echo
@@ -38,13 +39,13 @@ export RUNREAL=0 # more options: $RUNREAL, $RAMIN, $RAMOUT, $REALIN, $REALOUT
 cd "${INIDIR}"
 source "${SCRIPTDIR}/setup_WRF.sh" # load machine-specific stuff
 
-
 ## run WPS/pre-processing for next step
 # read next step from stepfile
 NEXTSTEP=$(python "${SCRIPTDIR}/cycling.py" "${CURRENTSTEP}")
 
 # launch pre-processing for next step
 eval "${SCRIPTDIR}/launchPreP.sh" # primarily for WPS and real.exe
+ERR=$(( ${ERR} + $? )) # capture exit code
 
 
 ## run WRF for this step
@@ -59,7 +60,7 @@ echo
 
 # run execution script
 eval "${SCRIPTDIR}/execWRF.sh"
-ERR=$? # capture exit code
+ERR=$(( ${ERR} + $? )) # capture exit code
 # mock restart files for testing (correct linking)
 # ERR=0 # pretend execution was successful
 #if [[ -n "${NEXTSTEP}" ]]; then
@@ -86,11 +87,29 @@ echo
 
 ## launch post-processing
 eval "${SCRIPTDIR}/launchPostP.sh" # mainly archiving, but may include actual post-processing
+ERR=$(( ${ERR} + $? )) # capture exit code
 
 
 ## resubmit job for next step
 eval "${SCRIPTDIR}/resubJob.sh" # requires submission command from setup script
+ERR=$(( ${ERR} + $? )) # capture exit code
 
 
-# copy driver script into work dir to signal completion
-cp "${INIDIR}/${WRFSCRIPT}" "${WORKDIR}"
+# # copy driver script into work dir to signal completion
+# cp "${INIDIR}/${WRFSCRIPT}" "${WORKDIR}"
+
+# remove working directory if everything was successful
+echo
+cd "${INIDIR}"
+if [[ $ERR == 0 ]]; then
+  # the check is probably unnecessary here, but it doesn't hurt
+  echo "Removing Working Directory: ${WORKDIR}"
+  rm -rf "${WORKDIR}"
+  echo
+  exit 0
+else
+  echo "WARNING: ${ERR} Error(s) encountered after WRF completed!!!"
+  echo "(Leaving Working Directory ${WORKDIR} intact.)"
+  echo
+  exit $ERR
+fi # if no $ERR
