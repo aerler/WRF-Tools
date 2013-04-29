@@ -212,12 +212,13 @@ echo
 if [[ -e 'backup' ]]; then mv 'backup' 'backup_backup'; fi # because things can go wrong during backup...
 mkdir -p 'backup'
 eval $( cp -df --preserve=all * 'backup/' &> /dev/null ) # trap this error and hide output
-eval $( cp -dRf --preserve=all 'scripts/' 'bin/' 'meta/' 'tables/' 'backup/' &> /dev/null ) # trap this error and hide output
+eval $( cp -dRf --preserve=all 'scripts' 'bin' 'meta' 'tables' 'backup/' &> /dev/null ) # trap this error and hide output (don't append '/' so that links to folders are also removed)
 # N.B.: the eval $() combination purposely suppresses exit codes, so that errors are not handled correctly
 if [[ -e 'backup/xconfig.sh' && -e 'backup/setupExperiment.sh' ]]
   then # presumably everything went OK, if these two are in the backup folder
     eval $( rm -f *.sh *.pbs *.ll &> /dev/null ) # delete scripts
-    eval $( rm -rf 'scripts/' 'bin/' 'meta/' 'tables/' &> /dev/null ) # delete script and data folders
+    eval $( rm -rf 'scripts' 'bin' 'meta' 'tables' &> /dev/null ) # delete script and data folders
+    # N.B.: don't append '/' so that links to folders are also removed
     cp -P 'backup/setupExperiment.sh' 'backup/xconfig.sh' .
     rm -rf 'backup_backup/' # remove backup of backup, because we have a new backup
   else echo 'ERROR: backup failed - aborting!'; exit 1

@@ -5,11 +5,11 @@
 # load modules
 echo
 module purge
-module load intel/12.1.3 intelmpi/4.0.3.008 hdf5/187-v18-serial-intel netcdf/4.1.3_hdf5_serial-intel 
+module load intel/13.1.1 intelmpi/4.1.0.027 hdf5/187-v18-serial-intel netcdf/4.1.3_hdf5_serial-intel extras/64_6.4
 #module load intel/12.1.3 intelmpi/4.0.3.008 hdf5/187-v18-serial-intel netcdf/4.1.3_hdf5_serial-intel
 # pyWPS.py specific modules
 if [[ ${RUNPYWPS} == 1 ]]; then
-    module load gcc/4.6.1 centos5-compat/lib64 ncl/6.0.0 python/2.7.2 extras/64 
+    module load gcc/4.7.2 python/2.7.2 ncl/6.1.0 extras/64_6.4
     # N.B.: extras/64 is necessary for Grib2 support (libjasper and libpng12)
     #module load gcc/4.6.1 centos5-compat/lib64 ncl/6.0.0 python/2.7.2
 fi

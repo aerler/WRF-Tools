@@ -1,0 +1,236 @@
+#!/bin/bash
+#MOAB/Torque submission script for SciNet GPC
+
+## queue/PBS settings
+#PBS -l nodes=1:ppn=8
+# batch queue: nodes=1:m32g:ppn=8
+# largemem queue: nodes=1:m128g:ppn=16
+#PBS -l walltime=1:00:00
+# merge standard error and output stream
+#PBS -j oe
+#PBS -o $PBS_JOBNAME.$PBS_JOBID.out
+# send email if abort (nbae)
+#PBS -M aerler@atmosp.physics.utoronto.ca
+#PBS -m a
+# job name
+#PBS -N build_WRF
+## submit to queue (NB: this has to be the last PBS line!)
+# batch (default), debug, largemem
+#PBS -q debug
+# N.B.: the queue setting may have been changed by the last submitting instance
+
+
+## job settings
+BUILD=${BUILD:-"${PBS_JOBNAME}"} # build identification
+WORKDIR=${WORKDIR:-"${PBS_O_WORKDIR}"} # root folder for output
+
+# WRF
+BLDWRF=${BLDWRF:-0}
+WRFCFG='configure.wrf' # configure script to be used
+WRFHG=${WRFHG:-1} # 0=use source from tarball, 1=clone HG repository (see below)
+WRFCASE='em_real' # type of WRF build: em_real for real data
+WRFOUTDIR="${WORKDIR}/WRFV3" # folder for WRF build output
+WRFBINDIR="${WRFOUTDIR}/${BUILD}" # destination folder for executables (not tarred)
+WRFOUTTAR="${WRFOUTDIR}/wrfbld.tgz" # tarball of build directory
+WRFINTAR="${WRFINTAR:-${WRFOUTTAR}}" # for optional source input via tarball
+# N.B.: Note that the tarball has to extract into the folder WRFV3/ (or $WRFOUTDIR needs to be set accordingly)
+
+# WPS
+BLDWPS=${BLDWPS:-0} # currently not implemented
+WPSCFG='configure.wps' # configure script to be used
+WPSHG=${WPSHG:-1} # 0=use source from tarball, 1=clone HG repository (see below)
+WPSOUTDIR="${WORKDIR}/WPS" # folder for WPS build output
+WPSBINDIR="${WPSOUTDIR}/${BUILD}" # destination folder for executables (not tarred)
+WPSOUTTAR="${WPSOUTDIR}/wpsbld.tgz" # tarball of build directory
+WPSINTAR="${WPSINTAR:-${WPSOUTTAR}}" # for optional source input via tarball
+# N.B.: Note that the tarball has to extract into the folder WPS/ (or $WRFOUTDIR needs to be set accordingly)
+
+# HG settings
+WRFROOT="${WRFROOT:-${HOME}/WRFV3.5}"
+WPSSRC="${WRFROOT}/WPS"
+WRFSRC="${WRFROOT}/WRFV3"
+
+# internal settings
+TASKS=16
+RAMDISK="/dev/shm/${USER}"
+WRFDIR="${RAMDISK}/WRFV3"
+WPSDIR="${RAMDISK}/WPS"
+
+
+## initialize
+# load modules
+module purge
+module load intel/13.1.1 intelmpi/4.1.0.027 hdf5/187-v18-serial-intel netcdf/4.1.3_hdf5_serial-intel
+#module load intel/12.1.3 intelmpi/4.0.3.008 hdf5/187-v18-serial-intel netcdf/4.1.3_hdf5_serial-intel
+module load gcc/4.7.2 python/2.7.2 extras/64_6.4 # ncl/6.1.0 
+module list
+export J="-j ${TASKS}"
+
+# copy date / prepare folder
+rm -rf "${RAMDISK}"
+mkdir -p "${RAMDISK}"
+cd "${RAMDISK}"
+
+
+## build WRF
+if [[ ${BLDWRF} == 1 ]]
+  then
+    # get WRF source code
+    if [[ $WRFHG == 0 ]]
+      then # untar tarball
+	tar xzf "${WRFINTAR}"
+      else # checkout repository
+	hg clone --pull "${WRFSRC}" "${WRFDIR}" # --pull makes an actual copy, no links
+    fi # if $WRFHG
+    cd "${WRFDIR}"
+
+    # copy WRF configure script
+    if [[ -e "${WORKDIR}/${WRFCFG}" ]]
+      then cp "${WORKDIR}/${WRFCFG}" "${WRFDIR}/configure.wrf"
+    elif [[ -e "${WRFDIR}/config/${WRFCFG}" ]]
+      then cp "${WRFDIR}/config/${WRFCFG}" "${WRFDIR}/configure.wrf"
+    else
+	echo "ERROR: configure script ${WRFCFG} not found!"
+	rm -rf "${RAMDISK}" # clear RAM disk before exiting
+	exit 1 # can't build without configure script
+    fi
+
+    ## build WRF model
+    cd "${WRFDIR}"
+
+    # launch build script
+    ./compile ${WRFCASE} 2>&1 | tee build.log
+    # just for the record... output will also be in PBS output log
+
+    # check if build was successful
+    echo
+    echo
+    if [[ -e "${WRFDIR}/main/wrf.exe" ]]
+      then
+	WRFEXIT=0
+	echo "   ***   WRF Build Successful!!!   ***   "
+    else
+	WRFEXIT=1
+	echo "   ===   WRF Build Failed!!!   ===   "
+    fi # if wrf.exe exists
+    echo
+    ls -l "${WRFDIR}/main/"
+    echo
+
+    # move WRF binaries / clean up
+    mkdir -p "${WRFOUTDIR}"
+    cp build.log "${WRFOUTDIR}"
+    # if successful, copy binaries
+    if [[ $WRFEXIT == 0 ]]
+      then
+	mkdir -p "${WRFBINDIR}"
+	# copy binaries to hard disk
+	cp "${WRFDIR}/configure.wrf" "${WRFBINDIR}"
+	cp "${WRFDIR}"/main/wrf.exe "${WRFBINDIR}"
+	cp -f "${WRFDIR}"/main/real.exe "${WRFBINDIR}"
+	cp -f "${WRFDIR}"/main/ideal.exe "${WRFBINDIR}"
+    fi # if OK
+
+    # tar and zip directory
+    cd .. # move one up and use parent folder name for tar
+    tar czf "${WRFOUTTAR}" "${WRFDIR##*/}" # ${/some/long/path##*/}=path
+    echo
+
+elif [[ ${BLDWPS} == 1 ]]
+  then
+    # N.B.: we always need a WRF build, because WPS depends on WRF I/O libraries
+    
+    # check if tarball of previous WRF build is available
+    echo
+    if [[ -e "${WRFINTAR}" ]]
+      then
+	# extract tarball of previous WRF build
+	echo '... extracting tarball of previous WRF build: '
+	echo "${WRFINTAR}"
+	tar xzf "${WRFINTAR}"
+      else
+	echo 'WARNING: no previous WRF build found!'
+	echo "${WRFINTAR} does not exists"
+	rm -rf "${RAMDISK}" # clear RAM disk before exiting
+	exit 1
+    fi # if WRFINTAR exists
+    echo
+    
+fi # if $BLDWRF
+
+## build WPS
+if [[ ${BLDWPS} == 1 ]]
+  then
+    # get WPS source code
+    if [[ $WPSHG == 0 ]]
+      then # untar tarball
+	tar xzf "${WPSINTAR}"
+      else # checkout repository
+	hg clone --pull "${WPSSRC}" "${WPSDIR}" # --pull makes an actual copy, no links
+    fi # if $WPSHG
+    cd "${WPSDIR}"
+
+    # copy WPS configure script
+    if [[ -e "${WORKDIR}/${WPSCFG}" ]]
+      then cp "${WORKDIR}/${WPSCFG}" "${WPSDIR}/configure.wps"
+    elif [[ -e "${WPSDIR}/config/${WPSCFG}" ]]
+      then cp "${WPSDIR}/config/${WPSCFG}" "${WPSDIR}/configure.wps"
+    else
+	echo "ERROR: configure script ${WPSCFG} not found!"
+	rm -rf "${RAMDISK}" # clear RAM disk before exiting
+	exit 1 # can't build without configure script
+    fi
+
+    ## build WPS
+    cd "${WPSDIR}"
+
+    # launch build script
+    ./compile 2>&1 | tee build.log
+    # just for the record... output will also be in PBS output log
+
+    # check if build was successful
+    echo
+    echo
+    if [[ -e "${WPSDIR}/geogrid.exe" ]] && [[ -e "${WPSDIR}/metgrid.exe" ]] && [[ -e "${WPSDIR}/ungrib.exe" ]]
+      then
+	WPSEXIT=0
+	echo "   ***   WPS Build Successful!!!   ***   "
+    elif [[ -e "${WPSDIR}/geogrid.exe" ]] || [[ -e "${WPSDIR}/metgrid.exe" ]] || [[ -e "${WPSDIR}/ungrib.exe" ]]
+	then
+	WPSEXIT=0
+	echo "   ***   WPS Build Partially Successful...   ***   "
+    else
+	WPSEXIT=1
+	echo "   ===   WPS Build Failed!!!   ===   "
+    fi # if any WPS *.exe exists
+    echo
+    ls -l "${WPSDIR}/"
+    echo
+
+    # move WPS binaries / clean up
+    mkdir -p "${WPSOUTDIR}"
+    cp build.log "${WPSOUTDIR}"
+    # if successful, copy binaries
+    if [[ ${WPSEXIT} == 0 ]]
+      then
+	mkdir -p "${WPSBINDIR}"
+	# copy binaries to hard disk
+	cp "${WPSDIR}/configure.wps" "${WPSBINDIR}"
+	cp -f "${WPSDIR}/geogrid.exe" "${WPSBINDIR}"
+	cp -f "${WPSDIR}/metgrid.exe" "${WPSBINDIR}"
+	cp -f "${WPSDIR}/ungrib.exe" "${WPSBINDIR}"
+    fi # if OK
+
+    # tar and zip directory
+    cd .. # move one up and use parent folder name for tar
+    tar czf "${WPSOUTTAR}" "${WPSDIR##*/}" # ${/some/long/path##*/}=path
+    echo
+
+fi # if $BLDWPS
+
+
+# clean RAM disk before exiting
+rm -rf "${RAMDISK}"
+
+# exit with proper exit code
+exit $(( ${WRFEXIT} + ${WPSEXIT} ))

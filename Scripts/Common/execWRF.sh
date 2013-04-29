@@ -228,10 +228,18 @@ if [[ ${RUNWRF} == 1 ]]
     wait # wait for all threads to finish
     echo
     # check WRF exit status
-    if [[ -n $(grep 'SUCCESS COMPLETE WRF' 'rsl.error.0000') ]];
-	then WRFERR=0
-	else WRFERR=1
+    echo
+    if [[ -n $(grep 'SUCCESS COMPLETE WRF' 'rsl.error.0000') ]]; then
+      	WRFERR=0
+      	echo '   ***   WRF COMPLETED SUCCESSFULLY!!!   ***   '
+    elif [[ -n $(grep 'NaN' 'rsl.error.'*) ]] || [[ -n $(grep 'NAN' 'rsl.error.'*) ]]; then
+      	WRFERR=1
+      	echo '   >>>   WRF FAILED:   NUMERICAL INSTABILITY   <<<   '
+    else 
+      	WRFERR=1
+      	echo '   >>>   WRF FAILED! (UNKNOWN ERROR)   <<<   '
     fi
+    echo
 
     # clean-up and move output to destination
     rm -rf "${WORKDIR}/${WRFLOG}" # remove old logs
