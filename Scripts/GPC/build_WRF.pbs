@@ -25,8 +25,8 @@ BUILD=${BUILD:-"${PBS_JOBNAME}"} # build identification
 WORKDIR=${WORKDIR:-"${PBS_O_WORKDIR}"} # root folder for output
 
 # WRF
-BLDWRF=${BLDWRF:-0}
-WRFCFG='configure.wrf' # configure script to be used
+BLDWRF=${BLDWRF:-1}
+WRFCFG=${WRFCFG:-'configure.gpc-mpi-clim.o3xsse42nc4'} # configure script to be used
 WRFHG=${WRFHG:-1} # 0=use source from tarball, 1=clone HG repository (see below)
 WRFCASE='em_real' # type of WRF build: em_real for real data
 WRFOUTDIR="${WORKDIR}/WRFV3" # folder for WRF build output
@@ -37,7 +37,7 @@ WRFINTAR="${WRFINTAR:-${WRFOUTTAR}}" # for optional source input via tarball
 
 # WPS
 BLDWPS=${BLDWPS:-0} # currently not implemented
-WPSCFG='configure.wps' # configure script to be used
+WPSCFG=${WPSCFG:-'configure.gpc-mpi-clim.o3xssse3grb2'} # configure script to be used
 WPSHG=${WPSHG:-1} # 0=use source from tarball, 1=clone HG repository (see below)
 WPSOUTDIR="${WORKDIR}/WPS" # folder for WPS build output
 WPSBINDIR="${WPSOUTDIR}/${BUILD}" # destination folder for executables (not tarred)
@@ -61,6 +61,7 @@ WPSDIR="${RAMDISK}/WPS"
 # load modules
 module purge
 module load intel/13.1.1 intelmpi/4.1.0.027 hdf5/187-v18-serial-intel netcdf/4.1.3_hdf5_serial-intel
+#module load intel/12.1.5 openmpi/1.4.4-intel-v12.1 hdf5/187-v18-serial-intel netcdf/4.1.3_hdf5_serial-intel
 #module load intel/12.1.3 intelmpi/4.0.3.008 hdf5/187-v18-serial-intel netcdf/4.1.3_hdf5_serial-intel
 module load gcc/4.7.2 python/2.7.2 extras/64_6.4 # ncl/6.1.0 
 module list
