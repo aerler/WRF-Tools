@@ -46,9 +46,9 @@ WPSINTAR="${WPSINTAR:-${WPSOUTTAR}}" # for optional source input via tarball
 # N.B.: Note that the tarball has to extract into the folder WPS/ (or $WRFOUTDIR needs to be set accordingly)
 
 # HG settings
-WRFROOT="${WRFROOT:-${HOME}/WRFV3.5}"
-WPSSRC="${WRFROOT}/WPS"
-WRFSRC="${WRFROOT}/WRFV3"
+WRFROOT=${WRFROOT:-"${HOME}/WRFV3.5"}
+WPSSRC=${WPSSRC:-"${WRFROOT}/WPS"}
+WRFSRC=${WRFSRC:-"${WRFROOT}/WRFV3"}
 
 # internal settings
 TASKS=16

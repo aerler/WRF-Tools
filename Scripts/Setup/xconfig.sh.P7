@@ -38,14 +38,15 @@ GEOGRID="${DOM},${DOM}-grid"
 RUNDIR="${PWD}" # must not contain spaces!
 # source data definition
 DATATYPE='CESM'
-DATADIR="/scratch/p/peltier/marcdo/archive/tb20trcn1x1/"
+DATADIR="/reserved1/p/peltier/marcdo/FromHpss/tb20trcn1x1/"
 
 ## system settings
 # WPSWCT, WRFWCT, WRFNODES # wallclock time and number of nodes
-# WPS executables
+# WRFROOT can be used to select the WRF version
+# WPS executables (see WPSSRC)
 WPSSYS="GPC" # also affects unccsm.exe
 # set path for metgrid.exe and real.exe explicitly using METEXE and REALEXE
-# WRF executable
+# WRF executable (see WRFSRC)
 POLARWRF=0 # use PolarWRF
 FLAKE=1 # use FLake
 WRFSYS="P7"

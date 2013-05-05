@@ -16,7 +16,9 @@ echo "Host list: ${HOSTLIST}"
 echo
 # load modules
 module purge
-module load xlf/14.1 vacpp/12.1 hdf5/187-v18-serial-xlc netcdf/4.1.3_hdf5_serial-xlc pe/1.2.0.7
+module load xlf pe vacpp hdf5 netcdf
+#module load xlf/14.1.0.2 vacpp/12.1.0.2 pe/1.2.0.9 hdf5/187-v18-serial-xlc netcdf/4.1.3_hdf5_serial-xlc
+#module load xlf/14.1 vacpp/12.1 hdf5/187-v18-serial-xlc netcdf/4.1.3_hdf5_serial-xlc pe/1.2.0.9
 #module load xlf/13.1 vacpp/11.1 pe/1.2.0.7 hdf5/187-v18-serial-xlc netcdf/4.1.3_hdf5_serial-xlc
 # pyWPS.py specific modules
 if [[ ${RUNPYWPS} == 1 ]]; then

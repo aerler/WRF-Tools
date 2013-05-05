@@ -139,7 +139,7 @@ if [[ ${RUNREAL} == 1 ]]
     echo
 
     # copy namelist and link to real.exe into working directory
-    cp ${NOCLOBBER} -P "${BINDIR}/real.exe" "${WORKDIR}" # link to executable real.exe
+    cp -P "${BINDIR}/real.exe" "${WORKDIR}" # link to executable real.exe
     cp ${NOCLOBBER} "${INIDIR}/namelist.input" "${WORKDIR}" # copy namelists
     # N.B.: this is necessary so that already existing files in $WORKDIR are used
 

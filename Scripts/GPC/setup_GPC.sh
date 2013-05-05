@@ -6,6 +6,7 @@
 echo
 module purge
 module load intel/13.1.1 intelmpi/4.1.0.027 hdf5/187-v18-serial-intel netcdf/4.1.3_hdf5_serial-intel extras/64_6.4
+#module load intel/12.1.5 openmpi/1.4.4-intel-v12.1 hdf5/187-v18-serial-intel netcdf/4.1.3_hdf5_serial-intel extras/64_6.4
 #module load intel/12.1.3 intelmpi/4.0.3.008 hdf5/187-v18-serial-intel netcdf/4.1.3_hdf5_serial-intel
 # pyWPS.py specific modules
 if [[ ${RUNPYWPS} == 1 ]]; then

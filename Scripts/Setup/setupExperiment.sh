@@ -83,6 +83,7 @@ CYCLING="monthly.1979-2009" # stepfile to be used (leave empty if not cycling)
 DATADIR='' # root directory for data
 DATATYPE='CESM' # boundary forcing type
 ## run configuration
+WRFROOT="${HOME}/WRFV3.4/"
 WRFTOOLS="${MODEL_ROOT}/WRF Tools/"
 # I/O and archiving
 IO='fineIO' # this is used for namelist construction and archiving
@@ -157,6 +158,10 @@ if [ ${POLARWRF} == 1 ]; then
 #   WPSBLD="Clim-fineIO" # not yet polar...
   WRFBLD="Polar-${WRFBLD}"
 fi # if PolarWRF
+
+# source folders (depending on $WRFROOT; can be set in xconfig.sh)
+WPSSRC=${WPSSRC:-"${WRFROOT}/WPS/"}
+WRFSRC=${WRFSRC:-"${WRFROOT}/WRFV3/"}
 
 # default WPS and real executables
 if [[ "${WPSSYS}" == "GPC" ]]; then
@@ -452,7 +457,7 @@ elif [[ ${POLARWRF} == 1 ]]; then # PolarWRF
   TABLES="${WRFTOOLS}/misc/tables-PolarWRF/"
   echo "Linking PolarWRF tables: ${TABLES}"
 else
-  TABLES="${WRFTOOLS}/misc/tables/"
+  TABLES="${WRFSRC}/run/"
   echo "Linking default tables: ${TABLES}"
 fi
 # link appropriate tables for physics options
@@ -464,7 +469,10 @@ done
 # copy data file for emission scenario, if applicable
 if [[ -n "${GHG}" ]]; then # only if $GHG is defined!
     echo
-    if [[ ${RAD} == 'CAM' ]] || [[ ${RAD} == 3 ]]; then
+    if [[ ${RAD} == 'RRTM' ]] || [[ ${RAD} == 1 ]] \
+       || [[ ${RAD} == 'CAM' ]] || [[ ${RAD} == 3 ]] \
+       || [[ ${RAD} == 'RRTMG' ]] || [[ ${RAD} == 4 ]]
+    then
         echo "GHG emission scenario: ${GHG}"
         ln -sf "${TABLES}/CAMtr_volume_mixing_ratio.${GHG}" # do not clip scenario extension (yet)
     else
