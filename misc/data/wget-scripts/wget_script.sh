@@ -1,0 +1,41 @@
+#!/bin/bash
+
+# set password variable
+
+#export RDAPSWD='\P~xLJN#6\CR'
+BEGIN=1990; END=2000
+
+# download surface data
+cd /reserved1/p/peltier/aerler/CFSR/SRFC/
+
+# execute download scripts one by one
+WGETLOGSRFC=wget-script_CFSR_${BEGIN}-${END}_SRFC.log
+for N in 1 2 3 4; do
+ ./wget-script_CFSR_${BEGIN}-${END}_SFC-part-${N}.csh >> ${WGETLOGSRFC}
+done
+
+# rename files (remove date range)
+MVLOGSRFC=renaming_CFSR_${BEGIN}-${END}_SRFC.log
+touch ${MVLOGSRFC}
+for F in ????????????.flxf06.gdas.????????-????????.grb2
+  do 
+    mv ${F} ${F%.????????-????????.grb2}.grb2
+    echo "mv ${F} ${F%.????????-????????.grb2}.grb2" >> ${MVLOGSRFC}
+done
+
+# download pressure level data
+cd /reserved1/p/peltier/aerler/CFSR/PLEV/
+
+# execute download scripts one by one
+WGETLOGPLEV=wget-script_CFSR_${BEGIN}-${END}_PLEV.log
+for N in 1 2 3 4; do
+ ./wget-script_CFSR_${BEGIN}-${END}_PLEV-part-${N}.csh >> ${WGETLOGPLEV}
+done
+
+# rename files (remove date range)
+MVLOGPLEV=renaming_CFSR_${BEGIN}-${END}_PLEV.log
+for F in ????????????.pgbh06.gdas.????????-????????.grb2
+  do 
+    mv ${F} ${F%.????????-????????.grb2}.grb2
+    echo "mv ${F} ${F%.????????-????????.grb2}.grb2" >> ${MVLOGPLEV}
+done

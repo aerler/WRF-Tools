@@ -131,15 +131,15 @@ if [[ "${DATATYPE}" == 'CESM' ]]; then
 elif [[ "${DATATYPE}" == 'CFSR' ]]; then
   VTABLE_PLEV=${VTABLE_PLEV:-'Vtable.CFSR_press_pgbh06'}
   VTABLE_SRFC=${VTABLE_SRFC:-'Vtable.CFSR_sfc_flxf06'}
-  METGRIDTBL=${METGRIDTBL:-'METGRID.TBL.V3.4'}
+  METGRIDTBL=${METGRIDTBL:-'METGRID.TBL.ARW'}
 else # WPS default
-  METGRIDTBL=${METGRIDTBL:-'METGRID.TBL.V3.4'}
+  METGRIDTBL=${METGRIDTBL:-'METGRID.TBL.ARW'}
 fi # $DATATYPE
 
 if [[ ${FLAKE} == 1 ]]; then
   GEOGRIDTBL=${GEOGRIDTBL:-'GEOGRID.TBL.FLAKE'}
 else
-  GEOGRIDTBL=${GEOGRIDTBL:-'GEOGRID.TBL.V3.4'}
+  GEOGRIDTBL=${GEOGRIDTBL:-'GEOGRID.TBL.ARW'}
 fi # $FLAKE
 
 # figure out WRF and WPS build
@@ -275,13 +275,13 @@ sed -i "/max_dom/ s/^\s*max_dom\s*=\s*.*$/ max_dom = ${MAXDOM}, ! this entry was
 echo "Linking WPS meta data and tables (${WRFTOOLS}/misc/data/)"
 mkdir -p "${RUNDIR}/meta"
 cd "${RUNDIR}/meta"
-ln -sf "${WRFTOOLS}/misc/data/${GEOGRIDTBL}" 'GEOGRID.TBL'
-ln -sf "${WRFTOOLS}/misc/data/${METGRIDTBL}" 'METGRID.TBL'
+ln -sf "${WPSSRC}/geogrid/${GEOGRIDTBL}" 'GEOGRID.TBL'
+ln -sf "${WPSSRC}/metgrid/${METGRIDTBL}" 'METGRID.TBL'
 if [[ "${DATATYPE}" == 'CESM' ]] || [[ "${DATATYPE}" == 'CCSM' ]]; then
   ln -sf "${WRFTOOLS}/misc/data/${POPMAP}"
 elif [[ "${DATATYPE}" == 'CFSR' ]]; then
-  ln -sf "${WRFTOOLS}/misc/data/VTables/${VTABLE_PLEV}" 'Vtable.CFSR_plev'
-  ln -sf "${WRFTOOLS}/misc/data/VTables/${VTABLE_SRFC}" 'Vtable.CFSR_srfc'
+  ln -sf "${WPSSRC}/ungrib/Variable_Tables/${VTABLE_PLEV}" 'Vtable.CFSR_plev'
+  ln -sf "${WPSSRC}/ungrib/Variable_Tables/${VTABLE_SRFC}" 'Vtable.CFSR_srfc'
 fi # $DATATYPE
 # link boundary data
 echo "Linking boundary data: ${DATADIR}"
@@ -450,11 +450,11 @@ else
     echo 'WARNING: no land-surface model selected!'
 fi
 # determine tables folder
-if [[ ${LSM} == 4 ]]; then # NoahMP
-  TABLES="${WRFTOOLS}/misc/tables-NoahMP/"
+if [[ ${LSM} == 4 ]] && [[ -e "${WRFSRC}/run-NoahMP/" ]]; then # NoahMP
+  TABLES="${WRFSRC}/run-NoahMP/"
   echo "Linking Noah-MP tables: ${TABLES}"
-elif [[ ${POLARWRF} == 1 ]]; then # PolarWRF
-  TABLES="${WRFTOOLS}/misc/tables-PolarWRF/"
+elif [[ ${POLARWRF} == 1 ]] && [[ -e "${WRFSRC}/run-PolarWRF/" ]]; then # PolarWRF
+  TABLES="${WRFSRC}/run-PolarWRF/"
   echo "Linking PolarWRF tables: ${TABLES}"
 else
   TABLES="${WRFSRC}/run/"
