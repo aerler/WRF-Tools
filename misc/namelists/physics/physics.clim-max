@@ -23,7 +23,7 @@
  rdmaxalb                            = .false., ! from geogrid
  rdlai2d                             = .false., ! CESM data could be used
  fractional_seaice                   = 1, ! from CESM; XICE in Vtable
- seaice_albedo_opt                   = 1, ! varies with temperature etc.
+! seaice_albedo_opt                   = 1, ! varies with temperature etc.
  sst_update                          = 1, ! applies to all lower input variables
  sst_skin                            = 1, ! compute diurnal cycle for SST
  tmn_update                          = 1, ! deep soil temperature update
