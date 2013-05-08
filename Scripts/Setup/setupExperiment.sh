@@ -428,6 +428,27 @@ elif [[ ${RAD} == 4 ]]; then
 else
     echo 'WARNING: no radiation scheme selected!'
 fi
+# urban surface scheme
+URB=$(sed -n '/sf_urban_physics/ s/^\s*sf_urban_physics\s*=\s*\(.\),.*$/\1/p' namelist.input) # \s = space
+echo "Determining urban surface scheme from namelist: URB=${URB}"
+# write default URB into job script ('sed' sometimes fails on TCS...)
+sed -i "/export URB/ s/export\sURB=.*$/export URB=\'${URB}\' # radiation scheme set by setup script/" "run_${CASETYPE}_WRF.${WRFQ}"
+# select scheme and print confirmation
+if [[ ${URB} == 0 ]]; then
+    echo 'No urban surface scheme selected.'
+    URBTAB=""
+elif [[ ${URB} == 1 ]]; then
+    echo "  Using single layer urban surface scheme."
+    URBTAB="URBPARM.TBL"
+elif [[ ${URB} == 2 ]]; then
+    echo "  Using multi-layer urban surface scheme."
+    URBTAB="URBPARM_UZE.TBL"
+    PBL=$(sed -n '/bl_pbl_physics/ s/^\s*bl_pbl_physics\s*=\s*\(.\),.*$/\1/p' namelist.input) # \s = space
+    if [[ ${PBL} != 2 ]] && [[ ${PBL} != 8 ]]; then
+      echo 'WARNING: sf_urban_physics = 2 requires bl_pbl_physics = 2 or 8!'; fi
+else
+    echo 'No no urban scheme selected! Default: none.'
+fi
 # land-surface scheme
 LSM=$(sed -n '/sf_surface_physics/ s/^\s*sf_surface_physics\s*=\s*\(.\),.*$/\1/p' namelist.input) # \s = space
 echo "Determining land-surface scheme from namelist: LSM=${LSM}"
@@ -463,7 +484,7 @@ fi
 # link appropriate tables for physics options
 mkdir -p "${RUNDIR}/tables/"
 cd "${RUNDIR}/tables/"
-for TBL in ${RADTAB} ${LSMTAB}; do
+for TBL in ${RADTAB} ${LSMTAB} ${URBTAB}; do
     ln -sf "${TABLES}/${TBL}"
 done
 # copy data file for emission scenario, if applicable

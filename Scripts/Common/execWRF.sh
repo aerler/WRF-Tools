@@ -163,6 +163,31 @@ if [[ ${RUNWRF} == 1 ]]
 	echo 'WARNING: no radiation scheme selected!'
 	# this will only happen if no defaults are set and inferring from namelist via 'sed' failed
     fi
+    # urban surface scheme
+    SEDURB=$(sed -n '/sf_urban_physics/ s/^\s*sf_urban_physics\s*=\s*\(.\),.*$/\1/p' namelist.input) # \s = space
+    if [[ -n "${SEDURB}" ]]; then
+	URB="${SEDURB}" # prefer namelist value over pre-set default
+        echo "Determining urban surface scheme from namelist: URB=${URB}"
+    fi
+    echo "Determining urban surface scheme from namelist: URB=${URB}"
+    # write default URB into job script ('sed' sometimes fails on TCS...)
+    sed -i "/export URB/ s/export\sURB=.*$/export URB=\'${URB}\' # radiation scheme set by setup script/" "run_${CASETYPE}_WRF.${WRFQ}"
+    # select scheme and print confirmation
+    if [[ ${URB} == 0 ]]; then
+        echo 'No urban surface scheme selected.'
+        URBTAB=""
+    elif [[ ${URB} == 'single' ]] || [[ ${URB} == 1 ]]; then
+        echo "  Using single layer urban surface scheme."
+        URBTAB="URBPARM.TBL"
+    elif [[ ${URB} == 'multi' ]] || [[ ${URB} == 2 ]]; then
+        echo "  Using multi-layer urban surface scheme."
+        URBTAB="URBPARM_UZE.TBL"
+        PBL=$(sed -n '/bl_pbl_physics/ s/^\s*bl_pbl_physics\s*=\s*\(.\),.*$/\1/p' namelist.input) # \s = space
+        if [[ ${PBL} != 2 ]] && [[ ${PBL} != 8 ]]; then
+          echo 'WARNING: sf_urban_physics = 2 requires bl_pbl_physics = 2 or 8!'; fi
+    else
+        echo 'No no urban scheme selected! Default: none.'
+    fi
     # land-surface scheme: try to infer from namelist using 'sed'
     SEDLSM=$(sed -n '/sf_surface_physics/ s/^\s*sf_surface_physics\s*=\s*\(.\),.*$/\1/p' namelist.input) # \s = space
     if [[ -n "${SEDLSM}" ]]; then
@@ -191,7 +216,7 @@ if [[ ${RUNWRF} == 1 ]]
     fi
     # copy appropriate tables for physics options
     cd "${TABLES}"
-    cp ${NOCLOBBER} ${RADTAB} ${LSMTAB} "${WRFDIR}"
+    cp ${NOCLOBBER} ${RADTAB} ${LSMTAB} ${URBTAB} "${WRFDIR}"
     # copy data file for emission scenario, if applicable
     if [[ -n "${GHG}" ]]; then # only if $GHG is defined!
 	echo
