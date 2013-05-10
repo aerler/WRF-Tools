@@ -389,13 +389,13 @@ if [[ -n "${ARSCRIPT}" ]]; then
     ls "${ARSCRIPT}"
     # set archiving interval
     if [[ -n"${ARINTERVAL}" ]]; then
-	sed -i "/INTERVAL/ s/INTERVAL=.*$/INTERVAL=\'${ARINTERVAL}\' # interval in which the archive script is to be executed/" "${ARSCRIPT}"
+	sed -i "/INTERVAL/ s/^\s*INTERVAL=.*$/INTERVAL=\'${ARINTERVAL}\' # interval in which the archive script is to be executed/" "${ARSCRIPT}"
     fi
     # set appropriate dataset variable for number of domains
     if [[ ${MAXDOM} == 1 ]]; then
-	sed -i "/DATASET/ s/DATASET=\${DATASET:-.*}\s.*$/DATASET=\${DATASET:-'FULL_D1'} # default dataset: everything (one domain)/" "${ARSCRIPT}"
+	sed -i "/DATASET/ s/^\s*DATASET=\${DATASET:-.*}\s.*$/DATASET=\${DATASET:-'FULL_D1'} # default dataset: everything (one domain)/" "${ARSCRIPT}"
     elif [[ ${MAXDOM} == 2 ]]; then
-	sed -i "/DATASET/ s/DATASET=\${DATASET:-.*}\s.*$/DATASET=\${DATASET:-'FULL_D12'} # default dataset: everything (two domains)/" "${ARSCRIPT}"
+	sed -i "/DATASET/ s/^\s*DATASET=\${DATASET:-.*}\s.*$/DATASET=\${DATASET:-'FULL_D12'} # default dataset: everything (two domains)/" "${ARSCRIPT}"
     else
       echo
       echo "WARNING: Number of domains (${MAXDOM}) incompatible with available archiving options."
