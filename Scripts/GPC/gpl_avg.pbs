@@ -1,0 +1,71 @@
+#/bin/bash
+
+## queue/PBS settings
+#PBS -l nodes=1:ppn=8
+# batch queue: nodes=1:m32g:ppn=8
+# largemem queue: nodes=1:m128g:ppn=16
+#PBS -l walltime=24:00:00
+# merge standard error and output stream
+#PBS -j oe
+#PBS -o $PBS_JOBNAME.$PBS_JOBID.out
+# send email if abort (nbae)
+#PBS -M aerler@atmosp.physics.utoronto.ca
+#PBS -m ae
+# job name
+#PBS -N gpl_avgWRF
+## submit to queue (NB: this has to be the last PBS line!)
+# batch (default), debug, largemem
+#PBS -q batch
+# N.B.: the queue setting may have been changed by the last submitting instance
+
+# load modules (we need to load the netcdf module in order to use it in Python)
+module load intel/13.1.1 gcc/4.7.2 python/2.7.2 hdf5/187-v18-serial-intel netcdf/4.1.3_hdf5_serial-intel gnu-parallel/20121022
+
+# settings
+PYAVG='avgWRF' # averaging script
+PERIOD='1979-1981' # extension to command and output files
+DATASET='*-*/'
+
+# explicit modifications...
+DATASRC="/reserved1/p/peltier/aerler/Downscaling/${DATASET} /scratch/p/peltier/aerler/Downscaling/${DATASET}"
+if [[ -n "${PERIOD}" ]]
+  then
+    AVGEXT="_${PERIOD}"
+    PYCMD="${PYAVG}_${PERIOD}"
+  else
+    AVGEXT=""
+    PYCMD="${PYAVG}"
+fi # if $PERIOD
+
+# root directory
+cd $PBS_O_WORKDIR
+
+# generate command file
+rm -f cmdfile.tmp
+for D in ${DATASRC}
+  do
+    # make sure folder is set up
+    mkdir -p "${D}/wrfavg"
+    cp -P "${PYCMD}.py" "${D}"
+    # write command file entry
+    echo "cd ${D}; python ${PYCMD}.py > ${PYCMD}.log; mv wrfout/*clim${AVGEXT}.nc wrfout/*monthly${AVGEXT}.nc wrfavg; echo \"$D:\"; ls wrfavg" >> cmdfile.tmp
+done
+
+# execute commands
+parallel -j 8 << cmdfile.tmp
+ERR=$? # capture exit code
+
+# clean up
+echo
+if [[ 0 == ${ERR} ]]
+  then
+    echo '   ***   All Jobs Completed Successfully!!!   ***   '
+    rm cmdfile.tmp	
+  else
+    echo "  >>>   ERRORS DETECTED - EXIT CODE ${ERR}   <<<   " 
+    echo "inspect command file ${PBS_O_WORKDIR}/cmdfile.tmp"
+fi # if $ERR
+echo
+
+# exit with gnuparallel exit code
+exit ${ERR}

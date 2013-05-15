@@ -31,7 +31,7 @@ else:
 maxdom = 2
 wrfpfx = 'wrfsrfc_d%02i_' # %02i is for the domain number
 wrfext = '-01_00:00:00.nc'
-wrfdate = '19(79|80))-\d\d' # use '\d' for any number and [1-3,45] for ranges
+wrfdate = '19(79|8[0-1])-\d\d' # use '\d' for any number and [1-3,45] for ranges
 # output files and folders
 meanfile = 'wrfsrfc_d%02i_monthly_1979-1981.nc' # %02i is for the domain number
 climfile = 'wrfsrfc_d%02i_clim_1979-1981.nc' # %02i is for the domain number
@@ -39,7 +39,8 @@ climfile = 'wrfsrfc_d%02i_clim_1979-1981.nc' # %02i is for the domain number
 tax = 0 # time axis (to average over)
 dimlist = ['x', 'y'] # copy these dimensions
 dimmap = dict(time='Time', x='west_east', y='south_north') # original names of dimensions
-varlist = ['ps','T2','Ts','rainnc','rainc','snownc','graupelnc','snow'] # include these variables in monthly means 
+# include these variables in monthly means 
+varlist = ['ps','T2','Ts','rainnc','rainc','snownc','graupelnc','snow','snowh'] 
 varmap = dict(ps='PSFC',T2='T2',Ts='TSK',snow='SNOW',snowh='SNOWH', # original (WRF) names of variables
               rainnc='RAINNC',rainc='RAINC',rainsh='RAINSH',snownc='SNOWNC',graupelnc='GRAUPELNC') 
 acclist = dict(rainnc=100,rainc=100,rainsh=0,snownc=0,graupelnc=0) # dictionary of accumulated variables
