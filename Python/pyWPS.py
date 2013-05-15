@@ -120,6 +120,10 @@ class Dataset():
   def dataDir(self):
     # universal wrapper method for folder with "master-filelist"
     pass
+  def checkSubDir(self,subdir):
+    # method to determine whether a subfolder contains valid data and can be processed recursively
+    # most datasets will not have subfolders, we skip all subfolders by default    
+    return False
   def extractDate(self):
     # method to generate date tuple from date string in filename 
     pass
@@ -241,6 +245,7 @@ class CESM(Dataset):
   ncext = ncext
   dateform = '\d\d\d\d-\d\d-\d\d-\d\d\d\d\d'
   datestr = '%04i-%02i-%02i-%05i' # year, month, day, seconds
+  yearlyfolders = False # use subfolders for every year
   # atmosphere
   atmdir = 'atm/'
   atmpfx = '.cam2.h1.'
@@ -275,11 +280,21 @@ class CESM(Dataset):
       # get file prefix for data files
       # use only atmosphere files
       prergx = re.compile(self.atmpfx+self.dateform+self.ncext+'$')
-      # search for first valid filename
-      for filename in os.listdir(self.AtmDir):
-        match = prergx.search(filename) 
-        if match: break
-      prefix = filename[0:match.start()] # use everything before the pattern as prefix
+      # recursive function to search for first valid filename in subfolders
+      def searchValidName(SearchFolder):
+        prfx = None
+        for filename in os.listdir(SearchFolder):
+          TmpDir = SearchFolder+'/'+filename
+          if os.path.isdir(TmpDir):
+            prfx = searchValidName(TmpDir) # recursion
+            if prfx: self.yearlyfolders = True
+          else:
+            match = prergx.search(filename) 
+            if match: prfx = filename[0:match.start()] # use everything before the pattern as prefix
+          if prfx: break
+        return prfx
+      # find valid file name in atmosphere directory
+      prefix = searchValidName(self.AtmDir)
       # print prefix
       print('\n No data prefix defined; inferring prefix from valid data files in directory '+self.AtmDir)
       print('  prefix = '+prefix)
@@ -287,6 +302,9 @@ class CESM(Dataset):
     if prefix: self.lndpfx = prefix+self.lndpfx
     if prefix: self.icepfx = prefix+self.icepfx
     self.prefix = prefix
+    
+    # identify subfolder structure
+    if self.yearlyfolders: print('\n Data appears to be stored in yearly subfolders.')
 
     ## compile regular expressions (needed to extract dates)
     # use atmosphere files as master list 
@@ -299,7 +317,12 @@ class CESM(Dataset):
     if self.folder: return self.AtmDir # use atmosphere folder as master
     else: return None # None if no folder is set
     
-  def extractDate(self, filename, zero=2000):
+  def checkSubDir(self, subdir, start, end):
+    # method to determine whether a subfolder contains valid data and can be processed recursively
+    # assume the subfolder name is a valid calendar year and test that it is within the right time period
+    return start[0] <= int(subdir) <= end[0]
+    
+  def extractDate(self, filename): # , zero=2000
     # method to generate date tuple from date string in filename
     # match valid filenames
     match = self.atmrgx.match(filename) # return match object
@@ -346,10 +369,13 @@ class CESM(Dataset):
     datestr = self.datestr%(date[0],date[1],date[2],date[3]*3600) # not hours, but seconds...
     # create links to relevant source data (requires full path for linked files)
     atmfile = self.atmpfx+datestr+self.ncext
+    if self.yearlyfolders: atmfile = '%04i/%s'%(date[0],atmfile) 
     os.symlink(self.AtmDir+atmfile,self.atmlnk)
     lndfile = self.lndpfx+datestr+self.ncext
+    if self.yearlyfolders: lndfile = '%04i/%s'%(date[0],lndfile)
     os.symlink(self.LndDir+lndfile,self.lndlnk)
     icefile = self.icepfx+datestr+self.ncext
+    if self.yearlyfolders: icefile = '%04i/%s'%(date[0],icefile)
     if os.path.exists(self.IceDir+icefile):
       os.symlink(self.IceDir+icefile,self.icelnk)
       print('\n '+mytag+' Processing time-step:  '+datestr+'\n    '+atmfile+'\n    '+lndfile+'\n    '+icefile)
@@ -415,25 +441,35 @@ def divideList(genericlist, n):
 ## parallel pre-processing function
 # N.B.: this function has some shared variables for folder names and regx'
 # function to process filenames and check dates
-def processFiles(filelist, queue):
+def processFiles(qfilelist, qListDir, queue):
 #  # some old code with interesting regex handling
 #  files = [atmrgx.match(file) for file in filelist] # parse (partial) filelist for atmospheric model (CAM) output  
 #  atmfiles = [match.group() for match in files if not match is None] # list of time steps from atmospheric output
 #  files = [dateregx.search(atmfile) for atmfile in atmfiles]
 #  dates = [match.group() for match in files if not match is None]
-  okdates = [] # list of valid dates
-  # loop over dates
-  for filename in filelist:
-    # figure out time and date
-    date = dataset.extractDate(filename)
-    # collect valid dates
-    if date: # i.e. not 'None'
-      # check date for validity (only need to check first/master domain)      
-      lok = time.checkDate(date, starts[0], ends[0])
-      # collect dates within range
-      if lok: okdates.append(date)
+  # function to check filenames and subfolders recursively
+  def checkFileList(filelist, ListDir, okdates):
+    # loop over dates
+    for filename in filelist:
+      TmpDir = ListDir + '/' + filename
+      if os.path.isdir(TmpDir):
+        if dataset.checkSubDir(filename, starts[0], ends[0]):          
+          # make list of contents and process recursively
+          okdates = checkFileList(os.listdir(TmpDir), TmpDir, okdates)
+      else:
+        # figure out time and date
+        date = dataset.extractDate(filename)
+        # collect valid dates
+        if date: # i.e. not 'None'
+          # check date for validity (only need to check first/master domain)      
+          lok = time.checkDate(date, starts[0], ends[0])
+          # collect dates within range
+          if lok: okdates.append(date)
+    return okdates
+  # start checking file list (start with empty results list)
+  qokdates = checkFileList(qfilelist, qListDir, []) 
   # return list of valid datestrs
-  queue.put(okdates)
+  queue.put(qokdates)
   
 
 ## primary parallel processing function: workload for each process
@@ -569,9 +605,10 @@ if __name__ == '__main__':
     Meta = Tmp + meta
     # parse namelist parameters
     imd, maxdom, isd, startdates, ied, enddates = time.readNamelist(nmlstwps)
-    # figure out domains
+    # translate start/end dates into numerical tuples
     starts = [time.splitDateWRF(sd) for sd in startdates]
     ends = [time.splitDateWRF(ed) for ed in enddates]
+    # figure out domains
     doms = range(1,maxdom+1) # list of domain indices
         
     # copy meta data to temporary folder
@@ -606,7 +643,7 @@ if __name__ == '__main__':
     for pid in xrange(NP):
       q = multiprocessing.Queue()
       queues.append(q)
-      p = multiprocessing.Process(name=pname%pid, target=processFiles, args=(listoffilelists[pid], q))
+      p = multiprocessing.Process(name=pname%pid, target=processFiles, args=(listoffilelists[pid], DataDir, q))
       procs.append(p)
       p.start() 
     # terminate sub-processes and collect results    

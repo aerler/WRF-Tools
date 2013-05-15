@@ -197,7 +197,7 @@ elif [[ "${WRFSYS}" == "P7" ]]; then
 elif [[ "${WRFSYS}" == "i7" ]]; then
     WRFQ='sh' # queue system
     WRFWCT=${WRFWCT:-'0:00:00'}; WRFNODES=${WRFNODES:-1} # WRF resource config on i7
-    GEOEXE=${GEOEXE:-"${WPSSRC}/i7-MPI/${WPSBLD}/O3xSSE42NC4/geogrid.exe"}
+    GEOEXE=${GEOEXE:-"${WPSSRC}/i7-MPI/${WPSBLD}/O3xSSE42/geogrid.exe"}
     WRFEXE=${WRFEXE:-"${WRFSRC}/i7-MPI/${WRFBLD}/O3xSSE42NC4/wrf.exe"}
 fi
 

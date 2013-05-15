@@ -1,5 +1,5 @@
 #!/bin/bash
-WRFTOOLS="${MODEL_ROOT}/WRF Tools-tmp/"
+WRFTOOLS="${MODEL_ROOT}/WRF Tools/"
 ## scenario definition section
 NAME='test'
 # GHG emission scenario
@@ -19,6 +19,7 @@ DOM='arb1-120km'
 TIME_CONTROL="cycling,${IO}"
 DIAGS='hitop'
 PHYSICS='clim'
+PHYSICS_MOD=' ra_sw_physics   = 4,   4, ! RRTMG: ra_lw_physics   = 4,   4, ! RRTMG'
 NOAH_MP=''
 DOMAINS="cesm-30km,${DOM}-grid"
 DOMAINS_MOD=' time_step = 300,: dx = 120000,: dy = 120000,'
@@ -47,6 +48,7 @@ GEODATA='/home/DATA/DATA/WRF/geog'
 WPSWCT='00:03:00'
 WRFWCT='00:15:00'
 WRFNODES=4
+WRFROOT="$MODEL_ROOT/WRFV3.4/"
 # WPS executables
 WPSSYS="i7" # also affects unccsm.exe
 # set path for metgrid.exe and real.exe explicitly using METEXE and REALEXE

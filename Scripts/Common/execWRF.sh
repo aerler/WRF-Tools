@@ -145,33 +145,30 @@ if [[ ${RUNWRF} == 1 ]]
     # radiation scheme: try to infer from namelist using 'sed'
     SEDRAD=$(sed -n '/ra_lw_physics/ s/^\s*ra_lw_physics\s*=\s*\(.\),.*$/\1/p' namelist.input) # \s = space
     if [[ -n "${SEDRAD}" ]]; then
-	RAD="${SEDRAD}" # prefer namelist value over pre-set default
-	echo "Determining radiation scheme from namelist: RAD=${RAD}"
+		RAD="${SEDRAD}" # prefer namelist value over pre-set default
+		echo "Determining radiation scheme from namelist: RAD=${RAD}"
     fi
     # select scheme and print confirmation
     if [[ ${RAD} == 'RRTM' ]] || [[ ${RAD} == 1 ]]; then
-	echo "Using RRTM radiation scheme."
-	RADTAB="RRTM_DATA RRTM_DATA_DBL"
+		echo "Using RRTM radiation scheme."
+		RADTAB="RRTM_DATA RRTM_DATA_DBL"
     elif [[ ${RAD} == 'CAM' ]] || [[ ${RAD} == 3 ]]; then
-	echo "Using CAM radiation scheme."
-	RADTAB="CAM_ABS_DATA CAM_AEROPT_DATA ozone.formatted ozone_lat.formatted ozone_plev.formatted"
-	#RADTAB="${RADTAB} CAMtr_volume_mixing_ratio" # this is handled below
+		echo "Using CAM radiation scheme."
+		RADTAB="CAM_ABS_DATA CAM_AEROPT_DATA ozone.formatted ozone_lat.formatted ozone_plev.formatted"
+    	#RADTAB="${RADTAB} CAMtr_volume_mixing_ratio" # this is handled below
     elif [[ ${RAD} == 'RRTMG' ]] || [[ ${RAD} == 4 ]]; then
 	    echo "Using RRTMG radiation scheme."
-	RADTAB="RRTMG_LW_DATA RRTMG_LW_DATA_DBL RRTMG_SW_DATA RRTMG_SW_DATA_DBL"
+		RADTAB="RRTMG_LW_DATA RRTMG_LW_DATA_DBL RRTMG_SW_DATA RRTMG_SW_DATA_DBL"
     else
-	echo 'WARNING: no radiation scheme selected!'
-	# this will only happen if no defaults are set and inferring from namelist via 'sed' failed
+	    echo 'WARNING: no radiation scheme selected!'
+        # this will only happen if no defaults are set and inferring from namelist via 'sed' failed
     fi
     # urban surface scheme
     SEDURB=$(sed -n '/sf_urban_physics/ s/^\s*sf_urban_physics\s*=\s*\(.\),.*$/\1/p' namelist.input) # \s = space
     if [[ -n "${SEDURB}" ]]; then
-	URB="${SEDURB}" # prefer namelist value over pre-set default
+	    URB="${SEDURB}" # prefer namelist value over pre-set default
         echo "Determining urban surface scheme from namelist: URB=${URB}"
     fi
-    echo "Determining urban surface scheme from namelist: URB=${URB}"
-    # write default URB into job script ('sed' sometimes fails on TCS...)
-    sed -i "/export URB/ s/export\sURB=.*$/export URB=\'${URB}\' # radiation scheme set by setup script/" "run_${CASETYPE}_WRF.${WRFQ}"
     # select scheme and print confirmation
     if [[ ${URB} == 0 ]]; then
         echo 'No urban surface scheme selected.'
@@ -220,7 +217,7 @@ if [[ ${RUNWRF} == 1 ]]
     # copy data file for emission scenario, if applicable
     if [[ -n "${GHG}" ]]; then # only if $GHG is defined!
 	echo
-	if [[ ${RAD} == 'CAM' ]] || [[ ${RAD} == 3 ]]; then
+	if [[ ${RAD} == 'RRTM' ]] || [[ ${RAD} == 1 ]] || [[ ${RAD} == 'CAM' ]]  || [[ ${RAD} == 3 ]] || [[ ${RAD} == 'RRTMG' ]] || [[ ${RAD} == 4 ]]; then
 	    echo "GHG emission scenario: ${GHG}"
 	    cp ${NOCLOBBER} "CAMtr_volume_mixing_ratio.${GHG}" "${WRFDIR}/CAMtr_volume_mixing_ratio"
 	else
