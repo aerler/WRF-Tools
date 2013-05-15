@@ -120,7 +120,7 @@ class Dataset():
   def dataDir(self):
     # universal wrapper method for folder with "master-filelist"
     pass
-  def checkSubDir(self, *args)
+  def checkSubDir(self, *args):
     # method to determine whether a subfolder contains valid data and can be processed recursively
     # most datasets will not have subfolders, we skip all subfolders by default    
     return False
