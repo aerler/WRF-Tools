@@ -40,11 +40,11 @@ else:
 # input files and folders
 cesmpfx = cesmname + '.cam2.h0.' # use monthly means
 cesmext = '.nc'
-#cesmdate = '19(79|8[0-8])-\d\d' # the long WRF period
-cesmdate = '\d\d\d\d-\d\d' # use '\d' for any number and [1-3,45] for ranges; '\d\d\d\d-\d\d'
+cesmdate = '20(4[5-9])-\d\d' # the long WRF period
+#cesmdate = '\d\d\d\d-\d\d' # use '\d' for any number and [1-3,45] for ranges; '\d\d\d\d-\d\d'
 # output files and folders
-#climfile = 'cesmsrfc_clim_1979-1988.nc'
-climfile = 'cesmsrfc_clim.nc'
+climfile = 'cesmsrfc_clim_2045-2049.nc'
+#climfile = 'cesmsrfc_clim.nc'
 # variables
 tax = 0 # time axis (to average over)
 dimlist = ['lon', 'lat'] # copy these dimensions
