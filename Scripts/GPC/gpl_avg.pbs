@@ -48,7 +48,7 @@ for D in ${DATASRC}
 done
 
 # execute commands
-parallel -j 8 << cmdfile.tmp
+parallel -j 8 < cmdfile.tmp
 ERR=$? # capture exit code
 
 # clean up

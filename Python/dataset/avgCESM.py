@@ -30,10 +30,10 @@ if hostname=='komputer':
 elif hostname[0:3] == 'gpc': # i.e. on scinet...
   exproot = os.getcwd()
   cesmname = exproot.split('/')[-3] # root folder name
-  exp = cesmexp[cesmname]
-  folder = exproot # assuming we are in the atm/hist folder...
+  exp = cesmname
+  folder = exproot + '/' # assuming we are in the atm/hist folder...
 else:
-  folder = os.getcwd() # just operate in the current directory
+  folder = os.getcwd() + '/' # just operate in the current directory
   exp = '' # need to define experiment name...
 
 ## read arguments
