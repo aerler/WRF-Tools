@@ -15,32 +15,25 @@ import os, re, sys
 from netcdf import Dataset, copy_ncatts, copy_vars, copy_dims, add_coord
 from avgWRF import getDateRegX # this is for date formats
 
-## names of CESM experiments
-cesmexp = dict()
-cesmexp['tb20trcn1x1'] = 'ctrl-1'
-
-# data root folder
-from socket import gethostname
-hostname = gethostname()
-if hostname=='komputer':
-  CESMroot = '/home/DATA/DATA/CESM/'
-  cesmname = 'tb20trcn1x1' 
-  exp = cesmexp[cesmname]
-  folder = CESMroot + exp + '/'
-elif hostname[0:3] == 'gpc': # i.e. on scinet...
-  exproot = os.getcwd()
-  cesmname = exproot.split('/')[-3] # root folder name
-  exp = cesmname
-  folder = exproot + '/' # assuming we are in the atm/hist folder...
-else:
-  folder = os.getcwd() + '/' # just operate in the current directory
-  exp = '' # need to define experiment name...
-
 ## read arguments
+# averaging period
 if len(sys.argv) > 1:
   period = sys.argv[1]
 else: period = ''
+# source folder (overwrite default)
+if len(sys.argv) > 2:
+  srcdir = sys.argv[2] + '/atm/hist/'
+else:
+  srcdir = os.getcwd() + '/atm/hist/'
+# set other variables
+dstdir = os.getcwd() + '/'
+cesmname = srcdir.split('/')[-4] # root folder name
 
+#print period
+#print cesmname
+#print srcdir
+#print dstdir
+  
 ## definitions
 prdrgx = getDateRegX(period)
 # input files and folders
@@ -67,17 +60,19 @@ mons = arange(1,13); nmons = len(mons)
 if __name__ == '__main__':
     
   # announcement
-  print('\n\n   ***   Processing CESM %s (%s)  ***   '%(exp,cesmname))
-  
+  print('\n\n   ***   Processing CESM %s   ***   '%(cesmname,))
+  print('Source folder: %s'%(srcdir,))
+
   ## setup files and folders
   cesmfiles = cesmpfx + prdrgx + cesmext
-  # N.B.: cesmpfx must contain something like %02i to accommodate the domain number  
+  # N.B.: cesmpfx must contain something like %02i to accommodate the domain number
   # assemble input filelist
+  #print cesmfiles
   cesmrgx = re.compile(cesmfiles) # compile regular expression
-  filelist = [cesmrgx.match(filename) for filename in os.listdir(folder)] # list folder and match
+  filelist = [cesmrgx.match(filename) for filename in os.listdir(srcdir)] # list folder and match
   filelist = [match.group() for match in filelist if match is not None] # assemble valid file list
   if len(filelist) == 0:
-    print('\nWARNING: no matching files found for %s (%s)'%(exp,cesmname,)) 
+    print('\nWARNING: no matching files found for %s   '%(cesmname,))
     import sys   
     sys.exit(1) # exit if there is no match
   filelist.sort() # sort alphabetically, so that files are in sequence (temporally)
@@ -86,9 +81,9 @@ if __name__ == '__main__':
   enddate = datergx.search(filelist[-1]).group()
 
   # load first file to copy some meta data
-  cesmout = Dataset(folder+filelist[0], 'r', format='NETCDF4')    
+  cesmout = Dataset(srcdir+filelist[0], 'r', format='NETCDF4')
   # create climatology output file  
-  clim = Dataset(folder+climfile, 'w', format='NETCDF4')
+  clim = Dataset(dstdir+climfile, 'w', format='NETCDF4')
   add_coord(clim, 'time', values=mons, dtype='i4', atts=dict(units='month of the year')) # month of the year
   copy_dims(clim, cesmout, dimlist=dimlist, namemap=dimmap, copy_coords=True, dtype='f4') # don't have coordinate variables
   # variable with proper names of the months
@@ -100,7 +95,7 @@ if __name__ == '__main__':
   copy_ncatts(clim, cesmout, prefix='CESM_') # copy all attributes and save with prefix WRF
   clim.description = 'climatology of CESM monthly means'
   clim.begin_date = begindate; clim.end_date = enddate
-  clim.experiment = exp
+  clim.experiment = cesmname
   clim.creator = 'Andre R. Erler'
   # copy constant variables (no time dimension)
   copy_vars(clim, cesmout, varlist=statlist, namemap=varmap, dimmap=dimmap, remove_dims=['time'], copy_data=True)
@@ -129,7 +124,7 @@ if __name__ == '__main__':
   # loop over input files 
   print('\n Starting computation: %i iterations (files)\n'%nfiles)
   for n in xrange(nfiles):
-    cesmout = Dataset(folder+filelist[n], 'r', format='NETCDF4')
+    cesmout = Dataset(srcdir+filelist[n], 'r', format='NETCDF4')
     print('  processing file #%3i of %3i:'%(n+1,nfiles))
     print('    %s\n'%filelist[n])
     # compute monthly averages
@@ -149,7 +144,7 @@ if __name__ == '__main__':
     
   ## finish
   # save to files
-  print(' Done. Writing output to:\n  %s'%(folder,))
+  print(' Done. Writing output to:\n  %s'%(dstdir,))
   for var in varlist:
     clim.variables[var][:] = climdata[var] 
   # close files
