@@ -10,10 +10,10 @@ This script does not rely on PyGeode but instead uses netCDF4 and numpy directly
 ## imports
 # numpy
 from numpy import arange, array, zeros
-import os
-import re
+import os, re, sys
 # import netCDF4-python and added functionality
 from netcdf import Dataset, copy_ncatts, copy_vars, copy_dims, add_coord
+from avgWRF import getDateRegX # this is for date formats
 
 ## names of CESM experiments
 cesmexp = dict()
@@ -36,15 +36,19 @@ else:
   folder = os.getcwd() # just operate in the current directory
   exp = '' # need to define experiment name...
 
+## read arguments
+if len(sys.argv) > 1:
+  period = sys.argv[1]
+else: period = ''
+
 ## definitions
+prdrgx = getDateRegX(period)
 # input files and folders
 cesmpfx = cesmname + '.cam2.h0.' # use monthly means
 cesmext = '.nc'
-#cesmdate = '19(79|8[0-8])-\d\d' # the long WRF period
-cesmdate = '\d\d\d\d-\d\d' # use '\d' for any number and [1-3,45] for ranges; '\d\d\d\d-\d\d'
 # output files and folders
-#climfile = 'cesmsrfc_clim_1979-1988.nc'
-climfile = 'cesmsrfc_clim.nc'
+if period: climfile = 'cesmsrfc_clim_' + period + '.nc'
+else: climfile = 'cesmsrfc_clim.nc'
 # variables
 tax = 0 # time axis (to average over)
 dimlist = ['lon', 'lat'] # copy these dimensions
@@ -66,7 +70,7 @@ if __name__ == '__main__':
   print('\n\n   ***   Processing CESM %s (%s)  ***   '%(exp,cesmname))
   
   ## setup files and folders
-  cesmfiles = cesmpfx + cesmdate + cesmext
+  cesmfiles = cesmpfx + prdrgx + cesmext
   # N.B.: cesmpfx must contain something like %02i to accommodate the domain number  
   # assemble input filelist
   cesmrgx = re.compile(cesmfiles) # compile regular expression
@@ -77,7 +81,7 @@ if __name__ == '__main__':
     import sys   
     sys.exit(1) # exit if there is no match
   filelist.sort() # sort alphabetically, so that files are in sequence (temporally)
-  datergx = re.compile(cesmdate) # compile regular expression, also used to infer month (later)
+  datergx = re.compile(prdrgx) # compile regular expression, also used to infer month (later)
   begindate = datergx.search(filelist[0]).group()
   enddate = datergx.search(filelist[-1]).group()
 

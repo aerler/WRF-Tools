@@ -23,18 +23,14 @@ module load intel/13.1.1 gcc/4.7.2 python/2.7.2 hdf5/187-v18-serial-intel netcdf
 
 # settings
 PYAVG='avgWRF' # averaging script
-PERIOD='1979-1981' # extension to command and output files
+PERIOD='1979-1988' # extension to command and output files
 DATASET='*-*/'
 
 # explicit modifications...
 DATASRC="/reserved1/p/peltier/aerler/Downscaling/${DATASET} /scratch/p/peltier/aerler/Downscaling/${DATASET}"
 if [[ -n "${PERIOD}" ]]
-  then
-    AVGEXT="_${PERIOD}"
-    PYCMD="${PYAVG}_${PERIOD}"
-  else
-    AVGEXT=""
-    PYCMD="${PYAVG}"
+  then AVGEXT="_${PERIOD}"
+  else AVGEXT=""
 fi # if $PERIOD
 
 # root directory
@@ -46,9 +42,9 @@ for D in ${DATASRC}
   do
     # make sure folder is set up
     mkdir -p "${D}/wrfavg"
-    cp -P "${PYCMD}.py" "${D}"
+    cp -P "${PYAVG}.py" "${D}"
     # write command file entry
-    echo "cd ${D}; python ${PYCMD}.py > ${PYCMD}.log; mv wrfout/*clim${AVGEXT}.nc wrfout/*monthly${AVGEXT}.nc wrfavg; echo \"$D:\"; ls wrfavg" >> cmdfile.tmp
+    echo "cd ${D}; python ${PYAVG}.py ${PERIOD} > ${PYAVG}${AVGEXT}.log; mv wrfout/*clim${AVGEXT}.nc wrfout/*monthly${AVGEXT}.nc wrfavg; echo \"$D:\"; ls wrfavg" >> cmdfile.tmp
 done
 
 # execute commands

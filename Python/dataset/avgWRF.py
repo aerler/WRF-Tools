@@ -6,8 +6,7 @@ Created on 2012-11-10
 
 ## imports
 from numpy import array, arange, zeros, diff
-import os
-import re
+import os, re, sys
 # netcdf stuff
 from netcdf import Dataset, add_coord, copy_dims, copy_ncatts, copy_vars
 
@@ -26,15 +25,38 @@ else:
   folder = os.getcwd() # just operate in the current directory
   exp = '' # need to define experiment name...
 
+## read arguments
+if len(sys.argv) > 1:
+  period = sys.argv[1]
+else: period = ''
+
+def getDateRegX(period): 
+# function to define averaging period based on argument
+# use '\d' for any number and [1-3,45] for ranges; '\d\d\d\d-\d\d'
+  if period == '1979-1981': prdrgx = '19(79|8[0-1])-\d\d' # 3 year historical period
+  elif period == '1979-1983': prdrgx = '19(79|8[0-3])-\d\d' # 5 year historical period
+  elif period == '1979-1988': prdrgx = '19(79|8[0-8])-\d\d' # 10 year historical period
+  elif period == '1980-1994': prdrgx = '19(8[0-9]|9[04])-\d\d' # 15 year historical period
+  elif period == '2045-2047': prdrgx = '20(4[5-7])-\d\d' # 3 year future period
+  elif period == '2045-2049': prdrgx = '20(4[5-9])-\d\d' # 5 year future period
+  elif period == '2045-2054': prdrgx = '20(4[5-9]|5[0-4])-\d\d' # 10 year future period
+  elif period == '2045-2059': prdrgx = '20(4[5-9]|5[0-9])-\d\d' # 15 year future period 
+  else: prdrgx = '\d\d\d\d-\d\d'
+  return prdrgx 
+
 ## definitions
+prdrgx = getDateRegX(period)
 # input files and folders
 maxdom = 2
 wrfpfx = 'wrfsrfc_d%02i_' # %02i is for the domain number
 wrfext = '-01_00:00:00.nc'
-wrfdate = '\d\d\d\d-\d\d' # use '\d' for any number and [1-3,45] for ranges
 # output files and folders
-meanfile = 'wrfsrfc_d%02i_monthly.nc' # %02i is for the domain number
-climfile = 'wrfsrfc_d%02i_clim.nc' # %02i is for the domain number
+if period: 
+  climfile = 'wrfsrfc_d%02i_clim_' + period + '.nc'
+  meanfile = 'wrfsrfc_d%02i_monthly_' + period + '.nc'
+else: 
+  climfile = 'wrfsrfc_d%02i_clim.nc' # %02i is for the domain number
+  meanfile = 'wrfsrfc_d%02i_monthly.nc' # %02i is for the domain number
 # variables
 tax = 0 # time axis (to average over)
 dimlist = ['x', 'y'] # copy these dimensions
@@ -61,7 +83,7 @@ if __name__ == '__main__':
     print('\n\n   ***   Processing Domain #%02i (of %02i)   ***   '%(ndom,maxdom))
   
     ## setup files and folders
-    wrffiles = wrfpfx%ndom + wrfdate + wrfext
+    wrffiles = wrfpfx%ndom + prdrgx + wrfext
     # N.B.: wrfpfx must contain something like %02i to accommodate the domain number  
     # assemble input filelist
     wrfrgx = re.compile(wrffiles) # compile regular expression
@@ -71,7 +93,7 @@ if __name__ == '__main__':
       print('\nWARNING: no matching files found for domain %02i'%(ndom,))
       break # skip and go to next domain
     filelist.sort() # sort alphabetically, so that files are in sequence (temporally)
-    datergx = re.compile(wrfdate) # compile regular expression, also used to infer month (later)
+    datergx = re.compile(prdrgx) # compile regular expression, also used to infer month (later)
     begindate = datergx.search(filelist[0]).group()
     enddate = datergx.search(filelist[-1]).group()
     # load first file to copy some meta data
