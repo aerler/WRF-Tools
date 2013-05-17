@@ -16,9 +16,9 @@ zlib_default = dict(zlib=True, complevel=1, shuffle=True) # my own default compr
 ## functions
 
 # copy attributes from a variable or dataset to another
-def copy_ncatts(dst, src, prefix = ''):
+def copy_ncatts(dst, src, prefix = '', incl_=True):
   for att in src.ncattrs(): 
-    if att[0] != '_': # these seem to cause problems
+    if att[0] != '_' or incl_: # these seem to cause problems
       dst.setncattr(prefix+att,src.getncattr(att))
       
 # copy variables from one dataset to another
@@ -48,6 +48,7 @@ def copy_vars(dst, src, varlist=None, namemap=None, dimmap=None, remove_dims=Non
 def copy_dims(dst, src, dimlist=None, namemap=None, copy_coords=True, **kwargs):
   # all remaining kwargs are passed on to dst.createVariable()
   if not dimlist: dimlist = src.dimensions.keys() # just copy all
+  if not namemap: namemap = dict() # a dummy - assigning pointers in argument list is dangerous! 
   # loop over dimensions
   for name in dimlist:
     mid = src.dimensions[namemap.get(name,name)]
