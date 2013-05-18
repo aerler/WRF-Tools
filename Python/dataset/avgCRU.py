@@ -23,7 +23,7 @@ finyr = 1988
 datestr = '%04i-%04i'%(debyr,finyr)
 outfile = 'cru_clim_%s.nc'%(datestr,)
 # files (one per variable)
-varlist = dict(rain='pre', T2='tmn', Q2='vap') # for now... there are more variables to come!
+varlist = dict(rain='pre', T2='tmp', Tmin='tmn', Tmax='tmx', Q2='vap') # for now... there are more variables to come!
 filelist = dict() # construct file list from variable list 
 for (key,value) in varlist.iteritems():
   filelist[key] = 'cru_ts3.20.1901.2011.%s.dat.nc'%(value,)  
@@ -61,7 +61,7 @@ if __name__ == '__main__':
     climdata[key] = tmp / (finyr-debyr+1)        
       
   ## initialize netcdf dataset structure
-  print('\nWriting data to disk: %s'%(test+outfile,))
+  print('\nWriting data to disk:')
   # create groups for different resolution
   outdata = Dataset(CRUroot+test+outfile, 'w', format='NETCDF4') # outgrp.createGroup('fineres')
   # new time dimensions
@@ -101,4 +101,4 @@ if __name__ == '__main__':
   ## close netcdf files  
   for ncset in indata.itervalues(): ncset.close() # input
   outdata.close() # output
-  
+  print('   %s'%(test+outfile,))

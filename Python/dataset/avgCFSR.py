@@ -16,13 +16,13 @@ from netcdf import Dataset, copy_ncatts, copy_vars, copy_dims, add_coord
 ## settings
 CFSRroot = '/home/DATA/DATA/CFSR/'
 CFSRdata = CFSRroot + 'Monthly/'
-test = ''
+test = 'test_'
 # output settings
-finyr = 30; finmon = 0 # same as 
-datestr = '1979-%04i'%(1979+finyr)
+finyr = 10; finmon = 0 # same as 
+datestr = '1979-%04i'%(1979+finyr-1)
 if finmon: datestr = '%s_%02i'(datestr,finmon)
-fnoutfile = 'CFSRclimFineRes%s.nc'%datestr
-hioutfile = 'CFSRclimHighRes%s.nc'%datestr
+fnoutfile = 'cfsr_fn_clim_%s.nc'%datestr
+hioutfile = 'cfsr_hi_clim_%s.nc'%datestr
 #test = 'test/'
 # files
 zsfile = 'flxf06.gdas.HGT.SFC.grb2.nc' # topography (surface geopotential)
@@ -62,26 +62,29 @@ if __name__ == '__main__':
   
   ## perform actual computation of climatologies
   ntime = 12
-  if finmon and finyr: 
-    fnmax = 12*finyr + finmon; himax = 12*finyr + finmon 
+  if finyr:
+    fnmax = 12*(finyr-1) + finmon; himax = fnmax          
   else: 
     fnmax = fnshape[0]; himax = hishape[0]
   
   fndynclim = dict(); hidynclim = dict()
   for (key,value) in fndynvar.iteritems():
-    tmp = zeros((ntime, fnshape[1],fnshape[2])); cnt = ntime
-    while cnt < fnmax:      
+    tmp = zeros((ntime, fnshape[1],fnshape[2])); cnt = 0
+    while cnt <= fnmax:      
+      if key =='rain': print('Processing year %04i'%(cnt/ntime +1979,))
+      cnt += ntime
       tmp +=  fndynset[key].variables[value][cnt-ntime:cnt,:,:]
-      cnt += 12
-    fndynclim[key] = tmp / (cnt/12-1)            
+#    if key =='rain': print(cnt/ntime)
+    fndynclim[key] = tmp / (cnt/ntime)            
   for (key,value) in hidynvar.iteritems():
-    tmp = zeros((ntime, hishape[1],hishape[2])); cnt = ntime
-    while cnt < himax:      
+    tmp = zeros((ntime, hishape[1],hishape[2])); cnt = 0
+    while cnt <= himax:      
+      cnt += ntime
       tmp +=  hidynset[key].variables[value][cnt-ntime:cnt,:,:]
-      cnt += 12
-    hidynclim[key] = tmp / (cnt/12-1)
+    hidynclim[key] = tmp / (cnt/ntime)
       
   ## initialize netcdf dataset structure
+  print('\nWriting data to disk:')  
   # create groups for different resolution
   fngrp = Dataset(CFSRroot+test+fnoutfile, 'w', format='NETCDF4') # outgrp.createGroup('fineres')
   higrp = Dataset(CFSRroot+test+hioutfile, 'w', format='NETCDF4') # outgrp.createGroup('highres')
@@ -100,8 +103,8 @@ if __name__ == '__main__':
       for n in xrange(9): coord[m,n] = months[m][n]
   # global attributes
   if finmon: description = \
-    'Climatology of CFSR monthly means, averaged from January 1979 to %s %04i'%(months[finmon],1979+finyr)
-  else: description = 'Climatology of CFSR monthly means, averaged from 1979 to %04i'%(1979+finyr)
+    'Climatology of CFSR monthly means, averaged from January 1979 to %s %04i'%(months[finmon],1979+finyr-1)
+  else: description = 'Climatology of CFSR monthly means, averaged from 1979 to %04i'%(1979+finyr-1)
   creator = 'Andre R. Erler'
   # fine grid
   fngrp.description = description
@@ -116,7 +119,7 @@ if __name__ == '__main__':
   copy_dims(higrp, hidynset['pmsl'], dimlist=hidim.keys(), namemap=hidim, copy_coords=True)
   # copy static variables into new dataset
   for (key,value) in fnstatset.iteritems():
-    copy_vars(fngrp, value, [key], namemap=fnstatvar, remove_dims=['time'])
+    copy_vars(fngrp, value, [key], namemap=fnstatvar, remove_dims=['time'], incl_=False) # '_' causes problems
   # create dynamic/time-dependent variables  
   for (key,value) in fndynset.iteritems():
     copy_vars(fngrp, value, [key], namemap=fndynvar, copy_data=False)
@@ -135,17 +138,17 @@ if __name__ == '__main__':
   # dimensions
 #  for dimobj in outgrp.dimensions.values():
 #    print dimobj
-  for dimobj in fngrp.dimensions.values():
-    print dimobj
-  for dimobj in higrp.dimensions.values():
-    print dimobj
+#  for dimobj in fngrp.dimensions.values():
+#    print dimobj
+#  for dimobj in higrp.dimensions.values():
+#    print dimobj
   # variables
 #  for varobj in outgrp.variables.values():
 #    print varobj
-  for varobj in fngrp.variables.values():
-    print varobj
-  for varobj in higrp.variables.values():
-    print varobj
+#  for varobj in fngrp.variables.values():
+#    print varobj
+#  for varobj in higrp.variables.values():
+#    print varobj
     
   ## close
   # input
@@ -155,5 +158,7 @@ if __name__ == '__main__':
   # output
 #  outgrp.close()
   fngrp.close()
+  print('   %s'%(test+fnoutfile,))
   higrp.close()
+  print('   %s'%(test+hioutfile,))
   

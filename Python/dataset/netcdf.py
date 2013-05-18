@@ -22,7 +22,7 @@ def copy_ncatts(dst, src, prefix = '', incl_=True):
       dst.setncattr(prefix+att,src.getncattr(att))
       
 # copy variables from one dataset to another
-def copy_vars(dst, src, varlist=None, namemap=None, dimmap=None, remove_dims=None, copy_data=True, zlib=True, copy_atts=True, prefix='', **kwargs):
+def copy_vars(dst, src, varlist=None, namemap=None, dimmap=None, remove_dims=None, copy_data=True, zlib=True, copy_atts=True, prefix='', incl_=True, **kwargs):
   # prefix is passed to copy_ncatts, the remaining kwargs are passed to dst.createVariable()
   if not varlist: varlist = src.variables.keys() # just copy all
   if dimmap: midmap = dict(zip(dimmap.values(),dimmap.keys())) # reverse mapping
@@ -42,7 +42,7 @@ def copy_vars(dst, src, varlist=None, namemap=None, dimmap=None, remove_dims=Non
     dtype = dtype or rav.dtype
     var = dst.createVariable(name, dtype, dims, **varargs)
     if copy_data: var[:] = rav[:] # copy actual data, if desired (default)
-    if copy_atts: copy_ncatts(var, rav, prefix=prefix) # copy attributes, if desired (default) 
+    if copy_atts: copy_ncatts(var, rav, prefix=prefix, incl_=incl_) # copy attributes, if desired (default) 
 
 # copy dimensions and coordinate variables from one dataset to another
 def copy_dims(dst, src, dimlist=None, namemap=None, copy_coords=True, **kwargs):
