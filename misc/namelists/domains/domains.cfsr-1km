@@ -2,6 +2,8 @@
  max_dom                             =     4,
  time_step                           =   100,
  parent_time_step_ratio              =     1,     2,     3,     3,
+ grid_id                             =     1,     2,     3,     4,
+ parent_id                           =     0,     1,     2,     3,
  dx                                  = 27000,  9000,  3000,  1000,
  dy                                  = 27000,  9000,  3000,  1000,
  e_vert                              =    38,    38,    38,    38,
