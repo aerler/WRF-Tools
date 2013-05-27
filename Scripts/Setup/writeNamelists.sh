@@ -10,20 +10,21 @@ NMLDIR=${NMLDIR:-"${WRFTOOLS}/misc/namelists/"}
 
 ## definition section
 # list of namelist groups and used snippets
-# WRF
-TIME_CONTROL=${TIME_CONTROL:-'cycling,fineIO'}
-DIAGS=${DIAGS:-'hitop'}
-PHYSICS=${PHYSICS:-'clim'}
-NOAHMP=${NOAH_MP:-'default'}
-DOMAINS=${DOMAINS:-'wc03'}
-FDDA=${FDDA:-'spectral'}
-DYNAMICS=${DYNAMICS:-'default'}
-BDY_CONTROL=${BDY_CONTROL:-'clim'}
-NAMELIST_QUILT=${NAMELIST_QUILT:-''}
-# WPS
-SHARE=${SHARE:-'d02'}
-GEOGRID=${GEOGRID:-"${DOMAINS}"}
-METGRID=${METGRID:-'pywps'}
+# N.B.: this is a sample list - defaults are not useful
+# # WRF
+# TIME_CONTROL=${TIME_CONTROL:-'cycling,fineIO'}
+# DIAGS=${DIAGS:-'hitop'}
+# PHYSICS=${PHYSICS:-'clim'}
+# NOAHMP=${NOAH_MP:-'default'}
+# DOMAINS=${DOMAINS:-'wc03'}
+# FDDA=${FDDA:-'spectral'}
+# DYNAMICS=${DYNAMICS:-'default'}
+# BDY_CONTROL=${BDY_CONTROL:-'clim'}
+# NAMELIST_QUILT=${NAMELIST_QUILT:-''}
+# # WPS
+# SHARE=${SHARE:-'d02'}
+# GEOGRID=${GEOGRID:-"${DOMAINS}"}
+# METGRID=${METGRID:-'pywps'}
 
 ## function to add namelist groups to namelist file
 function WRITENML () {

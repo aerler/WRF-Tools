@@ -1,0 +1,62 @@
+#!/bin/bash
+WRFTOOLS="${MODEL_ROOT}/WRF_Tools/"
+WRFROOT="$HOME/WRFV3.5/"
+## scenario definition section
+NAME='columbia'
+# GHG emission scenario
+GHG='RCP8.5' # CAMtr_volume_mixing_ratio.* file to be used
+# time period and cycling interval
+CYCLING="3days.1979-09" # stepfile to be used (leave empty if not cycling)
+# I/O and archiving
+IO='fineIO' # this is used for namelist construction and archiving
+ARSCRIPT='' # set ARSCRIPT='DEFAULT' to let $IO control archiving
+ARINTERVAL='' # default is monthly (after every run), but yearly is preferable
+
+## namelist definition section
+# list of namelist groups and used snippets
+MAXDOM=4 # number of domains in WRF and WPS
+DOM='columbia1-1km'
+# WRF
+TIME_CONTROL="cycling,fineIO" # default I/O: only output stream #0
+DIAGS='hitop' # needs output stream #23
+PHYSICS='clim-hires' # this namelist has to be compatible with the WRF build used!
+NOAH_MP='barlage'
+DOMAINS="cfsr-1km,${DOM}-grid"
+# DOMAINS_MOD=' time_step = 300,: dx = 120000,: dy = 120000,'
+FDDA='spectral'
+DYNAMICS='default'
+PHYSICS_MOD=' epssm = 0.5, 0.5, 0.5, 0.5'
+BDY_CONTROL='clim'
+NAMELIST_QUILT=''
+# WPS
+# SHARE,GEOGRID, and METGRID usually don't have to be set manually
+GEOGRID="${DOM},${DOM}-grid"
+## namelist modifications by group
+# you can make modifications to namelist groups in the {NMLGRP}_MOD variables
+# the line in the *_MOD variable will replace the corresponding entry in the template
+# you can separate multiple modifications by colons ':'
+#PHYSICS_MOD=' cu_physics = 3, 3, 3,: shcu_physics = 0, 0, 0,: sf_surface_physics = 4, 4, 4,'
+
+## configure data sources
+RUNDIR="${PWD}" # must not contain spaces!
+# source data definition
+DATATYPE='CFSR'
+DATADIR="${HOME}/CFSR/"
+# DATADIR='/home/DATA/DATA/CESM/CESM-HF-test/'
+# other WPS configuration files
+GEODATA="${HOME}/geog"
+
+## system settings
+WPSWCT='01:00:00'
+WRFWCT='24:00:00'
+WRFNODES=8
+# WPS executables
+WPSSYS="Rocks" # also affects unccsm.exe
+# WPSBLD='default'
+# set path for metgrid.exe and real.exe explicitly using METEXE and REALEXE
+# WRF executable
+POLARWRF=0 # use PolarWRF
+FLAKE=0 # use FLake
+WRFSYS="Rocks"
+# WRFBLD='default'
+# set path for geogrid.exe and wrf.exe eplicitly using GEOEXE and WRFEXE

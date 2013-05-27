@@ -1,7 +1,7 @@
 #!/bin/bash
 # script to set up a WPS/WRF run folder on SciNet
 # created 28/06/2012 by Andre R. Erler, GPL v3
-# last revision 18/10/2012 by Andre R. Erler
+# last revision 24/05/2013 by Andre R. Erler
 
 # environment variables: $MODEL_ROOT, $WPSSRC, $WRFSRC, $SCRATCH
 
@@ -35,6 +35,11 @@ function RENAME () {
 	    sed -i "/#PBS -W/ s/#PBS -W\s.*$/#PBS -W depend:afterok:${NAME}_WPS/" "${FILE}" # dependency on WPS
 	    sed -i "/#PBS -l/ s/#PBS -l nodes=.*$/#PBS -l nodes=${WRFNODES}:ppn=8/" "${FILE}" # number of nodes
 	    sed -i "/#PBS -l/ s/#PBS -l walltime=.*$/#PBS -l walltime=${WRFWCT}/" "${FILE}" # wallclock time
+	elif [[ "${WRFQ}" == "sge" ]]; then
+	    sed -i "/#$ -N/ s/#$ -N\s.*$/#$ -N ${NAME}_WRF/" "run_${CASETYPE}_WRF.${WRFQ}" # experiment name
+# 	    sed -i "/#PBS -W/ s/#PBS -W\s.*$/#PBS -W depend:afterok:${NAME}_WPS/" "${FILE}" # dependency on WPS
+	    sed -i "/#$ -pe/ s/#$ -pe .*$/#$ -pe mpich $((WRFNODES*16))/" "${FILE}" # number of MPI tasks
+	    sed -i "/#$ -l/ s/#$ -l h_rt=.*$/#$ -l h_rt=${WRFWCT}/" "${FILE}" # wallclock time
 	elif [[ "${WRFQ}" == "ll" ]]; then
 	    sed -i "/#\s*@\s*job_name/ s/#\s*@\s*job_name\s*=.*$/# @ job_name = ${NAME}_WRF/" "${FILE}" # experiment name
 	    sed -i "/#\s*@\s*node/ s/#\s*@\s*node\s*=.*$/# @ node = ${WRFNODES}/" "${FILE}" # number of nodes
@@ -106,9 +111,7 @@ source xconfig.sh
 ## fix default settings
 
 # WPS defaults
-if [[ ${MAXDOM} == 1 ]]; then SHARE=${SHARE:-'d01'}
-elif [[ ${MAXDOM} == 2 ]]; then SHARE=${SHARE:-'d02'}
-fi # MAXDOM
+SHARE=${SHARE:-'arw'}
 METGRID=${METGRID:-'pywps'}
 
 # infer default $CASETYPE (can also set $CASETYPE in xconfig.sh)
@@ -143,21 +146,24 @@ else
 fi # $FLAKE
 
 # figure out WRF and WPS build
-WPSBLD="Clim-fineIOv2" # there is basically only one build...
-WRFBLD="${IO}v2" # current I/O version
-# GCM or reanalysis
-if [[ "${DATATYPE}" == 'CESM' ]] || [[ "${DATATYPE}" == 'CCSM' ]]; then
-  WRFBLD="Clim-${WRFBLD}" # variable GHG scenarios and no leap-years
-elif [[ "${DATATYPE}" == 'CFSR' ]]; then
-  WRFBLD="ReA-${WRFBLD}" # variable GHG scenarios with leap-years
-else
-  WRFBLD="Default-${WRFBLD}" # standard WRF build
-fi # $DATATYPE
-# Standard or PolarWRF
-if [ ${POLARWRF} == 1 ]; then
-#   WPSBLD="Clim-fineIO" # not yet polar...
-  WRFBLD="Polar-${WRFBLD}"
-fi # if PolarWRF
+WPSBLD=${WPSBLD:-"Clim-fineIOv2"} # there is basically only one build...
+# but there are many versions of WRF...
+if [[ -z "$WRFBLD" ]]; then
+  WRFBLD="${IO}v2" # current I/O version
+  # GCM or reanalysis
+  if [[ "${DATATYPE}" == 'CESM' ]] || [[ "${DATATYPE}" == 'CCSM' ]]; then
+    WRFBLD="Clim-${WRFBLD}" # variable GHG scenarios and no leap-years
+  elif [[ "${DATATYPE}" == 'CFSR' ]]; then
+    WRFBLD="ReA-${WRFBLD}" # variable GHG scenarios with leap-years
+  else
+    WRFBLD="Default-${WRFBLD}" # standard WRF build
+  fi # $DATATYPE
+  # Standard or PolarWRF
+  if [ ${POLARWRF} == 1 ]; then
+  #   WPSBLD="Clim-fineIO" # not yet polar...
+    WRFBLD="Polar-${WRFBLD}"
+  fi # if PolarWRF
+fi # if $WRFBLD
 
 # source folders (depending on $WRFROOT; can be set in xconfig.sh)
 WPSSRC=${WPSSRC:-"${WRFROOT}/WPS/"}
@@ -170,6 +176,12 @@ if [[ "${WPSSYS}" == "GPC" ]]; then
     METEXE=${METEXE:-"${WPSSRC}/GPC-MPI/${WPSBLD}/O3xSSSE3/metgrid.exe"}
     REALEXE=${REALEXE:-"${WRFSRC}/GPC-MPI/${WRFBLD}/O3xSSSE3/real.exe"}
     UNGRIBEXE=${UNGRIBEXE:-"${WPSSRC}/GPC-MPI/${WPSBLD}/O3xSSSE3/ungrib.exe"}
+elif [[ "${WPSSYS}" == "Rocks" ]]; then
+    WPSQ='sh' # no queue system
+    WPSWCT=${WPSWCT:-'01:00:00'} # WPS wallclock time
+    METEXE=${METEXE:-"${WPSSRC}/Rocks-MPI/${WPSBLD}/O3xSSE42NC4Grb2/metgrid.exe"}
+    REALEXE=${REALEXE:-"${WRFSRC}/Rocks-MPI/${WRFBLD}/O3xSSE42NC4/real.exe"}
+    UNGRIBEXE=${UNGRIBEXE:-"${WPSSRC}/Rocks-MPI/${WPSBLD}/O3xSSE42NC4Grb2/ungrib.exe"}
 elif [[ "${WPSSYS}" == "i7" ]]; then
     WPSQ='sh' # no queue system
     WPSWCT=${WPSWCT:-'0:00:00'} # WPS wallclock time
@@ -194,6 +206,11 @@ elif [[ "${WRFSYS}" == "P7" ]]; then
     WRFWCT=${WRFWCT:-'13:00:00'}; WRFNODES=${WRFNODES:-1} # WRF resource config on P7
     GEOEXE=${GEOEXE:-"${WPSSRC}/GPC-MPI/${WPSBLD}/O3xSSSE3/geogrid.exe"}
     WRFEXE=${WRFEXE:-"${WRFSRC}/P7-MPI/${WRFBLD}/O3pwr7NC4/wrf.exe"}
+elif [[ "${WRFSYS}" == "Rocks" ]]; then
+    WRFQ='sge' # queue system
+    WRFWCT=${WRFWCT:-'4:00:00'}; WRFNODES=${WRFNODES:-1} # WRF resource config on Rocks
+    GEOEXE=${GEOEXE:-"${WPSSRC}/Rocks-MPI/${WPSBLD}/O3xSSE42NC4Grb2/geogrid.exe"}
+    WRFEXE=${WRFEXE:-"${WRFSRC}/Rocks-MPI/${WRFBLD}/O3xSSE42NC4/wrf.exe"}
 elif [[ "${WRFSYS}" == "i7" ]]; then
     WRFQ='sh' # queue system
     WRFWCT=${WRFWCT:-'0:00:00'}; WRFNODES=${WRFNODES:-1} # WRF resource config on i7

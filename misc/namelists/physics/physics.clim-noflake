@@ -1,0 +1,31 @@
+ &physics
+ mp_physics                          = 6,   6,   10, 
+ ra_lw_physics                       = 3,   3,   4, 
+ ra_sw_physics                       = 3,   3,   4,  
+ radt                                = 30,  30,  30,
+ sf_sfclay_physics                   = 5,   5,   5, 
+ sf_surface_physics                  = 2,   2,   2, 
+ sf_urban_physics                    = 0,   0,   0, 
+ bl_pbl_physics                      = 5,   5,   5, 
+ bldt                                = 0,   0,   0, 
+ cu_physics                          = 1,   1,   5, 
+ cudt                                = 0,   0,   0,
+ shcu_physics                        = 1,   1,   0, ! shallow cumulus scheme from CESM
+ ishallow                            = 0 ! shallow convection (G3)
+ grav_settling                       = 0, 0, 0, ! gravitational settling for pbl=5,6
+ surface_input_source                = 1, ! could use CESM input
+ num_soil_layers                     = 4,
+ num_land_cat                        = 28, ! USGS+lake
+ num_soil_cat                        = 16,
+ usemonalb                           = .false., ! geogrid?
+ rdmaxalb                            = .false., ! geogrid?
+ rdlai2d                             = .false., ! CESM data could be used
+ fractional_seaice                   = 1, ! XICE in Vtable
+ sst_update                          = 1, ! does this also apply to other stuff?
+ sst_skin                            = 1, ! 
+ tmn_update                          = 1, ! deep soil temperature update
+ lagday                              = 150, ! for tmn
+ bucket_mm                           = 100.0, ! precip
+ bucket_J                            = 1.e9, ! rad flx
+ prec_acc_dt                         = 1440 ! daily accumulation
+ / 

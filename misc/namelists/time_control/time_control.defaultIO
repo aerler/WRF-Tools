@@ -1,0 +1,16 @@
+&time_control
+ output_diagnostics                  = 1, ! 36 srfc diags (max/min/mean/std)
+ auxhist3_outname                    = "wrfxtrm_d<domain>_<date>.nc",
+ io_form_auxhist3                    = 2,
+ auxhist3_interval                   = 1440, 1440, 1440,
+ frames_per_auxhist3                 = 1000, 1000, 1000,
+ ! pressure level diagnostics
+ auxhist23_outname                    = "wrfplev3d_d<domain>_<date>.nc",
+ io_form_auxhist23                    = 2,
+ auxhist23_interval                   = 360, 360, 360,
+ frames_per_auxhist23                 = 1000, 1000, 1000,
+ diag_print                          = 0,
+ debug_level                         = 0,
+ ! iofields_filename                   = ""
+ ! ignore_iofields_warning             = .true.
+/
