@@ -18,11 +18,16 @@ elif [[ "${MODE}" == 'RESTART' ]]; then
   RESTART='RESTART' # restart previously terminated run
   NOGEO='NOGEO' # run without geogrid
   NOTAR='FALSE' # star static
-else
+elif [[ "${MODE}" == 'CLEAN' ]] || [[ "${MODE}" == '' ]]; then
   # cold start with geogrid
   NOGEO='FALSE' # run with geogrid
   NOTAR='FALSE' # star static
   RESTART='FALSE' # cold start
+else
+  echo
+  echo "   >>>   Unknown command ${MODE} - aborting!!!   "
+  echo
+  exit 1
 fi
 
 # launch feedback
@@ -77,12 +82,12 @@ if [[ "${RESTART}" == 'RESTART' ]]
   echo "   Clearing Output Folders:"
   if [[ -n ${METDATA} ]]; then
     echo "${METDATA}"
-    rm -rf "${METDATA}"
+    if [[ "${MODE}" == 'CLEAN' ]]; then rm -rf "${METDATA}"; fi
     mkdir -p "${METDATA}"
   fi
   if [[ -n ${WRFOUT} ]]; then
     echo "${WRFOUT}"
-    rm -rf "${WRFOUT}"
+    if [[ "${MODE}" == 'CLEAN' ]]; then rm -rf "${WRFOUT}"; fi
     mkdir -p "${WRFOUT}"
   fi
   echo

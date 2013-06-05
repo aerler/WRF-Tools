@@ -199,7 +199,7 @@ if [[ "${WRFSYS}" == "GPC" ]]; then
 elif [[ "${WRFSYS}" == "TCS" ]]; then
     WRFQ='ll' # queue system
     WRFWCT=${WRFWCT:-'06:00:00'}; WRFNODES=${WRFNODES:-4} # WRF resource config o TCS
-    GEOEXE=${GEOEXE:-"${WPSSRC}/TCS-MPI/${WPSBLD}/O3/geogrid.exe"}
+    GEOEXE=${GEOEXE:-"${WPSSRC}/GPC-MPI/${WPSBLD}/O3xSSSE3/geogrid.exe"}
     WRFEXE=${WRFEXE:-"${WRFSRC}/TCS-MPI/${WRFBLD}/O3NC4/wrf.exe"}
 elif [[ "${WRFSYS}" == "P7" ]]; then
     WRFQ='ll' # queue system

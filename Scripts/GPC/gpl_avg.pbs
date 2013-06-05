@@ -21,34 +21,52 @@
 # load modules (we need to load the netcdf module in order to use it in Python)
 module load intel/13.1.1 gcc/4.7.2 python/2.7.2 hdf5/187-v18-serial-intel netcdf/4.1.3_hdf5_serial-intel gnu-parallel/20121022
 
-# settings
+# default settings
+JOBNAME=${PBS_JOBNAME:-'test'}
+WORKDIR=${PBS_O_WORKDIR:-"${PWD}"}
+DR='/reserved1/p/peltier/aerler/Downscaling'
+DS='/scratch/p/peltier/aerler/Downscaling'
 PYAVG='avgWRF' # averaging script
-PERIOD='1979-1988' # extension to command and output files
-DATASET='*-*/'
 
-# explicit modifications...
-DATASRC="/reserved1/p/peltier/aerler/Downscaling/${DATASET} /scratch/p/peltier/aerler/Downscaling/${DATASET}"
+# user settings
+PERIOD='1979-1983' # extension to command and output files
+#PERIOD=''
+DATASRC="$DR/*-* $DS/*-*"
+
+# more settings
+CMDFILE="cmdfile.${JOBNAME}"
 if [[ -n "${PERIOD}" ]]
-  then AVGEXT="_${PERIOD}"
-  else AVGEXT=""
+  then 
+    AVGEXT="_${PERIOD}"
+    FIRST="wrfout/wrfrst_d01_${PERIOD%%-*}-02-01_00:00:00" # use first restart file as indicator
+    LAST="wrfout/wrfrst_d01_${PERIOD##*-}-12-01_00:00:00" # use last restart file as indicator
+  else 
+    AVGEXT=""
+    FIRST=""
+    LAST=""
 fi # if $PERIOD
 
 # root directory
-cd $PBS_O_WORKDIR
+cd "${WORKDIR}"
 
 # generate command file
-rm -f cmdfile.tmp
+rm -f "${CMDFILE}"
 for D in ${DATASRC}
   do
-    # make sure folder is set up
-    mkdir -p "${D}/wrfavg"
-    cp -P "${PYAVG}.py" "${D}"
-    # write command file entry
-    echo "cd ${D}; python ${PYAVG}.py ${PERIOD} > ${PYAVG}${AVGEXT}.log; mv wrfout/*clim${AVGEXT}.nc wrfout/*monthly${AVGEXT}.nc wrfavg; echo \"$D:\"; ls wrfavg" >> cmdfile.tmp
+    # check if files are available (otherwise skip!)
+    if [[ -z "$PERIOD"  ]] || [[ -e "${D}/${FIRST}" && -e "${D}/${LAST}" ]]
+      then
+        echo "$D"
+        # make sure folder is set up
+        mkdir -p "${D}/wrfavg"
+        cp -P "${PYAVG}.py" "${D}"
+        # write command file entry
+        echo "cd ${D}; python ${PYAVG}.py ${PERIOD} > ${PYAVG}${AVGEXT}.log; mv wrfout/*clim${AVGEXT}.nc wrfout/*monthly${AVGEXT}.nc wrfavg; echo \"$D:\"; ls wrfavg" >> "${CMDFILE}"
+    fi # file check
 done
 
 # execute commands
-parallel -j 8 < cmdfile.tmp
+parallel -j 8 < "${CMDFILE}"
 ERR=$? # capture exit code
 
 # clean up
@@ -56,7 +74,7 @@ echo
 if [[ 0 == ${ERR} ]]
   then
     echo '   ***   All Jobs Completed Successfully!!!   ***   '
-    rm cmdfile.tmp	
+    rm "${CMDFILE}"
   else
     echo "  >>>   ERRORS DETECTED - EXIT CODE ${ERR}   <<<   " 
     echo "inspect command file ${PBS_O_WORKDIR}/cmdfile.tmp"

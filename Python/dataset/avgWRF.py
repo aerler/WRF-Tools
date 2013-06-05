@@ -41,6 +41,7 @@ def getDateRegX(period):
   elif period == '2045-2049': prdrgx = '204[5-9]-\d\d' # 5 year future period
   elif period == '2045-2054': prdrgx = '20(4[5-9]|5[0-4])-\d\d' # 10 year future period
   elif period == '2045-2059': prdrgx = '20(4[5-9]|5[0-9])-\d\d' # 15 year future period 
+  elif period == '2090-2094': prdrgx = '209[0-4]-\d\d' # 5 year future period
   else: prdrgx = '\d\d\d\d-\d\d'
   return prdrgx 
 
