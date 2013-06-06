@@ -97,7 +97,7 @@ ARINTERVAL='MONTHLY' # default: archive after every job
 ## WPS
 WPSSYS='' # WPS - define in xconfig.sh
 # other WPS configuration files
-GEODATA="${PROJECT}/geog/" # location of geogrid data
+GEODATA="/project/p/peltier/WRF/geog/" # location of geogrid data
 ## WRF
 WRFSYS='' # WRF - define in xconfig.sh
 POLARWRF=0 # PolarWRF switch
