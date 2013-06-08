@@ -3,6 +3,7 @@
 	<name>WRF Tools</name>
 	<comment></comment>
 	<projects>
+		<project>PyLM</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>

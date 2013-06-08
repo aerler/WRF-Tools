@@ -87,7 +87,7 @@ def add_var(dst, name, dims, values=None, atts=None, dtype=None, zlib=True, **kw
   # use values array to infer dimensions and data type
   if not values is None: 
     # check/create dimension
-    assert len(dims) == values.dims, '\nWARNING: Number of dimensions does not match (%s)!\n'%(name,)    
+    assert len(dims) == values.ndim, '\nWARNING: Number of dimensions does not match (%s)!\n'%(name,)    
     for i in xrange(len(dims)):
       if dst.dimensions.has_key(dims[i]):
         assert values.shape[i] == len(dst.dimensions[dims[i]]), \
@@ -98,10 +98,11 @@ def add_var(dst, name, dims, values=None, atts=None, dtype=None, zlib=True, **kw
   varargs = dict() # arguments to be passed to createVariable
   if zlib: varargs.update(zlib_default)
   varargs.update(kwargs)
-  var = dst.createVariable(name, dtype, (name,), **varargs)
+  var = dst.createVariable(name, dtype, dims, **varargs)
   if values is not None: var[:] = values # assign coordinate values if given  
   if atts: # add attributes
     for key,value in atts.iteritems():
+      print key, value
       var.setncattr(key,value) 
   
 
