@@ -10,14 +10,14 @@ Script to read PRISM data from ASCII files and write to NetCDF format
 from numpy import array, arange
 from socket import gethostname
 ## global data
-# days_per_month = array([31,28.25,31,30,31,30,31,31,30,31,30,31])
-days_per_month = array([31]) # for development
+days_per_month = array([31,28.25,31,30,31,30,31,31,30,31,30,31])
+# days_per_month = array([31]) # for development
 ntime = len(days_per_month) # number of month
 # data root folder
 hostname = gethostname()
 if hostname=='komputer':
-#   PRISMroot = '/home/DATA/DATA/PRISM/'
-  PRISMroot = '/media/tmp/PRISM/' # RAM disk for development
+  PRISMroot = '/home/DATA/DATA/PRISM/'
+#   PRISMroot = '/media/tmp/PRISM/' # RAM disk for development
 else:
   PRISMroot = '/home/me/DATA/PRISM/'
 
@@ -71,14 +71,14 @@ if __name__ == '__main__':
     # read precip data        
     ppt = loadASCII('Ppt')
     # rescale data (divide by 100 & days per month)
-    ppt /= days_per_month.reshape((len(days_per_month),1,1)) * 100.        
+    ppt /= days_per_month.reshape((len(days_per_month),1,1)) * 100. # convert to mm/day
     # print diagnostic
     print('Mean Precipitation: %3.1f mm/day'%ppt.mean())
     
     # read temperature data
-    Tmin = loadASCII('Tmin'); Tmin /= 100.
-    Tmax = loadASCII('Tmax'); Tmax /= 100.    
-#     Tavg = loadASCII('Tavg'); Tavg /= 100.
+    Tmin = loadASCII('Tmin'); Tmin /= 100.; Tmin += 273.15 # convert to Kelvin
+    Tmax = loadASCII('Tmax'); Tmax /= 100.; Tmax += 273.15    
+#     Tavg = loadASCII('Tavg'); Tavg /= 100.; Tavg += 273.15
     Tavg = ( Tmin + Tmax ) / 2. # temporary solution for Tavg, because the data seems to be corrupted
     # print diagnostic
     print('Min/Mean/Max Temperature: %3.1f / %3.1f / %3.1f C'%(Tmin.mean(),Tavg.mean(),Tmax.mean()))
@@ -97,13 +97,14 @@ if __name__ == '__main__':
     from netcdf import Dataset, add_coord, add_var
     # settings
     outfile = 'prism_clim.nc'
-    test = 'test_' # development prefix
+#     prefix = 'test_' # development prefix
+    prefix = 'prismavg/' # production prefix
     
     
     # initialize netcdf dataset structure
-    print('\nWriting data to disk: %s'%(test+outfile,))
+    print('\nWriting data to disk: %s'%(prefix+outfile,))
     # create groups for different resolution
-    outdata = Dataset(PRISMroot+test+outfile, 'w', format='NETCDF4') # outgrp.createGroup('fineres')
+    outdata = Dataset(PRISMroot+prefix+outfile, 'w', format='NETCDF4') # outgrp.createGroup('fineres')
     # new time dimensions
     months = ['January  ', 'February ', 'March    ', 'April    ', 'May      ', 'June     ', #
               'July     ', 'August   ', 'September', 'October  ', 'November ', 'December ']
@@ -130,7 +131,7 @@ if __name__ == '__main__':
     atts = dict(long_name='Minimum Temperature', units='deg. C')
     add_var(outdata, 'Tmin', ('time','lat','lon'), values=Tmin.filled(fill_value), atts=atts, fill_value=fill_value)
     atts = dict(long_name='Average Temperature', units='deg. C')
-    add_var(outdata, 'Tavg', ('time','lat','lon'), values=Tavg.filled(fill_value), atts=atts, fill_value=fill_value)
+    add_var(outdata, 'T2', ('time','lat','lon'), values=Tavg.filled(fill_value), atts=atts, fill_value=fill_value)
     atts = dict(long_name='Maximum Temperature', units='deg. C')
     add_var(outdata, 'Tmax', ('time','lat','lon'), values=Tmax.filled(fill_value), atts=atts, fill_value=fill_value)
     

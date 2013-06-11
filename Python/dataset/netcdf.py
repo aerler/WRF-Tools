@@ -102,7 +102,7 @@ def add_var(dst, name, dims, values=None, atts=None, dtype=None, zlib=True, **kw
   if values is not None: var[:] = values # assign coordinate values if given  
   if atts: # add attributes
     for key,value in atts.iteritems():
-      print key, value
+#       print key, value
       var.setncattr(key,value) 
   
 
