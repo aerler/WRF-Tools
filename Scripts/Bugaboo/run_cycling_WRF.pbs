@@ -2,7 +2,8 @@
 # MOAB/Torque submission script for Bugaboo (WestGrid)
 
 ## queue/PBS settings
-#PBS -l nodes=10:ppn=12
+##PBS -l nodes=8:ppn=12
+#PBS -l procs=96
 #PBS -l pmem=1000MB
 #PBS -l feature=x5650
 #PBS -l walltime=12:00:00
@@ -37,8 +38,10 @@ export WPSSCRIPT="run_cycling_WPS.pbs" # WRF suffix assumed, WPS suffix substitu
 export ARSCRIPT="" # archive script to be executed after WRF finishes
 export ARINTERVAL="" # default: every time
 # WRF and WPS wallclock  time limits (no way to query from queue system)
-export WRFWCT='' # WRF wallclock  time limit; e.g. '06:00:00'
-export WPSWCT='' # WPS wallclock  time limit; e.g. '01:00:00'
+export WRFWCT='24:00:00' # WRF wallclock time
+export WPSWCT='01:00:00' # WPS wallclock time
+export NODES=1 # this variable is effectively not used 
+export TASKS=96 # total number of MPI task
 # input data source (needed for treatment of leap years)
 export DATATYPE='CFSR' # type of initial and boundary forcing data
 

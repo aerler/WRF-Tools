@@ -38,7 +38,7 @@ if [[ -n "${NEXTSTEP}" ]]
     echo "   ***   Launching WRF for next step: ${NEXTSTEP}   ***   "
     echo
     # execute submission command (set in setup-script; machine-specific)
-    eval "echo ${RESUBJOB}" # print command
+    #eval "echo ${RESUBJOB}" # print command; now done with set -x
     set -x
     eval "${RESUBJOB}" # execute command
     set +x

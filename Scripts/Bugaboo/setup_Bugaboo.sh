@@ -44,7 +44,7 @@ fi # RAMIN/OUT
 ulimit -s hard
 
 # cp-flag to prevent overwriting existing content
-export NOCLOBBER='-n'
+export NOCLOBBER='--interactive --reply=no'
 
 # set up hybrid envionment: OpenMP and MPI (Intel)
 export NODES=${NODES:-${PBS_NUM_NODES}} # set in PBS section
@@ -54,12 +54,12 @@ export THREADS=${THREADS:-1} # number of OpenMP threads
 export HYBRIDRUN=${HYBRIDRUN:-'mpiexec -np $((NODES*TASKS))'} # evaluated by execWRF and execWPS
 
 # WPS/preprocessing submission command (for next step)
-export SUBMITWPS=${SUBMITWPS:-'"export WRFWCT=${WRFWCT}; export WPSWCT=${WPSWCT}; export NEXTSTEP=${NEXTSTEP}; export WPSSCRIPT=${WPSSCRIPT}; python ${SCRIPTDIR}/selectWPSqueue.py"'} # use Python script to estimate queue time and choose queue
+export SUBMITWPS=${SUBMITWPS:-'cd ${INIDIR} && qsub ./${WPSSCRIPT} -v NEXTSTEP=${NEXTSTEP}'} # use Python script to estimate queue time and choose queue
 export WAITFORWPS=${WAITFORWPS:-'NO'} # stay on compute node until WPS for next step finished, in order to submit next WRF job
 
 # archive submission command (for last step)
-export SUBMITAR=${SUBMITAR:-'echo "Archiving is currently not available."'} # evaluated by launchPostP
+export SUBMITAR=${SUBMITAR:-'echo "Automatic archiving is currently not available."'} # evaluated by launchPostP
 # N.B.: requires $ARTAG to be set in the launch script
 
 # job submission command (for next step)
-export RESUBJOB=${RESUBJOB-'"qsub ./${WRFSCRIPT} -v NEXTSTEP=${NEXTSTEP}"'} # evaluated by resubJob
+export RESUBJOB=${RESUBJOB-'cd ${INIDIR} && qsub ./${WRFSCRIPT} -v NEXTSTEP=${NEXTSTEP}'} # evaluated by resubJob

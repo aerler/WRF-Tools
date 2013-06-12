@@ -29,8 +29,10 @@ if [[ -n "${ARSCRIPT}" ]]
 	echo
 	echo "   ***   Launching archive script for WRF output: ${CURRENTSTEP}   ***   "
 	echo
-	eval "echo ${SUBMITAR}" # print command
+	#eval "echo ${SUBMITAR}" # print command; now done with set -x
+	set -x
 	eval "${SUBMITAR}" # using variables: $ARTAG, $ARINTERVAL
+	set +x
 	# using these default options: TAGS=${ARTAG},MODE=BACKUP,INTERVAL=${ARINTERVAL}
 	# additional default options set in archive script: RMSRC, VERIFY, DATASET, DST, SRC
     fi # $ARTAG
