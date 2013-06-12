@@ -1,7 +1,7 @@
 #!/bin/bash
 # script to set up a WPS/WRF run folder on SciNet
 # created 28/06/2012 by Andre R. Erler, GPL v3
-# last revision 24/05/2013 by Andre R. Erler
+# last revision 11/06/2013 by Andre R. Erler
 
 # environment variables: $MODEL_ROOT, $WPSSRC, $WRFSRC, $SCRATCH
 
@@ -22,7 +22,7 @@ function RENAME () {
     if [[ "${FILE}" == *WPS* ]] && [[ "${WPSQ}" == "${Q}" ]]; then
 	if [[ "${WPSQ}" == "pbs" ]]; then
 	    sed -i "/#PBS -N/ s/#PBS -N\s.*$/#PBS -N ${NAME}_WPS/" "${FILE}" # name
-	    sed -i "/#PBS -l/ s/#PBS -l nodes=.*$/#PBS -l nodes=1:m128g:ppn=16/" "${FILE}" # nodes (WPS only runs on one node)
+	    sed -i "/#PBS -l/ s/#PBS -l nodes=.*:\(.*\)$/#PBS -l nodes=1:\1/" "${FILE}" # nodes (WPS only runs on one node)
 	    sed -i "/#PBS -l/ s/#PBS -l walltime=.*$/#PBS -l walltime=${WPSWCT}/" "${FILE}" # wallclock time
 	else
 	    sed -i "/export JOBNAME/ s+export\sJOBNAME=.*$+export JOBNAME=${NAME}_WPS  # job name (dummy variable, since there is no queue)+" "${FILE}" # name
@@ -33,7 +33,7 @@ function RENAME () {
 	if [[ "${WRFQ}" == "pbs" ]]; then
 	    sed -i "/#PBS -N/ s/#PBS -N\s.*$/#PBS -N ${NAME}_WRF/" "run_${CASETYPE}_WRF.${WRFQ}" # experiment name
 	    sed -i "/#PBS -W/ s/#PBS -W\s.*$/#PBS -W depend:afterok:${NAME}_WPS/" "${FILE}" # dependency on WPS
-	    sed -i "/#PBS -l/ s/#PBS -l nodes=.*$/#PBS -l nodes=${WRFNODES}:ppn=8/" "${FILE}" # number of nodes
+	    sed -i "/#PBS -l/ s/#PBS -l nodes=.*:\(.*\)$/#PBS -l nodes=${WRFNODES}:\1/" "${FILE}" # number of nodes
 	    sed -i "/#PBS -l/ s/#PBS -l walltime=.*$/#PBS -l walltime=${WRFWCT}/" "${FILE}" # wallclock time
 	elif [[ "${WRFQ}" == "sge" ]]; then
 	    sed -i "/#$ -N/ s/#$ -N\s.*$/#$ -N ${NAME}_WRF/" "run_${CASETYPE}_WRF.${WRFQ}" # experiment name
@@ -182,6 +182,12 @@ elif [[ "${WPSSYS}" == "Rocks" ]]; then
     METEXE=${METEXE:-"${WPSSRC}/Rocks-MPI/${WPSBLD}/O3xSSE42NC4Grb2/metgrid.exe"}
     REALEXE=${REALEXE:-"${WRFSRC}/Rocks-MPI/${WRFBLD}/O3xSSE42NC4/real.exe"}
     UNGRIBEXE=${UNGRIBEXE:-"${WPSSRC}/Rocks-MPI/${WPSBLD}/O3xSSE42NC4Grb2/ungrib.exe"}
+elif [[ "${WPSSYS}" == "Bugaboo" ]]; then
+    WPSQ='pbs' # queue system
+    WPSWCT=${WPSWCT:-'02:00:00'} # WPS wallclock time
+    METEXE=${METEXE:-"${WPSSRC}/Bugaboo-MPI/${WPSBLD}/O3xSSE42NC4/metgrid.exe"}
+    REALEXE=${REALEXE:-"${WRFSRC}/Bugaboo-MPI/${WRFBLD}/O3xSSE42NC4/real.exe"}
+    UNGRIBEXE=${UNGRIBEXE:-"${WPSSRC}/Bugaboo-MPI/${WPSBLD}/O3xSSE42NC4/ungrib.exe"}
 elif [[ "${WPSSYS}" == "i7" ]]; then
     WPSQ='sh' # no queue system
     WPSWCT=${WPSWCT:-'0:00:00'} # WPS wallclock time
@@ -211,6 +217,11 @@ elif [[ "${WRFSYS}" == "Rocks" ]]; then
     WRFWCT=${WRFWCT:-'4:00:00'}; WRFNODES=${WRFNODES:-1} # WRF resource config on Rocks
     GEOEXE=${GEOEXE:-"${WPSSRC}/Rocks-MPI/${WPSBLD}/O3xSSE42NC4Grb2/geogrid.exe"}
     WRFEXE=${WRFEXE:-"${WRFSRC}/Rocks-MPI/${WRFBLD}/O3xSSE42NC4/wrf.exe"}
+elif [[ "${WRFSYS}" == "Bugaboo" ]]; then
+    WRFQ='pbs' # queue system
+    WRFWCT=${WRFWCT:-'12:00:00'}; WRFNODES=${WRFNODES:-10} # WRF resource config on GPC
+    GEOEXE=${GEOEXE:-"${WPSSRC}/Bugaboo-MPI/${WPSBLD}/O3xSSE42NC4/geogrid.exe"}
+    WRFEXE=${WRFEXE:-"${WRFSRC}/Bugaboo-MPI/${WRFBLD}/O3xSSE42NC4/wrf.exe"}    
 elif [[ "${WRFSYS}" == "i7" ]]; then
     WRFQ='sh' # queue system
     WRFWCT=${WRFWCT:-'0:00:00'}; WRFNODES=${WRFNODES:-1} # WRF resource config on i7
@@ -310,6 +321,7 @@ if [[ "${DATATYPE}" == 'CESM' ]] || [[ "${DATATYPE}" == 'CCSM' ]]; then
   ln -sf "${DATADIR}/lnd/hist/" 'lnd' # land surface
   ln -sf "${DATADIR}/ice/hist/" 'ice' # sea ice
 elif [[ "${DATATYPE}" == 'CFSR' ]]; then
+  rm -f 'plev' 'srfc'
   ln -sf "${DATADIR}/PLEV/" 'plev' # pressure level date (3D, 0.5 deg)
   ln -sf "${DATADIR}/SRFC/" 'srfc' # surface date (2D, 0.33 deg)
 fi # $DATATYPE
@@ -405,7 +417,7 @@ if [[ -n "${ARSCRIPT}" ]]; then
 	sed -i "/#PBS -N/ s/#PBS -N\s.*$/#PBS -N ${NAME}_ar/" "${ARSCRIPT}"
     ls "${ARSCRIPT}"
     # set archiving interval
-    if [[ -n"${ARINTERVAL}" ]]; then
+    if [[ -n "${ARINTERVAL}" ]]; then
 	sed -i "/INTERVAL/ s/^\s*INTERVAL=.*$/INTERVAL=\'${ARINTERVAL}\' # interval in which the archive script is to be executed/" "${ARSCRIPT}"
     fi
     # set appropriate dataset variable for number of domains

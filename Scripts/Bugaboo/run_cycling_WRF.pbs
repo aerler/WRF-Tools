@@ -1,0 +1,49 @@
+#!/bin/bash
+# MOAB/Torque submission script for Bugaboo (WestGrid)
+
+## queue/PBS settings
+#PBS -l nodes=10:ppn=12
+#PBS -l pmem=1000MB
+#PBS -l feature=x5650
+#PBS -l walltime=12:00:00
+# std and error output
+#PBS -j oe
+#PBS -o $PBS_JOBNAME.$PBS_JOBID.out
+# send email if abort (nbae)
+#PBS -M aerler@atmosp.physics.utoronto.ca
+#PBS -m a
+# job name
+#PBS -N cycling_WRF
+# job dependency
+# This doesn't work at the moment: PBS -W depend:afterok:cycling_WPS
+# N.B.: this ${PBS_JOBNAME%_WRF}_WPS does not work
+## submit to queue (NB: on Bugaboo the queue is selected automatically)
+
+
+## job settings
+# get PBS names (needed for folder names)
+export JOBNAME="${PBS_JOBNAME}" # not the $RUNNAME
+export INIDIR="${PBS_O_WORKDIR}" # experiment root (launch directory)
+# directory setup
+export RUNNAME="${NEXTSTEP}" # step name, not job name!
+export WORKDIR="${INIDIR}/${RUNNAME}/" # step folder
+export WRFOUT="${INIDIR}/wrfout/" # output directory
+export SCRIPTDIR="${INIDIR}/scripts/" # location of component scripts (pre/post processing etc.)
+export BINDIR="${INIDIR}/bin/" # location of executables (WRF and WPS)
+# N.B.: use absolute path for script and bin folders
+# important scripts
+export WRFSCRIPT="run_cycling_WRF.pbs" # WRF suffix assumed
+export WPSSCRIPT="run_cycling_WPS.pbs" # WRF suffix assumed, WPS suffix substituted: ${JOBNAME%_WRF}_WPS
+export ARSCRIPT="" # archive script to be executed after WRF finishes
+export ARINTERVAL="" # default: every time
+# WRF and WPS wallclock  time limits (no way to query from queue system)
+export WRFWCT='' # WRF wallclock  time limit; e.g. '06:00:00'
+export WPSWCT='' # WPS wallclock  time limit; e.g. '01:00:00'
+# input data source (needed for treatment of leap years)
+export DATATYPE='CFSR' # type of initial and boundary forcing data
+
+## WRF settings
+# N.B.: these settings serve as fallback options when inferring from namelist fails
+export GHG='' # GHG emission scenario
+export RAD='' # radiation scheme
+export LSM='' # land surface scheme
