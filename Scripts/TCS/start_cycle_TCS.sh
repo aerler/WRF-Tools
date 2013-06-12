@@ -17,7 +17,7 @@ export WRFSCRIPT=${WRFSCRIPT:-'run_cycling_WRF.ll'} # WRF run-scripts
 export STATICTGZ=${STATICTGZ:-'static.tgz'} # file for static data backup
 # geogrid command (executed during machine-independent setup)
 #export GEOGRID=${GEOGRID:-"mpiexec -n 8 ${BINDIR}/geogrid.exe > /dev/null"} # hide stdout
-export GEOGRID=${GEOGRID:-"ssh gpc04 \"cd ${INIDIR}; source ${SCRIPTDIR}/setup_WPS.sh; mpirun -n 4 ${BINDIR}/geogrid.exe\" > /dev/null"} # hide stdout; run on GPC via ssh
+export GEOGRID=${GEOGRID:-"ssh gpc-f102n084 \"cd ${INIDIR}; source ${SCRIPTDIR}/setup_WPS.sh; mpirun -n 4 ${BINDIR}/geogrid.exe\" > /dev/null"} # hide stdout; run on GPC via ssh
 
 # translate arguments
 export MODE="${1}" # NOGEO*, RESTART, START

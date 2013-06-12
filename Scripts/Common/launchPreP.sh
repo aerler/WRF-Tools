@@ -17,7 +17,9 @@ if [[ -n "${NEXTSTEP}" ]] && [[ ! $NOWPS == 1 ]]
     echo
     # submitting independent WPS job
     eval "echo ${SUBMITWPS}" # print command
+    set -x 
     eval "${SUBMITWPS}" # using variables: $INIDIR, $DEPENDENCY, $NEXTSTEP
+    set +x
 
     # N.B.: the queue selection process happens in the launch command ($SUBMITWPS),
     #       which is set in the setup-script

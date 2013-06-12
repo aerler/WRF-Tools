@@ -257,6 +257,9 @@ if [[ ${RUNWRF} == 1 ]]
     elif [[ -n $(grep 'NaN' 'rsl.error.'*) ]] || [[ -n $(grep 'NAN' 'rsl.error.'*) ]]; then
       	WRFERR=1
       	echo '   >>>   WRF FAILED:   NUMERICAL INSTABILITY   <<<   '
+    elif [[ -n $(grep 'segmentation fault' 'rsl.error.'*) ]]; then
+      	WRFERR=1
+      	echo '   >>>   WRF FAILED:   SEGMENTATION FAULT   <<<   '
     else 
       	WRFERR=1
       	echo '   >>>   WRF FAILED! (UNKNOWN ERROR)   <<<   '

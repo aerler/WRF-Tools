@@ -39,6 +39,8 @@ if [[ -n "${NEXTSTEP}" ]]
     echo
     # execute submission command (set in setup-script; machine-specific)
     eval "echo ${RESUBJOB}" # print command
+    set -x
     eval "${RESUBJOB}" # execute command
+    set +x
 
 fi # $NEXTSTEP
