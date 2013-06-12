@@ -9,9 +9,10 @@ This script does not rely on PyGeode but instead uses netCDF4 and numpy directly
 
 ## imports
 # numpy
-from numpy import arange, array, zeros
+import numpy as np
+import numpy.ma as ma
 # import netCDF4-python and added functionality
-from netcdf import Dataset, copy_ncatts, copy_vars, copy_dims, add_coord
+from netcdf import Dataset, copy_ncatts, add_var, copy_dims, add_coord
 
 ## settings
 GPCCroot = '/home/DATA/DATA/GPCC/'
@@ -34,11 +35,18 @@ dimlist = dict(lat='lat',lon='lon') # these dimensions will be copied - 'time' i
 if __name__ == '__main__':
 
   ## open input datasets
-  indata = dict() 
+  indata = dict()
   # loop over all source files and open them
   for (key,value) in filelist.iteritems(): 
     indata[key] = Dataset(GPCCdata+value, 'r')
+    indata[key].variables[varlist[key]].set_auto_maskandscale(False)
+  # get some meta data and create land mask  
   datashape = indata['rain'].variables[varlist['rain']].shape # (time, lat, lon)
+  missing_value = indata['rain'].variables[varlist['rain']].getncattr('_FillValue')
+  dataMask = ( indata['rain'].variables[varlist['rain']][1,:,:] == missing_value )
+  # random check that mask is consistent
+#   assert ( (indata['rain'].variables[varlist['rain']][16,:,:] == missing_value ) == dataMask ).all()
+#   dataMask = 
 #  # print some meta data  
 #  print indata['rain'].variables[varlist['rain']]
 #  print indata['rain'].dimensions[dimlist['lat']]
@@ -52,13 +60,23 @@ if __name__ == '__main__':
   # loop over variables 
   climdata = dict()
   for (key,value) in varlist.iteritems():
-    tmp = zeros((ntime, datashape[1],datashape[2])); 
+    print('\nProcessing %s'%(key))
+    sumtmp = ma.array(np.zeros((ntime, datashape[1],datashape[2])), keep_mask=True, hard_mask=True,
+                      mask=dataMask.reshape(1,datashape[1],datashape[2]).repeat(ntime,axis=0))
+#     sumtmp = np.zeros((ntime, datashape[1],datashape[2]))
     cnt = debmon # start here
     while cnt <= finmon: # including last year   
-      if key =='rain': print('Processing year %04i'%(cnt/12 +1901,))    
-      cnt += ntime
-      tmp +=  indata[key].variables[value][cnt-ntime:cnt,:,:]
-    climdata[key] = tmp / (finyr-debyr+1)        
+      print('  %04i'%(cnt/12 +1901,))    
+      cnt += ntime      
+      sumtmp += indata[key].variables[value][cnt-ntime:cnt,:,:]
+#       climdata[key] = ma.array( sumtmp / (finyr-debyr+1), mask=dataMask.repeat(ntime,axis=0))
+#                       keep_mask=True, hard_mask=True)
+    climdata[key] = sumtmp / (finyr-debyr+1)
+#     climdata[key] = ma.masked_less(sumtmp, 0) / (finyr-debyr+1)
+      
+  ## convert values to mm/day
+  days_per_month = np.array([31,28.25,31,30,31,30,31,31,30,31,30,31])
+  climdata['rain'] /= days_per_month.reshape((len(days_per_month),1,1)) # convert to mm/day
       
   ## initialize netcdf dataset structure
   print('\nWriting data to disk: %s'%(test+outfile,))
@@ -67,11 +85,10 @@ if __name__ == '__main__':
   # new time dimensions
   months = ['January  ', 'February ', 'March    ', 'April    ', 'May      ', 'June     ', #
             'July     ', 'August   ', 'September', 'October  ', 'November ', 'December ']
-  days = array([31, 28.25, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31])
   # create time dimensions and coordinate variables
-  add_coord(outdata,'time',arange(1,ntime+1),dtype='i4')
+  add_coord(outdata,'time',np.arange(1,ntime+1),dtype='i4')
   outdata.createDimension('tstrlen', 9) # name of month string
-  outdata.createVariable('ndays','i4',('time',))[:] = days
+  outdata.createVariable('ndays','i4',('time',))[:] = days_per_month
   # names of months (as char array)
   coord = outdata.createVariable('month','S1',('time','tstrlen'))
   for m in xrange(ntime): 
@@ -83,20 +100,28 @@ if __name__ == '__main__':
   # create old lat/lon dimensions and coordinate variables
   copy_dims(outdata, indata['rain'], dimlist=dimlist.keys(), namemap=dimlist, copy_coords=True)
   # create climatology variables  
-  for (key,value) in indata.iteritems():
-    copy_vars(outdata, value, [key], namemap=varlist, copy_data=False) # , incl_=True
-    outdata.variables[key][:,:,:] = climdata[key] 
-        
+  dims = ('time','lat','lon'); fill_value = -9999
+  # precipitation
+  atts = dict(long_name='Precipitation', units='mm/day')
+  add_var(outdata, 'rain', dims, values=climdata['rain'].filled(fill_value), atts=atts, fill_value=fill_value)
+  # station density
+  atts = dict(long_name='Station Density', units='#')
+  add_var(outdata, 'stns', dims, values=climdata['stns'].filled(fill_value), atts=atts, fill_value=fill_value)  
+  # land mask
+  atts = dict(long_name='Land Mask', units='')
+  tmp = ma.masked_array(ma.ones((datashape[1],datashape[2])), mask=dataMask)
+  add_var(outdata, 'landmask', ('lat','lon'), values=tmp.filled(0))
   
-#  ## dataset feedback and diagnostics
-#  # print dataset meta data
-#  print outdata
-#  # print dimensions meta data
-#  for dimobj in outdata.dimensions.values():
-#    print dimobj
-#  # print variable meta data
-#  for varobj in outdata.variables.values():
-#    print varobj
+#   ## dataset feedback and diagnostics
+#   # print dataset meta data
+#   print('\n\n')
+#   print(outdata)
+#   # print dimensions meta data
+#   for dimobj in outdata.dimensions.values():
+#     print dimobj
+#   # print variable meta data
+#   for varobj in outdata.variables.values():
+#     print varobj
     
   ## close netcdf files  
   for ncset in indata.itervalues(): ncset.close() # input
