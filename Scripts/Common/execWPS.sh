@@ -68,9 +68,9 @@ if [[ ${RUNPYWPS} == 1 ]]
 
     # run and time main pre-processing script (Python)
     cd "${WORKDIR}" # using current working directory
-	# some influential environment variables
+    # some influential environment variables
     export OMP_NUM_THREADS=1 # set OpenMP environment
-	# read by Python script pyWPS
+    # environment variables required by Python script pyWPS
     export PYWPS_THREADS=$(( TASKS*THREADS ))
     export PYWPS_DATA_TYPE="${DATATYPE}"
     export PYWPS_MET_DATA="${METDATA}"
@@ -100,7 +100,7 @@ if [[ ${RUNPYWPS} == 1 ]]
     # archive log files
     tar czf ${PYTGZ} "${PYLOG}/"
     # move metgrid data to final destination (if pyWPS wrote data to disk)
-    if [[ -n "${PYWPS_MET_DATA}" && "${METDATA}" != "${WORKDIR}" ]]; then
+    if [[ -n "${METDATA}" ]] && [[ "${METDATA}" != "${WORKDIR}" ]]; then
 		mkdir -p "${METDATA}"
 		cp ${PYTGZ} "${METDATA}"
 		mv "${PYDATA}"/* "${METDATA}"

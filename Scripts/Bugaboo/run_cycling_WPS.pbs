@@ -5,6 +5,7 @@
 #PBS -l nodes=1:ppn=4
 ##PBS -l procs=4
 #PBS -l pmem=2000MB
+#PBS -l feature=x5650
 #PBS -l walltime=1:00:00
 # merge standard error and output stream
 #PBS -j oe

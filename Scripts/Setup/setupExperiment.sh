@@ -219,7 +219,7 @@ elif [[ "${WRFSYS}" == "Rocks" ]]; then
     WRFEXE=${WRFEXE:-"${WRFSRC}/Rocks-MPI/${WRFBLD}/O3xSSE42NC4/wrf.exe"}
 elif [[ "${WRFSYS}" == "Bugaboo" ]]; then
     WRFQ='pbs' # queue system
-    WRFWCT=${WRFWCT:-'12:00:00'}; WRFNODES=${WRFNODES:-10} # WRF resource config on GPC
+    WRFWCT=${WRFWCT:-'12:00:00'}; WRFNODES=${WRFNODES:-1} # Bugaboo allocates cores, not nodes!
     GEOEXE=${GEOEXE:-"${WPSSRC}/Bugaboo-MPI/${WPSBLD}/O3xSSE42NC4/geogrid.exe"}
     WRFEXE=${WRFEXE:-"${WRFSRC}/Bugaboo-MPI/${WRFBLD}/O3xSSE42NC4/wrf.exe"}    
 elif [[ "${WRFSYS}" == "i7" ]]; then

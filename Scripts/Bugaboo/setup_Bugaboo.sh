@@ -51,7 +51,7 @@ export NODES=${NODES:-${PBS_NUM_NODES}} # set in PBS section
 export TASKS=${TASKS:-12} # number of MPI task per node (Hpyerthreading!)
 export THREADS=${THREADS:-1} # number of OpenMP threads
 # OpenMPI job launch command
-export HYBRIDRUN=${HYBRIDRUN:-'mpiexec -np $((NODES*TASKS))'} # evaluated by execWRF and execWPS
+export HYBRIDRUN=${HYBRIDRUN:-'mpiexec -n $((NODES*TASKS))'} # evaluated by execWRF and execWPS
 
 # WPS/preprocessing submission command (for next step)
 export SUBMITWPS=${SUBMITWPS:-'cd ${INIDIR} && qsub ./${WPSSCRIPT} -v NEXTSTEP=${NEXTSTEP}'} # use Python script to estimate queue time and choose queue
