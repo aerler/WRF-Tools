@@ -1,7 +1,7 @@
 #!/bin/bash
 # script to set up a cycling WPS/WRF run: reads first entry in stepfile and
 # starts/submits first WPS and WRF runs, the latter dependent on the former
-# created 24/05/2013 by Andre R. Erler, GPL v3
+# created 11/06/2013 by Andre R. Erler, GPL v3
 
 set -e # abort if anything goes wrong
 # settings
@@ -15,7 +15,7 @@ export WPSSCRIPT=${WPSSCRIPT:-'run_cycling_WPS.sh'} # WPS run-scripts
 export WRFSCRIPT=${WRFSCRIPT:-'run_cycling_WRF.sh'} # WRF run-scripts
 export STATICTGZ=${STATICTGZ:-'static.tgz'} # file for static data backup
 # geogrid command (executed during machine-independent setup)
-export GEOGRID=${GEOGRID:-"mpirun -n 4 ${BINDIR}/geogrid.exe > /dev/null"} # hide stdout
+export GEOGRID=${GEOGRID:-"mpiexec -n 4 ${BINDIR}/geogrid.exe > /dev/null"} # hide stdout
 
 # translate arguments
 export MODE="${1}" # NOGEO*, RESTART, START
