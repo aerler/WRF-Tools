@@ -209,7 +209,7 @@ elif [[ "${WRFSYS}" == "TCS" ]]; then
     WRFEXE=${WRFEXE:-"${WRFSRC}/TCS-MPI/${WRFBLD}/O3NC4/wrf.exe"}
 elif [[ "${WRFSYS}" == "P7" ]]; then
     WRFQ='ll' # queue system
-    WRFWCT=${WRFWCT:-'13:00:00'}; WRFNODES=${WRFNODES:-1} # WRF resource config on P7
+    WRFWCT=${WRFWCT:-'15:00:00'}; WRFNODES=${WRFNODES:-1} # WRF resource config on P7
     GEOEXE=${GEOEXE:-"${WPSSRC}/GPC-MPI/${WPSBLD}/O3xSSSE3/geogrid.exe"}
     WRFEXE=${WRFEXE:-"${WRFSRC}/P7-MPI/${WRFBLD}/O3pwr7NC4/wrf.exe"}
 elif [[ "${WRFSYS}" == "Rocks" ]]; then
@@ -296,7 +296,12 @@ export WRFTOOLS
 ./scripts/writeNamelists.sh
 # number of domains (WRF and WPS namelist!)
 sed -i "/max_dom/ s/^\s*max_dom\s*=\s*.*$/ max_dom = ${MAXDOM}, ! this entry was edited by the setup script/" namelist.input namelist.wps
-
+# remove references to FLake, if not used
+if [[ "${FLAKE}" != 1 ]]; then
+  sed -i "/flake_update/ s/^\s*flake_update\s*=\s*.*$/! flake_update was removed because FLake is not used/" namelist.input
+  sed -i "/tsk_flake/ s/^\s*tsk_flake\s*=\s*.*$/! tsk_flake was removed because FLake is not used/" namelist.input
+  sed -i "/lake_depth_limit/ s/^\s*lake_depth_limit\s*=\s*.*$/! lake_depth_limit was removed because FLake is not used/" namelist.input
+fi # flake
 
 ## link data and meta data
 # link meta data
@@ -495,7 +500,10 @@ elif [[ ${LSM} == 3 ]]; then
     LSMTAB="SOILPARM.TBL VEGPARM.TBL GENPARM.TBL LANDUSE.TBL"
 elif [[ ${LSM} == 4 ]]; then
     echo "  Using Noah-MP land-surface scheme."
-    LSMTAB="SOILPARM.TBL VEGPARM.TBL GENPARM.TBL LANDUSE.TBL MPTABLE.TBL"
+    LSMTAB="SOILPARM.TBL VEGPARM.TBL GENPARM.TBL LANDUSE.TBL MPTABLE.TBL"    
+elif [[ ${LSM} == 5 ]]; then
+    echo "Using CLM4 land-surface scheme."
+    LSMTAB="SOILPARM.TBL VEGPARM.TBL GENPARM.TBL LANDUSE.TBL CLM_ALB_ICE_DFS_DATA CLM_ASM_ICE_DFS_DATA CLM_DRDSDT0_DATA CLM_EXT_ICE_DRC_DATA CLM_TAU_DATA CLM_ALB_ICE_DRC_DATA CLM_ASM_ICE_DRC_DATA CLM_EXT_ICE_DFS_DATA CLM_KAPPA_DATA"
 else
     echo 'WARNING: no land-surface model selected!'
 fi

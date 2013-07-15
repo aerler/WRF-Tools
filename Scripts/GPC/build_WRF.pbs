@@ -16,7 +16,7 @@
 #PBS -N build_WRF
 ## submit to queue (NB: this has to be the last PBS line!)
 # batch (default), debug, largemem
-#PBS -q debug
+#PBS -q batch
 # N.B.: the queue setting may have been changed by the last submitting instance
 
 
