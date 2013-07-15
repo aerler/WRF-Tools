@@ -63,9 +63,10 @@ tax = 0 # time axis (to average over)
 dimlist = ['x', 'y'] # copy these dimensions
 dimmap = dict(time='Time', x='west_east', y='south_north') # original names of dimensions
 # include these variables in monthly means 
-varlist = ['ps','T2','Ts','rainnc','rainc','snownc','graupelnc','snow','snowh'] 
+varlist = ['ps','T2','Ts','rainnc','rainc','snownc','graupelnc','snow','snowh','hfx','lhfx','evap'] 
 varmap = dict(ps='PSFC',T2='T2',Ts='TSK',snow='SNOW',snowh='SNOWH', # original (WRF) names of variables
-              rainnc='RAINNC',rainc='RAINC',rainsh='RAINSH',snownc='SNOWNC',graupelnc='GRAUPELNC') 
+              rainnc='RAINNC',rainc='RAINC',rainsh='RAINSH',snownc='SNOWNC',graupelnc='GRAUPELNC',
+              hfx='HFX',lhfx='LH',evap='QFX') 
 acclist = dict(rainnc=100,rainc=100,rainsh=0,snownc=0,graupelnc=0) # dictionary of accumulated variables
 # N.B.: keys = variables and values = bucket sizes; value = None or 0 means no bucket  
 bktpfx = 'I_' # prefix for bucket variables 
