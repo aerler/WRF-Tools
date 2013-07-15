@@ -46,7 +46,7 @@ else: climfile = 'cesmsrfc_clim.nc'
 tax = 0 # time axis (to average over)
 dimlist = ['lon', 'lat'] # copy these dimensions
 dimmap = dict() # original names of dimensions
-varlist = ['ps','pmsl','Ts','T2','rainnc','rainc','snownc','rain','rainsh','snowc','rainzm','snow','seaice'] # include these variables in monthly means
+varlist = ['ps','pmsl','Ts','T2','rainnc','rainc','snownc','rain','rainsh','snowc','rainzm','snow','seaice','evap'] # include these variables in monthly means
 statlist = ['zs','lnd'] # static fields (only copied once) 
 varmap = dict(ps='PS',pmsl='PSL',Ts='TS',T2='TREFHT',zs='PHIS',lnd='LANDFRAC',rain='PRECT', # original (CESM) names of variables
               rainnc='PRECL',rainc='PRECC',rainsh='PRECSH',rainzm='PRECCDZM', #
