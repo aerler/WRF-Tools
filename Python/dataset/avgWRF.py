@@ -33,7 +33,8 @@ else: period = ''
 def getDateRegX(period): 
 # function to define averaging period based on argument
 # use '\d' for any number and [1-3,45] for ranges; '\d\d\d\d-\d\d'
-  if period == '1979-1981': prdrgx = '19(79|8[0-1])-\d\d' # 3 year historical period
+  if period == '1979-1980': prdrgx = '19(79|80)-\d\d' # 2 year historical period
+  elif period == '1979-1981': prdrgx = '19(79|8[0-1])-\d\d' # 3 year historical period
   elif period == '1979-1983': prdrgx = '19(79|8[0-3])-\d\d' # 5 year historical period
   elif period == '1979-1988': prdrgx = '19(79|8[0-8])-\d\d' # 10 year historical period
   elif period == '1980-1994': prdrgx = '19(8[0-9]|9[04])-\d\d' # 15 year historical period
