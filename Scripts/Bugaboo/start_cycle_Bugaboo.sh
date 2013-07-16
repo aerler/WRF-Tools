@@ -40,7 +40,8 @@ eval "${SCRIPTDIR}/setup_cycle.sh" # requires geogrid command
 qsub ./${WPSSCRIPT} -v NEXTSTEP="${NEXTSTEP}"
 
 # submit first WRF instance
-qsub ./${WRFSCRIPT} -v NEXTSTEP="${NEXTSTEP}"
+qsub ./${WRFSCRIPT} -v NEXTSTEP="${NEXTSTEP}" -W depend:afterok:cycling_WPS
+# N.B. the name of the dependency has to be changed by the setup script!
 
 # exit with 0 exit code: if anything went wrong we would already have aborted
 exit 0

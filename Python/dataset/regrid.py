@@ -15,52 +15,77 @@ from netcdf import Dataset
 if __name__ == '__main__':
   
   ## settings
-#   folder = '/home/DATA/DATA/GPCC/gpccavg/'
-  folder = '/media/tmp/gpccavg/' # RAM disk  
-  infile = 'normals_v2011_25.nc'
-  outfile = 'test.nc'
-  
-  ## set up projections and grids
   ramdrv = gdal.GetDriverByName('MEM')
-  # source projection
+#   folder = '/home/DATA/DATA/GPCC/gpccavg/'
+  # input
+#   folder = '/media/tmp/gpccavg/' # RAM disk  
+  folder = '/media/tmp/prismavg/' # RAM disk  
+#   infile = 'normals_v2011_25.nc'
+  infile = 'prism_clim.nc'
   src_epsg =  4326 # ordinary lat/lon projection
-  xe = 144; ye = 72; dx = 2.5; dy = dx; ulx = -180. ; uly = 90.
-  srcgeot = (ulx,dx,0.,uly,0.,-dy) # GT(2) & GT(4) are zero for North-up; GT(1) & GT(5) are pixel width and height; (GT(0),GT(3)) is the top left corner
+  # output
+  outfile = 'test.nc'
+  tgt_epsg =  4326 # ordinary lat/lon projection
+  res = 0.25 # one degree resolution
+  
+
+  ## set up source data
+  # load source data set from NetCDF
+  print folder+infile
+  indata = Dataset(folder+infile, 'r', format='NETCDF4')
+  # source projection
   srcproj = osr.SpatialReference()
   srcproj.ImportFromEPSG(src_epsg)
-  srcdata = ramdrv.Create('', xe, ye, gdal.GDT_Float32)
+  # get meta data (depends onthe grid)
+  if src_epsg ==  4326:
+    # get meta data for regular lat/lon grid
+    lon = indata.variables['lon']; lat = indata.variables['lat'] # shortcut...
+    sxe = len(lon); sye = len(lat)
+    sdx = lon[1] - lon[0]; sdy = lat[1] - lat[0]
+    sulx = lon[0]; suly = lat[-1] # coordinates of upper left corner (same for source and sink)
+  srcgeot = (sulx,sdx,0.,suly,0.,-sdy) # GT(2) & GT(4) are zero for North-up; GT(1) & GT(5) are pixel width and height; (GT(0),GT(3)) is the top left corner
+  # create projection object and assign source data
+  srcdata = ramdrv.Create('', sxe, sye, gdal.GDT_Float32)
+  srcdata.GetRasterBand(1).WriteArray(indata.variables['rain'][1,:,:].astype(np.float32))
   srcdata.SetProjection(srcproj.ExportToWkt())
   srcdata.SetGeoTransform(srcgeot)
+  
+  ## set up target projection and grid
   # target projection
-  tgt_epsg =  4326 # ordinary lat/lon projection
-  xe = 360; ye = 180; dx = 1.0; dy = dx; ulx = -180. ; uly = 90.
-  tgtgeot = (ulx,dx,0.,uly,0.,-dy) # GT(2) & GT(4) are zero for North-up; GT(1) & GT(5) are pixel width and height; (GT(0),GT(3)) is the top left corner
   tgtproj = osr.SpatialReference()
   tgtproj.ImportFromEPSG(tgt_epsg)
-  tgtdata = ramdrv.Create('', xe, ye, gdal.GDT_Float32)
-  tgtdata.SetProjection(srcproj.ExportToWkt())
-  tgtdata.SetGeoTransform(srcgeot)
-  # transformation object
-  tx = osr.CoordinateTransformation(srcproj, tgtproj)
-
-  ## set up data sets
-  # load source data set from NetCDF
-  indata = Dataset(folder+infile, 'r', format='NETCDF4')
-  srcdata.GetRasterBand (1).WriteArray(indata.variables['p'][1,:,:].astype(np.float32))
-  # set up target dataset
+  # transform object for coordinate transformations
+  trafo = osr.CoordinateTransformation(srcproj, tgtproj)
+  if tgt_epsg == src_epsg:
+    tulx = sulx; tuly = suly
+  else:
+    (tulx, tuly, tulz) = trafo.TransformPoint(sulx, suly)
+    (tlrx, tlry, tlrz) = trafo.TransformPoint(sulx+sdx*sxe, suly+sdy*sye)
+  # define coordinates
+  if tgt_epsg == 4326:
+    # regular lat/lon grid
+    tdx = res; tdy = res 
+    txe = int(sxe*sdx/tdx); tye = int(sye*sdy/tdy)
+  tgtgeot = (tulx,tdx,0.,tuly,0.,-tdy) # GT(2) & GT(4) are zero for North-up; GT(1) & GT(5) are pixel width and height; (GT(0),GT(3)) is the top left corner
+  # create data set
+  tgtdata = ramdrv.Create('', txe, tye, gdal.GDT_Float32)
+  tgtdata.SetProjection(tgtproj.ExportToWkt())
+  tgtdata.SetGeoTransform(tgtgeot)
   
   ## reproject and resample
-  err = gdal.ReprojectImage( srcdata, tgtdata, srcproj.ExportToWkt(), tgtproj.ExportToWkt(), gdal.GRA_Bilinear )
+  err = gdal.ReprojectImage(srcdata, tgtdata, srcproj.ExportToWkt(), tgtproj.ExportToWkt(), gdal.GRA_Bilinear)
   
   ## display data
   # get data field
   outdata = tgtdata.ReadAsArray()
   
   # print diagnostic
-  print('Mean Precipitation: %3.1f mm/day'%outdata.mean()) 
+  print outdata.shape
+#   print('Mean Precipitation: %3.1f mm/day'%outdata.mean()) 
   
   # display
   import pylab as pyl
-  pyl.imshow(outdata.mean(axis=0))
+  pyl.imshow(np.flipud(outdata[0,:,:])) 
+  # N.B.: for some reason an array of the dimension 6 x xe x ye is created, but only the [0,:,:] slice actually contains data 
   pyl.colorbar()
-  pyl.show()
+  pyl.show(block=True)

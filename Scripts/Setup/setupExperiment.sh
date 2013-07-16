@@ -23,7 +23,7 @@ function RENAME () {
 	if [[ "${WPSQ}" == "pbs" ]]; then
 	    sed -i "/#PBS -N/ s/#PBS -N\s.*$/#PBS -N ${NAME}_WPS/" "${FILE}" # name
 	    sed -i "/#PBS -l/ s/#PBS -l nodes=.*:\(.*\)$/#PBS -l nodes=1:\1/" "${FILE}" # nodes (WPS only runs on one node)
-	    sed -i "/#PBS -l/ s/#PBS -l walltime=.*$/#PBS -l walltime=${WPSWCT}/" "${FILE}" # wallclock time
+	    sed -i "/#PBS -l/ s/#PBS -l walltime=.*$/#PBS -l walltime=${WPSWCT}/" "${FILE}" # wallclock time	    
 	else
 	    sed -i "/export JOBNAME/ s+export\sJOBNAME=.*$+export JOBNAME=${NAME}_WPS  # job name (dummy variable, since there is no queue)+" "${FILE}" # name
 	fi # $Q
@@ -35,6 +35,7 @@ function RENAME () {
 	    sed -i "/#PBS -W/ s/#PBS -W\s.*$/#PBS -W depend:afterok:${NAME}_WPS/" "${FILE}" # dependency on WPS
 	    sed -i "/#PBS -l/ s/#PBS -l nodes=.*:\(.*\)$/#PBS -l nodes=${WRFNODES}:\1/" "${FILE}" # number of nodes
 	    sed -i "/#PBS -l/ s/#PBS -l walltime=.*$/#PBS -l walltime=${WRFWCT}/" "${FILE}" # wallclock time
+	    sed -i "/qsub/ s/qsub ${WRFSCRIPT} -v NEXTSTEP=*\s-W*$/qsub ${WRFSCRIPT} -v NEXTSTEP=*\s-W\s${NAME}_WPS/" "${FILE}" # dependency
 	elif [[ "${WRFQ}" == "sge" ]]; then
 	    sed -i "/#$ -N/ s/#$ -N\s.*$/#$ -N ${NAME}_WRF/" "run_${CASETYPE}_WRF.${WRFQ}" # experiment name
 # 	    sed -i "/#PBS -W/ s/#PBS -W\s.*$/#PBS -W depend:afterok:${NAME}_WPS/" "${FILE}" # dependency on WPS
@@ -71,7 +72,7 @@ function RENAME () {
     # archive interval
     sed -i "/ARINTERVAL/ s/ARINTERVAL=.*$/ARINTERVAL=\'${ARINTERVAL}\' # interval in which the archive script is to be executed/" "${FILE}"
     # type of initial and boundary focing  data (mainly for WPS)
-	sed -i "/DATATYPE/ s/DATATYPE=.*$/DATATYPE=\'${DATATYPE}\' # type of initial and boundary focing  data /" "${FILE}"
+    sed -i "/DATATYPE/ s/DATATYPE=.*$/DATATYPE=\'${DATATYPE}\' # type of initial and boundary focing  data /" "${FILE}"
 } # fct. RENAME
 
 
