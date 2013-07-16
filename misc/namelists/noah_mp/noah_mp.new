@@ -4,9 +4,9 @@
                                                 !    2 = On
                                                 !    3 = Off (LAI from table; FVEG calculated)
                                                 !    4 = Off (LAI from table; FVEG = maximum veg. fraction)
- opt_crs                            = 2,        ! Noah-MP Stomatal Resistance option:
+ opt_crs                            = 1,        ! Noah-MP Stomatal Resistance option:
                                                 !    1 = Ball-Berry; 2 = Jarvis
- opt_sfc                            = 1         ! Noah-MP surface layer drag coefficient calculation
+ opt_sfc                            = 1,         ! Noah-MP surface layer drag coefficient calculation
                                                 !    1 = Monin-Obukhov; 2 = original Noah (Chen97);
                                                 !    3 = MYJ consistent; 4 = YSU consistent.
  opt_btr                            = 3,        ! Noah-MP Soil Moisture Factor for Stomatal Resistance
