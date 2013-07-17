@@ -20,7 +20,7 @@ CRUdata = CRUroot + '/Time-series 3.2/data/'
 test = ''
 # output settings
 debyr = 1979
-finyr = 1988
+finyr = 1981
 datestr = '%04i-%04i'%(debyr,finyr)
 outfile = 'cru_clim_%s.nc'%(datestr,)
 # files (one per variable)

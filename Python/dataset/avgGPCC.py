@@ -21,7 +21,7 @@ res = '05' #
 test = ''
 # output settings
 debyr = 1979
-finyr = 1988
+finyr = 1981
 datestr = '%04i-%04i'%(debyr,finyr)
 outfile = 'gpcc_%s_clim_%s.nc'%(res,datestr)
 # files

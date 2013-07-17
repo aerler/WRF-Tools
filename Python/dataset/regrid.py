@@ -24,9 +24,9 @@ if __name__ == '__main__':
   infile = 'prism_clim.nc'
   src_epsg =  4326 # ordinary lat/lon projection
   # output
-  outfile = 'test.nc'
+  res = 0.1 # one degree resolution
+  outfile = 'prism_clim_%03.2f.nc'%res
   tgt_epsg =  4326 # ordinary lat/lon projection
-  res = 0.25 # one degree resolution
   
 
   ## set up source data

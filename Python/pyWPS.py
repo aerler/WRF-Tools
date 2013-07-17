@@ -246,6 +246,7 @@ class CESM(Dataset):
   dateform = '\d\d\d\d-\d\d-\d\d-\d\d\d\d\d'
   datestr = '%04i-%02i-%02i-%05i' # year, month, day, seconds
   yearlyfolders = False # use subfolders for every year
+  subdform = '\d\d\d\d' # subdirectories in calendar year format 
   # atmosphere
   atmdir = 'atm/'
   atmpfx = '.cam2.h1.'
@@ -311,6 +312,8 @@ class CESM(Dataset):
     self.atmrgx = re.compile(self.atmpfx+self.dateform+self.ncext+'$')
     # regex to extract dates from filenames
     self.dateregx = re.compile(self.dateform)
+    # subfolder format (at the moment just calendar years)
+    self.subdregx = re.compile(self.subdform+'$')
       
   def getDataDir(self):
     # universal wrapper method for folder with "master-filelist"
@@ -319,8 +322,14 @@ class CESM(Dataset):
     
   def checkSubDir(self, subdir, start, end):
     # method to determine whether a subfolder contains valid data and can be processed recursively
-    # assume the subfolder name is a valid calendar year and test that it is within the right time period
-    return start[0] <= int(subdir) <= end[0]
+    # check that the subfolder name is a valid calendar year 
+    match = self.subdregx.match(subdir)
+    if match:      
+      # test that it is within the right time period
+      lmatch = ( start[0] <= int(subdir) <= end[0] )
+    else: lmatch = False
+    # return results 
+    return lmatch 
     
   def extractDate(self, filename): # , zero=2000
     # method to generate date tuple from date string in filename
