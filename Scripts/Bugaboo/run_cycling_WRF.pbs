@@ -3,7 +3,7 @@
 
 ## queue/PBS settings
 ##PBS -l nodes=8:ppn=12
-#PBS -l procs=96
+#PBS -l procs=128
 #PBS -l pmem=1000MB
 #PBS -l feature=x5650
 #PBS -l walltime=12:00:00
@@ -16,7 +16,7 @@
 # job name
 #PBS -N cycling_WRF
 # job dependency
-# This doesn't work at the moment: PBS -W depend:afterok:cycling_WPS
+#PBS -W depend:afterok:cycling_WPS
 # N.B.: this ${PBS_JOBNAME%_WRF}_WPS does not work
 ## submit to queue (NB: on Bugaboo the queue is selected automatically)
 
@@ -38,10 +38,10 @@ export WPSSCRIPT="run_cycling_WPS.pbs" # WRF suffix assumed, WPS suffix substitu
 export ARSCRIPT="" # archive script to be executed after WRF finishes
 export ARINTERVAL="" # default: every time
 # WRF and WPS wallclock  time limits (no way to query from queue system)
-export WRFWCT='24:00:00' # WRF wallclock time
-export WPSWCT='01:00:00' # WPS wallclock time
+export WRFWCT='12:00:00' # WRF wallclock time
+export WPSWCT='02:00:00' # WPS wallclock time
 export NODES=1 # this variable is effectively not used 
-export TASKS=96 # total number of MPI task
+export TASKS=128 # total number of MPI task
 # input data source (needed for treatment of leap years)
 export DATATYPE='CFSR' # type of initial and boundary forcing data
 
