@@ -21,6 +21,7 @@
  rdmaxalb                            = .false., ! use geogrid values?
  rdlai2d                             = .false., ! CESM data could be used
  fractional_seaice                   = 1, ! from CESM; XICE in Vtable
+ ua_phys                             = .true. ! improved canopy snow for Noah LSM (V3.5 only)
  seaice_albedo_opt                   = 1, ! varies with temperature etc. (V3.5 only)
  sst_update                          = 1, ! applies to all lower input variables
  sst_skin                            = 1, ! compute diurnal cycle for SST
