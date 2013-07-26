@@ -17,7 +17,7 @@ from netcdf import Dataset, copy_ncatts, add_var, copy_dims, add_coord
 ## settings
 GPCCroot = '/home/DATA/DATA/GPCC/'
 GPCCdata = GPCCroot + 'full_data_1900-2010/'
-res = '05' # 
+res = '25' # 
 test = ''
 # output settings
 debyr = 1979

@@ -1,5 +1,5 @@
 &physics
- mp_physics                          = 8,   8,   8,! Morrison 2-moment
+ mp_physics                          = 8,   8,   8, ! Thompson 2-moment
  ra_lw_physics                       = 4,   4,   4, ! RRTMG
  ra_sw_physics                       = 4,   4,   4, ! RRTMG
  radt                                = 20,  20,  20,! every 20 min.
@@ -8,7 +8,7 @@
  sf_urban_physics                    = 0,   0,   0, ! doesn't work with Noah-MP
  bl_pbl_physics                      = 5,   5,   5, ! MYNN 2.5 TKE
  bldt                                = 0,   0,   0, ! every time-step
- cu_physics                          = 6,   6,   6, ! New Grell 3D scheme (G3)
+ cu_physics                          = 6,   6,   6, ! Tiedtke scheme
  cudt                                = 0,   0,   0, ! every time-step
  slope_rad                           = 1, 1, 1, ! slope effects in SW radiation
  topo_shading                        = 1, 1, 1, ! shadows (shadlen = 25000m)
@@ -21,6 +21,7 @@
  rdmaxalb                            = .false., ! use geogrid values?
  rdlai2d                             = .false., ! CESM data could be used
  fractional_seaice                   = 1, ! from CESM; XICE in Vtable
+ ua_phys                             = .true. ! improved canopy snow for Noah LSM (V3.5 only)
  seaice_albedo_opt                   = 1, ! varies with temperature etc. (V3.5 only)
  sst_update                          = 1, ! applies to all lower input variables
  sst_skin                            = 1, ! compute diurnal cycle for SST
