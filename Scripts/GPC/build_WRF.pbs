@@ -26,7 +26,8 @@ WORKDIR=${WORKDIR:-"${PBS_O_WORKDIR}"} # root folder for output
 
 # WRF
 BLDWRF=${BLDWRF:-1}
-WRFCFG=${WRFCFG:-'configure.gpc-mpi-clim.o3xsse42nc4'} # configure script to be used
+#WRFCFG=${WRFCFG:-'configure.gpc-mpi-clim.o3xsse42nc4'} # configure script to be used
+WRFCFG=${WRFCFG:-'configure.gpc-mpi-clim.o3xssse3'} # configure script to be used
 WRFHG=${WRFHG:-1} # 0=use source from tarball, 1=clone HG repository (see below)
 WRFCASE='em_real' # type of WRF build: em_real for real data
 WRFOUTDIR="${WORKDIR}/WRFV3" # folder for WRF build output
