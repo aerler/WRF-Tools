@@ -4,7 +4,7 @@
                                                 !    2 = On
                                                 !    3 = Off (LAI from table; FVEG calculated)
                                                 !    4 = Off (LAI from table; FVEG = maximum veg. fraction)
- opt_crs                            = 1,        ! Noah-MP Stomatal Resistance option:
+ opt_crs                            = 2,        ! Noah-MP Stomatal Resistance option:
                                                 !    1 = Ball-Berry; 2 = Jarvis
  opt_sfc                            = 1,         ! Noah-MP surface layer drag coefficient calculation
                                                 !    1 = Monin-Obukhov; 2 = original Noah (Chen97);
@@ -21,7 +21,7 @@
  opt_inf                            = 2,        ! Noah-MP Soil Permeability option
                                                 !    1 = Linear effects, more permeable;
                                                 !    2 = Non-linear effects, less permeable
- opt_rad                            = 3,        ! Noah-MP Radiative Transfer option
+ opt_rad                            = 1,        ! Noah-MP Radiative Transfer option
                                                 !    1 = Modified two-stream;
                                                 !    2 = Two-stream applied to grid-cell
                                                 !    3 = Two-stream applied to vegetated fraction

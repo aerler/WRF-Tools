@@ -2,11 +2,11 @@
 # MOAB/Torque submission script for Bugaboo (WestGrid)
 
 ## queue/PBS settings
-#PBS -l nodes=1:ppn=4
+#PBS -l nodes=1:ppn=6
 ##PBS -l procs=4
-#PBS -l pmem=2000MB
+#PBS -l pmem=3000MB
 #PBS -l feature=x5650
-#PBS -l walltime=1:00:00
+#PBS -l walltime=22:00:00
 # merge standard error and output stream
 #PBS -j oe
 #PBS -o $PBS_JOBNAME.$PBS_JOBID.out
@@ -30,8 +30,8 @@ export BINDIR="${INIDIR}/bin/" # location of executables (WRF and WPS)
 # N.B.: use absolute path for script and bin folders
 export WPSSCRIPT="run_cycling_WPS.pbs" # WRF suffix assumed, WPS suffix substituted: ${JOBNAME%_WRF}_WPS
 # WPS wallclock  time limits (no way to query from queue system)
-export WPSWCT='01:00:00' # WPS wallclock time
+export WPSWCT='03:00:00' # WPS wallclock time
 export NODES=1 # this variable is effectively not used 
-export TASKS=4 # total number of MPI task
+export TASKS=6 # total number of MPI task
 # input data source
 export DATATYPE='CFSR'
