@@ -18,13 +18,14 @@ if __name__ == '__main__':
   ramdrv = gdal.GetDriverByName('MEM')
 #   folder = '/home/DATA/DATA/GPCC/gpccavg/'
   # input
-#   folder = '/media/tmp/gpccavg/' # RAM disk  
-  folder = '/media/tmp/prismavg/' # RAM disk  
+  folder = '/media/tmp/gpccavg/' # RAM disk  
+#   folder = '/media/tmp/prismavg/' # RAM disk  
 #   infile = 'normals_v2011_25.nc'
-  infile = 'prism_clim.nc'
+  infile = infile = 'gpcc_05_clim_1979-1981.nc'
+#   infile = 'prism_clim.nc'
   src_epsg =  4326 # ordinary lat/lon projection
   # output
-  res = 0.1 # one degree resolution
+  res = 2.5 # one degree resolution
   outfile = 'prism_clim_%03.2f.nc'%res
   tgt_epsg =  4326 # ordinary lat/lon projection
   
@@ -33,6 +34,7 @@ if __name__ == '__main__':
   # load source data set from NetCDF
   print folder+infile
   indata = Dataset(folder+infile, 'r', format='NETCDF4')
+  bnd = len(indata.variables['time'])
   # source projection
   srcproj = osr.SpatialReference()
   srcproj.ImportFromEPSG(src_epsg)
@@ -46,7 +48,12 @@ if __name__ == '__main__':
   srcgeot = (sulx,sdx,0.,suly,0.,-sdy) # GT(2) & GT(4) are zero for North-up; GT(1) & GT(5) are pixel width and height; (GT(0),GT(3)) is the top left corner
   # create projection object and assign source data
   srcdata = ramdrv.Create('', sxe, sye, gdal.GDT_Float32)
-  srcdata.GetRasterBand(1).WriteArray(indata.variables['rain'][1,:,:].astype(np.float32))
+  if bnd > 6: # add more bands, if necessary
+    for i in xrange(bnd-6): srcdata.AddBand()
+    # N.B.: for some reason a dataset is always initialized with 6 bands  
+  for i in xrange(bnd):
+    srcdata.GetRasterBand(i+1).WriteArray(indata.variables['rain'][i,:,:].astype(np.float32))
+  print indata.variables['rain'][1,:,:].shape
   srcdata.SetProjection(srcproj.ExportToWkt())
   srcdata.SetGeoTransform(srcgeot)
   
@@ -69,6 +76,8 @@ if __name__ == '__main__':
   tgtgeot = (tulx,tdx,0.,tuly,0.,-tdy) # GT(2) & GT(4) are zero for North-up; GT(1) & GT(5) are pixel width and height; (GT(0),GT(3)) is the top left corner
   # create data set
   tgtdata = ramdrv.Create('', txe, tye, gdal.GDT_Float32)
+  if bnd > 6: # add more bands, if necessary 
+    for i in xrange(bnd-6): tgtdata.AddBand()
   tgtdata.SetProjection(tgtproj.ExportToWkt())
   tgtdata.SetGeoTransform(tgtgeot)
   
@@ -77,15 +86,16 @@ if __name__ == '__main__':
   
   ## display data
   # get data field
-  outdata = tgtdata.ReadAsArray()
+  outdata = tgtdata.ReadAsArray(0,0,txe,tye)
   
   # print diagnostic
+  print srcdata.ReadAsArray().shape
   print outdata.shape
 #   print('Mean Precipitation: %3.1f mm/day'%outdata.mean()) 
   
   # display
   import pylab as pyl
-  pyl.imshow(np.flipud(outdata[0,:,:])) 
-  # N.B.: for some reason an array of the dimension 6 x xe x ye is created, but only the [0,:,:] slice actually contains data 
-  pyl.colorbar()
-  pyl.show(block=True)
+  for i in xrange(bnd):
+    pyl.imshow(np.flipud(outdata[i,:,:]))      
+    pyl.colorbar()
+    pyl.show(block=True)
