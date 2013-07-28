@@ -150,7 +150,7 @@ fi # $FLAKE
 WPSBLD=${WPSBLD:-"Clim-fineIOv2"} # there is basically only one build...
 # but there are many versions of WRF...
 if [[ -z "$WRFBLD" ]]; then
-  WRFBLD="${IO}v2" # current I/O version
+  WRFBLD="${IO}v3" # current I/O version
   # GCM or reanalysis
   if [[ "${DATATYPE}" == 'CESM' ]] || [[ "${DATATYPE}" == 'CCSM' ]]; then
     WRFBLD="Clim-${WRFBLD}" # variable GHG scenarios and no leap-years
