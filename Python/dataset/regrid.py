@@ -42,13 +42,13 @@ class ProjDataset(object):
     # determine size
     if not size: size = self.size # should be default  
     # create GDAL dataset 
-    dset = ramdrv.Create('', size[0], size[1], gdt)
-    if bands > 6: # add more bands, if necessary
-      for i in xrange(bands-6): dset.AddBand()
+    dset = ramdrv.Create('', int(size[0]), int(size[1]), int(bands), int(gdt)) 
+    #if bands > 6: # add more bands, if necessary
+      #for i in xrange(bands-6): dset.AddBand()
     # N.B.: for some reason a dataset is always initialized with 6 bands
     # set projection parameters
-    dset.SetProjection(self.projection.ExportToWkt())
-    dset.SetGeoTransform(self.geotransform)
+    dset.SetGeoTransform(self.geotransform) # does the order matter?
+    dset.SetProjection(self.projection.ExportToWkt()) # is .ExportToWkt() necessary?
     # return dataset
     return dset
 
@@ -65,11 +65,10 @@ class LatLonProj(ProjDataset):
     # size of dataset
     size = (len(lon), len(lat))
     # GDAL geotransform vector
-    xe = len(lon); ye = len(lat)
-    dx = lon[1] - lon[0]; dy = lat[1] - lat[0]
-    ulx = lon[0]; uly = lat[-1] # coordinates of upper left corner (same for source and sink)
+    dx = lon[1]-lon[0]; dy = lat[1]-lat[0]
+    ulx = lon[0]-dx/2.; uly = lat[0]-dy/2. # coordinates of upper left corner (same for source and sink)
     # GT(2) & GT(4) are zero for North-up; GT(1) & GT(5) are pixel width and height; (GT(0),GT(3)) is the top left corner
-    geotransform = (ulx, dx, 0., uly, 0., -dy) 
+    geotransform = (ulx, dx, 0., uly, 0., dy) 
     # GDAL projection 
     projection = osr.SpatialReference()
     projection.ImportFromEPSG(epsg)
@@ -78,7 +77,7 @@ class LatLonProj(ProjDataset):
     self.epsg = epsg # save projection code number
     
 ## function to reproject and resample a 2D array
-def regridArray(data, srcprj, tgtprj, interpolation='bilinear'):
+def regridArray(data, srcprj, tgtprj, interpolation='bilinear', missing=None):
   '''
   Function that regrids an array based on a source and a target projection object
   '''
@@ -92,15 +91,19 @@ def regridArray(data, srcprj, tgtprj, interpolation='bilinear'):
   ## create source and target dataset
   assert srcprj.size == (sxe, sye), 'data array and data grid have to be of compatible size'
   srcdata = srcprj.getProj(bnds); tgtdata = tgtprj.getProj(bnds)
-  srcproj = srcprj.projection.ExportToWkt(); tgtproj =  tgtprj.projection.ExportToWkt()
   # assign data
   for i in xrange(bnds):
     srcdata.GetRasterBand(i+1).WriteArray(data[i,:,:])
+    # srcdata.GetRasterBand(i+1).WriteArray(np.flipud(data[i,:,:]))
+    if missing: srcdata.GetRasterBand(i+1).SetNoDataValue(missing)
   # determine GDAL interpolation
   if interpolation == 'bilinear': gdal_interp = gdal.GRA_Bilinear
+  elif interpolation == 'lanczos': gdal_interp = gdal.GRA_Lanczos
   else: print('Unknown interpolation method: '+interpolation)
   ## reproject and resample
-  err = gdal.ReprojectImage(srcdata, tgtdata, srcproj, tgtproj, gdal_interp)
+  # srcproj = srcprj.projection.ExportToWkt(); tgtproj =  tgtprj.projection.ExportToWkt()
+  # err = gdal.ReprojectImage(srcdata, tgtdata, srcproj, tgtproj, gdal_interp)
+  err = gdal.ReprojectImage(srcdata, tgtdata, None, None, gdal_interp)
   if err != 0: print('ERROR CODE %i'%err)  
   # get data field
   outdata = tgtdata.ReadAsArray()[0:bnds,:,:] # 0,0,xe,ye
@@ -117,7 +120,7 @@ if __name__ == '__main__':
   folder = '/media/tmp/' # RAM disk
   infile = 'prismavg/prism_clim.nc'
 #   infile = 'gpccavg/gpcc_25_clim_1979-1981.nc'
-  likefile = 'gpccavg/gpcc_05_clim_1979-1981.nc'
+  likefile = 'gpccavg/gpcc_25_clim_1979-1981.nc'
 
   # load input dataset
   inData = nc.Dataset(filename=folder+infile)
@@ -130,13 +133,13 @@ if __name__ == '__main__':
 #   print likeData.variables['lat'][:]
   
   # create lat/lon projection
-  outdata = regridArray(inData.variables['rain'][:], inProj, likeProj)
+  outdata = regridArray(inData.variables['rain'][:], inProj, likeProj, interpolation='lanczos', missing=-9999)
   
   # display
   import pylab as pyl
-  for i in xrange(2):
-#     pyl.imshow(outdata[i,:,:])
-    pyl.imshow(np.flipud(outdata[i,:,:]))      
-    pyl.colorbar()
-    pyl.show(block=True)
-  
+  for i in xrange(1):
+#     pyl.imshow(outdata[i,:,:]); pyl.colorbar(); pyl.show(block=True)
+#     pyl.imshow(np.flipud(likeData.variables['rain'][i,:,:])); pyl.colorbar(); pyl.show(block=True)
+    pyl.imshow(np.flipud(outdata[i,:,:])); pyl.colorbar(); pyl.show(block=True)
+#     pyl.imshow(np.flipud(outdata[i,:,:]-likeData.variables['rain'][i,:,:])); pyl.colorbar(); pyl.show(block=True)  
+    
