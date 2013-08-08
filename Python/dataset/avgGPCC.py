@@ -17,11 +17,11 @@ from netcdf import Dataset, copy_ncatts, add_var, copy_dims, add_coord
 ## settings
 GPCCroot = '/home/DATA/DATA/GPCC/'
 GPCCdata = GPCCroot + 'full_data_1900-2010/'
-res = '25' # 
+res = '05' # 
 test = ''
 # output settings
 debyr = 1979
-finyr = 1981
+finyr = 1988
 datestr = '%04i-%04i'%(debyr,finyr)
 outfile = 'gpcc_%s_clim_%s.nc'%(res,datestr)
 # files
