@@ -91,11 +91,17 @@ def regridArray(data, srcprj, tgtprj, interpolation='bilinear', missing=None):
   ## create source and target dataset
   assert srcprj.size == (sxe, sye), 'data array and data grid have to be of compatible size'
   srcdata = srcprj.getProj(bnds); tgtdata = tgtprj.getProj(bnds)
+  txe, tye = tgtprj.size
+  fill = np.zeros((tye,txe))
+  if missing: fill += missing     
   # assign data
   for i in xrange(bnds):
     srcdata.GetRasterBand(i+1).WriteArray(data[i,:,:])
     # srcdata.GetRasterBand(i+1).WriteArray(np.flipud(data[i,:,:]))
-    if missing: srcdata.GetRasterBand(i+1).SetNoDataValue(missing)
+    tgtdata.GetRasterBand(i+1).WriteArray(fill.copy())
+    if missing: 
+      srcdata.GetRasterBand(i+1).SetNoDataValue(missing)
+      tgtdata.GetRasterBand(i+1).SetNoDataValue(missing)
   # determine GDAL interpolation
   if interpolation == 'bilinear': gdal_interp = gdal.GRA_Bilinear
   elif interpolation == 'nearest': gdal_interp = gdal.GRA_NearestNeighbour
@@ -108,7 +114,7 @@ def regridArray(data, srcprj, tgtprj, interpolation='bilinear', missing=None):
   if err != 0: print('ERROR CODE %i'%err)  
   # get data field
   if bnds == 1: outdata = tgtdata.ReadAsArray()[:,:] # for 2D fields
-  else: outdata = tgtdata.ReadAsArray()[0:bnds,:,:] # ReadAsArray(0,0,xe,ye)
+  else: outdata = tgtdata.ReadAsArray(0,0,txe,tye)[0:bnds,:,:] # ReadAsArray(0,0,xe,ye)
   if ndim == 2: outdata = outdata.squeeze()
   else: outdata = outdata.reshape(dshape+outdata.shape[-2:])
   # return data    
@@ -122,7 +128,7 @@ if __name__ == '__main__':
   folder = '/media/tmp/' # RAM disk
   infile = 'prismavg/prism_clim.nc'
 #   infile = 'gpccavg/gpcc_25_clim_1979-1981.nc'
-  likefile = 'gpccavg/gpcc_25_clim_1979-1981.nc'
+  likefile = 'gpccavg/gpcc_05_clim_1979-1981.nc'
 
   # load input dataset
   inData = nc.Dataset(filename=folder+infile)

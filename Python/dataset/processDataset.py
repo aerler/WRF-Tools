@@ -150,28 +150,39 @@ class NetcdfRegrid(NetcdfProcessor):
       y = self.indata.variables['y'][:]; self.inCoords['y'] = y      
     
   # define parameters of output dataset
-  def initOutput(self, epsg=4326, lon=None, lat=None, x=None, y=None, **kwargs):
+  def initOutput(self, template=None, lon=None, lat=None, x=None, y=None, epsg=4326, **kwargs):
     ''' This method defines output parameters and initializes the output dataset. '''
-    assert ( isinstance(lon,np.ndarray) and isinstance(lat,np.ndarray) ) or\
-           ( isinstance(x,np.ndarray) and isinstance(y,np.ndarray) ), \
+    assert ( isinstance(lon,np.ndarray) and isinstance(lat,np.ndarray) ) or \
+           ( isinstance(x,np.ndarray) and isinstance(y,np.ndarray) ) or \
+           ( isinstance(template,Dataset) or isinstance(template,str) ), \
            'Either input arguments \'lon\'/\'lat\' or \'x\'/\'y\' need to be defined (as numpy arrays)!' 
     # create output dataset
     super(NetcdfRegrid,self).initOutput(**kwargs)
+    # check template
+    if template: 
+      if isinstance(template,str): template = Dataset(template)
+      if template.variables.has_key('lon') and template.variables.has_key('lat') and \
+         (len(template.variables['lon'].dimensions) == 1) and \
+         (len(template.variables['lat'].dimensions) == 1): epsg = 4326 
     # add regridding functionality
     if epsg == 4326:
       # spherical coordinates
       from regrid import LatLonProj
+      if template: # get coordinate arrays from template 
+        lon = template.variables['lon'][:]; lat = template.variables['lat'][:]
       self.outCoords['lon'] = lon; self.outCoords['lat'] = lat
       self.outProj = LatLonProj(lon, lat)
     elif epsg is None: 
       # euclidian coordinates
+      if template: # get coordinate arrays from template 
+        x = template.variables['x'][:]; y = template.variables['y'][:]
       self.outCoords['x'] = x; self.outCoords['y'] = x
   
   # set operation parameters
-  def defineOperation(self, interpolation='', missing=None):
+  def defineOperation(self, interpolation='', **kwargs):
     ''' This method defines the operation and the parameters for the operation performed on the dataset. '''
+    super(NetcdfRegrid,self).defineOperation(**kwargs)
     self.interpolation = interpolation
-    self.missing = missing
     self.mapCoords = dict(zip(self.inCoords.keys(), self.outCoords.keys()))
   
   # perform operation (dummy method)
@@ -193,7 +204,16 @@ class NetcdfRegrid(NetcdfProcessor):
 #     print self.outCoords.keys()
 #     print '\n\n'
     if self.inCoords.viewkeys() <= set(ncvar.dimensions): # 2D or more will be regridded
-      newvals = regridArray(ncvar[:], self.inProj, self.outProj, interpolation=self.interpolation, missing=self.missing)      
+      data = ncvar[:] # the netcdf module returns masked arrays! 
+      if '_FillValue' in ncvar.ncattrs(): 
+        fillValue = ncvar.getncattr('_FillValue')
+        if isinstance(data,np.ma.masked_array): data = data.filled(fillValue)
+      else: fillValue = None
+      newvals = regridArray(data, self.inProj, self.outProj, interpolation=self.interpolation, missing=fillValue)
+#       if fillValue: 
+#         newvals = np.ma.masked_where(newvals == 0, newvals)
+#       import pylab as pyl
+#       pyl.imshow(np.flipud(newvals[0,:,:])); pyl.colorbar(); pyl.show(block=True)
     elif varname in self.inCoords: 
       newname = self.mapCoords[varname] # new name for map coordinate
       newvals = self.outCoords[newname] # assign new coordinate values
@@ -207,24 +227,37 @@ if __name__ == '__main__':
 
   # input dataset
   infolder = '/media/tmp/' # RAM disk
-  infile = infolder + 'prismavg/prism_clim.nc'
-#   infile = infolder + 'gpccavg/gpcc_05_clim_1979-1981.nc' 
+  prismfile = infolder + 'prismavg/prism_clim.nc'
+  gpccfile = infolder + 'gpccavg/gpcc_05_clim_1979-1981.nc' 
   # output dataset
   outfolder = '/media/tmp/test/' # RAM disk
-  outfile = outfolder + 'prism_test.nc'
-#   outfile = outfolder + 'gpcc_test.nc'
+#   outfile = outfolder + 'prism_test.nc'
+  outfile = outfolder + 'gpcc_test.nc'
 
   ## launch test
-  ncpu = NetcdfRegrid(infile=infile, outfile=outfile, prefix='test_')
+#   ncpu = NetcdfProcessor(infile=infile, outfile=outfile, prefix='test_')
+#   ncpu.initInput(); ncpu.initOutput(); ncpu.defineOperation()
+  ncpu = NetcdfRegrid(infile=gpccfile, outfile=outfile, prefix='test_')
   ncpu.initInput()
   dx = 0.5
   lon = np.linspace(-145+dx/2,-115-dx/2,30/dx); lat = np.linspace(45+dx/2,65-dx/2,20/dx) 
-  ncpu.initOutput(lon=lon,lat=lat)
-  ncpu.defineOperation(interpolation='bilinear', missing=-9999.0)
+  ncpu.initOutput(template=prismfile,lon=lon,lat=lat)
+  ncpu.defineOperation(interpolation='bilinear')
   outdata = ncpu.processDataset()
   
   ## show output
   outdata = Dataset(outfile, 'r')
+  print
   print outdata
   
+    # display
+  import pylab as pyl
+  vardata = outdata.variables['rain']
+  for i in xrange(1):
+#     pyl.imshow(outdata[i,:,:]); pyl.colorbar(); pyl.show(block=True)
+#     pyl.imshow(np.flipud(likeData.variables['rain'][i,:,:])); pyl.colorbar(); pyl.show(block=True)
+    pyl.imshow(np.flipud(vardata[i,:,:])); pyl.colorbar(); pyl.show(block=True)
+#     pyl.imshow(np.flipud(outdata[i,:,:]-likeData.variables['rain'][i,:,:])); pyl.colorbar(); pyl.show(block=True)  
+    
+
   
