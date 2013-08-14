@@ -147,7 +147,7 @@ else
 fi # $FLAKE
 
 # figure out WRF and WPS build
-WPSBLD=${WPSBLD:-"Clim-fineIOv2"} # there is basically only one build...
+WPSBLD=${WPSBLD:-"Clim-fineIOv3"} # there is basically only one build...
 # but there are many versions of WRF...
 if [[ -z "$WRFBLD" ]]; then
   WRFBLD="${IO}v3" # current I/O version
@@ -174,9 +174,9 @@ WRFSRC=${WRFSRC:-"${WRFROOT}/WRFV3/"}
 if [[ "${WPSSYS}" == "GPC" ]]; then
     WPSQ='pbs' # queue system
     WPSWCT=${WPSWCT:-'01:00:00'} # WPS wallclock time
-    METEXE=${METEXE:-"${WPSSRC}/GPC-MPI/${WPSBLD}/O3xSSSE3/metgrid.exe"}
+    METEXE=${METEXE:-"${WPSSRC}/GPC-MPI/${WPSBLD}/O3xSSSE3Grb2/metgrid.exe"}
     REALEXE=${REALEXE:-"${WRFSRC}/GPC-MPI/${WRFBLD}/O3xSSSE3/real.exe"}
-    UNGRIBEXE=${UNGRIBEXE:-"${WPSSRC}/GPC-MPI/${WPSBLD}/O3xSSSE3/ungrib.exe"}
+    UNGRIBEXE=${UNGRIBEXE:-"${WPSSRC}/GPC-MPI/${WPSBLD}/O3xSSSE3Grb2/ungrib.exe"}
 elif [[ "${WPSSYS}" == "Rocks" ]]; then
     WPSQ='sh' # no queue system
     WPSWCT=${WPSWCT:-'01:00:00'} # WPS wallclock time
@@ -201,17 +201,17 @@ fi
 if [[ "${WRFSYS}" == "GPC" ]]; then
     WRFQ='pbs' # queue system
     WRFWCT=${WRFWCT:-'06:00:00'}; WRFNODES=${WRFNODES:-16} # WRF resource config on GPC
-    GEOEXE=${GEOEXE:-"${WPSSRC}/GPC-MPI/${WPSBLD}/O3xSSSE3/geogrid.exe"}
+    GEOEXE=${GEOEXE:-"${WPSSRC}/GPC-MPI/${WPSBLD}/O3xSSSE3Grb2/geogrid.exe"}
     WRFEXE=${WRFEXE:-"${WRFSRC}/GPC-MPI/${WRFBLD}/O3xSSE42NC4/wrf.exe"}
 elif [[ "${WRFSYS}" == "TCS" ]]; then
     WRFQ='ll' # queue system
     WRFWCT=${WRFWCT:-'06:00:00'}; WRFNODES=${WRFNODES:-4} # WRF resource config o TCS
-    GEOEXE=${GEOEXE:-"${WPSSRC}/GPC-MPI/${WPSBLD}/O3xSSSE3/geogrid.exe"}
+    GEOEXE=${GEOEXE:-"${WPSSRC}/GPC-MPI/${WPSBLD}/O3xSSSE3Grb2/geogrid.exe"}
     WRFEXE=${WRFEXE:-"${WRFSRC}/TCS-MPI/${WRFBLD}/O3NC4/wrf.exe"}
 elif [[ "${WRFSYS}" == "P7" ]]; then
     WRFQ='ll' # queue system
     WRFWCT=${WRFWCT:-'15:00:00'}; WRFNODES=${WRFNODES:-1} # WRF resource config on P7
-    GEOEXE=${GEOEXE:-"${WPSSRC}/GPC-MPI/${WPSBLD}/O3xSSSE3/geogrid.exe"}
+    GEOEXE=${GEOEXE:-"${WPSSRC}/GPC-MPI/${WPSBLD}/O3xSSSE3Grb2/geogrid.exe"}
     WRFEXE=${WRFEXE:-"${WRFSRC}/P7-MPI/${WRFBLD}/O3NC4/wrf.exe"}
 elif [[ "${WRFSYS}" == "Rocks" ]]; then
     WRFQ='sge' # queue system
