@@ -83,7 +83,7 @@ def regridArray(data, srcprj, tgtprj, interpolation='bilinear', missing=None):
   '''
   # condition data (assuming a numpy array)
   dshape = data.shape[0:-2]; ndim = data.ndim
-  assert ndim > 2, 'data array needs to have at least two dimensions' 
+  assert ndim > 1, 'data array needs to have at least two dimensions' 
   sxe = data.shape[-1]; sye = data.shape[-2] # (bnd,lat,lon)
   if ndim == 2: bnds = 1
   else: bnds = np.prod(dshape)
@@ -98,6 +98,7 @@ def regridArray(data, srcprj, tgtprj, interpolation='bilinear', missing=None):
     if missing: srcdata.GetRasterBand(i+1).SetNoDataValue(missing)
   # determine GDAL interpolation
   if interpolation == 'bilinear': gdal_interp = gdal.GRA_Bilinear
+  elif interpolation == 'nearest': gdal_interp = gdal.GRA_NearestNeighbour
   elif interpolation == 'lanczos': gdal_interp = gdal.GRA_Lanczos
   else: print('Unknown interpolation method: '+interpolation)
   ## reproject and resample
@@ -106,7 +107,8 @@ def regridArray(data, srcprj, tgtprj, interpolation='bilinear', missing=None):
   err = gdal.ReprojectImage(srcdata, tgtdata, None, None, gdal_interp)
   if err != 0: print('ERROR CODE %i'%err)  
   # get data field
-  outdata = tgtdata.ReadAsArray()[0:bnds,:,:] # 0,0,xe,ye
+  if bnds == 1: outdata = tgtdata.ReadAsArray()[:,:] # for 2D fields
+  else: outdata = tgtdata.ReadAsArray()[0:bnds,:,:] # ReadAsArray(0,0,xe,ye)
   if ndim == 2: outdata = outdata.squeeze()
   else: outdata = outdata.reshape(dshape+outdata.shape[-2:])
   # return data    

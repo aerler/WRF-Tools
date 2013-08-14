@@ -98,11 +98,13 @@ def add_var(dst, name, dims, values=None, atts=None, dtype=None, zlib=True, **kw
   varargs = dict() # arguments to be passed to createVariable
   if zlib: varargs.update(zlib_default)
   varargs.update(kwargs)
-  var = dst.createVariable(name, dtype, dims, **varargs)
-  if values is not None: var[:] = values # assign coordinate values if given  
+  if atts and atts.has_key('_FillValue'): fillValue = atts.pop('_FillValue')
+  else: fillValue = None
+  var = dst.createVariable(name, dtype, dims, fill_value=fillValue, **varargs)
   if atts: # add attributes
     for key,value in atts.iteritems():
 #       print key, value
-      var.setncattr(key,value) 
+      if key[0] != '_': var.setncattr(key,value)  
+  if values is not None: var[:] = values # assign coordinate values if given  
   
 
