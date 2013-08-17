@@ -457,14 +457,17 @@ def processFiles(qfilelist, qListDir, queue):
 #  files = [dateregx.search(atmfile) for atmfile in atmfiles]
 #  dates = [match.group() for match in files if not match is None]
   # function to check filenames and subfolders recursively
-  def checkFileList(filelist, ListDir, okdates):
+  def checkFileList(filelist, ListDir, okdates, depth):
+    depth += 1 # counter for recursion depth
+    # N.B.: the recursion depth limit was introduced to prevent infinite recursions when circular links occur
     # loop over dates
     for filename in filelist:
       TmpDir = ListDir + '/' + filename
       if os.path.isdir(TmpDir):
         if dataset.checkSubDir(filename, starts[0], ends[0]):          
           # make list of contents and process recursively
-          okdates = checkFileList(os.listdir(TmpDir), TmpDir, okdates)
+	  if depth > 1: print(' (skipping subfolders beyond recursion depth/level 1)')
+          else: okdates = checkFileList(os.listdir(TmpDir), TmpDir, okdates, depth)
       else:
         # figure out time and date
         date = dataset.extractDate(filename)
@@ -476,7 +479,7 @@ def processFiles(qfilelist, qListDir, queue):
           if lok: okdates.append(date)
     return okdates
   # start checking file list (start with empty results list)
-  qokdates = checkFileList(qfilelist, qListDir, []) 
+  qokdates = checkFileList(qfilelist, qListDir, [], 0) 
   # return list of valid datestrs
   queue.put(qokdates)
   
