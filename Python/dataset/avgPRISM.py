@@ -29,7 +29,7 @@ def loadASCII(var, fileformat='BCY_%s.%02ia', arrayshape=(601,697)):
   from numpy.ma import zeros
   from numpy import genfromtxt, flipud
   # definitions
-  datadir = PRISMroot + 'Climatology/ASCII/' # data folder   
+  datadir = PRISMroot + 'Climatology/' # data folder   
   ntime = len(days_per_month) # number of month
   # allocate space
   data = zeros((ntime,)+arrayshape) # time = ntime, (x, y) = arrayshape  
@@ -48,19 +48,23 @@ def loadASCII(var, fileformat='BCY_%s.%02ia', arrayshape=(601,697)):
 # the data is assumed to be in a simple lat/lon projection
 def genCoord():
   # imports
-  from numpy import linspace, diff, finfo
+  from numpy import diff, finfo, arange # linspace 
   eps = finfo(float).eps  
   # settings / PRISM meta data
-  nlat = 601
-  nlon = 697
-  llclat = 46.979166666667
-  llclon = -142.020833333333
-  dlat = dlon = 0.041666666667  
+  dlat = dlon = 1./24. #  0.041666666667  
+  nlat = 601 # slat = 25 deg
+  nlon = 697 # slon = 29 deg
+  # N.B.: coordinates refer to grid points (CF convention), commented values refer to box edges (GDAL convention) 
+  llclat = 47. # 46.979166666667
+  # urclat = 72.; urclon = -113.
+  llclon = -142. # -142.020833333333
   # generate coordinate arrays
-  lat = linspace(llclat, llclat+(nlat-1)*dlat, nlat)
-  assert (diff(lat).mean() - dlat) < eps 
-  lon = linspace(llclon, llclon+(nlon-1)*dlon, nlon)
-  assert (diff(lon).mean() - dlon) < eps  
+  lat = llclat + arange(nlat)*dlat # + dlat/2.
+#   lat = linspace(llclat, llclat+(nlat-1)*dlat, nlat)
+  assert (diff(lat).mean() - dlat) < eps # sanity check
+  lon = llclon + arange(nlon) *dlon #  + dlon/2.
+#   lon = linspace(llclon, llclon+(nlon-1)*dlon, nlon)
+  assert (diff(lon).mean() - dlon) < eps # sanity check  
   # return coordinate arrays (in degree)
   return lat, lon
 

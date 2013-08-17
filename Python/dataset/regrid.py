@@ -106,6 +106,8 @@ def regridArray(data, srcprj, tgtprj, interpolation='bilinear', missing=None):
   if interpolation == 'bilinear': gdal_interp = gdal.GRA_Bilinear
   elif interpolation == 'nearest': gdal_interp = gdal.GRA_NearestNeighbour
   elif interpolation == 'lanczos': gdal_interp = gdal.GRA_Lanczos
+  elif interpolation == 'convolution': gdal_interp = gdal.GRA_Cubic # cubic convolution
+  elif interpolation == 'cubicspline': gdal_interp = gdal.GRA_CubicSpline # cubic spline
   else: print('Unknown interpolation method: '+interpolation)
   ## reproject and resample
   # srcproj = srcprj.projection.ExportToWkt(); tgtproj =  tgtprj.projection.ExportToWkt()
@@ -132,16 +134,24 @@ if __name__ == '__main__':
 
   # load input dataset
   inData = nc.Dataset(filename=folder+infile)
-  inProj = LatLonProj(lon=inData.variables['lon'][:], lat=inData.variables['lat'][:])
+  lon = inData.variables['lon'][:]; lat = inData.variables['lat'][:]
+  inProj = LatLonProj(lon=lon, lat=lat)
 #   print inData.variables['lat'][:]
   
-  # load pattern dataset
-  likeData = nc.Dataset(filename=folder+likefile)
-  likeProj = LatLonProj(lon=likeData.variables['lon'][:], lat=likeData.variables['lat'][:])
+#   # load pattern dataset
+#   likeData = nc.Dataset(filename=folder+likefile)
+#   likeProj = LatLonProj(lon=likeData.variables['lon'][:], lat=likeData.variables['lat'][:])
 #   print likeData.variables['lat'][:]
+  # define new grid
+  dlon = dlat = 0.125
+  slon = np.floor(lon[0]); elon = np.ceil(lon[-1])
+  slat = np.floor(lat[0]); elat = np.ceil(lat[-1])
+  newlon = np.linspace(slon+dlon/2,elon-dlon/2,(elon-slon)/dlon)
+  newlat = np.linspace(slat+dlat/2,elat-dlat/2,(elat-slat)/dlat)
+  likeProj = LatLonProj(lon=newlon, lat=newlat)
   
   # create lat/lon projection
-  outdata = regridArray(inData.variables['rain'][:], inProj, likeProj, interpolation='lanczos', missing=-9999)
+  outdata = regridArray(inData.variables['rain'][:], inProj, likeProj, interpolation='convolution', missing=-9999)
   
   # display
   import pylab as pyl

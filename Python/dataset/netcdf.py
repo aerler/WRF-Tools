@@ -22,7 +22,8 @@ def copy_ncatts(dst, src, prefix = '', incl_=True):
       dst.setncattr(prefix+att,src.getncattr(att))
       
 # copy variables from one dataset to another
-def copy_vars(dst, src, varlist=None, namemap=None, dimmap=None, remove_dims=None, copy_data=True, zlib=True, copy_atts=True, prefix='', incl_=True, **kwargs):
+def copy_vars(dst, src, varlist=None, namemap=None, dimmap=None, remove_dims=None, copy_data=True, copy_atts=True, \
+              zlib=True, prefix='', incl_=True, fill_value=None, **kwargs):
   # prefix is passed to copy_ncatts, the remaining kwargs are passed to dst.createVariable()
   if not varlist: varlist = src.variables.keys() # just copy all
   if dimmap: midmap = dict(zip(dimmap.values(),dimmap.keys())) # reverse mapping
@@ -40,8 +41,8 @@ def copy_vars(dst, src, varlist=None, namemap=None, dimmap=None, remove_dims=Non
       if not (remove_dims and dim in remove_dims): dims.append(dim)
     # create new variable
     dtype = dtype or rav.dtype
-    if '_FillValue' in rav.ncattrs(): fillValue = rav.getncattr('_FillValue')
-    var = dst.createVariable(name, dtype, dims, fill_value=fillValue, **varargs)
+    if '_FillValue' in rav.ncattrs(): fill_value = rav.getncattr('_FillValue')
+    var = dst.createVariable(name, dtype, dims, fill_value=fill_value, **varargs)
     if copy_data: var[:] = rav[:] # copy actual data, if desired (default)
     if copy_atts: copy_ncatts(var, rav, prefix=prefix, incl_=incl_) # copy attributes, if desired (default) 
 
@@ -62,7 +63,7 @@ def copy_dims(dst, src, dimlist=None, namemap=None, copy_coords=True, **kwargs):
     copy_vars(dst, src, varlist=dimlist, namemap=namemap, dimmap=namemap, remove_dims=remove_dims, **kwargs)
     
 # add a new dimension with coordinate variable
-def add_coord(dst, name, values=None, atts=None, dtype=None, zlib=True, **kwargs):
+def add_coord(dst, name, values=None, atts=None, dtype=None, zlib=True, fill_value=None, **kwargs):
   # all remaining kwargs are passed on to dst.createVariable()
   # create dimension
   if dst.dimensions.has_key(name):
@@ -77,14 +78,14 @@ def add_coord(dst, name, values=None, atts=None, dtype=None, zlib=True, **kwargs
   varargs = dict() # arguments to be passed to createVariable
   if zlib: varargs.update(zlib_default)
   varargs.update(kwargs)
-  if atts and atts.has_key('_FillValue'): fillValue = atts.pop('_FillValue')
-  coord = dst.createVariable(name, dtype, (name,), fill_value=fillValue,  **varargs)
+  if atts and atts.has_key('_FillValue'): fill_value = atts.pop('_FillValue') 
+  coord = dst.createVariable(name, dtype, (name,), fill_value=fill_value,  **varargs)
   if values is not None: coord[:] = values # assign coordinate values if given  
   if atts: # add attributes
     for key,value in atts.iteritems():
       coord.setncattr(key,value) 
       
-def add_var(dst, name, dims, values=None, atts=None, dtype=None, zlib=True, **kwargs):
+def add_var(dst, name, dims, values=None, atts=None, dtype=None, zlib=True, fill_value=None, **kwargs):
   # all remaining kwargs are passed on to dst.createVariable()
   # use values array to infer dimensions and data type
   if not values is None: 
@@ -100,9 +101,8 @@ def add_var(dst, name, dims, values=None, atts=None, dtype=None, zlib=True, **kw
   varargs = dict() # arguments to be passed to createVariable
   if zlib: varargs.update(zlib_default)
   varargs.update(kwargs)
-  if atts and atts.has_key('_FillValue'): fillValue = atts.pop('_FillValue')
-  else: fillValue = None
-  var = dst.createVariable(name, dtype, dims, fill_value=fillValue, **varargs)
+  if atts and atts.has_key('_FillValue'): fill_value = atts.pop('_FillValue')
+  var = dst.createVariable(name, dtype, dims, fill_value=fill_value, **varargs)
   if atts: # add attributes
     for key,value in atts.iteritems():
 #       print key, value

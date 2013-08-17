@@ -232,17 +232,18 @@ if __name__ == '__main__':
   # output dataset
   outfolder = '/media/tmp/test/' # RAM disk
 #   outfile = outfolder + 'prism_test.nc'
-  outfile = outfolder + 'gpcc_test.nc'
+  outfile = outfolder + 'prism_10km.nc'
 
   ## launch test
 #   ncpu = NetcdfProcessor(infile=infile, outfile=outfile, prefix='test_')
 #   ncpu.initInput(); ncpu.initOutput(); ncpu.defineOperation()
-  ncpu = NetcdfRegrid(infile=gpccfile, outfile=outfile, prefix='test_')
+  ncpu = NetcdfRegrid(infile=prismfile, outfile=outfile, prefix='test_')
   ncpu.initInput()
-  dx = 0.5
-  lon = np.linspace(-145+dx/2,-115-dx/2,30/dx); lat = np.linspace(45+dx/2,65-dx/2,20/dx) 
-  ncpu.initOutput(template=prismfile,lon=lon,lat=lat)
-  ncpu.defineOperation(interpolation='bilinear')
+  dlon = dlat = 1./6.
+  lon = -142. + np.arange(int(29./dlon))*dlon # PRISM longitude: -142 to -113
+  lat = 47. + np.arange(int(25./dlat))*dlat # PRISM latitude: 47 to 72
+  ncpu.initOutput(lon=lon,lat=lat)
+  ncpu.defineOperation(interpolation='cubicspline')
   outdata = ncpu.processDataset()
   
   ## show output

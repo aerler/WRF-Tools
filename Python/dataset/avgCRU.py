@@ -19,12 +19,12 @@ CRUroot = '/home/DATA/DATA/CRU/'
 CRUdata = CRUroot + '/Time-series 3.2/data/'
 test = ''
 # output settings
-debyr = 1979
-finyr = 1993
+debyr = 1999
+finyr = 2008
 datestr = '%04i-%04i'%(debyr,finyr)
 outfile = 'cru_clim_%s.nc'%(datestr,)
 # files (one per variable)
-varlist = dict(rain='pre', T2='tmp', Tmin='tmn', Tmax='tmx', Q2='vap') # for now... there are more variables to come!
+varlist = dict(rain='pre', T2='tmp', Tmin='tmn', Tmax='tmx', Q2='vap', PET='pet') # for now... there are more variables to come!
 filelist = dict() # construct file list from variable list 
 for (key,value) in varlist.iteritems():
   filelist[key] = 'cru_ts3.20.1901.2011.%s.dat.nc'%(value,)  
