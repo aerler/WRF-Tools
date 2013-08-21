@@ -66,8 +66,8 @@ dimlist = ['x', 'y'] # copy these dimensions
 dimmap = dict(time='Time', x='west_east', y='south_north') # original names of dimensions
 # include these variables in monthly means 
 varlist = ['ps','T2','Ts','snow','snowh','rainnc','rainc','snownc','graupelnc',
-           'evap','hfx','lhfx','OLR','GLW','SWDOWN','SWNORM'] 
-varmap = dict(ps='PSFC',T2='T2',Ts='TSK',snow='SNOW',snowh='SNOWH', # original (WRF) names of variables
+           'Q2','evap','hfx','lhfx','OLR','GLW','SWDOWN'] # 'SWNORM'
+varmap = dict(ps='PSFC',Q2='Q2',T2='T2',Ts='TSK',snow='SNOW',snowh='SNOWH', # original (WRF) names of variables
               rainnc='RAINNC',rainc='RAINC',rainsh='RAINSH',snownc='SNOWNC',graupelnc='GRAUPELNC',
               hfx='HFX',lhfx='LH',evap='QFX',OLR='OLR',GLW='GLW',SWD='SWDOWN',SWN='SWNORM') 
 acclist = dict(rainnc=100,rainc=100,rainsh=0,snownc=0,graupelnc=0) # dictionary of accumulated variables
