@@ -3,7 +3,7 @@
 # Andre R. Erler, 28/02/2013
 
 # The following environment variables have to be set by the caller:
-# INIDIR, RSTDIR, WRFSCRIPT, WRFSCRIPT, RESUBJOB, NEXTSTEP
+# INIDIR, RSTDIR, WRFSCRIPT, WRFSCRIPT, RESUBJOB, NEXTSTEP, NOWPS
 
 
 ## launch WRF for next step (if $NEXTSTEP is not empty)

@@ -1,6 +1,5 @@
 #!/bin/bash
 # LoadLeveler submission script for SciNet P7
-
 ##=====================================
 # @ job_name = test_2x128
 # @ wall_clock_limit = 18:00:00
@@ -41,30 +40,12 @@
 # @ queue
 
 
-## job settings
-# get PBS names (needed for folder names)
+## machine specific job settings
+export NODES=1 # number of nodes (necessary for TCS threading setup)
+export WAITFORWPS='WAIT' # stay on compute node until WPS for next step finished, in order to submit next WRF job
+# get LoadLeveler names (needed for folder names)
 export JOBNAME="${LOADL_JOB_NAME}"
 export INIDIR="${LOADL_STEP_INITDIR}" # experiment root (launch directory)
-# directory setup
-export RUNNAME="${NEXTSTEP}" # step name, not job name!
-export WORKDIR="${INIDIR}/${RUNNAME}/" # step folder
-export WRFOUT="${INIDIR}/wrfout/" # output directory
-export SCRIPTDIR="${INIDIR}/scripts/" # location of component scripts (pre/post processing etc.)
-export BINDIR="${INIDIR}/bin/" # location of executables (WRF and WPS)
-# N.B.: use absolute path for script and bin folders
-# important scripts
-export WRFSCRIPT="run_cycling_WRF.pbs" # WRF suffix assumed
+# run scripts
+export WRFSCRIPT="run_cycling_WRF.ll" # WRF suffix assumed
 export WPSSCRIPT="run_cycling_WPS.pbs" # WRF suffix assumed, WPS suffix substituted: ${JOBNAME%_WRF}_WPS
-export ARSCRIPT="" # archive script to be executed after WRF finishes
-export ARINTERVAL="" # default: every time
-# WRF and WPS wallclock  time limits (no way to query from queue system)
-export WRFWCT='' # WRF wallclock  time limit; e.g. '06:00:00'
-export WPSWCT='' # WPS wallclock  time limit; e.g. '01:00:00'
-# input data source (needed for treatment of leap years)
-export DATATYPE='' # type of initial and boundary forcing data
-
-## WRF settings
-# N.B.: these settings serve as fallback options when inferring from namelist fails
-export GHG='' # GHG emission scenario
-export RAD='' # radiation scheme
-export LSM='' # land surface scheme

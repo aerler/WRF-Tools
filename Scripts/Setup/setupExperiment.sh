@@ -73,6 +73,8 @@ function RENAME () {
     sed -i "/ARINTERVAL/ s/ARINTERVAL=.*$/ARINTERVAL=\'${ARINTERVAL}\' # interval in which the archive script is to be executed/" "${FILE}"
     # type of initial and boundary focing  data (mainly for WPS)
     sed -i "/DATATYPE/ s/DATATYPE=.*$/DATATYPE=\'${DATATYPE}\' # type of initial and boundary focing  data /" "${FILE}"
+    # whether or not to restart job after a numerical instability (used by crashHandler.sh)
+    sed -i "/AUTORST/ s/AUTORST=.*$/AUTORST=\'${AUTORST}\' # whether or not to restart job after a numerical instability /" "${FILE}"
 } # fct. RENAME
 
 
@@ -85,6 +87,7 @@ WRFOUT="${RUNDIR}/wrfout/" # folder to collect output data
 GHG='RCP8.5' # CAMtr_volume_mixing_ratio.* file to be used
 # time period and cycling interval
 CYCLING="monthly.1979-2009" # stepfile to be used (leave empty if not cycling)
+AUTORST='RESTART' # whether or not to restart job after a numerical instability (used by crashHandler.sh)
 # boundary data
 DATADIR='' # root directory for data
 DATATYPE='CESM' # boundary forcing type
@@ -345,8 +348,9 @@ echo "Linking WPS scripts and executable (${WRFTOOLS})"
 echo "  system: ${WPSSYS}, queue: ${WPSQ}"
 # user scripts (in root folder)
 cd "${RUNDIR}"
-# WPS run script (cat machine specific and common component)
+# WPS run script (concatenate machine specific and common components)
 cat "${WRFTOOLS}/Scripts/${WPSSYS}/run_${CASETYPE}_WPS.${WPSQ}" > "run_${CASETYPE}_WPS.${WPSQ}"
+cat "${WRFTOOLS}/Scripts/Common/run_${CASETYPE}.environment" >> "run_${CASETYPE}_WPS.${WPSQ}"
 cat "${WRFTOOLS}/Scripts/Common/run_${CASETYPE}_WPS.common" >> "run_${CASETYPE}_WPS.${WPSQ}"
 RENAME "run_${CASETYPE}_WPS.${WPSQ}"
 if [[ "${WPSQ}" == "sh" ]]; then # make executable in shell
@@ -389,8 +393,9 @@ if [[ "${WRFQ}" == "ll" ]]; then # because LL does not support dependencies
     cp "${WRFTOOLS}/Scripts/${WRFSYS}/sleepCycle.sh" .
     RENAME 'sleepCycle.sh'
 fi # if LL
-# WRF run-script (cat machine specific and common component)
+# WRF run-script (concatenate machine specific and common components)
 cat "${WRFTOOLS}/Scripts/${WRFSYS}/run_${CASETYPE}_WRF.${WRFQ}" > "run_${CASETYPE}_WRF.${WRFQ}"
+cat "${WRFTOOLS}/Scripts/Common/run_${CASETYPE}.environment" >> "run_${CASETYPE}_WRF.${WRFQ}"
 cat "${WRFTOOLS}/Scripts/Common/run_${CASETYPE}_WRF.common" >> "run_${CASETYPE}_WRF.${WRFQ}"
 RENAME "run_${CASETYPE}_WRF.${WRFQ}"
 if [[ "${WRFQ}" == "sh" ]]; then # make executable in shell
@@ -405,6 +410,7 @@ if [[ -n "${CYCLING}" ]]; then
     ln -sf "${WRFTOOLS}/Scripts/Common/launchPreP.sh"
     ln -sf "${WRFTOOLS}/Scripts/Common/launchPostP.sh"
     ln -sf "${WRFTOOLS}/Scripts/Common/resubJob.sh"
+    ln -sf "${WRFTOOLS}/Scripts/Common/crashHandler.sh"
     ln -sf "${WRFTOOLS}/Python/cycling.py"
 fi # if cycling
 cd "${RUNDIR}"
@@ -482,7 +488,7 @@ elif [[ ${URB} == 2 ]]; then
     if [[ ${PBL} != 2 ]] && [[ ${PBL} != 8 ]]; then
       echo 'WARNING: sf_urban_physics = 2 requires bl_pbl_physics = 2 or 8!'; fi
 else
-    echo 'No no urban scheme selected! Default: none.'
+    echo 'No urban scheme selected! Default: none.'
 fi
 # land-surface scheme
 LSM=$(sed -n '/sf_surface_physics/ s/^\s*sf_surface_physics\s*=\s*\(.\),.*$/\1/p' namelist.input) # \s = space
@@ -568,5 +574,6 @@ if (( CNT > 0 )); then
   echo "   >>>   WARNING: there are ${CNT} broken links!!!   <<<   "
   echo
 fi
-
 echo
+
+exit ${CNT} # return number of broken links as error code

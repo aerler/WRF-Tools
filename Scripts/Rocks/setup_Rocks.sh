@@ -76,4 +76,4 @@ export SUBMITAR="echo \'No archive script available.\'"
 # N.B.: requires $ARTAG to be set in the launch script
 
 # job submission command (for next step)
-export RESUBJOB=${RESUBJOB-'ssh rocks "cd \"${INIDIR}\"; export NEXTSTEP=${NEXTSTEP}; qsub ${WRFSCRIPT}"'} # evaluated by resubJob
+export RESUBJOB=${RESUBJOB-'ssh rocks "cd \"${INIDIR}\"; export NEXTSTEP=${NEXTSTEP}; export NOWPS=${NOWPS}; qsub ${WRFSCRIPT}"'} # evaluated by resubJob

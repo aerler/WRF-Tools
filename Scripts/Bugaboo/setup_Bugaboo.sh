@@ -62,4 +62,4 @@ export SUBMITAR=${SUBMITAR:-'echo "Automatic archiving is currently not availabl
 # N.B.: requires $ARTAG to be set in the launch script
 
 # job submission command (for next step)
-export RESUBJOB=${RESUBJOB-'cd ${INIDIR} && qsub ./${WRFSCRIPT} -v NEXTSTEP=${NEXTSTEP}'} # evaluated by resubJob
+export RESUBJOB=${RESUBJOB-'cd ${INIDIR} && qsub ./${WRFSCRIPT} -v NOWPS=${NOWPS},NEXTSTEP=${NEXTSTEP}'} # evaluated by resubJob

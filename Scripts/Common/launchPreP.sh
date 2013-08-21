@@ -6,9 +6,8 @@
 # INIDIR, WRFSCRIPT, SUBMITWPS, NEXTSTEP
 # Optional: NOWPS
 
-
 # launch WPS for next step (if $NEXTSTEP is not empty)
-if [[ -n "${NEXTSTEP}" ]] && [[ ! $NOWPS == 1 ]]
+if [[ -n "${NEXTSTEP}" ]] && [[ "${NOWPS}" != 'NOWPS' ]]
   then
 
     # this is only for the first instance; unset for next
@@ -31,6 +30,3 @@ else
     echo
 
 fi # WPS?
-
-# this is only for the first instance; unset for next
-unset NOWPS

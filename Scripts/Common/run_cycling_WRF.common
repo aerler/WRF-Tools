@@ -1,14 +1,9 @@
-#!/bin/bash -l # make sure it is a login shell - AIX doesn't get that...
 
 ###                                                                                     ##
 ###   ***   Everything below this line was inserted from run_cycling_WRF.common   ***   ##
 ###                                                                                     ##
 
-
-# The following environment variables have to be set by now:
-# JOBNAME, INIDIR, NODES, TASKS, THREADS
-# WRFSCRIPT, WPSSCRIPT, ARSCRIPT, SCRIPTDIR, BINDIR
-# Optional: WAITFORWPS, ARINTERVAL
+# see run_cycling.environment script for environment variables
 
 # set -e # abort if anything goes wrong
 ERR=0 # initialize Error counter
@@ -32,7 +27,6 @@ export CURRENTSTEP
 
 # more WRF settings (before machine setup!)
 export RUNWRF=1 # more options: $WRFIN, $WRFOUT, $TABLES
-export RSTDIR="${WRFOUT}" # also needed to link restart files
 export RUNREAL=0 # more options: $RUNREAL, $RAMIN, $RAMOUT, $REALIN, $REALOUT
 
 # setup job environment
@@ -70,46 +64,54 @@ ERR=$(( ${ERR} + $? )) # capture exit code
 
 ## check exit code and abort if error occurred
 if [[ $ERR != 0 ]]; then
+
   # end timing
   echo
   echo "   ###   WARNING: WRF step ${CURRENTSTEP} failed   ###   "
+  echo "   (Leaving Working Directory ${WORKDIR} intact.)"
+  date
+  echo  
+  
+  # launch crash handler script (mostly for auto-restart)
+  eval "${SCRIPTDIR}/crashHandler.sh" # restart job with smaller time-step
+  ERR=$(( ${ERR} + $? )) # capture exit code
+  
+else # only if WRF completed successfully
+
+  # end timing
+  echo
+  echo "   ***   WRF step ${CURRENTSTEP} completed   ***   "
   date
   echo
-  exit ${ERR}
+
+
+  ## launch post-processing
+  eval "${SCRIPTDIR}/launchPostP.sh" # mainly archiving, but may include actual post-processing
+  ERR=$(( ${ERR} + $? )) # capture exit code
+
+
+  ## resubmit job for next step
+  eval "${SCRIPTDIR}/resubJob.sh" # requires submission command from setup script
+  ERR=$(( ${ERR} + $? )) # capture exit code
+
+
+  # # copy driver script into work dir to signal completion
+  # cp "${INIDIR}/${WRFSCRIPT}" "${WORKDIR}"
+
+  # remove working directory if everything was successful
+  echo
+  cd "${INIDIR}"
+  if [[ $ERR == 0 ]]; then
+    # the check is probably unnecessary here, but it doesn't hurt
+    echo "Removing Working Directory: ${WORKDIR}"
+    rm -rf "${WORKDIR}"
+    echo
+  else
+    echo "WARNING: ${ERR} Error(s) encountered after WRF completed!!!"
+    echo "(Leaving Working Directory ${WORKDIR} intact.)"
+    echo
+  fi # if no $ERR
+
 fi # if error
 
-# end timing
-echo
-echo "   ***   WRF step ${CURRENTSTEP} completed   ***   "
-date
-echo
-
-
-## launch post-processing
-eval "${SCRIPTDIR}/launchPostP.sh" # mainly archiving, but may include actual post-processing
-ERR=$(( ${ERR} + $? )) # capture exit code
-
-
-## resubmit job for next step
-eval "${SCRIPTDIR}/resubJob.sh" # requires submission command from setup script
-ERR=$(( ${ERR} + $? )) # capture exit code
-
-
-# # copy driver script into work dir to signal completion
-# cp "${INIDIR}/${WRFSCRIPT}" "${WORKDIR}"
-
-# remove working directory if everything was successful
-echo
-cd "${INIDIR}"
-if [[ $ERR == 0 ]]; then
-  # the check is probably unnecessary here, but it doesn't hurt
-  echo "Removing Working Directory: ${WORKDIR}"
-  rm -rf "${WORKDIR}"
-  echo
-  exit 0
-else
-  echo "WARNING: ${ERR} Error(s) encountered after WRF completed!!!"
-  echo "(Leaving Working Directory ${WORKDIR} intact.)"
-  echo
-  exit $ERR
-fi # if no $ERR
+exit ${ERR} # exit with number of errors as exit code
