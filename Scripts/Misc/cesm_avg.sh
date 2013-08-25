@@ -1,32 +1,46 @@
-#~/bin/bash
+#!/bin/bash
 # a short script to run averaging operations over a number of CESM archives
 
-SRCR='/reserved1/p/peltier/marcdo/FromHpss' # Marc's folder
+#SRCR='/reserved1/p/peltier/marcdo/FromHpss' # Marc's folder on reserved
+#SRCR='/scratch/p/peltier/marcdo/archive/' # Marc's folder on scratch
+SRCR="$CCA" # my archive
 DSTR="$CCA" # my CESM archive folder
 
-RUNS='*20tr*' # glob expression that identifies CESM archives
-PERIODS='1979-1983 1979-1988' # averaging period; period defined in avgWRF.py
+# historical runs
+shopt -s extglob
+#RUNS='@(h[abc]|t)b20trcn1x1/' # glob expression that identifies CESM archives
+#PERIODS='1979-1988' # averaging period; period defined in avgWRF.py
+# projections
+#RUNS='[abcz]brcp85cn1x1' # glob expression that identifies CESM archives
+RUNS='seaice-?r-hf' # glob expression that identifies CESM archives
+PERIODS='2045-2059' # averaging period; period defined in avgWRF.py
+RECALC='RECALC'
 
-RECALC='FALSE'
-ERRCNT=0
 # loop over runs
+ERRCNT=0
 for AR in $SRCR/$RUNS
   do
+    echo
+    # set up folders
+    RUNDIR=${AR%/} # remove trailing slash, if any
+    RUN=${RUNDIR##*/} # extract highest order folder name as run name
+    AVGDIR="${DSTR}/${RUN}/cesmavg" # subfolder for averages
+    mkdir -p "${AVGDIR}" # make sure destination folder exists
+    cd "${AVGDIR}"
+    #if [[ "${DSTR}" != "${SRCR}" ]]
+    #  then
+    #    ln -sf "${SRCR}/${RUN}/atm"  # create a link to source archive
+    #fi # if $DSTR != $SRCR
+    ln -sf "${DSTR}/avgCESM.py" # link archiving script
+    # loop over averaging periods
+    echo $PERIODS
     for PERIOD in $PERIODS
       do
-	echo
-	# set up folders
-	RUNDIR=${AR%/} # remove trailing slash, if any
-	RUN=${AR##*/} # extract highest order folder name as run name
-	AVGDIR="$DSTR/$RUN/cesmavg" # subfolder for averages
-	mkdir -p "$AVGDIR" # make sure destination folder exists
 	## start averaging
 	echo "   ***   Averaging $RUN ($PERIOD)   ***   "
-	echo "   ($RUNDIR)"
-	cd "$AVGDIR"
-	ln -sf "$DSTR/avgCESM.py" # link archiving script
+	echo "   ($RUNDIR)"	
 	# launch python script, save output in log file
-	if [[ ! -e "cesmsrfc_clim_${PERIOD}.nc" ]] || [[ "$RECALC" == 'TRUE' ]]
+	if [[ ! -e "cesmsrfc_clim_${PERIOD}.nc" ]] || [[ "$RECALC" == 'RECALC' ]]
 	  then
 	    python avgCESM.py "$PERIOD" "$RUNDIR" > "avgCESM_$PERIOD.log"
 	    ERR=$?

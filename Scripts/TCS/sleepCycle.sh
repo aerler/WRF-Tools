@@ -52,10 +52,11 @@ export NEXTSTEP # this is how env vars are passed to LL
 export NOWPS
 echo "Command: " ${RESUBJOB} # print command
 echo "Variables: INIDIR=${INIDIR}, NEXTSTEP=${NEXTSTEP}, SCRIPTNAME=${WRFSCRIPT}"
-if [[ "$SYSTEM" == 'TCS' ]]
-  then 
-    eval "${RESUBJOB}" # execute command
-else
-    ssh tcs02 "cd ${PWD}; export NEXTSTEP=${NEXTSTEP}; export NOWPS=${NOWPS}; llsubmit run_cycling_WRF.ll"
-fi
+eval "${RESUBJOB}" # execute command
+#if [[ "$SYSTEM" == 'TCS' ]]
+#  then 
+#    eval "${RESUBJOB}" # execute command
+#else
+#    ssh tcs02 "cd ${PWD}; export NEXTSTEP=${NEXTSTEP}; export NOWPS=${NOWPS}; llsubmit run_cycling_WRF.ll"
+#fi
 echo

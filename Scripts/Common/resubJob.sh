@@ -12,6 +12,12 @@ if [[ -n "${NEXTSTEP}" ]]
 
     # read date string for restart file
     RSTDATE=$(sed -n "/${NEXTSTEP}/ s/${NEXTSTEP}\s.\(.*\).\s.*$/\1/p" stepfile)
+    while [[ -z "${RSTDATE}" ]] 
+      do # loop appears to be necessary to prevent random read errors on TCS
+	echo ' Error: could not read stepfile - trying again!'
+        RSTDATE=$(sed -n "/${NEXTSTEP}/ s/${NEXTSTEP}\s.\(.*\).\s.*$/\1/p" stepfile)
+	sleep 60 # prevent too much file access
+    done
     NEXTDIR="${INIDIR}/${NEXTSTEP}" # next $WORKDIR
     cd "${NEXTDIR}"
     # link restart files

@@ -12,7 +12,7 @@
 #PBS -M aerler@atmosp.physics.utoronto.ca
 #PBS -m a
 # job name
-#PBS -N ar_new_hitop
+#PBS -N ar_test
 ## submit to queue (NB: this has to be the last PBS line!)
 #PBS -q archive
 

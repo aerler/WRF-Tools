@@ -1,11 +1,9 @@
 #!/bin/bash
-# driver script to run WRF itself: runs real.exe and wrf.exe
+# driver script to run WRF itself: only runs wrf.exe
 # created 25/06/2012 by Andre R. Erler, GPL v3
 
 # variable defined in driver script:
 # $TASKS, $THREADS, $HYBRIDRUN, $INIDIR, $WORKDIR
-# for real.exe
-# $RUNREAL, $REALIN, $RAMIN, REALOUT, $RAMOUT
 # for WRF
 # $RUNWRF, $WRFIN, $WRFOUT, $RAD, $LSM
 
@@ -15,15 +13,6 @@
 SCRIPTDIR=${SCRIPTDIR:-"${INIDIR}"} # script location
 BINDIR=${BINDIR:-"${INIDIR}"} # executable location
 NOCLOBBER=${NOCLOBBER:-'-n'} # prevent 'cp' from overwriting existing files
-# real.exe
-RAMDATA=/dev/shm/aerler/data/ # RAM disk data folder
-RUNREAL=${RUNREAL:-0} # whether to run real.exe
-REALIN=${REALIN:-"${INIDIR}/metgrid/"} # location of metgrid files
-RAMIN=${RAMIN:-0} # copy input data to ramdisk or read from HD
-REALOUT=${REALOUT:-"${WORKDIR}"} # output folder for WRF input data
-RAMOUT=${RAMOUT:-0} # write output data to ramdisk or directly to HD
-REALLOG="real" # log folder for real.exe
-REALTGZ="${RUNNAME}_${REALLOG}.tgz" # archive for log folder
 # WRF
 RUNWRF=${RUNWRF:-1} # whether to run WRF
 WRFIN=${WRFIN:-"${WORKDIR}"} # location of wrfinput_d?? files etc.
@@ -38,88 +27,6 @@ WRFTGZ="${RUNNAME}_${WRFLOG}.tgz" # archive for log folder
 
 # assuming working directory is already present
 cp "${SCRIPTDIR}/execWRF.sh" "${WORKDIR}"
-
-
-## run WRF pre-processor: real.exe
-
-if [[ ${RUNREAL} == 1 ]]
-  then
-
-    # launch feedback
-    echo
-    echo ' >>> Running real.exe <<< '
-    echo
-
-    # copy namelist and link to real.exe into working directory
-    cp -P "${BINDIR}/real.exe" "${WORKDIR}" # link to executable real.exe
-    cp ${NOCLOBBER} "${INIDIR}/namelist.input" "${WORKDIR}" # copy namelists
-    # N.B.: this is necessary so that already existing files in $WORKDIR are used
-
-    # resolve working directory for real.exe
-    if [[ ${RAMOUT} == 1 ]]; then
-	REALDIR="${RAMDATA}" # write data to RAM and copy to HD later
-    else
-	REALDIR="${REALOUT}" # write data directly to hard disk
-    fi
-    # specific environment for real.exe
-    mkdir -p "${REALOUT}" # make sure data destination folder exists
-    # copy namelist and link to real.exe into actual working directory
-    if [[ ! "${REALDIR}" == "${WORKDIR}" ]]; then
-	cp -P "${WORKDIR}/real.exe" "${REALDIR}" # link to executable real.exe
-	cp "${WORKDIR}/namelist.input" "${REALDIR}" # copy namelists
-    fi
-
-    # change input directory in namelist.input
-    cd "${REALDIR}" # so that output is written here
-    sed -i '/.*auxinput1_inname.*/d' namelist.input # remove and input directories
-    if [[ ${RAMIN} == 1 ]]; then
-	sed -i '/\&time_control/ a\ auxinput1_inname = "'"${RAMDATA}"'/met_em.d<domain>.<date>"' namelist.input
-    else
-	sed -i '/\&time_control/ a\ auxinput1_inname = "'"${REALIN}"'/met_em.d<domain>.<date>"' namelist.input
-    fi
-
-    ## run and time hybrid (mpi/openmp) job
-    cd "${REALDIR}" # so that output is written here
-    export OMP_NUM_THREADS=${THREADS} # set OpenMP environment
-    echo
-    echo "OMP_NUM_THREADS=${OMP_NUM_THREADS}"
-    echo
-    echo "${HYBRIDRUN} ./real.exe"
-    echo
-    echo "Writing output to ${REALDIR}"
-    echo
-    eval "time -p ${HYBRIDRUN} ./real.exe"
-    wait # wait for all threads to finish
-    echo
-    # check REAL exit status
-    if [[ -n $(grep 'SUCCESS COMPLETE REAL_EM INIT' rsl.error.0000) ]];
-	then REALERR=0
-	else REALERR=1
-    fi
-
-    # clean-up and move output to hard disk
-    mkdir "${REALLOG}" # make folder for log files locally
-    #cd "${REALDIR}"
-    # save log files and meta data
-    mv rsl.*.???? namelist.output "${REALLOG}"
-    cp -P namelist.input real.exe "${REALLOG}" # leave namelist in place
-    tar czf ${REALTGZ} "${REALLOG}" # archive logs with data
-    if [[ ! "${REALDIR}" == "${WORKDIR}" ]]; then
-	rm -rf "${WORKDIR}/${REALLOG}" # remove existing logs, just in case
-	mv "${REALLOG}" "${WORKDIR}" # move log folder to working directory
-    fi
-    # copy/move date to output directory (hard disk) if necessary
-    if [[ ! "${REALDIR}" == "${REALOUT}" ]]; then
-	    echo "Copying data to ${REALOUT}"
-	    time -p mv wrf* ${REALTGZ} "${REALOUT}"
-    fi
-
-    # finish
-    echo
-    echo ' >>> real.exe finished <<< '
-    echo
-
-fi # if RUNREAL
 
 
 ## run WRF: wrf.exe
@@ -293,7 +200,7 @@ if [[ ${RUNWRF} == 1 ]]
 	mv wrfconst_d??.nc "${WRFOUT}" # this one doesn't have a date string
 	mv wrf*_d??_????-??-??_??:??:??.nc "${WRFOUT}" # otherwise identify output files by date string
 	# N.B.: I don't know how to avoid the error message cause by the restart-symlinks...
-	# copy real.exe log files to wrf output
+	# copy all log files (including WPS) to wrf output
 	mv "${WORKDIR}"/*.tgz "${WRFOUT}"
     fi
 
@@ -305,4 +212,4 @@ if [[ ${RUNWRF} == 1 ]]
 fi # if RUNWRF
 
 # handle exit code
-exit $(( REALERR + WRFERR ))
+exit ${WRFERR}
