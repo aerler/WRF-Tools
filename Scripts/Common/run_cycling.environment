@@ -1,4 +1,4 @@
-
+#!/bin/bash
 ## Common job settings (environment variables)
 # The following environment variables have to be set by now:
 # JOBNAME, INIDIR, WRFSCRIPT, WPSSCRIPT

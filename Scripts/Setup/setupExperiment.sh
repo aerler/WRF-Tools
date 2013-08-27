@@ -97,7 +97,7 @@ WRFTOOLS="${MODEL_ROOT}/WRF Tools/"
 # I/O and archiving
 IO='fineIO' # this is used for namelist construction and archiving
 ARSCRIPT='DEFAULT' # this is a dummy name...
-ARINTERVAL='MONTHLY' # default: archive after every job
+ARINTERVAL='YEARLY' # default: archive after every job
 ## WPS
 WPSSYS='' # WPS - define in xconfig.sh
 # other WPS configuration files
@@ -427,21 +427,14 @@ if [[ -n "${ARSCRIPT}" ]]; then
     # copy script and change job name
     cp -f "${WRFTOOLS}/Scripts/HPSS/${ARSCRIPT}" .
 	sed -i "/#PBS -N/ s/#PBS -N\s.*$/#PBS -N ${NAME}_ar/" "${ARSCRIPT}"
-    ls "${ARSCRIPT}"
+    echo "Setting up archiving: ${ARSCRIPT}"
     # set archiving interval
     if [[ -n "${ARINTERVAL}" ]]; then
 	sed -i "/INTERVAL/ s/^\s*INTERVAL=.*$/INTERVAL=\'${ARINTERVAL}\' # interval in which the archive script is to be executed/" "${ARSCRIPT}"
     fi
-    # set appropriate dataset variable for number of domains
-    if [[ ${MAXDOM} == 1 ]]; then
-	sed -i "/DATASET/ s/^\s*DATASET=\${DATASET:-.*}\s.*$/DATASET=\${DATASET:-'FULL_D1'} # default dataset: everything (one domain)/" "${ARSCRIPT}"
-    elif [[ ${MAXDOM} == 2 ]]; then
-	sed -i "/DATASET/ s/^\s*DATASET=\${DATASET:-.*}\s.*$/DATASET=\${DATASET:-'FULL_D12'} # default dataset: everything (two domains)/" "${ARSCRIPT}"
-    else
-      echo
-      echo "WARNING: Number of domains (${MAXDOM}) incompatible with available archiving options."
-      echo
-    fi # $MAXDOM
+    # set dataset variable for number of domains
+    ARDOM=''; for I in $( seq 1 ${MAXDOM} ); do ARDOM="${ARDOM}${I}"; done
+    sed -i "/DOMAINS/ s/^\s*DOMAINS=\${DOMAINS:-.*}\s.*$/DOMAINS=\${DOMAINS:-"${ARDOM}"} # default dataset: everything (one domain)/" "${ARSCRIPT}"    
     # update folder names
     RENAME "${ARSCRIPT}"
 fi # $ARSCRIPT

@@ -36,7 +36,7 @@ if [[ ${RUNWRF} == 1 ]]
 
     # launch feedback
     echo
-    echo ' >>> Running WRF <<< '
+    echo '   >>>   Running WRF   <<<   '
     echo
 
     ## link/copy relevant input files
