@@ -434,7 +434,7 @@ if [[ -n "${ARSCRIPT}" ]]; then
     fi
     # set dataset variable for number of domains
     ARDOM=''; for I in $( seq 1 ${MAXDOM} ); do ARDOM="${ARDOM}${I}"; done
-    sed -i "/DOMAINS/ s/^\s*DOMAINS=\${DOMAINS:-.*}\s.*$/DOMAINS=\${DOMAINS:-"${ARDOM}"} # default dataset: everything (one domain)/" "${ARSCRIPT}"    
+    sed -i "/DOMAINS/ s/^\s*DOMAINS=\${DOMAINS:-.*}\s.*$/DOMAINS=\${DOMAINS:-'${ARDOM}'} # default dataset: everything (one domain)/" "${ARSCRIPT}"    
     # update folder names
     RENAME "${ARSCRIPT}"
 fi # $ARSCRIPT
