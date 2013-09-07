@@ -16,6 +16,7 @@ function CHECK {
     do
       if [[ -z $( echo ${LISTING} | grep ${E} ) ]]
 	then 
+	  echo
 	  echo "Experiment ${E} on ${MAC} is not running!"
 	  MIA=$(( $MIA + 1 )) # modifies global counter!
       else
