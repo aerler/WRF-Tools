@@ -351,7 +351,8 @@ function PROCESSDATASET () {
       for D in $( echo "${DOMAINS}" | fold --width=1 )
 	do STATIC="${STATIC} wrfconst_d0${D}.nc"
       done # $DOMAINS
-      local LOGS="${DATESTR}_pyWPS.tgz ${DATESTR}_real.tgz ${DATESTR}_wrf.tgz ${DATENHAME}_logs.tgz"
+      local LOGS="${DATE}*_pyWPS.tgz ${DATE}*_real.tgz ${DATE}*_wrf.tgz ${DATENHAME}_logs.tgz"
+      # N.B.: log files have the tep name and not the date in their file name, hence the irregularity
     # only smaller diagnostics (all domains in one file)
     fi; if [[ "${DATASET}" == 'DIAGS' ]] || [[ "${DATASET}" == 'FULL' ]]; then      
       local DIAGS='' # construct file list using a loop over domain indicies
