@@ -2,19 +2,17 @@
 # Andre R. Erler, 06/09/2013
 # script to list status of active experiments on SciNet
 
-# list of active experiment by machine
-GPC_JOBS='' 
-TCS_JOBS='max-ctrl-2050 max-ens-B max-ens-B-2050 max-gulf cfsr-max new-ctrl new-nogulf new-noah'
-P7_JOBS='max-ens-A max-ens-A-2050 max-ens-C max-ens-C-2050 max-seaice cfsr-new nmpnew-ctrl'
+# load list of active experiment (separated by machine)
+source "${HOME}/running_experiments.sh" # defines: GPC_JOBS, TCS_JOBS, P7_JOBS
 
 # function that does the actual check
 function CHECK {
-  local JOBS=${1} # list of running experiments
-  local LISTING=${2} # queue status output
-  local MAC=${3} # machine we are checking
+  local JOBS="${1}" # list of running experiments
+  local LISTING="${2}" # queue status output
+  local MAC="${3}" # machine we are checking
   for E in ${JOBS}
     do
-      if [[ -z $( echo ${LISTING} | grep ${E} ) ]]
+      if [[ -z $( echo ${LISTING} | grep ${E}_WRF ) ]]
 	then 
 	  echo
 	  echo "Experiment ${E} on ${MAC} is not running!"
