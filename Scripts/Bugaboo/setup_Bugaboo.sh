@@ -7,7 +7,7 @@ echo
 module purge
 # pyWPS.py specific modules
 if [[ ${RUNPYWPS} == 1 ]]; then
-    module load python/2.7.2 # ncl/6.1.0 
+    module load python # don't load specific version, or it crashes with next update     
     # N.B.: NCL is only necessary to process CESM output
 fi
 module list
