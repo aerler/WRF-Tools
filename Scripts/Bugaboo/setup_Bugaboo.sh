@@ -44,7 +44,7 @@ fi # RAMIN/OUT
 ulimit -s hard
 
 # cp-flag to prevent overwriting existing content
-export NOCLOBBER='--interactive --reply=no'
+export NOCLOBBER='-n'
 
 # set up hybrid envionment: OpenMP and MPI (Intel)
 export NODES=${NODES:-${PBS_NUM_NODES}} # set in PBS section
