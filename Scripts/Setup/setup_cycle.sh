@@ -68,7 +68,7 @@ if [[ "${RESTART}" == 'RESTART' ]]
   ## restart previous cycle
   cd "${INIDIR}/${NEXTSTEP}"
   echo "   Linking Restart Files:"
-  for RST in ${WRFOUT}/wrfrst_d??_${NEXTSTEP}-??_??:??:??
+  for RST in ${WRFOUT}/wrfrst_d??_${NEXTSTEP}* # format of step is unknown
    do
     echo  "${RST}"
     ln -sf "${RST}"

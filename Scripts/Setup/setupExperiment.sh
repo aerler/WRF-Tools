@@ -189,9 +189,9 @@ elif [[ "${WPSSYS}" == "Rocks" ]]; then
 elif [[ "${WPSSYS}" == "Bugaboo" ]]; then
     WPSQ='pbs' # queue system
     WPSWCT=${WPSWCT:-'02:00:00'} # WPS wallclock time
-    METEXE=${METEXE:-"${WPSSRC}/Bugaboo-MPI/${WPSBLD}/O3xSSE42NC4/metgrid.exe"}
+    METEXE=${METEXE:-"${WPSSRC}/Bugaboo-MPI/${WPSBLD}/O3xSSE42Grb2/metgrid.exe"}
     REALEXE=${REALEXE:-"${WRFSRC}/Bugaboo-MPI/${WRFBLD}/O3xSSE42NC4/real.exe"}
-    UNGRIBEXE=${UNGRIBEXE:-"${WPSSRC}/Bugaboo-MPI/${WPSBLD}/O3xSSE42NC4/ungrib.exe"}
+    UNGRIBEXE=${UNGRIBEXE:-"${WPSSRC}/Bugaboo-MPI/${WPSBLD}/O3xSSE42Grb2/ungrib.exe"}
 elif [[ "${WPSSYS}" == "i7" ]]; then
     WPSQ='sh' # no queue system
     WPSWCT=${WPSWCT:-'0:00:00'} # WPS wallclock time
@@ -224,7 +224,7 @@ elif [[ "${WRFSYS}" == "Rocks" ]]; then
 elif [[ "${WRFSYS}" == "Bugaboo" ]]; then
     WRFQ='pbs' # queue system
     WRFWCT=${WRFWCT:-'12:00:00'}; WRFNODES=${WRFNODES:-1} # Bugaboo allocates cores, not nodes!
-    GEOEXE=${GEOEXE:-"${WPSSRC}/Bugaboo-MPI/${WPSBLD}/O3xSSE42NC4/geogrid.exe"}
+    GEOEXE=${GEOEXE:-"${WPSSRC}/Bugaboo-MPI/${WPSBLD}/O3xSSE42Grb2/geogrid.exe"}
     WRFEXE=${WRFEXE:-"${WRFSRC}/Bugaboo-MPI/${WRFBLD}/O3xSSE42NC4/wrf.exe"}    
 elif [[ "${WRFSYS}" == "i7" ]]; then
     WRFQ='sh' # queue system
