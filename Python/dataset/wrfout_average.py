@@ -5,11 +5,17 @@ Created on 2012-11-10
 '''
 
 ## imports
-from numpy import array, arange, zeros, diff
+import numpy as np
 import os, re, sys
-# netcdf stuff
-from netcdf4 import Dataset, MFDataset
+import netCDF4 as nc
+# my own netcdf stuff
 from geodata.nctools import add_coord, copy_dims, copy_ncatts, copy_vars
+
+# date error class
+class DateError(Exception):
+  ''' Exceptions related to wrfout dats strings, e.g. in file names. '''
+  pass
+
 
 # data root folder
 from socket import gethostname
@@ -39,32 +45,38 @@ daystr = period[2] if len(period) >= 3 else '\d\d'
 
 
 ## definitions
+liniout = True # indicates that the initialization/restart timestep is written to wrfout;
+# this means that the last timestep of the previous file is the same as the first of the next 
 # input files and folders
 filetypes = ['srfc', 'plev3d', 'xtrm', 'hydro']
 inputpattern = 'wrf%s_d%02i_%s-%s-%s_\d\d:\d\d:\d\d.nc' # expanded with %(type,domain,year,month) 
 outputpattern = 'wrf%s_d%02i_monthly.nc' # expanded with %(type,domain)
 # variable attributes
-dimlist = ['Time', 'west_east', 'south_north']
+wrftime = 'Time' # time dim inwrfout files
+time = 'time' # time dim in monthly mean files
+dimlist = ['west_east', 'south_north'] # dimensions we just copy
+dimmap = {wrftime:time, 'west_east':'x','south_north':'y'}
 acclist = dict(RAINNC=100,RAINC=100,RAINSH=None,SNOWNC=None,GRAUPELNC=None) # dictionary of accumulated variables
 # N.B.: keys = variables and values = bucket sizes; value = None or 0 means no bucket  
 bktpfx = 'I_' # prefix for bucket variables 
 # time constants
 months = ['January  ', 'February ', 'March    ', 'April    ', 'May      ', 'June     ', #
           'July     ', 'August   ', 'September', 'October  ', 'November ', 'December ']
-days = array([31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]) # no leap year
-mons = arange(1,13); nmons = len(mons)
+days = np.array([31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]) # no leap year
+mons = np.arange(1,13); nmons = len(mons)
 
 if __name__ == '__main__':
   
   # compile regular expression, used to infer start and end dates and month (later, during computation)
-  datergx = re.compile('%s-%s-%s'%(yearstr,monthstr,daystr))
+  datestr = '%s-%s-%s'%(yearstr,monthstr,daystr)
+  datergx = re.compile(datestr)
     
   # get file list
-  wrfrgx = re.compile('wrf.*_d\d\d_%s-%s-%s_\d\d:\d\d:\d\d.nc'%(yearstr,monthstr,daystr))
+  wrfrgx = re.compile('wrf.*_d\d\d_%s_\d\d:\d\d:\d\d.nc'%(datestr,))
   # regular expression to match the name pattern of WRF timestep output files
   masterlist = [wrfrgx.match(filename) for filename in os.listdir(folder)] # list folder and match
   masterlist = [match.group() for match in masterlist if match is not None] # assemble valid file list
-  if len(masterlist) == 0: raise IOError, 'no matching wrf output files found'
+  if len(masterlist) == 0: raise IOError, 'No matching WRF output files found.'
 #   datergx = re.compile(prdrgx) # compile regular expression, also used to infer month (later)
 #   begindate = datergx.search(filelist[0]).group()
 #   enddate = datergx.search(filelist[-1]).group()
@@ -76,7 +88,7 @@ if __name__ == '__main__':
     typelist = []; filelist = []; ndom = 0
     while len(filelist)>0 or ndom == 0:
       ndom += 1
-      typergx = re.compile('wrf%s_d%02i_%s-%s-%s_\d\d:\d\d:\d\d.nc'%(filetype, ndom, yearstr,monthstr,daystr))
+      typergx = re.compile('wrf%s_d%02i_%s_\d\d:\d\d:\d\d.nc'%(filetype, ndom, datestr))
       # regular expression to also match type and domain index
       filelist = [typergx.match(filename) for filename in masterlist] # list folder and match
       filelist = [match.group() for match in typelist if match is not None] # assemble valid file list
@@ -90,123 +102,169 @@ if __name__ == '__main__':
       
       # announcement
       print('\n\n   ***   Processing Domain #%02i (of %02i)   ***   '%(ndom,maxdom))
+      begindate = datergx.search(filelist[0]).group()
+      beginyear, beginmonth, beginday = [int(tmp) for tmp in begindate.split('-')]
+      enddate = datergx.search(filelist[-1]).group()
+      endyear, endmonth, endday = [int(tmp) for tmp in enddate.split('-')]    
     
       ## setup files and folders
+      
       # load first file to copy some meta data
-      wrfout = MFDataset([folder+filename for filename in filelist], check=True, aggdim='Time') # , format='NETCDF4'      
-      varlist = wrfout.variables.keys()
+      wrfout = nc.Dataset(folder+filelist[0], 'r', format='NETCDF4')
+      # timeless variables            
+      timeless = [varname for varname,var in wrfout.variables.iteritems()if 'Time' not in var.dimensions]
+      # time-dependent variables            
+      varlist = [varname for varname,var in wrfout.variables.iteritems() if 'Time' in var.dimensions]
+      
       # open/create monthly mean output file
       meanfile = folder+outputpattern%(filetype,ndom)
       if os.path.exists(meanfile):
-        mean = Dataset(meanfile, 'rw', format='NETCDF4')
+        mean = nc.Dataset(meanfile, 'rw', format='NETCDF4')
+        t0 = len(mean.dimensions['time']) + 1 # get time index where we start; in month beginning 1979         
       else:        
-        mean = Dataset(meanfile, 'w', format='NETCDF4')
-        begindate = datergx.search(filelist[0]).group()
-#         begindate = filelist[0].split('_')[2] # should be the date...
+        mean = nc.Dataset(meanfile, 'w', format='NETCDF4')
+        t0 = 1 # time index where we start: first month in 1979
+        mean.createDimension('time', size=None) # make time dimension unlimited
         add_coord(mean, 'time', values=None, dtype='i4', atts=dict(units='month since '+begindate)) # unlimited time dimension
-        # copy dimensions and variables to new datasets
-        copy_dims(mean, wrfout, dimlist=dimlist, copy_coords=False) # don't have coordinate variables
-        copy_vars(mean, wrfout, varlist=varlist, copy_data=False)              
+        # copy remaining dimensions to new datasets
+        copy_dims(mean, wrfout, dimlist=dimlist, namemap=dimmap, copy_coords=False) # don't have coordinate variables
+        # copy time-less variable to new datasets        
+        copy_vars(mean, wrfout, varlist=timeless, dimmap=dimmap, copy_data=True) # copy data
+        # create time-dependent variable in new datasets
+        copy_vars(mean, wrfout, varlist=varlist, dimmap=dimmap, copy_data=False) # do nto copy data - need to average  
         # copy global attributes
         copy_ncatts(mean, wrfout, prefix='') # copy all attributes (no need for prefix; all upper case are original)
+        # some new attributes
         mean.description = 'wrf%s_d%02i monthly means'%(filetype,ndom)
         mean.begin_date = begindate
         mean.experiment = exp
-        mean.creator = 'Andre R. Erler'        
-        
+        mean.creator = 'Andre R. Erler'
+        # write to file
+        mean.sync()        
+
+      # extend time dimension in monthly average
+      if (endyear < beginyear) or (endyear == beginyear and endmonth < beginmonth):
+        raise DateError, "End date is before begin date!"
+      times = np.arange(t0,t0+(endyear-beginyear)*12+endmonth-beginmonth)
+      mean.variables['time'][t0-1:t0-1+len(times)] = times # extend time array 
       # update current end date
-      enddate = datergx.search(filelist[-1]).group()    
-#       enddate = filelist[-1].split('_')[2] # should be the date...
       mean.end_date = enddate
-      
-      
-#       # create climatology output file
-#       clim = Dataset(folder+climfile%ndom, 'w', format='NETCDF4')
-#       add_coord(clim, 'time', values=mons, dtype='i4', atts=dict(units='month of the year')) # month of the year
-#       copy_dims(clim, wrfout, dimlist=dimlist, namemap=dimmap, copy_coords=False) # don't have coordinate variables
-#       # variable with proper names of the months
-#       clim.createDimension('tstrlen', size=9) 
-#       coord = clim.createVariable('month','S1',('time','tstrlen'))
-#       for m in xrange(nmons): 
-#         for n in xrange(9): coord[m,n] = months[m][n]
-#       # global attributes
-#       copy_ncatts(clim, wrfout, prefix='WRF_') # copy all attributes and save with prefix WRF
-#       clim.description = 'climatology of WRF monthly means'
-#       clim.begin_date = begindate; clim.end_date = enddate
-#       clim.experiment = exp
-#       clim.creator = 'Andre R. Erler'
-      
+         
+      # allocate fields
+      data = dict() # temporary data arrays
+      for var in varlist:        
+        tmpshape = list(wrfout.variables[var].shape)
+        del tmpshape[wrfout.variables[var].dimensions.index(wrftime)] # allocated arrays have no time dimension
+        assert len(tmpshape) ==  len(wrfout.variables[var].shape) -1
+        data[var] = np.zeros(tmpshape) # allocate
+
           
-      # length of time, x, and y dimensions
-      nvar = len(varlist)
-      nx = len(wrfout.dimensions['west_east'])
-      ny = len(wrfout.dimensions['south_north'])
-      nfiles = len(filelist) # number of files
+      ## compute monthly means
+      print('\n   ***   Processing wrf%s files for domain %2i.   ***   '%(filetype,ndom))
+      print('        (monthly means from %s to %s, incl.)'%(begindate,enddate))
       
+      # loop over month and progressively step through input files
+      filecounter = 0 # number of wrfout file currently processed 
+      wrfstartidx = 0 # output record / time step in current file
+      i0 = t0-2 # index position we write to: i = i0 + n
       
-      ## compute monthly means and climatology
-      tax = 0 # index of time axis (for averaging)
-      time = 'Time' 
-      # allocate arrays
-      print('\n Computing monthly means from %s to %s (incl);'%(begindate,enddate))
-      print ('%3i fields of shape (%i,%i):\n'%(nvar,nx,ny))
-      for var in varlist: 
-        print('   %s'%(var,))
-        assert (ny,nx) == mean.variables[var].shape[1:], \
-          '\nWARNING: variable %s does not conform to assumed shape (%i,%i)!\n'%(var,nx,ny)
+      # start loop over month
+      for n in xrange(1,len(times)+1):
+        meanidx = i0 + n
+        # current date
+        currentyear = int(n/12)+beginyear 
+        currentmonth = n%12+beginmonth
+        # sanity checks
+        assert meanidx + 1 == mean.variables['time'][meanidx]  
+        currentdate = '%04i-%02i'%(currentyear,currentmonth)
+        print('\n %s: '%currentdate)
+        if '%s-01_00:00:00'%(currentdate,) != str().join(wrfout.variables['Times'][wrfstartidx,:]):
+          raise DateError, "Did not find first day of month to compute monthly average."
         
-      # monthly means
-      meandata = dict()
-#       climdata = dict()
-      for var in varlist:
-        meandata[var] = zeros((nfiles,ny,nx))
-#         climdata[var] = zeros((nmons,ny,nx))
-      xtime = zeros((nfiles,)) # number of month
-      xmon = zeros((nmons,)) # counter for number of contributions
-      # loop over input files 
-      print('\n Starting computation: %i iterations (files)\n'%nfiles)
-      for n in xrange(nfiles):
-        wrfout = Dataset(folder+filelist[n], 'r', format='NETCDF4')
-        ntime = len(wrfout.dimensions[time]) # length of month
-        print('  processing file #%i of %3i (%i time-steps):'%(n+1,nfiles,ntime))
-        print('    %s\n'%filelist[n])
-        # compute monthly averages
-        m = int(datergx.search(filelist[n]).group()[-2:])-1 # infer month from filename (for climatology)
-        xtime[n] = n+1 # month since start 
-        xmon[m] += 1 # one more item
+        # prepare summation of output time steps
+        lincomplete = True # 
+        ntime = 0 # accumulated output time steps/
+        xtime = -1 * wrfout.variables['XTIME'][wrfstartidx] # time when accumulation starts (in minutes)
+        # N.B.: the first value is saved as negative, so that adding the last value yields a positive interval
+        # clear temporary arrays
         for var in varlist:
-          tmp = wrfout.variables[var]
-          if acclist.has_key(var): # special treatment for accumulated variables
-            mtmp = diff(tmp[:].take([0,ntime-1],axis=tax), n=1, axis=tax).squeeze()
-            if acclist[var]:
-              bktvar = bktpfx + var # guess name of bucket variable 
-              if wrfout.variables.has_key(bktvar):
-                bkt = wrfout.variables[bktvar]
-                mtmp = mtmp + acclist[var] * diff(bkt[:].take([0,ntime-1],axis=tax), n=1, axis=tax).squeeze()
-            mtmp /= (days[m]-1) # transform to daily instead of monthly rate
-            # N.B.: technically the difference should be taken w.r.t. the last day of the previous month,
-            #       not the first day of the current month, hence we loose one day in the accumulation
-          else:
-            mtmp = tmp[:].mean(axis=tax) # normal variables, normal mean...
-          meandata[var][n,:] = mtmp # save monthly mean
-#           climdata[var][m,:] += mtmp # accumulate climatology
-        # close file
-        wrfout.close()
+          data[var] = np.zeros(data[var].shape) # clear/allocate
         
-      # normalize climatology
-      if n < nmons: xmon[xmon==0] = 1 # avoid division by zero 
-#       for var in varlist:
-#         climdata[var][:,:,:] = climdata[var][:,:,:] / xmon[:,None,None] # 'None" indicates a singleton dimension
+        ## loop over files and average
+        while lincomplete:
+          
+          # determine valid time index range
+          wrfendidx = len(wrfout.dimensions[wrftime])-1
+          while currentdate < str().join(wrfout.variables['Times'][wrfendidx,0:7]):
+            if lincomplete: lincomplete = False # break loop over file if next month is in this file        
+            wrfendidx -= 1 # count backwards
+          wrfendidx +=1 # reverse last step so that counter sits at fist step of next month 
+          assert wrfendidx > wrfstartidx
+          
+          # compute monthly averages
+          for varname in varlist:
+            var = wrfout.variables[varname]
+            tax = var.dimensions.index(wrftime) # index of time axis
+            slices = [slice(None)]*len(var.shape) 
+            # decide how to average
+            if varname in acclist: # accumulated variables
+              # compute mean as difference between end points; normalize by time difference
+              if ntime == 0: # first time step of the month
+                slices[tax] = wrfstartidx # relevant time interval
+                tmp = var.__getitem__(*slices)
+                if acclist[varname] != 0: # add bucket level, if applicable
+                  bkt = wrfout.variables[bktpfx+varname]
+                  tmp += bkt.__getitem__(*slices) * acclist[varname]   
+                data[varname] = -1 * tmp # so we can do an in-place operation later  
+              elif lincomplete == False: # last step
+                slices[tax] = wrfendidx # relevant time interval
+                tmp = var.__getitem__(*slices)
+                if acclist[varname] != 0: # add bucket level, if applicable 
+                  bkt = wrfout.variables[bktpfx+varname]
+                  tmp += bkt.__getitem__(*slices) * acclist[varname]   
+                data[varname] +=  tmp # the starting data is already negative
+            else: # normal variables
+              # compute mean via sum over all elements; normalize by number of time steps
+              slices[tax] = slice(wrfstartidx,wrfendidx) # relevant time interval
+              data[varname] += var.__getitem__(*slices).sum(axis=tax)
+          # increment counters
+          ntime += wrfendidx - wrfstartidx
+          if lincomplete == False: 
+            xtime += wrfout.variables['XTIME'][wrfstartidx] # get final time interval (in minutes)
+            xtime *=  60. # convert minutes to seconds   
+               
+          # two ways to leave: month is done or reached end of file
+          # if we reached the end of the file, open a new one and go again
+          if lincomplete:            
+            wrfout.close() # close file...
+            filecounter += 1 # move to next file            
+            wrfout = nc.Dataset(folder+filelist[filecounter], 'r', format='NETCDF4') # ... and open new one
+            # reset output record / time step counter
+            if liniout: wrfstartidx = 1 # skip the initialization step (same as last step in previous file)
+            else: wrfstartidx = 0
+          elif liniout and wrfendidx == len(wrfout.dimensions[wrftime])-1:
+            wrfout.close() # close file...
+            filecounter += 1 # move to next file            
+            wrfout = nc.Dataset(folder+filelist[filecounter], 'r', format='NETCDF4') # ... and open new one
+            wrfstartidx = 0 # use initialization step (same as last step in previous file)
+            
+             
+            
+        ## now the loop over files terminated and we need to normalize and save the results
+        
+        # loop over variable names
+        for var in varlist:
+          # decide how to normalize
+          if var in acclist: data[var] /= xtime 
+          else: data[var] /= ntime
+          # save variable
+          mean.variables[var][meanidx,:] = data[var] # here time is always the outermost index
+        # sync data
+        mean.sync()
       
-      ## finish
+      ## here the loop over months finishes and we can close the output file 
       # save to files
-      print(' Done. Writing output to:\n  %s'%(folder,))
-      for var in varlist:
-        mean.variables[var][:] = meandata[var]
-        mean.variables['time'][:] = xtime
-#         clim.variables[var][:] = climdata[var] 
-      # close files
+      mean.sync()
+      print(' Done. Writing output to: %s\n(%s)'%(meanfile,folder))
+      # close files      
       mean.close()
-      print('    %s'%(meanfile%ndom,))
-#       clim.close()
-#       print('    %s'%(climfile%ndom,))
