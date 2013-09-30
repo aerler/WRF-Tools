@@ -372,13 +372,25 @@ function PROCESSDATASET () {
       local DYN_D3="wrfdrydyn3d_d03_${DATESTR}_00:00:00.nc"
       local DYN_D4="wrfdrydyn3d_d04_${DATESTR}_00:00:00.nc"
     fi 
+    # hydro files in misc 3D fields (retrieval only)
+    fi; if [[ "${DATASET}" == 'HYDRO' ]] && [[ "${MODE}" == 'RETRIEVE' ]]; then
+      local MISC_D1="wrfhydro_d01_${DATESTR}_00:00:00.nc"
+      local MISC_D2="wrfhydro_d02_${DATESTR}_00:00:00.nc"
+      local MISC_D3="wrfhydro_d03_${DATESTR}_00:00:00.nc"
+      local MISC_D4="wrfhydro_d04_${DATESTR}_00:00:00.nc"
+    fi # HYDRO
     # return error if dataset not found
-    if [[ "${DATASET}" != 'DYN3D' ]] && [[ "${DATASET}" != 'MISC3D' ]] && [[ "${DATASET}" != 'FULL' ]] && [[ "${DATASET}" != 'LOGS' ]] && [[ "${DATASET}" != 'DIAGS' ]]; then
+    if [[ -z "${DIAGS}" ]] && [[ -z "${MISC_D1}" ]] && [[ -z "${MISC_D2}" ]] && [[ -z "${MISC_D3}" ]] && [[ -z "${MISC_D4}" ]] && [[ -z "${DYN_D1}" ]] && [[ -z "${DYN_D2}" ]] && [[ -z "${DYN_D3}" ]] && [[ -z "${DYN_D4}" ]]; then
       echo
-      echo "   >>>   WARNING: dataset ${DATASET} not found! (aborting)   <<<   "
+      if [[ "${DATASET}" == 'DYN3D' ]] && [[ "${DATASET}" == 'MISC3D' ]] && [[ "${DATASET}" == 'FULL' ]] && [[ "${DATASET}" == 'LOGS' ]] && [[ "${DATASET}" == 'DIAGS' ]] && [[ "${DATASET}" == 'HYDRO' ]]
+	then # known dataset but other problem
+	  echo "   >>>   WARNING: dataset ${DATASET} can not be used in the desired configuration! (aborting)   <<<   "
+	else # unknown dataset
+	  echo "   >>>   WARNING: dataset ${DATASET} not found! (aborting)   <<<   "
+      fi # DATASET
       echo
       return 1
-    fi # $DATASET
+    fi # DIAGS etc.
   fi # if TAG=FINAL
   # determine if this is a cold start or a restart (check for restart files)
   ls "${SRC}"/wrfrst_d??_${DATESTR}_"00:00:00" >& /dev/null # this only works with globbing expressions, if they are not quoted
