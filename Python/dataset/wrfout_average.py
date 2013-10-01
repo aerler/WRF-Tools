@@ -31,13 +31,16 @@ hostname = gethostname()
 if hostname=='komputer':
   WRFroot = '/home/DATA/DATA/WRF/test/'
   exp = 'test'
-  folder = WRFroot + '/'
+  infolder = WRFroot + '/'
+  outfolder = infolder
 elif hostname[0:3] == 'gpc': # i.e. on scinet...
   exproot = os.getcwd()
   exp = exproot.split('/')[-1] # root folder name
-  folder = exproot + '/wrfout/' # output folder 
+  infolder = exproot + '/wrfout/' # input folder 
+  outfolder = exproot + '/wrfavg/' # output folder
 else:
-  folder = os.getcwd() # just operate in the current directory
+  infolder = os.getcwd() # just operate in the current directory
+  outfolder = infolder
   exp = '' # need to define experiment name...
   
 def getDateRegX(period):
@@ -115,23 +118,14 @@ bktpfx = 'I_' # prefix for bucket variables
 
 ## main work function
 # N.B.: the loop iterations should be entirely independent, so that they can be run in parallel
-def processFileList(filelist,filetype,ndom):
+def processFileList(pid, filelist, filetype, ndom):
   ''' This function is doing the main work, and is supposed to be run in a multiprocessing environment.  '''
-     
-  # announcement
-  begindate = datergx.search(filelist[0]).group()
-  beginyear, beginmonth, beginday = [int(tmp) for tmp in begindate.split('-')]
-  assert beginday == 1, 'always have to begin on the first of a month'
-  enddate = datergx.search(filelist[-1]).group()
-  endyear, endmonth, endday = [int(tmp) for tmp in enddate.split('-')]
-  assert 1 <= endday <= 31 # this is kinda trivial...    
-  print('\n\n   ***   Processing wrf%s files for domain %2i.   ***   '%(filetype,ndom))
-  print('        (monthly means from %s to %s, incl.)'%(begindate,enddate))
-
+  
+  
   ## setup files and folders
   
   # load first file to copy some meta data
-  wrfout = nc.Dataset(folder+filelist[0], 'r', format='NETCDF4')
+  wrfout = nc.Dataset(infolder+filelist[0], 'r', format='NETCDF4')
   # timeless variables (should be empty, since all timeless variables should be in constant files!)        
   timeless = [varname for varname,var in wrfout.variables.iteritems() if 'Time' not in var.dimensions]
   assert len(timeless) == 0
@@ -139,8 +133,23 @@ def processFileList(filelist,filetype,ndom):
   varlist = [varname for varname,var in wrfout.variables.iteritems() if 'Time' in var.dimensions \
              and np.issubdtype(var.dtype, np.number) and not varname[0:len(bktpfx)] == bktpfx]
   
+  # announcement
+  pidstr = '[proc%02i] '%pid if NP > 1 or NP is None else ''
+  begindate = datergx.search(filelist[0]).group()
+  beginyear, beginmonth, beginday = [int(tmp) for tmp in begindate.split('-')]
+  assert beginday == 1, 'always have to begin on the first of a month'
+  enddate = datergx.search(filelist[-1]).group()
+  endyear, endmonth, endday = [int(tmp) for tmp in enddate.split('-')]
+  assert 1 <= endday <= 31 # this is kinda trivial...  
+  varstr = '' # make variable list
+  for var in varlist: varstr += '%s, '%var    
+  # print meta info (print everything in one chunk, so output from different processes does not get mangled)
+  print('\n\n%s    ***   Processing wrf%s files for domain %2i.   ***'%(pidstr,filetype,ndom) +
+        '\n          (monthly means from %s to %s, incl.)'%(begindate,enddate) +
+        '\n Variable list: %s'%(varstr))
+  
   # open/create monthly mean output file
-  meanfile = folder+outputpattern%(filetype,ndom)
+  meanfile = outfolder+outputpattern%(filetype,ndom)
   if True: 
     if os.path.exists(meanfile):
       os.remove(meanfile)
@@ -197,6 +206,7 @@ def processFileList(filelist,filetype,ndom):
   filecounter = 0 # number of wrfout file currently processed 
   wrfstartidx = 0 # output record / time step in current file
   i0 = t0-1 # index position we write to: i = i0 + n
+  progressstr = '' # a string printing the processed dates
   
   # start loop over month
   for n in xrange(len(times)):
@@ -207,7 +217,7 @@ def processFileList(filelist,filetype,ndom):
     # sanity checks
     assert meanidx + 1 == mean.variables['time'][meanidx]  
     currentdate = '%04i-%02i'%(currentyear,currentmonth)
-    print('\n %s: '%currentdate)
+    progressstr += '%s, '%currentdate
 #         print '%s-01_00:00:00'%(currentdate,),str().join(wrfout.variables['Times'][wrfstartidx,:])
     if '%s-01_00:00:00'%(currentdate,) != str().join(wrfout.variables['Times'][wrfstartidx,:]):
       raise DateError, "Did not find first day of month to compute monthly average."
@@ -236,7 +246,7 @@ def processFileList(filelist,filetype,ndom):
       
       # compute monthly averages
       for varname in varlist:
-        print(varname+', '),
+        #print(varname+', '),
         var = wrfout.variables[varname]
         tax = var.dimensions.index(wrftime) # index of time axis
         slices = [slice(None)]*len(var.shape) 
@@ -281,7 +291,7 @@ def processFileList(filelist,filetype,ndom):
           if calendar.isleap(currentyear) and currentmonth==2:
             if dd == '28':
               xtime -= 86400. # subtract leap day for calendars without leap day
-              print('\nCorrecting time interval: current calendar does not have leap-days.'),
+              print('\n%sCorrecting time interval for %s: current calendar does not have leap-days.'%(pidstr,currentdate))
             else: assert dd == '29' # if there is a leap day
           else: assert dd == '%02i'%days_per_month_365[currentmonth-1] # if there is no leap day
            
@@ -290,7 +300,7 @@ def processFileList(filelist,filetype,ndom):
       if lincomplete:            
         wrfout.close() # close file...
         filecounter += 1 # move to next file            
-        wrfout = nc.Dataset(folder+filelist[filecounter], 'r', format='NETCDF4') # ... and open new one
+        wrfout = nc.Dataset(infolder+filelist[filecounter], 'r', format='NETCDF4') # ... and open new one
         # reset output record / time step counter
         if liniout: wrfstartidx = 1 # skip the initialization step (same as last step in previous file)
         else: wrfstartidx = 0
@@ -298,7 +308,7 @@ def processFileList(filelist,filetype,ndom):
         wrfout.close() # close file...
         filecounter += 1 # move to next file    
         if filecounter < len(filelist):        
-          wrfout = nc.Dataset(folder+filelist[filecounter], 'r', format='NETCDF4') # ... and open new one
+          wrfout = nc.Dataset(infolder+filelist[filecounter], 'r', format='NETCDF4') # ... and open new one
           wrfstartidx = 0 # use initialization step (same as last step in previous file)
                        
         
@@ -317,11 +327,14 @@ def processFileList(filelist,filetype,ndom):
     mean.sync()
   
   ## here the loop over months finishes and we can close the output file 
-  # save to files
+  # print progress
+  
+  # save to file
+  print('\n%s Processed dates: %s'%(pidstr, progressstr))
   mean.sync()
-  print('\n\n Done. Writing output to:\n%s'%(meanfile))
-  # close files      
-  mean.close()
+  print('\n%s Writing output to:\n%s\n'%(pidstr, meanfile))
+  # close files        
+  mean.close()  
 
 # now begin execution    
 if __name__ == '__main__':
@@ -333,7 +346,7 @@ if __name__ == '__main__':
   # get file list
   wrfrgx = re.compile('wrf.*_d\d\d_%s_\d\d:\d\d:\d\d.nc'%(datestr,))
   # regular expression to match the name pattern of WRF timestep output files
-  masterlist = [wrfrgx.match(filename) for filename in os.listdir(folder)] # list folder and match
+  masterlist = [wrfrgx.match(filename) for filename in os.listdir(infolder)] # list folder and match
   masterlist = [match.group() for match in masterlist if match is not None] # assemble valid file list
   if len(masterlist) == 0: raise IOError, 'No matching WRF output files found for date: %s'%datestr
   
@@ -362,7 +375,7 @@ if __name__ == '__main__':
   else: pool = multiprocessing.Pool(processes=NP)
   # distribute tasks to workers
   for pid,filelist,filetype,ndom in zip(xrange(len(joblist)), joblist, typelist, domlist):
-    pool.apply_async(processFileList, (filelist,filetype,ndom))
+    pool.apply_async(processFileList, (pid, filelist, filetype, ndom))
   pool.close()
   pool.join()
   
