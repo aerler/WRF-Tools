@@ -373,7 +373,7 @@ function PROCESSDATASET () {
       local DYN_D4="wrfdrydyn3d_d04_${DATESTR}_00:00:00.nc"
     fi 
     # hydro files in misc 3D fields (retrieval only)
-    fi; if [[ "${DATASET}" == 'HYDRO' ]] && [[ "${MODE}" == 'RETRIEVE' ]]; then
+    if [[ "${DATASET}" == 'HYDRO' ]] && [[ "${MODE}" == 'RETRIEVE' ]]; then
       local MISC_D1="wrfhydro_d01_${DATESTR}_00:00:00.nc"
       local MISC_D2="wrfhydro_d02_${DATESTR}_00:00:00.nc"
       local MISC_D3="wrfhydro_d03_${DATESTR}_00:00:00.nc"
