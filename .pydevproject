@@ -6,4 +6,7 @@
 <path>/WRF Tools/Python</path>
 <path>/WRF Tools/Python/dataset</path>
 </pydev_pathproperty>
+<pydev_pathproperty name="org.python.pydev.PROJECT_EXTERNAL_SOURCE_PATH">
+<path>/home/me/Models/PyGeoDat/src</path>
+</pydev_pathproperty>
 </pydev_project>
