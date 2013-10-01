@@ -44,24 +44,24 @@ if __name__ == '__main__':
 
 
   # read step file
-  file = fileinput.FileInput([IniDir + '/' + stepfile]) # , mode='r' # AIX doesn't like this
+  filehandle = fileinput.FileInput([IniDir + '/' + stepfile]) # , mode='r' # AIX doesn't like this
   nextline = -1 # flag for last step not found 
   if laststep:
     # either loop over lines
-    for line in file:
+    for line in filehandle:
       if (nextline == -1) and (laststep in line.split()[0]):
         # scan for current/last step (in first column)   
-        nextline = file.filelineno() + 1
-      elif nextline == file.filelineno():
+        nextline = filehandle.filelineno() + 1
+      elif nextline == filehandle.filelineno():
         # read next line
         linesplit = line.split()
     # check against end of file
-    if nextline > file.filelineno():
+    if nextline > filehandle.filelineno():
       nextline = 0 # flag for last step (end of file)
   else:
     # or read first line
     nextline = 1
-    linesplit = file[0].split()
+    linesplit = filehandle[0].split()
   fileinput.close()
         
   # set up next step    
@@ -87,9 +87,9 @@ if __name__ == '__main__':
     # screen for leap days (treat Feb. 29th as 28th)
     if lly == False: # i.e. if we don't use leap-years in WRF
       if calendar.isleap(startdate[0]) and startdate[2]==29 and startdate[1]==2:
-	startdate = (startdate[0], startdate[1], 28, startdate[3])
+        startdate = (startdate[0], startdate[1], 28, startdate[3])
       if calendar.isleap(enddate[0]) and enddate[2]==29 and enddate[1]==2:
-	enddate = (enddate[0], enddate[1], 28, enddate[3])
+        enddate = (enddate[0], enddate[1], 28, enddate[3])
     # create next step folder
     StepFolder = IniDir + '/' + nextstep + '/'
     if not os.path.isdir(StepFolder):            
@@ -103,8 +103,8 @@ if __name__ == '__main__':
     sys.stdout.write(nextstep)
     
     # determine number of domains
-    file = fileinput.FileInput([StepFolder+nmlstwps]) # , mode='r' # AIX doesn't like this
-    for line in file: # loop over entries/lines
+    filehandle = fileinput.FileInput([StepFolder+nmlstwps]) # , mode='r' # AIX doesn't like this
+    for line in filehandle: # loop over entries/lines
       if 'max_dom' in line: # search for relevant entries
         maxdom = int(line.split()[2].strip(','))
         break 
@@ -118,9 +118,9 @@ if __name__ == '__main__':
       endstr = endstr + enddatestr + ','
     startstr = startstr + '\n'; endstr = endstr + '\n'
     # write namelists
-    file = fileinput.FileInput([StepFolder+nmlstwps], inplace=True)
+    filehandle = fileinput.FileInput([StepFolder+nmlstwps], inplace=True)
     lstart = False; lend = False    
-    for line in file: # loop over entries/lines
+    for line in filehandle: # loop over entries/lines
       # rewrite date-related entries
       if 'start_date' in line:
         if not lstart:
@@ -148,16 +148,16 @@ if __name__ == '__main__':
     if lly == False: # if we don't want leap-years, we have to subtract the leap-days
       # if start and end are in the same year
       if (startdate[0] == enddate[0]) and calendar.isleap(enddate[0]):
-	if (startdate[1] < 3) and (enddate[1] > 2):
-	  leapdays += 1 # only count if timedelta crosses leap day
+        if (startdate[1] < 3) and (enddate[1] > 2):
+          leapdays += 1 # only count if timedelta crosses leap day
       # if start and end are in different years
       else:
-	if calendar.isleap(startdate[0]) and (startdate[1] < 3):
-	  leapdays += 1 # first year only if start before March
-	# add leap days in between start and end years
-	leapdays += calendar.leapdays(startdate[0]+1, enddate[0])
-	if calendar.isleap(enddate[0]) and (enddate[1] > 2):
-	  leapdays += 1 # last year only if end after February
+        if calendar.isleap(startdate[0]) and (startdate[1] < 3):
+          leapdays += 1 # first year only if start before March
+        # add leap days in between start and end years
+        leapdays += calendar.leapdays(startdate[0]+1, enddate[0])
+        if calendar.isleap(enddate[0]) and (enddate[1] > 2):
+          leapdays += 1 # last year only if end after February
     # figure out actual duration in days, hours, and minutes
     rtdays = rtdelta.days - leapdays
     rtmins, rtsecs = divmod(rtdelta.seconds, 60)
@@ -184,8 +184,8 @@ if __name__ == '__main__':
         endcat = endcat + ' ' + str(enddate[i]) + ','
       startcats[i] = startcat + '\n'; endcats[i] = endcat + '\n'
     # write namelist
-    file = fileinput.FileInput([StepFolder+nmlstwrf], inplace=True)
-    for line in file: # loop over entries/lines
+    filehandle = fileinput.FileInput([StepFolder+nmlstwrf], inplace=True)
+    for line in filehandle: # loop over entries/lines
       # rewrite date-related entries
       if ' run_' in line:
         for runcat, timecat in zip(runcats, timecats):

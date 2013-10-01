@@ -30,8 +30,8 @@ metpfx = 'met_em.d%02.0f.'
 metsfx = ':00:00.nc'
 geopfx = 'geo_em.d%02.0f'
 # parallelization
-pname = 'proc%02.0f'
-pdir = 'proc%02.0f/'
+pname = 'proc%02i'
+pdir = 'proc%02i/'
 # destination folder(s)
 ramlnk = 'ram' # automatically generated link to ramdisk (if applicable)
 data = 'data/' # data folder in ram
@@ -466,7 +466,7 @@ def processFiles(qfilelist, qListDir, queue):
       if os.path.isdir(TmpDir):
         if dataset.checkSubDir(filename, starts[0], ends[0]):          
           # make list of contents and process recursively
-	  if depth > 1: print(' (skipping subfolders beyond recursion depth/level 1)')
+          if depth > 1: print(' (skipping subfolders beyond recursion depth/level 1)')
           else: okdates = checkFileList(os.listdir(TmpDir), TmpDir, okdates, depth)
       else:
         # figure out time and date
@@ -667,7 +667,7 @@ if __name__ == '__main__':
     # divide up dates and process time-steps
     listofdates = divideList(dates, NP)
     # create processes
-    procs = []; ilo = 0; ihi = 0
+    procs = []
     for pid in xrange(NP):
       p = multiprocessing.Process(name=pname%pid, target=processTimesteps, args=(pid, listofdates[pid]))
       procs.append(p)
