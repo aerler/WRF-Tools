@@ -12,8 +12,10 @@ from datetime import datetime
 import calendar
 import multiprocessing # parallelization
 # my own netcdf stuff
-from geodata.nctools import add_coord, copy_dims, copy_ncatts, copy_vars
-from datasets.common import days_per_month_365
+from nctools import add_coord, copy_dims, copy_ncatts, copy_vars
+
+# days per month without leap days
+days_per_month_365 = np.array([31,28,31,30,31,30,31,31,30,31,30,31])
 
 # date error class
 class DateError(Exception):
