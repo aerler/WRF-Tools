@@ -1,5 +1,10 @@
 '''
-Created on 2012-11-10
+Created on 2013-09-28
+
+A script to average WRF output; the default settings are meant for my 'fineIO' output configuration and 
+process the smaller diagnostic files.
+The script can run in parallel mode, with each process averaging one filetype and domain, producing 
+exactly one output file.  
 
 @author: Andre R. Erler
 '''
@@ -13,9 +18,11 @@ import calendar
 import multiprocessing # parallelization
 # my own netcdf stuff
 from geodata.nctools import add_coord, copy_dims, copy_ncatts, copy_vars
-
-# days per month without leap days
+# N.B.: importing from datasets.common causes problems with GDAL, if it is not installed
+# days per month without leap days (duplicate from datasets.common) 
 days_per_month_365 = np.array([31,28,31,30,31,30,31,31,30,31,30,31])
+# import module providing derived variable classes
+import derived_variables as dv
 
 # date error class
 class DateError(Exception):
@@ -26,15 +33,14 @@ class ArgumentError(Exception):
   ''' Exceptions related to arguments passed to the script. '''
   pass
 
-
 # data root folder
 from socket import gethostname
 hostname = gethostname()
 if hostname=='komputer':
   WRFroot = '/home/DATA/DATA/WRF/test/'
   exp = 'test'
-  infolder = WRFroot + '/'
-  outfolder = infolder
+  infolder = WRFroot + '/wrfout/'
+  outfolder = WRFroot + '/wrfavg/'
 elif hostname[0:3] == 'gpc': # i.e. on scinet...
   exproot = os.getcwd()
   exp = exproot.split('/')[-1] # root folder name
@@ -115,6 +121,10 @@ acclist = dict(RAINNC=100,RAINC=100,RAINSH=None,SNOWNC=None,GRAUPELNC=None,SFCEV
 # N.B.: keys = variables and values = bucket sizes; value = None or 0 means no bucket  
 bktpfx = 'I_' # prefix for bucket variables; these are processed together with their accumulated variables 
 
+# derived variables
+derived_variables = {filetype:[] for filetype in filetypes} # derived variable lists by file type
+derived_variables['hydro'] = [dv.Rain()]
+derived_variables['srfc'] = [dv.Rain()]
 
 ## main work function
 # N.B.: the loop iterations should be entirely independent, so that they can be run in parallel
@@ -122,6 +132,9 @@ def processFileList(pid, filelist, filetype, ndom):
   ''' This function is doing the main work, and is supposed to be run in a multiprocessing environment. '''  
   
   ## setup files and folders
+  
+  # derived variable list
+  derived_vars = derived_variables[filetype]
   
   # load first file to copy some meta data
   wrfout = nc.Dataset(infolder+filelist[0], 'r', format='NETCDF4')
@@ -140,19 +153,30 @@ def processFileList(pid, filelist, filetype, ndom):
   enddate = datergx.search(filelist[-1]).group()
   endyear, endmonth, endday = [int(tmp) for tmp in enddate.split('-')]
   assert 1 <= endday <= 31 # this is kinda trivial...  
-  varstr = '' # make variable list
-  for var in varlist: varstr += '%s, '%var    
+  varstr = ''; devarstr = '' # make variable list, also for derived variables
+  for var in varlist: varstr += '%s, '%var
+  for devar in derived_vars: devarstr += '%s, '%devar.name
+      
   # print meta info (print everything in one chunk, so output from different processes does not get mangled)
   print('\n\n%s    ***   Processing wrf%s files for domain %2i.   ***'%(pidstr,filetype,ndom) +
         '\n          (monthly means from %s to %s, incl.)'%(begindate,enddate) +
-        '\n Variable list: %s'%(varstr))
+        '\n Variable list: %s\n Derived variables: %s'%(varstr,devarstr))
   
   # open/create monthly mean output file
-  meanfile = outfolder+outputpattern%(filetype,ndom)
+  filename = outputpattern%(filetype,ndom)   
+  meanfile = outfolder+filename
+  #os.remove(meanfile)
   if os.path.exists(meanfile):
-    #os.remove(meanfile)
     mean = nc.Dataset(meanfile, mode='a', format='NETCDF4') # open to append data (mode='a')
     t0 = len(mean.dimensions[time]) + 1 # get time index where we start; in month beginning 1979
+    # check time-stamps in old datasets
+    if mean.end_date >= begindate: 
+      raise DateError, "%s Begindate %s comes before enddate %s in file %s"%(pidstr,begindate,enddate,filename)
+    # check derived variables
+    for var in derived_vars:
+      if var.name not in mean.variables: 
+        raise dv.DerivedVariableError, "%s Derived variable '%s' not found in file '%s'"%(pidstr,var.name,filename)
+      var.checkPrerequisites(mean)
   else:        
     mean = nc.Dataset(meanfile, 'w', format='NETCDF4') # open to start a new file (mode='w')
     t0 = 1 # time index where we start: first month in 1979
@@ -167,7 +191,11 @@ def processFileList(pid, filelist, filetype, ndom):
     copy_vars(mean, wrfout, varlist=varlist, dimmap=dimmap, copy_data=False) # do nto copy data - need to average
     # also create variable for time-stamps in new datasets
     if wrftimestamp in wrfout.variables:
-      copy_vars(mean, wrfout, varlist=[wrftimestamp], dimmap=dimmap, copy_data=False) # do nto copy data - need to average        
+      copy_vars(mean, wrfout, varlist=[wrftimestamp], dimmap=dimmap, copy_data=False) # do nto copy data - need to average
+    # create derived variables
+    for var in derived_vars: 
+      var.checkPrerequisites(mean)
+      var.createVariable(mean)            
     # copy global attributes
     copy_ncatts(mean, wrfout, prefix='') # copy all attributes (no need for prefix; all upper case are original)
     # some new attributes
@@ -226,7 +254,8 @@ def processFileList(pid, filelist, filetype, ndom):
     else: progressstr += '%s, '%currentdate # bundle output in parallel mode
     #print '%s-01_00:00:00'%(currentdate,),str().join(wrfout.variables[wrftimestamp][wrfstartidx,:])
     if '%s-01_00:00:00'%(currentdate,) != str().join(wrfout.variables[wrftimestamp][wrfstartidx,:]):
-      raise DateError, "Did not find first day of month to compute monthly average."
+      raise DateError, ("%s Did not find first day of month to compute monthly average." +
+                        "file: %s date: %s-01_00:00:00"%(pidstr,filename,currentdate))
     
     # prepare summation of output time steps
     lincomplete = True # 
@@ -329,6 +358,14 @@ def processFileList(pid, filelist, filetype, ndom):
       var = mean.variables[varname] # this time the destination variable
       if var.ndim > 1: var[meanidx,:] = data[varname] # here time is always the outermost index
       else: var[meanidx] = data[varname]
+    # compute derived variables
+    for devar in derived_vars:
+      if not devar.linear: 
+        raise dv.DerivedVariableError, "%s Derived variable '%s' is not linear."%(pidstr,devar.name) 
+      # save variable
+      ncvar = mean.variables[devar.name] # this time the destination variable
+      if ncvar.ndim > 1: ncvar[meanidx,:] = devar.computeValues(data) # here time is always the outermost index
+      else: ncvar[meanidx] = devar.computeValues(data)            
     # sync data
     mean.sync()
   
@@ -339,7 +376,7 @@ def processFileList(pid, filelist, filetype, ndom):
   if pid < 0: print('') # terminate the line (of dates) 
   else: print('\n%s Processed dates: %s'%(pidstr, progressstr))   
   mean.sync()
-  print('\n%s Writing output to:\n%s\n'%(pidstr, meanfile))
+  print('\n%s Writing output to: %s\n(%s)\n'%(pidstr, filename, meanfile))
   # close files        
   mean.close()  
 
