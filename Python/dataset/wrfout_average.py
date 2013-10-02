@@ -104,8 +104,8 @@ if len(period) >= 3:
 liniout = True # indicates that the initialization/restart timestep is written to wrfout;
 # this means that the last timestep of the previous file is the same as the first of the next 
 # input files and folders
-filetypes = ['hydro']
-# filetypes = ['srfc', 'plev3d', 'xtrm', 'hydro']
+# filetypes = ['hydro'] # for testing 
+filetypes = ['srfc', 'plev3d', 'xtrm', 'hydro']
 inputpattern = 'wrf%s_d%02i_%s-%s-%s_\d\d:\d\d:\d\d.nc' # expanded with %(type,domain,year,month) 
 outputpattern = 'wrf%s_d%02i_monthly.nc' # expanded with %(type,domain)
 # variable attributes
@@ -428,14 +428,3 @@ if __name__ == '__main__':
     pool.close()
     pool.join()
   print('')
-  
-#   procs = [] # list of processes
-#   for pid,filelist,filetype,ndom in zip(xrange(len(joblist)), joblist, typelist, domlist): 
-#     # launch parallel processes
-#     p = multiprocessing.Process(name='proc%02i'%pid, target=processFileList, args=(filelist,filetype,ndom))
-#     procs.append(p)
-#     p.start()
-#     
-#   # terminate parallel processes upon completion
-#   for p in procs: p.join()
-    
