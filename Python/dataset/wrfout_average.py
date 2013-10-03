@@ -37,7 +37,8 @@ class ArgumentError(Exception):
 from socket import gethostname
 hostname = gethostname()
 if hostname=='komputer':
-  WRFroot = '/home/DATA/DATA/WRF/test/'
+  #WRFroot = '/home/DATA/DATA/WRF/test/'
+  WRFroot = '/home/me/Models/test/'
   exp = 'test'
   infolder = WRFroot + '/wrfout/'
   outfolder = WRFroot + '/wrfavg/'
@@ -74,23 +75,32 @@ def getDateRegX(period):
 if os.environ.has_key('PYAVG_THREADS'): 
   NP = int(os.environ['PYAVG_THREADS'])
 else: NP = None
+# only compute whole years 
+if os.environ.has_key('PYAVG_OVERWRITE'): 
+  loverwrite =  os.environ['PYAVG_OVERWRITE'] == 'OVERWRITE' 
+else: loverwrite = False # i.e. append
+# N.B.: when loverwrite is True and and prdarg is empty, the entire file is replaced,
+#       otherwise only the selected months are recomputed 
 # figure out time period
 if len(sys.argv) == 1:
+  prdarg = ''
   period = [] # means recompute everything
 elif len(sys.argv) == 2:
-  period = sys.argv[1].split('-') # regular expression identifying 
+  prdarg = sys.argv[1]
+  period = prdarg.split('-') # regular expression identifying 
 else: raise ArgumentError
+prdarg = '1980'; period = prdarg.split('-') # for tests
 # default time intervals
 yearstr = '\d\d\d\d'; monthstr = '\d\d'; daystr = '\d\d'  
 # figure out time interval
 if len(period) >= 1:
-  if len(period[0]) != 4: raise ArgumentError
+  if len(period[0]) < 4: raise ArgumentError
   yearstr = period[0] 
 if len(period) >= 2:
   if len(period[1]) == 4:
     try: 
       tmp = int(period[1])
-      yearstr = getDateRegX(sys.argv[1])
+      yearstr = getDateRegX(prdarg)
       if yearstr is None: raise ArgumentError
     except ValueError: 
       monthstr = period[1]
@@ -106,8 +116,8 @@ if len(period) >= 3:
 liniout = True # indicates that the initialization/restart timestep is written to wrfout;
 # this means that the last timestep of the previous file is the same as the first of the next 
 # input files and folders
-# filetypes = ['hydro'] # for testing 
-filetypes = ['srfc', 'plev3d', 'xtrm', 'hydro']
+filetypes = ['hydro'] # for testing 
+# filetypes = ['srfc', 'plev3d', 'xtrm', 'hydro']
 inputpattern = 'wrf%s_d%02i_%s-%s-%s_\d\d:\d\d:\d\d.nc' # expanded with %(type,domain,year,month) 
 outputpattern = 'wrf%s_d%02i_monthly.nc' # expanded with %(type,domain)
 # variable attributes
@@ -167,13 +177,17 @@ def processFileList(pid, filelist, filetype, ndom):
   # open/create monthly mean output file
   filename = outputpattern%(filetype,ndom)   
   meanfile = outfolder+filename
-  #os.remove(meanfile)
+  if loverwrite and not prdarg: os.remove(meanfile)
   if os.path.exists(meanfile):
     mean = nc.Dataset(meanfile, mode='a', format='NETCDF4') # open to append data (mode='a')
-    t0 = len(mean.dimensions[time]) + 1 # get time index where we start; in month beginning 1979
+    # infer start index
+    meanbeginyear, meanbeginmonth, meanbeginday = [int(tmp) for tmp in mean.begin_date.split('-')]
+    assert meanbeginday == 1, 'always have to begin on the first of a month'
+    t0 = (beginyear-meanbeginyear)*12 + (beginmonth-meanbeginmonth) + 1        
     # check time-stamps in old datasets
-    if mean.end_date >= begindate: 
-      raise DateError, "%s Begindate %s comes before enddate %s in file %s"%(pidstr,begindate,enddate,filename)
+    if mean.end_date < begindate: assert t0 == len(mean.dimensions[time]) + 1 # another check
+    else: assert t0 <= len(mean.dimensions[time]) + 1 # get time index where we start; in month beginning 1979  
+    #if not loverwrite: raise DateError, "%s Begindate %s comes before enddate %s in file %s"%(pidstr,begindate,enddate,filename)
     # check derived variables
     for var in derived_vars:
       if var.name not in mean.variables: 
@@ -234,14 +248,24 @@ def processFileList(pid, filelist, filetype, ndom):
   # prepare computation of monthly means  
   filecounter = 0 # number of wrfout file currently processed 
   wrfstartidx = 0 # output record / time step in current file
-  i0 = t0-1 # index position we write to: i = i0 + n
+  i0 = t0-1 # index position we write to: i = i0 + n (zero-based, of course)
   ## start loop over month
   if pid < 0: print('\n Processed dates:'),
   else: progressstr = '' # a string printing the processed dates
+  
   # loop over month and progressively step through input files
   for n,t in enumerate(times):
     # extend time array / month counter
     meanidx = i0 + n
+    # check if we are overwriting existing data
+    if meanidx == len(mean.variables[time]): 
+      lskip = False # append next data point / time step
+    elif loverwrite: 
+      assert meanidx < len(mean.variables[time])
+      lskip = False # overwrite this step
+    else: 
+      assert meanidx < len(mean.variables[time])
+      lskip = True # skip this step, but we still have to verify the timing
     mean.variables[time][meanidx] = t # month since simulation start 
     # save WRF time-stamp for beginning of month straight to the new file, for record
     mean.variables[wrftimestamp][meanidx,:] = wrfout.variables[wrftimestamp][wrfstartidx,:] 
@@ -252,15 +276,16 @@ def processFileList(pid, filelist, filetype, ndom):
     assert meanidx + 1 == mean.variables[time][meanidx]  
     currentdate = '%04i-%02i'%(currentyear,currentmonth)
     # print feedback (the current month)
-    if pid < 0: print('%s,'%currentdate), # serial mode
-    else: progressstr += '%s, '%currentdate # bundle output in parallel mode
+    if not lskip: # but not if we are skipping this step...
+      if pid < 0: print('%s,'%currentdate), # serial mode
+      else: progressstr += '%s, '%currentdate # bundle output in parallel mode
     #print '%s-01_00:00:00'%(currentdate,),str().join(wrfout.variables[wrftimestamp][wrfstartidx,:])
     if '%s-01_00:00:00'%(currentdate,) != str().join(wrfout.variables[wrftimestamp][wrfstartidx,:]):
-      raise DateError, ("%s Did not find first day of month to compute monthly average." +
-                        "file: %s date: %s-01_00:00:00"%(pidstr,filename,currentdate))
+      raise DateError, ("%s Did not find first day of month to compute monthly average."%(pidstr,) +
+                        "file: %s date: %s-01_00:00:00"%(filename,currentdate))
     
     # prepare summation of output time steps
-    lincomplete = True # 
+    lcomplete = False # 
     ntime = 0 # accumulated output time steps
     # time when accumulation starts (in minutes)        
     # N.B.: the first value is saved as negative, so that adding the last value yields a positive interval
@@ -271,70 +296,71 @@ def processFileList(pid, filelist, filetype, ndom):
       data[var] = np.zeros(data[var].shape) # clear/allocate
     
     ## loop over files and average
-    while lincomplete:
+    while not lcomplete:
       
       # determine valid time index range
       wrfendidx = len(wrfout.dimensions[wrftime])-1
       while currentdate < str().join(wrfout.variables[wrftimestamp][wrfendidx,0:7]):
-        if lincomplete: lincomplete = False # break loop over file if next month is in this file        
+        if not lcomplete: lcomplete = True # break loop over file if next month is in this file        
         wrfendidx -= 1 # count backwards
       wrfendidx +=1 # reverse last step so that counter sits at fist step of next month 
       assert wrfendidx > wrfstartidx
       
-      # compute monthly averages
-      for varname in varlist:
-        #print(varname+', '),
-        var = wrfout.variables[varname]
-        tax = var.dimensions.index(wrftime) # index of time axis
-        slices = [slice(None)]*len(var.shape) 
-        # decide how to average
-        if varname in acclist: # accumulated variables
-          # compute mean as difference between end points; normalize by time difference
-          if ntime == 0: # first time step of the month
-            slices[tax] = wrfstartidx # relevant time interval
-            tmp = var.__getitem__(slices)
-            if acclist[varname] is not None: # add bucket level, if applicable
-              bkt = wrfout.variables[bktpfx+varname]
-              tmp += bkt.__getitem__(slices) * acclist[varname]   
-            data[varname] = -1 * tmp # so we can do an in-place operation later 
-          # N.B.: both, begin and end, can be in the same file, hence elif is not appropriate! 
-          if lincomplete == False: # last step
-            slices[tax] = wrfendidx # relevant time interval
-            tmp = var.__getitem__(slices)
-            if acclist[varname] is not None: # add bucket level, if applicable 
-              bkt = wrfout.variables[bktpfx+varname]
-              tmp += bkt.__getitem__(slices) * acclist[varname]   
-            data[varname] +=  tmp # the starting data is already negative
-        elif varname[0:len(bktpfx)] == bktpfx: pass # do not process buckets
-        else: # normal variables
-          # compute mean via sum over all elements; normalize by number of time steps
-          slices[tax] = slice(wrfstartidx,wrfendidx) # relevant time interval
-          data[varname] += var.__getitem__(slices).sum(axis=tax)
-      # increment counters
-      ntime += wrfendidx - wrfstartidx
-      if lincomplete == False: 
-        if lxtime:
-          xtime += wrfout.variables[wrfxtime][wrfendidx] # get final time interval (in minutes)
-          xtime *=  60. # convert minutes to seconds   
-        else: 
-          dt1 = datetime.strptime(xtime, '%Y-%m-%d_%H:%M:%S')
-          dt2 = datetime.strptime(str().join(wrfout.variables[wrftimestamp][wrfendidx,:]), '%Y-%m-%d_%H:%M:%S')
-          xtime = (dt2-dt1).total_seconds() # the difference creates a timedelta object
-          # N.B.: the datetime module always includes leapdays; the code below is to remove leap days
-          #       in order to correctly handle model calendars that don't have leap days
-          yyyy, mm, dd = str().join(wrfout.variables[wrftimestamp][wrfendidx-1,0:10]).split('-')
-          # also a bit of sanity checking...
-          assert yyyy == '%04i'%currentyear and mm == '%02i'%currentmonth
-          if calendar.isleap(currentyear) and currentmonth==2:
-            if dd == '28':
-              xtime -= 86400. # subtract leap day for calendars without leap day
-              print('\n%s Correcting time interval for %s: current calendar does not have leap-days.'%(pidstr,currentdate))
-            else: assert dd == '29' # if there is a leap day
-          else: assert dd == '%02i'%days_per_month_365[currentmonth-1] # if there is no leap day
+      if not lskip:
+        # compute monthly averages
+        for varname in varlist:
+          #print(varname+', '),
+          var = wrfout.variables[varname]
+          tax = var.dimensions.index(wrftime) # index of time axis
+          slices = [slice(None)]*len(var.shape) 
+          # decide how to average
+          if varname in acclist: # accumulated variables
+            # compute mean as difference between end points; normalize by time difference
+            if ntime == 0: # first time step of the month
+              slices[tax] = wrfstartidx # relevant time interval
+              tmp = var.__getitem__(slices)
+              if acclist[varname] is not None: # add bucket level, if applicable
+                bkt = wrfout.variables[bktpfx+varname]
+                tmp += bkt.__getitem__(slices) * acclist[varname]   
+              data[varname] = -1 * tmp # so we can do an in-place operation later 
+            # N.B.: both, begin and end, can be in the same file, hence elif is not appropriate! 
+            if lcomplete: # last step
+              slices[tax] = wrfendidx # relevant time interval
+              tmp = var.__getitem__(slices)
+              if acclist[varname] is not None: # add bucket level, if applicable 
+                bkt = wrfout.variables[bktpfx+varname]
+                tmp += bkt.__getitem__(slices) * acclist[varname]   
+              data[varname] +=  tmp # the starting data is already negative
+          elif varname[0:len(bktpfx)] == bktpfx: pass # do not process buckets
+          else: # normal variables
+            # compute mean via sum over all elements; normalize by number of time steps
+            slices[tax] = slice(wrfstartidx,wrfendidx) # relevant time interval
+            data[varname] += var.__getitem__(slices).sum(axis=tax)
+        # increment counters
+        ntime += wrfendidx - wrfstartidx
+        if lcomplete: 
+          if lxtime:
+            xtime += wrfout.variables[wrfxtime][wrfendidx] # get final time interval (in minutes)
+            xtime *=  60. # convert minutes to seconds   
+          else: 
+            dt1 = datetime.strptime(xtime, '%Y-%m-%d_%H:%M:%S')
+            dt2 = datetime.strptime(str().join(wrfout.variables[wrftimestamp][wrfendidx,:]), '%Y-%m-%d_%H:%M:%S')
+            xtime = (dt2-dt1).total_seconds() # the difference creates a timedelta object
+            # N.B.: the datetime module always includes leapdays; the code below is to remove leap days
+            #       in order to correctly handle model calendars that don't have leap days
+            yyyy, mm, dd = str().join(wrfout.variables[wrftimestamp][wrfendidx-1,0:10]).split('-')
+            # also a bit of sanity checking...
+            assert yyyy == '%04i'%currentyear and mm == '%02i'%currentmonth
+            if calendar.isleap(currentyear) and currentmonth==2:
+              if dd == '28':
+                xtime -= 86400. # subtract leap day for calendars without leap day
+                print('\n%s Correcting time interval for %s: current calendar does not have leap-days.'%(pidstr,currentdate))
+              else: assert dd == '29' # if there is a leap day
+            else: assert dd == '%02i'%days_per_month_365[currentmonth-1] # if there is no leap day
            
       # two ways to leave: month is done or reached end of file
       # if we reached the end of the file, open a new one and go again
-      if lincomplete:            
+      if not lcomplete:            
         wrfout.close() # close file...
         filecounter += 1 # move to next file            
         wrfout = nc.Dataset(infolder+filelist[filecounter], 'r', format='NETCDF4') # ... and open new one
@@ -351,25 +377,26 @@ def processFileList(pid, filelist, filetype, ndom):
         
     ## now the loop over files terminated and we need to normalize and save the results
     
-    # loop over variable names
-    for varname in varlist:
-      # decide how to normalize
-      if varname in acclist: data[varname] /= xtime 
-      else: data[varname] /= ntime
-      # save variable
-      var = mean.variables[varname] # this time the destination variable
-      if var.ndim > 1: var[meanidx,:] = data[varname] # here time is always the outermost index
-      else: var[meanidx] = data[varname]
-    # compute derived variables
-    for devar in derived_vars:
-      if not devar.linear: 
-        raise dv.DerivedVariableError, "%s Derived variable '%s' is not linear."%(pidstr,devar.name) 
-      # save variable
-      ncvar = mean.variables[devar.name] # this time the destination variable
-      if ncvar.ndim > 1: ncvar[meanidx,:] = devar.computeValues(data) # here time is always the outermost index
-      else: ncvar[meanidx] = devar.computeValues(data)            
-    # sync data
-    mean.sync()
+    if not lskip:
+      # loop over variable names
+      for varname in varlist:
+        # decide how to normalize
+        if varname in acclist: data[varname] /= xtime 
+        else: data[varname] /= ntime
+        # save variable
+        var = mean.variables[varname] # this time the destination variable
+        if var.ndim > 1: var[meanidx,:] = data[varname] # here time is always the outermost index
+        else: var[meanidx] = data[varname]
+      # compute derived variables
+      for devar in derived_vars:
+        if not devar.linear: 
+          raise dv.DerivedVariableError, "%s Derived variable '%s' is not linear."%(pidstr,devar.name) 
+        # save variable
+        ncvar = mean.variables[devar.name] # this time the destination variable
+        if ncvar.ndim > 1: ncvar[meanidx,:] = devar.computeValues(data) # here time is always the outermost index
+        else: ncvar[meanidx] = devar.computeValues(data)            
+      # sync data
+      mean.sync()
   
   ## here the loop over months finishes and we can close the output file 
   # print progress
