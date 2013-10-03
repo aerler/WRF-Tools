@@ -42,6 +42,8 @@ if hostname=='komputer':
   infolder = WRFroot + '/wrfout/'
   outfolder = WRFroot + '/wrfavg/'
 elif hostname[0:3] == 'gpc': # i.e. on scinet...
+  #if os.environ.has_key('PBS_O_WORKDIR'): 
+  #  exproot = os.environ['PBS_O_WORKDIR']
   exproot = os.getcwd()
   exp = exproot.split('/')[-1] # root folder name
   infolder = exproot + '/wrfout/' # input folder 
