@@ -89,7 +89,7 @@ elif len(sys.argv) == 2:
   prdarg = sys.argv[1]
   period = prdarg.split('-') # regular expression identifying 
 else: raise ArgumentError
-prdarg = '1980'; period = prdarg.split('-') # for tests
+# prdarg = '1980'; period = prdarg.split('-') # for tests
 # default time intervals
 yearstr = '\d\d\d\d'; monthstr = '\d\d'; daystr = '\d\d'  
 # figure out time interval
@@ -116,8 +116,8 @@ if len(period) >= 3:
 liniout = True # indicates that the initialization/restart timestep is written to wrfout;
 # this means that the last timestep of the previous file is the same as the first of the next 
 # input files and folders
-filetypes = ['hydro'] # for testing 
-# filetypes = ['srfc', 'plev3d', 'xtrm', 'hydro']
+# filetypes = ['hydro'] # for testing 
+filetypes = ['srfc', 'plev3d', 'xtrm', 'hydro']
 inputpattern = 'wrf%s_d%02i_%s-%s-%s_\d\d:\d\d:\d\d.nc' # expanded with %(type,domain,year,month) 
 outputpattern = 'wrf%s_d%02i_monthly.nc' # expanded with %(type,domain)
 # variable attributes
@@ -177,7 +177,7 @@ def processFileList(pid, filelist, filetype, ndom):
   # open/create monthly mean output file
   filename = outputpattern%(filetype,ndom)   
   meanfile = outfolder+filename
-  if loverwrite and not prdarg: os.remove(meanfile)
+  if loverwrite and not prdarg and os.path.exists(meanfile): os.remove(meanfile)
   if os.path.exists(meanfile):
     mean = nc.Dataset(meanfile, mode='a', format='NETCDF4') # open to append data (mode='a')
     # infer start index
