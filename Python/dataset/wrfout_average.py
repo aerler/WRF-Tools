@@ -117,7 +117,7 @@ if len(period) >= 3:
 liniout = True # indicates that the initialization/restart timestep is written to wrfout;
 # this means that the last timestep of the previous file is the same as the first of the next 
 # input files and folders
-# filetypes = ['hydro'] # for testing 
+#filetypes = ['hydro'] # for testing 
 filetypes = ['srfc', 'plev3d', 'xtrm', 'hydro']
 inputpattern = 'wrf%s_d%02i_%s-%s-%s_\d\d:\d\d:\d\d.nc' # expanded with %(type,domain,year,month) 
 outputpattern = 'wrf%s_d%02i_monthly.nc' # expanded with %(type,domain)
@@ -127,7 +127,7 @@ wrfxtime = 'XTIME' # time in minutes since WRF simulation start
 wrftimestamp = 'Times' # time-stamp variable in WRF
 time = 'time' # time dim in monthly mean files
 dimlist = ['x','y'] # dimensions we just copy
-dimmap = None #{time:wrftime, 'x':'west_east','y':'south_north'}
+dimmap = {time:wrftime} #{time:wrftime, 'x':'west_east','y':'south_north'}
 midmap = None #dict(zip(dimmap.values(),dimmap.keys())) # reverse dimmap
 # accumulated variables (only total accumulation since simulation start, not, e.g., daily accumulated)
 acclist = dict(RAINNC=100,RAINC=100,RAINSH=None,SNOWNC=None,GRAUPELNC=None,SFCEVP=None,POTEVP=None,ACSNOM=None) 

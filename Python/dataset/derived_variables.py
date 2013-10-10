@@ -93,7 +93,7 @@ class Rain(DerivedVariable):
     super(Rain,self).__init__(name='RAIN', # name of the variable
                               units='kg/m^2/s', # not accumulated anymore! 
                               prerequisites=['RAINNC', 'RAINC'], # it's the sum of these two 
-                              axes=('time','y','x'), # dimensions of NetCDF variable 
+                              axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype='float', atts=None, linear=True) # this computation is actually linear
 
   def computeValues(self, avgdata, const=None):
