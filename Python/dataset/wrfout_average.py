@@ -355,7 +355,7 @@ def processFileList(pid, filelist, filetype, ndom):
             if missing_value is not None:
               tmp = ma.masked_equal(tmp, missing_value, copy=False) # mask missing values
             data[varname] = data[varname] + tmp.sum(axis=tax) # add to sum
-	    # N.B.: in-place operations with non-masked array destroy the mask, hence need to use this
+            # N.B.: in-place operations with non-masked array destroy the mask, hence need to use this
         # increment counters
         ntime += wrfendidx - wrfstartidx
         if lcomplete: 
@@ -407,9 +407,9 @@ def processFileList(pid, filelist, filetype, ndom):
         else: data[varname] /= ntime
         # save variable
         var = mean.variables[varname] # this time the destination variable
-	if missing_value is not None: # make sure the missing value flag is preserved
-	  data[varname] = data[varname].filled(fill_value=missing_value)
-	  var.missing_value = missing_value # just to make sure
+        if missing_value is not None: # make sure the missing value flag is preserved
+          data[varname] = data[varname].filled(fill_value=missing_value)
+          var.missing_value = missing_value # just to make sure
         if var.ndim > 1: var[meanidx,:] = data[varname] # here time is always the outermost index
         else: var[meanidx] = data[varname]
       # compute derived variables
