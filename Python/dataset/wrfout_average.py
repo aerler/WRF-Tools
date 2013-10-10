@@ -239,6 +239,12 @@ def processFileList(pid, filelist, filetype, ndom):
     lxtime = False # interpret timestamp in Times using datetime module
   else: raise TypeError
       
+  # check is there is a missing_value flag
+  if 'P_LEV_MISSING' in wrfout.ncattrs():
+    missing_value = wrfout.P_LEV_MISSING # usually -999.
+    # N.B.: this is only used in plev3d files, where pressure levels intersect the ground
+  else: missing_value = None
+  
   # allocate fields
   data = dict() # temporary data arrays
   for var in varlist:        
@@ -246,6 +252,8 @@ def processFileList(pid, filelist, filetype, ndom):
     del tmpshape[wrfout.variables[var].dimensions.index(wrftime)] # allocated arrays have no time dimension
     assert len(tmpshape) ==  len(wrfout.variables[var].shape) -1
     data[var] = np.zeros(tmpshape) # allocate
+    if missing_value is not None:
+      data[var] += missing_value # initialize with missing value
 
       
   # prepare computation of monthly means  
@@ -308,13 +316,7 @@ def processFileList(pid, filelist, filetype, ndom):
         wrfendidx -= 1 # count backwards
       wrfendidx +=1 # reverse last step so that counter sits at fist step of next month 
       assert wrfendidx > wrfstartidx
-      
-      # check is there is a missing_value flag
-      if 'P_LEV_MISSING' in wrfout.ncattrs():
-        missing_value = wrfout.P_LEV_MISSING # usually -999.
-        # N.B.: this is only used in plev3d files, where pressure levels intersect the ground
-      else: missing_value = None
-      
+            
       if not lskip:
         # compute monthly averages
         for varname in varlist:
@@ -324,6 +326,8 @@ def processFileList(pid, filelist, filetype, ndom):
           slices = [slice(None)]*len(var.shape) 
           # decide how to average
           if varname in acclist: # accumulated variables
+            if missing_value is not None: 
+              raise NotImplementedError, "Can't handle accumulated variables with missing values yet."
             # compute mean as difference between end points; normalize by time difference
             if ntime == 0: # first time step of the month
               slices[tax] = wrfstartidx # relevant time interval
@@ -376,6 +380,8 @@ def processFileList(pid, filelist, filetype, ndom):
         wrfout.close() # close file...
         filecounter += 1 # move to next file            
         wrfout = nc.Dataset(infolder+filelist[filecounter], 'r', format='NETCDF4') # ... and open new one
+        if missing_value is not None:
+          assert missing_value == wrfout.P_LEV_MISSING
         # reset output record / time step counter
         if liniout: wrfstartidx = 1 # skip the initialization step (same as last step in previous file)
         else: wrfstartidx = 0
