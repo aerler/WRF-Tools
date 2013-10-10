@@ -127,8 +127,8 @@ wrfxtime = 'XTIME' # time in minutes since WRF simulation start
 wrftimestamp = 'Times' # time-stamp variable in WRF
 time = 'time' # time dim in monthly mean files
 dimlist = ['x','y'] # dimensions we just copy
-dimmap = {time:wrftime, 'x':'west_east','y':'south_north'}
-midmap = dict(zip(dimmap.values(),dimmap.keys())) # reverse dimmap
+dimmap = None #{time:wrftime, 'x':'west_east','y':'south_north'}
+midmap = None #dict(zip(dimmap.values(),dimmap.keys())) # reverse dimmap
 # accumulated variables (only total accumulation since simulation start, not, e.g., daily accumulated)
 acclist = dict(RAINNC=100,RAINC=100,RAINSH=None,SNOWNC=None,GRAUPELNC=None,SFCEVP=None,POTEVP=None,ACSNOM=None) 
 # N.B.: keys = variables and values = bucket sizes; value = None or 0 means no bucket  
@@ -200,7 +200,9 @@ def processFileList(pid, filelist, filetype, ndom):
     mean.createDimension(time, size=None) # make time dimension unlimited
     add_coord(mean, time, data=None, dtype='i4', atts=dict(units='month since '+begindate)) # unlimited time dimension
     # copy remaining dimensions to new datasets
-    dimlist = [midmap.get(dim,dim) for dim in wrfout.dimensions.keys() if dim != wrftime]
+    if midmap is not None:
+      dimlist = [midmap.get(dim,dim) for dim in wrfout.dimensions.keys() if dim != wrftime]
+    else: dimlist = [dim for dim in wrfout.dimensions.keys() if dim != wrftime]
     copy_dims(mean, wrfout, dimlist=dimlist, namemap=dimmap, copy_coords=False) # don't have coordinate variables
     # copy time-less variable to new datasets
     copy_vars(mean, wrfout, varlist=timeless, dimmap=dimmap, copy_data=True) # copy data
