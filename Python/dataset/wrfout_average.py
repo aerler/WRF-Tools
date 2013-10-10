@@ -11,6 +11,7 @@ exactly one output file.
 
 ## imports
 import numpy as np
+import numpy.ma as ma
 import os, re, sys
 import netCDF4 as nc
 from datetime import datetime
@@ -306,6 +307,12 @@ def processFileList(pid, filelist, filetype, ndom):
       wrfendidx +=1 # reverse last step so that counter sits at fist step of next month 
       assert wrfendidx > wrfstartidx
       
+      # check is there is a missing_value flag
+      if 'P_LEV_MISSING' in wrfout.ncattrs():
+        missing_value = wrfout.P_LEV_MISSING # usually -999.
+        # N.B.: this is only used in plev3d files, where pressure levels intersect the ground
+      else: missing_value = None
+      
       if not lskip:
         # compute monthly averages
         for varname in varlist:
@@ -335,7 +342,10 @@ def processFileList(pid, filelist, filetype, ndom):
           else: # normal variables
             # compute mean via sum over all elements; normalize by number of time steps
             slices[tax] = slice(wrfstartidx,wrfendidx) # relevant time interval
-            data[varname] += var.__getitem__(slices).sum(axis=tax)
+            tmp = var.__getitem__(slices) # get array
+            if missing_value is not None:
+              tmp = ma.masked_equal(tmp, missing_value, copy=False) # mask missing values
+            data[varname] += tmp.sum(axis=tax) # add to sum
         # increment counters
         ntime += wrfendidx - wrfstartidx
         if lcomplete: 
