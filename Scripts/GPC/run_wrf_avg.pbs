@@ -1,0 +1,33 @@
+#!/bin/bash
+#MOAB/Torque submission script for SciNet GPC
+
+## queue/PBS settings
+#PBS -l nodes=1:ppn=8
+#PBS -l walltime=03:00:00
+# merge standard error and output stream
+#PBS -j oe
+#PBS -o $PBS_JOBNAME.$PBS_JOBID.out
+# send email if abort (nbae)
+#PBS -M aerler@atmosp.physics.utoronto.ca
+#PBS -m ae
+# job name
+#PBS -N wrf_avg_test
+## submit to queue (NB: this has to be the last PBS line!)
+# batch (default), debug, largemem
+#PBS -q batch
+
+# load some modules
+module purge
+module load intel/13.1.1 gcc/4.7.2 python/2.7.3 hdf5/187-v18-serial-intel netcdf/4.1.3_hdf5_serial-intel
+module list
+
+# return to original working directory
+cd "$PBS_O_WORKDIR"
+
+# launch script
+#export PYAVG_THREADS=1
+if [[ -n "${PYAVG_DATE}" ]]; then
+	time -p python scripts/wrfout_average.py "${PYAVG_DATE}"
+else
+	time -p python scripts/wrfout_average.py
+fi

@@ -11,7 +11,7 @@ exactly one output file.
 
 ## imports
 import numpy as np
-import numpy.ma as ma
+#import numpy.ma as ma
 import os, re, sys
 import netCDF4 as nc
 from datetime import datetime
@@ -410,7 +410,7 @@ def processFileList(pid, filelist, filetype, ndom):
         # save variable
         var = mean.variables[varname] # this time the destination variable
         if missing_value is not None: # make sure the missing value flag is preserved
-          vardata = np.where(vardata == np.NaN, missing_value, vardata)
+          vardata = np.where(np.isnan(vardata), missing_value, vardata)
           #data[varname] = data[varname].filled(fill_value=missing_value)
           var.missing_value = missing_value # just to make sure
         if var.ndim > 1: var[meanidx,:] = vardata # here time is always the outermost index
