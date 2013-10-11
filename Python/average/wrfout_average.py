@@ -23,7 +23,7 @@ from geodata.nctools import add_coord, copy_dims, copy_ncatts, copy_vars
 # days per month without leap days (duplicate from datasets.common) 
 days_per_month_365 = np.array([31,28,31,30,31,30,31,31,30,31,30,31])
 # import module providing derived variable classes
-import derived_variables as dv
+import average.derived_variables as dv
 
 # date error class
 class DateError(Exception):
@@ -82,6 +82,10 @@ if os.environ.has_key('PYAVG_OVERWRITE'):
 else: loverwrite = False # i.e. append
 # N.B.: when loverwrite is True and and prdarg is empty, the entire file is replaced,
 #       otherwise only the selected months are recomputed 
+# file types to process 
+if os.environ.has_key('PYAVG_FILETYPES'): 
+  filetypes = os.environ['PYAVG_FILETYPES'].split(';') # semi-colon separated list
+else: filetypes = None # defaults are set below
 # figure out time period
 if len(sys.argv) == 1:
   prdarg = ''
@@ -118,7 +122,8 @@ liniout = True # indicates that the initialization/restart timestep is written t
 # this means that the last timestep of the previous file is the same as the first of the next 
 # input files and folders
 #filetypes = ['plev3d'] # for testing 
-filetypes = ['srfc', 'plev3d', 'xtrm', 'hydro']
+if filetypes is None: filetypes = ['srfc', 'plev3d', 'xtrm', 'hydro'] 
+# filetypes can also be set in an semi-colon-separated environment variable
 inputpattern = 'wrf%s_d%02i_%s-%s-%s_\d\d:\d\d:\d\d.nc' # expanded with %(type,domain,year,month) 
 outputpattern = 'wrf%s_d%02i_monthly.nc' # expanded with %(type,domain)
 # variable attributes
