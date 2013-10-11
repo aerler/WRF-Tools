@@ -56,5 +56,9 @@ export SUBMITWPS=${SUBMITWPS:-'ssh localhost "cd \"${INIDIR}\"; export NEXTSTEP=
 export SUBMITAR=${SUBMITAR:-'echo "cd \"${INIDIR}\"; TAGS=${ARTAG}; export MODE=BACKUP; export INTERVAL=${ARINTERVAL}; ./${ARSCRIPT}"'} # evaluated by launchPostP
 # N.B.: requires $ARTAG to be set in the launch script
 
+# averaging submission command (for last step in the interval)
+export SUBMITAVG=${SUBMITAVG:-'ssh localhost "cd \"${INIDIR}\"; ./${AVGSCRIPT} -v PERIOD=${AVGTAG}"'} # evaluated by launchPostP
+# N.B.: requires $AVGTAG to be set in the launch script
+
 # job submission command (for next step)
 export RESUBJOB=${RESUBJOB-'ssh localhost "cd \"${INIDIR}\"; export NEXTSTEP=${NEXTSTEP}; export NOWPS=${NOWPS}; ./${WRFSCRIPT}"'} # evaluated by resubJob

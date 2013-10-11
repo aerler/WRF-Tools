@@ -20,35 +20,35 @@ function RENAME () {
     ## queue dependent changes
     # WPS run-script
     if [[ "${FILE}" == *WPS* ]] && [[ "${WPSQ}" == "${Q}" ]]; then
-	if [[ "${WPSQ}" == "pbs" ]]; then
-	    sed -i "/#PBS -N/ s/#PBS -N\s.*$/#PBS -N ${NAME}_WPS/" "${FILE}" # name
-	    sed -i "/#PBS -l/ s/#PBS -l nodes=.*:\(.*\)$/#PBS -l nodes=1:\1/" "${FILE}" # nodes (WPS only runs on one node)
-	    sed -i "/#PBS -l/ s/#PBS -l walltime=.*$/#PBS -l walltime=${WPSWCT}/" "${FILE}" # wallclock time	    
-	else
+			if [[ "${WPSQ}" == "pbs" ]]; then
+		    sed -i "/#PBS -N/ s/#PBS -N\s.*$/#PBS -N ${NAME}_WPS/" "${FILE}" # name
+		    sed -i "/#PBS -l/ s/#PBS -l nodes=.*:\(.*\)$/#PBS -l nodes=1:\1/" "${FILE}" # nodes (WPS only runs on one node)
+		    sed -i "/#PBS -l/ s/#PBS -l walltime=.*$/#PBS -l walltime=${WPSWCT}/" "${FILE}" # wallclock time	    
+			else
 	    sed -i "/export JOBNAME/ s+export\sJOBNAME=.*$+export JOBNAME=${NAME}_WPS  # job name (dummy variable, since there is no queue)+" "${FILE}" # name
-	fi # $Q
+	  	fi # $Q
     fi # if WPS
     # WRF run-script
     if [[ "${FILE}" == *WRF* ]] && [[ "${WRFQ}" == "${Q}" ]]; then
-	if [[ "${WRFQ}" == "pbs" ]]; then
-	    sed -i "/#PBS -N/ s/#PBS -N\s.*$/#PBS -N ${NAME}_WRF/" "run_${CASETYPE}_WRF.${WRFQ}" # experiment name
-	    sed -i "/#PBS -W/ s/#PBS -W\s.*$/#PBS -W depend:afterok:${NAME}_WPS/" "${FILE}" # dependency on WPS
-	    sed -i "/#PBS -l/ s/#PBS -l nodes=.*:\(.*\)$/#PBS -l nodes=${WRFNODES}:\1/" "${FILE}" # number of nodes
-	    sed -i "/#PBS -l/ s/#PBS -l walltime=.*$/#PBS -l walltime=${WRFWCT}/" "${FILE}" # wallclock time
-	    sed -i "/qsub/ s/qsub ${WRFSCRIPT} -v NEXTSTEP=*\s-W*$/qsub ${WRFSCRIPT} -v NEXTSTEP=*\s-W\s${NAME}_WPS/" "${FILE}" # dependency
-	elif [[ "${WRFQ}" == "sge" ]]; then
-	    sed -i "/#$ -N/ s/#$ -N\s.*$/#$ -N ${NAME}_WRF/" "run_${CASETYPE}_WRF.${WRFQ}" # experiment name
-# 	    sed -i "/#PBS -W/ s/#PBS -W\s.*$/#PBS -W depend:afterok:${NAME}_WPS/" "${FILE}" # dependency on WPS
-	    sed -i "/#$ -pe/ s/#$ -pe .*$/#$ -pe mpich $((WRFNODES*16))/" "${FILE}" # number of MPI tasks
-	    sed -i "/#$ -l/ s/#$ -l h_rt=.*$/#$ -l h_rt=${WRFWCT}/" "${FILE}" # wallclock time
-	elif [[ "${WRFQ}" == "ll" ]]; then
-	    sed -i "/#\s*@\s*job_name/ s/#\s*@\s*job_name\s*=.*$/# @ job_name = ${NAME}_WRF/" "${FILE}" # experiment name
-	    sed -i "/#\s*@\s*node/ s/#\s*@\s*node\s*=.*$/# @ node = ${WRFNODES}/" "${FILE}" # number of nodes
-	    sed -i "/#\s*@\s*wall_clock_limit/ s/#\s*@\s*wall_clock_limit\s*=.*$/# @ wall_clock_limit = ${WRFWCT}/" "${FILE}" # wallclock time
-	else
-	    sed -i "/export JOBNAME/ s+export\sJOBNAME=.*$+export JOBNAME=${NAME}_WRF # job name (dummy variable, since there is no queue)+" "${FILE}" # name
-	    sed -i "/export TASKS/ s+export\sTASKS=.*$+export TASKS=${WRFNODES} # number of MPI tasks+" "${FILE}" # number of tasks (instead of nodes...)
-	fi # $Q
+			if [[ "${WRFQ}" == "pbs" ]]; then
+		    sed -i "/#PBS -N/ s/#PBS -N\s.*$/#PBS -N ${NAME}_WRF/" "run_${CASETYPE}_WRF.${WRFQ}" # experiment name
+		    sed -i "/#PBS -W/ s/#PBS -W\s.*$/#PBS -W depend:afterok:${NAME}_WPS/" "${FILE}" # dependency on WPS
+		    sed -i "/#PBS -l/ s/#PBS -l nodes=.*:\(.*\)$/#PBS -l nodes=${WRFNODES}:\1/" "${FILE}" # number of nodes
+		    sed -i "/#PBS -l/ s/#PBS -l walltime=.*$/#PBS -l walltime=${WRFWCT}/" "${FILE}" # wallclock time
+		    sed -i "/qsub/ s/qsub ${WRFSCRIPT} -v NEXTSTEP=*\s-W*$/qsub ${WRFSCRIPT} -v NEXTSTEP=*\s-W\s${NAME}_WPS/" "${FILE}" # dependency
+			elif [[ "${WRFQ}" == "sge" ]]; then
+		    sed -i "/#$ -N/ s/#$ -N\s.*$/#$ -N ${NAME}_WRF/" "run_${CASETYPE}_WRF.${WRFQ}" # experiment name
+     	  #sed -i "/#PBS -W/ s/#PBS -W\s.*$/#PBS -W depend:afterok:${NAME}_WPS/" "${FILE}" # dependency on WPS
+		    sed -i "/#$ -pe/ s/#$ -pe .*$/#$ -pe mpich $((WRFNODES*16))/" "${FILE}" # number of MPI tasks
+		    sed -i "/#$ -l/ s/#$ -l h_rt=.*$/#$ -l h_rt=${WRFWCT}/" "${FILE}" # wallclock time
+			elif [[ "${WRFQ}" == "ll" ]]; then
+		    sed -i "/#\s*@\s*job_name/ s/#\s*@\s*job_name\s*=.*$/# @ job_name = ${NAME}_WRF/" "${FILE}" # experiment name
+		    sed -i "/#\s*@\s*node/ s/#\s*@\s*node\s*=.*$/# @ node = ${WRFNODES}/" "${FILE}" # number of nodes
+		    sed -i "/#\s*@\s*wall_clock_limit/ s/#\s*@\s*wall_clock_limit\s*=.*$/# @ wall_clock_limit = ${WRFWCT}/" "${FILE}" # wallclock time
+			else
+		    sed -i "/export JOBNAME/ s+export\sJOBNAME=.*$+export JOBNAME=${NAME}_WRF # job name (dummy variable, since there is no queue)+" "${FILE}" # name
+		    sed -i "/export TASKS/ s+export\sTASKS=.*$+export TASKS=${WRFNODES} # number of MPI tasks+" "${FILE}" # number of tasks (instead of nodes...)
+			fi # $Q
     fi # if WRF
     ## queue independent changes
     # WRF script
@@ -71,6 +71,10 @@ function RENAME () {
     sed -i "/ARSCRIPT/ s/ARSCRIPT=.*$/ARSCRIPT=\'${ARSCRIPT}\' # archive script to be executed in specified intervals/" "${FILE}"
     # archive interval
     sed -i "/ARINTERVAL/ s/ARINTERVAL=.*$/ARINTERVAL=\'${ARINTERVAL}\' # interval in which the archive script is to be executed/" "${FILE}"
+    # averaging script
+    sed -i "/AVGSCRIPT/ s/AVGSCRIPT=.*$/AVGSCRIPT=\'${AVGSCRIPT}\' # averaging script to be executed in specified intervals/" "${FILE}"
+    # averaging interval
+    sed -i "/AVGINTERVAL/ s/AVGINTERVAL=.*$/AVGINTERVAL=\'${AVGINTERVAL}\' # interval in which the averaging script is to be executed/" "${FILE}"
     # type of initial and boundary focing  data (mainly for WPS)
     sed -i "/DATATYPE/ s/DATATYPE=.*$/DATATYPE=\'${DATATYPE}\' # type of initial and boundary focing  data /" "${FILE}"
     # whether or not to restart job after a numerical instability (used by crashHandler.sh)
@@ -94,10 +98,12 @@ DATATYPE='CESM' # boundary forcing type
 ## run configuration
 WRFROOT="${HOME}/WRFV3.4/"
 WRFTOOLS="${MODEL_ROOT}/WRF Tools/"
-# I/O and archiving
+# I/O, archiving, and averaging 
 IO='fineIO' # this is used for namelist construction and archiving
 ARSCRIPT='DEFAULT' # this is a dummy name...
 ARINTERVAL='YEARLY' # default: archive after every job
+AVGSCRIPT='DEFAULT' # this is a dummy name...
+AVGINTERVAL='YEARLY' # default: average after every job
 ## WPS
 WPSSYS='' # WPS - define in xconfig.sh
 # other WPS configuration files
@@ -123,10 +129,6 @@ if [[ -z "${CASETYPE}" ]]; then
   if [[ -n "${CYCLING}" ]]; then CASETYPE='cycling';
   else CASETYPE='test'; fi
 fi
-
-# default archive script name (no $ARSCRIPT means no archiving)
-if [[ "${ARSCRIPT}" == 'DEFAULT' ]] && [[ -n "${IO}" ]]
-    then ARSCRIPT="ar_wrfout_${IO}.pbs"; fi
 
 # boundary data definition for WPS
 if [[ "${DATATYPE}" == 'CESM' ]]; then
@@ -199,6 +201,13 @@ elif [[ "${WPSSYS}" == "i7" ]]; then
     REALEXE=${REALEXE:-"${WRFSRC}/i7-MPI/${WRFBLD}/O3xSSE42NC4/real.exe"}
     UNGRIBEXE=${UNGRIBEXE:-"${WPSSRC}/i7-MPI/${WPSBLD}/O3xSSE42/ungrib.exe"}
 fi
+
+# default archive script name (no $ARSCRIPT means no archiving)
+if [[ "${ARSCRIPT}" == 'DEFAULT' ]] && [[ -n "${IO}" ]]
+    then ARSCRIPT="ar_wrfout_${IO}.pbs"; fi
+# default averaging script name (no $AVGSCRIPT means no averaging)
+if [[ "${AVGSCRIPT}" == 'DEFAULT' ]]
+    then AVGSCRIPT="run_wrf_avg.${WPSQ}"; fi
 
 # default WRF and geogrid executables
 if [[ "${WRFSYS}" == "GPC" ]]; then
@@ -421,16 +430,16 @@ ln -sf "${WRFEXE}"
 cd "${RUNDIR}"
 
 
-## setup archiving
+## setup archiving and averaging
 # prepare archive script
 if [[ -n "${ARSCRIPT}" ]]; then
     # copy script and change job name
     cp -f "${WRFTOOLS}/Scripts/HPSS/${ARSCRIPT}" .
-	sed -i "/#PBS -N/ s/#PBS -N\s.*$/#PBS -N ${NAME}_ar/" "${ARSCRIPT}"
+    sed -i "/#PBS -N/ s/#PBS -N\s.*$/#PBS -N ${NAME}_ar/" "${ARSCRIPT}"
     echo "Setting up archiving: ${ARSCRIPT}"
     # set archiving interval
     if [[ -n "${ARINTERVAL}" ]]; then
-	sed -i "/INTERVAL/ s/^\s*INTERVAL=.*$/INTERVAL=\'${ARINTERVAL}\' # interval in which the archive script is to be executed/" "${ARSCRIPT}"
+      sed -i "/INTERVAL/ s/^\s*INTERVAL=.*$/INTERVAL=\'${ARINTERVAL}\' # interval in which the archive script is to be executed/" "${ARSCRIPT}"
     fi
     # set dataset variable for number of domains
     ARDOM=''; for I in $( seq 1 ${MAXDOM} ); do ARDOM="${ARDOM}${I}"; done
@@ -438,9 +447,17 @@ if [[ -n "${ARSCRIPT}" ]]; then
     # update folder names
     RENAME "${ARSCRIPT}"
 fi # $ARSCRIPT
+# prepare averaging script
+if [[ -n "${AVGSCRIPT}" ]]; then
+    # copy script and change job name
+    cp -f "${WRFTOOLS}/Python/average/wrfout_average.py" "./scripts/"
+    cp -f "${WRFTOOLS}/Scripts/${WPSSYS}/${AVGSCRIPT}" .
+    sed -i "/#PBS -N/ s/#PBS -N\s.*$/#PBS -N ${NAME}_avg/" "${AVGSCRIPT}"
+    echo "Setting up averaging: ${AVGSCRIPT}"
+    # update folder names
+    RENAME "${AVGSCRIPT}"
+fi # $AVGSCRIPT
 
-## link averaging script
-ln -sf "${WRFTOOLS}/Python/dataset/avgWRF.py"
 
 ## copy data tables for selected physics options
 # radiation scheme

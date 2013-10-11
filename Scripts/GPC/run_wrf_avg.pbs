@@ -17,17 +17,36 @@
 #PBS -q batch
 
 # load some modules
+echo
+hostname
+uname
+echo
+date
+echo
 module purge
 module load intel/13.1.1 gcc/4.7.2 python/2.7.3 hdf5/187-v18-serial-intel netcdf/4.1.3_hdf5_serial-intel
 module list
+echo
+
+# general settings
+INIDIR="${PBS_O_WORKDIR}"
+SCRIPTDIR="${INIDIR}/scripts/" # default location of averaging script
+AVGSCRIPT="run_wrf_avg.pbs" # name of this script...
+PYAVG='wrfout_average.py' # name of Python averaging script
 
 # return to original working directory
-cd "$PBS_O_WORKDIR"
+cd "${INIDIR}"
+
+# influential enviromentvariables for averaging script
+# export PYAVG_THREADS=1
+# export PYAVG_OVERWRITE=OVERWRITE
+# export PYAVG_FILETYPES='srfc;xtrm;plev3d;hydro'
 
 # launch script
-#export PYAVG_THREADS=1
-if [[ -n "${PYAVG_DATE}" ]]; then
-	time -p python scripts/wrfout_average.py "${PYAVG_DATE}"
+echo
+if [[ -n "${PERIOD}" ]]; then
+	time -p python "${SCRIPTDIR}/${PYAVG}" "${PERIOD}"
 else
-	time -p python scripts/wrfout_average.py
+	time -p python "${SCRIPTDIR}/${PYAVG}"
 fi
+echo

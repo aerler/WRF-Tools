@@ -73,5 +73,9 @@ export WAITFORWPS=${WAITFORWPS:-'WAIT'} # stay on compute node until WPS for nex
 export SUBMITAR=${SUBMITAR:-'ssh gpc-f104n084 "cd \"${INIDIR}\"; qsub ./${ARSCRIPT} -v TAGS=${ARTAG},MODE=BACKUP,INTERVAL=${ARINTERVAL}"'} # evaluated by launchPostP
 # N.B.: requires $ARTAG to be set in the launch script
 
+# averaging submission command (for last step in the interval)
+export SUBMITAVG=${SUBMITAVG:-'ssh gpc-f104n084 "cd \"${INIDIR}\"; qsub ./${AVGSCRIPT} -v PERIOD=${AVGTAG}"'} # evaluated by launchPostP
+# N.B.: requires $AVGTAG to be set in the launch script
+
 # job submission command (for next step)
 export RESUBJOB=${RESUBJOB-'ssh p7n01 "cd \"${INIDIR}\"; export NEXTSTEP=${NEXTSTEP}; export NOWPS=${NOWPS}; llsubmit ./${WRFSCRIPT}"'} # evaluated by resubJob
