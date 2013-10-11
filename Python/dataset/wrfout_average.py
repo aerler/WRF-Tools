@@ -6,7 +6,7 @@ process the smaller diagnostic files.
 The script can run in parallel mode, with each process averaging one filetype and domain, producing 
 exactly one output file.  
 
-@author: Andre R. Erler
+@author: Andre R. Erler, GPL v3
 '''
 
 ## imports
@@ -255,8 +255,8 @@ def processFileList(pid, filelist, filetype, ndom):
     del tmpshape[wrfout.variables[var].dimensions.index(wrftime)] # allocated arrays have no time dimension
     assert len(tmpshape) ==  len(wrfout.variables[var].shape) -1
     data[var] = np.zeros(tmpshape) # allocate
-    if missing_value is not None:
-      data[var] += missing_value # initialize with missing value
+    #if missing_value is not None:
+    #  data[var] += missing_value # initialize with missing value
 
       
   # prepare computation of monthly means  
@@ -353,7 +353,8 @@ def processFileList(pid, filelist, filetype, ndom):
             slices[tax] = slice(wrfstartidx,wrfendidx) # relevant time interval
             tmp = var.__getitem__(slices) # get array
             if missing_value is not None:
-              tmp = ma.masked_equal(tmp, missing_value, copy=False) # mask missing values
+              tmp = np.where(tmp == missing_value, np.NaN, tmp) # set missing values to NaN
+              #tmp = ma.masked_equal(tmp, missing_value, copy=False) # mask missing values
             data[varname] = data[varname] + tmp.sum(axis=tax) # add to sum
             # N.B.: in-place operations with non-masked array destroy the mask, hence need to use this
         # increment counters
@@ -402,16 +403,18 @@ def processFileList(pid, filelist, filetype, ndom):
     if not lskip:
       # loop over variable names
       for varname in varlist:
+        vardata = data[varname]
         # decide how to normalize
-        if varname in acclist: data[varname] /= xtime 
-        else: data[varname] /= ntime
+        if varname in acclist: vardata /= xtime 
+        else: vardata /= ntime
         # save variable
         var = mean.variables[varname] # this time the destination variable
         if missing_value is not None: # make sure the missing value flag is preserved
-          data[varname] = data[varname].filled(fill_value=missing_value)
+          vardata = np.where(vardata == np.NaN, missing_value, vardata)
+          #data[varname] = data[varname].filled(fill_value=missing_value)
           var.missing_value = missing_value # just to make sure
-        if var.ndim > 1: var[meanidx,:] = data[varname] # here time is always the outermost index
-        else: var[meanidx] = data[varname]
+        if var.ndim > 1: var[meanidx,:] = vardata # here time is always the outermost index
+        else: var[meanidx] = vardata
       # compute derived variables
       for devar in derived_vars:
         if not devar.linear: 
