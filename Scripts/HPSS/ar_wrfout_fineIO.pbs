@@ -334,15 +334,22 @@ function PROCESSDATASET () {
     then DATESTR="${DATE}${TAGGLOB}"
     else DATESTR="${DATE}"  # used in output data file names
   fi # GLOB
-  unset DIAGS MISC_D1 DYN_D1 MISC_D2 DYN_D2 MISC_D3 DYN_D3 STATIC LOGS
+  unset FINAL DIAGS MISC_D1 DYN_D1 MISC_D2 DYN_D2 MISC_D3 DYN_D3 STATIC LOGS
   # special case, if TAG/DATE is FINAL
-  if [[ "${DATE}" == 'FINAL_ALL' ]] &&  [[ "${GLOB}" == 'GLOB' ]]; then # all domains, all time steps
+  if [[ "${DATE}" == 'FINAL_ALL' ]] &&  [[ "${MODE}" == 'BACKUP' ]]; then # all domains, all time steps
     local FINAL="static.tgz wrfconst_d??.nc wrfrst_d??_* *_pyWPS.tgz *_real.tgz *_wrf.tgz *_logs.tgz" # put configuration files, all logs, and restart files into one archive
-  elif [[ "${DATE}" == 'FINAL' ]] &&  [[ "${GLOB}" == 'GLOB' ]]; then # all domains, only last time step
+  # N.B.: due to the use of hard-coded regular expressions, this really only works for backup of existing data
+  elif [[ "${DATE}" == 'FINAL' ]] &&  [[ "${MODE}" == 'BACKUP' ]]; then # all domains, only last time step
     local FINAL="static.tgz *_pyWPS.tgz *_real.tgz *_wrf.tgz *_logs.tgz" # put configuration files, all logs, and restart files into one archive
     for D in $( echo "${DOMAINS}" | fold --width=1 ); do
       LSTRST=$( ls wrfrst_d0${D}_* | tail -n 1 ) # last restart for every domain
       FINAL="${FINAL} wrfconst_d0${D}.nc ${LSTRST}"
+    done # $DOMAINS
+  elif [[ "${DATASET}" == 'FINAL' ]] &&  [[ "${MODE}" == 'RETRIEVE' ]]; then # all domains, only specified date; only for retrieval
+    local FINAL="static.tgz ${DATESTR}_pyWPS.tgz ${DATESTR}_real.tgz ${DATESTR}_wrf.tgz" # configuration files and restart files in one archive
+    # N.B.: Logs can not be retrieved with this method, because they do not follow the ${DATESTR}_logs.tgz format (use DATASET=LOGS instead).
+    for D in $( echo "${DOMAINS}" | fold --width=1 ); do
+      FINAL="${FINAL} wrfconst_d0${D}.nc wrfrst_d0${D}_${DATESTR} wrfconst_d0${D}"
     done # $DOMAINS
   else
     # logs and static data
@@ -380,7 +387,7 @@ function PROCESSDATASET () {
       local MISC_D4="wrfhydro_d04_${DATESTR}_00:00:00.nc"
     fi # HYDRO
     # return error if dataset not found
-    if [[ -z "${DIAGS}" ]] && [[ -z "${MISC_D1}" ]] && [[ -z "${MISC_D2}" ]] && [[ -z "${MISC_D3}" ]] && [[ -z "${MISC_D4}" ]] && [[ -z "${DYN_D1}" ]] && [[ -z "${DYN_D2}" ]] && [[ -z "${DYN_D3}" ]] && [[ -z "${DYN_D4}" ]]; then
+    if [[ -z "${FINAL}" ]] && [[ -z "${DIAGS}" ]] && [[ -z "${MISC_D1}" ]] && [[ -z "${MISC_D2}" ]] && [[ -z "${MISC_D3}" ]] && [[ -z "${MISC_D4}" ]] && [[ -z "${DYN_D1}" ]] && [[ -z "${DYN_D2}" ]] && [[ -z "${DYN_D3}" ]] && [[ -z "${DYN_D4}" ]]; then
       echo
       if [[ "${DATASET}" == 'DYN3D' ]] && [[ "${DATASET}" == 'MISC3D' ]] && [[ "${DATASET}" == 'FULL' ]] && [[ "${DATASET}" == 'LOGS' ]] && [[ "${DATASET}" == 'DIAGS' ]] && [[ "${DATASET}" == 'HYDRO' ]]
 	then # known dataset but other problem
