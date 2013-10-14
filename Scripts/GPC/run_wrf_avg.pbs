@@ -45,8 +45,8 @@ cd "${INIDIR}"
 # launch script
 echo
 if [[ -n "${PERIOD}" ]]; then
-	time -p python "${SCRIPTDIR}/${PYAVG}" "${PERIOD}"
+    time -p python "${SCRIPTDIR}/${PYAVG}" "${PERIOD}"
 else
-	time -p python "${SCRIPTDIR}/${PYAVG}"
+    time -p python "${SCRIPTDIR}/${PYAVG}"
 fi
 echo

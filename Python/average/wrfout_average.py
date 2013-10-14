@@ -299,9 +299,10 @@ def processFileList(pid, filelist, filetype, ndom):
       if pid < 0: print('%s,'%currentdate), # serial mode
       else: progressstr += '%s, '%currentdate # bundle output in parallel mode
     #print '%s-01_00:00:00'%(currentdate,),str().join(wrfout.variables[wrftimestamp][wrfstartidx,:])
-    if '%s-01_00:00:00'%(currentdate,) != str().join(wrfout.variables[wrftimestamp][wrfstartidx,:]):
-      raise DateError, ("%s Did not find first day of month to compute monthly average."%(pidstr,) +
-                        "file: %s date: %s-01_00:00:00"%(filename,currentdate))
+    if '%s-01_00:00:00'%(currentdate,) == str().join(wrfout.variables[wrftimestamp][wrfstartidx,:]): pass # proper start of the month
+    elif '%s-01_06:00:00'%(currentdate,) == str().join(wrfout.variables[wrftimestamp][wrfstartidx,:]): pass # for some reanalysis...
+    else: raise DateError, ("%s Did not find first day of month to compute monthly average."%(pidstr,) +
+                            "file: %s date: %s-01_00:00:00"%(filename,currentdate))
     
     # prepare summation of output time steps
     lcomplete = False # 

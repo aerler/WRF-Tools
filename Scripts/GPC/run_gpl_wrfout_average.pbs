@@ -1,0 +1,95 @@
+#/bin/bash
+
+## queue/PBS settings
+#PBS -l nodes=1:ppn=8
+# batch queue: nodes=1:m32g:ppn=8
+# largemem queue: nodes=1:m128g:ppn=16
+#PBS -l walltime=48:00:00
+# merge standard error and output stream
+#PBS -j oe
+#PBS -o $PBS_JOBNAME.$PBS_JOBID.out
+# send email if abort (nbae)
+#PBS -M aerler@atmosp.physics.utoronto.ca
+#PBS -m ae
+# job name
+#PBS -N gpl_wrfavg_all
+## submit to queue (NB: this has to be the last PBS line!)
+# batch (default), debug, largemem
+#PBS -q batch
+
+# load modules (we need to load the netcdf module in order to use it in Python)
+echo
+module purge
+module load intel/13.1.1 gcc/4.7.2 python/2.7.3 hdf5/187-v18-serial-intel netcdf/4.1.3_hdf5_serial-intel gnu-parallel/20121022
+module list
+echo
+
+# default settings
+JOBNAME=${PBS_JOBNAME:-'test'}
+WORKDIR=${PBS_O_WORKDIR:-"${PWD}"}
+DR='/reserved1/p/peltier/aerler/Downscaling'
+DS='/scratch/p/peltier/aerler/Downscaling'
+PYAVG='wrfout_average.py' # averaging script
+# environment variables for the averaging script
+export PYAVG_THREADS=1 # serial execution
+export PYAVG_OVERWRITE=OVERWRITE # recompute
+export PYAVG_FILETYPES='plev3d'
+
+# user settings
+#PERIOD='1979-1981' # extension to command and output files
+#DATASRC=${DATASRC:-"$DR/max-*/ $DR/new-*/"}
+DATASRC=${DATASRC:-"$DR/*-*/ $DS/*-*/"}
+
+# more settings
+CMDFILE="cmdfile.${JOBNAME}"
+if [[ -n "${PERIOD}" ]]
+  then 
+    AVGEXT="_${PERIOD}"
+    FIRST="wrfout/wrfrst_d01_${PERIOD%%-*}-02-01_00:00:00" # use first restart file as indicator
+    LAST="wrfout/wrfrst_d01_${PERIOD##*-}-12-01_00:00:00" # use last restart file as indicator
+  else 
+    AVGEXT=""
+    FIRST=""
+    LAST=""
+fi # if $PERIOD
+
+# root directory
+cd "${WORKDIR}"
+
+# generate command file
+rm -f "${CMDFILE}"
+echo
+echo 'Generating command file; working folders:'
+for D in ${DATASRC}
+  do
+    # check if files are available (otherwise skip!)
+    if [[ -z "$PERIOD"  ]] || [[ -e "${D}/${FIRST}" && -e "${D}/${LAST}" ]]
+      then
+        echo "$D"
+        # make sure folder is set up
+        mkdir -p "${D}/wrfavg"
+        cp -P "${PYAVG}" "${D}"
+        # write command file entry
+        echo "cd ${D}; python ${PYAVG} ${PERIOD} > ${PYAVG}${AVGEXT}.log; echo \"$D:\"; ls wrfavg; echo" >> "${CMDFILE}"
+    fi # file check
+done
+echo
+
+# execute commands
+parallel -j 8 < "${CMDFILE}"
+ERR=$? # capture exit code
+
+# clean up
+echo
+if [[ 0 == ${ERR} ]]
+  then
+    echo '   ***   All Jobs Completed Successfully!!!   ***   '
+    rm "${CMDFILE}"
+  else
+    echo "  >>>   ERRORS DETECTED - EXIT CODE ${ERR}   <<<   " 
+    echo "inspect command file ${PBS_O_WORKDIR}/cmdfile.tmp"
+fi # if $ERR
+echo
+
+# exit with gnuparallel exit code
+exit ${ERR}
