@@ -450,7 +450,7 @@ fi # $ARSCRIPT
 # prepare averaging script
 if [[ -n "${AVGSCRIPT}" ]]; then
     # copy script and change job name
-    cp -f "${WRFTOOLS}/Python/average/wrfout_average.py" "./scripts/"
+    ln -s "${WRFTOOLS}/Python/average/wrfout_average.py" "./scripts/"
     cp -f "${WRFTOOLS}/Scripts/${WPSSYS}/${AVGSCRIPT}" .
     sed -i "/#PBS -N/ s/#PBS -N\s.*$/#PBS -N ${NAME}_avg/" "${AVGSCRIPT}"
     echo "Setting up averaging: ${AVGSCRIPT}"
