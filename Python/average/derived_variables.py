@@ -101,4 +101,21 @@ class Rain(DerivedVariable):
     super(Rain,self).computeValues(avgdata, const=None) # perform some type checks    
     data = avgdata['RAINNC'] + avgdata['RAINC'] # compute
     return data
+
     
+class NetPrecip(DerivedVariable):
+  ''' DerivedVariable child implementing computation of net precipitation for WRF output. '''
+  
+  def __init__(self):
+    ''' Initialize with fixed values; constructor takes no arguments. '''
+    super(Rain,self).__init__(name='NetPrecip', # name of the variable
+                              units='kg/m^2/s', # not accumulated anymore! 
+                              prerequisites=['RAIN', 'SFCEVP'], # it's the sum of these two 
+                              axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
+                              dtype='float', atts=None, linear=True) # this computation is actually linear
+
+  def computeValues(self, avgdata, const=None):
+    ''' Compute total precipitation as the sum of convective  and non-convective precipitation. '''
+    super(Rain,self).computeValues(avgdata, const=None) # perform some type checks    
+    data = avgdata['RAIN'] - avgdata['SFCEVP'] # compute
+    return data
