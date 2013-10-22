@@ -238,7 +238,7 @@ def processFileList(pid, filelist, filetype, ndom):
     raise DateError, "End date is before begin date!"
   times = np.arange(t0,t0+(endyear-beginyear)*12+endmonth-beginmonth+1)
   # update current end date
-  mean.end_date = enddate
+  mean.end_date = enddate # the date-time-stamp of the last included output file
   # handling of time intervals for accumulated variables
   if wrfxtime in wrfout.variables: 
     lxtime = True # simply compute differences from XTIME (assuming minutes)
