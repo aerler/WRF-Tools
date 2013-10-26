@@ -21,7 +21,6 @@ PYDATA="${WORKDIR}/data/" # data folder used by Python script
 PYLOG="pyWPS" # log folder for Python script (use relative path for tar)
 PYTGZ="${RUNNAME}_${PYLOG}.tgz" # archive for log folder
 METDATA=${METDATA:-''}
-METDATA=${METDATA:-'/pub/home_local/wrf/Runs/Columbia/tmp/'} # final destination for metgrid data
 # N.B.: to output metgrid data set "ldisk = True" in meta/namelist.py
 # real.exe
 RUNREAL=${RUNREAL:-1} # whether to run real.exe
