@@ -141,8 +141,14 @@ bktpfx = 'I_' # prefix for bucket variables; these are processed together with t
 
 # derived variables
 derived_variables = {filetype:[] for filetype in filetypes} # derived variable lists by file type
-derived_variables['hydro'] = [dv.Rain()]
-derived_variables['srfc'] = [dv.Rain()]
+derived_variables['hydro'] = [dv.Rain(), dv.NetPrecip(), dv.LiquidPrecip(), dv.SolidPrecip(), dv.NetWaterFlux]
+derived_variables['srfc'] = [dv.Rain(), dv.LiquidPrecip(), dv.SolidPrecip()]
+# N.B.: it is important that the derived variables are listed in order of dependency! 
+# set of pre-requisites
+prereq_vars = {key:set() for key in derived_variables.keys()} # pre-requisite variable set by file type
+for key in prereq_vars.keys():
+  for devar in derived_variables[key]:
+    for dep in devar.prerequisites: prereq_vars[key].add(dep)    
 
 ## main work function
 # N.B.: the loop iterations should be entirely independent, so that they can be run in parallel
@@ -152,7 +158,9 @@ def processFileList(pid, filelist, filetype, ndom):
   ## setup files and folders
   
   # derived variable list
-  derived_vars = derived_variables[filetype]
+  derived_vars = {devar.name:devar for devar in derived_variables[filetype]}
+  pqset = prereq_vars[filetype] # set of pre-requisites for derived variables
+  laccpq = any([accvar in pqset for accvar in acclist]) # if accumulated variables are among the prerequisites
   
   # load first file to copy some meta data
   wrfout = nc.Dataset(infolder+filelist[0], 'r', format='NETCDF4')
@@ -173,7 +181,7 @@ def processFileList(pid, filelist, filetype, ndom):
   assert 1 <= endday <= 31 # this is kinda trivial...  
   varstr = ''; devarstr = '' # make variable list, also for derived variables
   for var in varlist: varstr += '%s, '%var
-  for devar in derived_vars: devarstr += '%s, '%devar.name
+  for devar in derived_vars.values(): devarstr += '%s, '%devar.name
       
   # print meta info (print everything in one chunk, so output from different processes does not get mangled)
   titlestr = '\n\n%s    ***   Processing wrf%s files for domain %2i.   ***'%(pidstr,filetype,ndom)
@@ -198,7 +206,7 @@ def processFileList(pid, filelist, filetype, ndom):
     else: assert t0 <= len(mean.dimensions[time]) + 1 # get time index where we start; in month beginning 1979  
     #if not loverwrite: raise DateError, "%s Begindate %s comes before enddate %s in file %s"%(pidstr,begindate,enddate,filename)
     # check derived variables
-    for var in derived_vars:
+    for var in derived_vars.values():
       if var.name not in mean.variables: 
         raise dv.DerivedVariableError, "%s Derived variable '%s' not found in file '%s'"%(pidstr,var.name,filename)
       var.checkPrerequisites(mean)
@@ -215,12 +223,16 @@ def processFileList(pid, filelist, filetype, ndom):
     # copy time-less variable to new datasets
     copy_vars(mean, wrfout, varlist=timeless, dimmap=dimmap, copy_data=True) # copy data
     # create time-dependent variable in new datasets
-    copy_vars(mean, wrfout, varlist=varlist, dimmap=dimmap, copy_data=False) # do nto copy data - need to average
+    copy_vars(mean, wrfout, varlist=varlist, dimmap=dimmap, copy_data=False) # do not copy data - need to average
+    # change units of accumulated variables (per second)
+    for varname in acclist:
+      meanvar = mean.variables[varname]
+      meanvar.units = meanvar.units + '/s' # units per second!
     # also create variable for time-stamps in new datasets
     if wrftimestamp in wrfout.variables:
       copy_vars(mean, wrfout, varlist=[wrftimestamp], dimmap=dimmap, copy_data=False) # do nto copy data - need to average
     # create derived variables
-    for var in derived_vars: 
+    for var in derived_vars.values(): 
       var.checkPrerequisites(mean)
       var.createVariable(mean)            
     # copy global attributes
@@ -247,7 +259,7 @@ def processFileList(pid, filelist, filetype, ndom):
     lxtime = False # interpret timestamp in Times using datetime module
   else: raise TypeError
       
-  # check is there is a missing_value flag
+  # check if there is a missing_value flag
   if 'P_LEV_MISSING' in wrfout.ncattrs():
     missing_value = wrfout.P_LEV_MISSING # usually -999.
     # N.B.: this is only used in plev3d files, where pressure levels intersect the ground
@@ -262,7 +274,17 @@ def processFileList(pid, filelist, filetype, ndom):
     data[var] = np.zeros(tmpshape) # allocate
     #if missing_value is not None:
     #  data[var] += missing_value # initialize with missing value
-
+  # allocate derived data arrays (for non-linear variables)   
+  pqdata = {pqvar:None for pqvar in pqset} # temporary data array holding instantaneous values to compute derived variables
+  # N.B.: since data is only referenced from existing arrays, allocation is not necessary
+  dedata = dict() # non-linear derived variables
+  # N.B.: linear derived variables are computed directly from the monthly averages 
+  for dename,devar in derived_vars:
+    if not devar.linear:
+      tmpshape = [len(wrfout.dimensions[ax]) for ax in derived_vars[pqvar].axes if ax != time] # infer shape
+      assert len(tmpshape) ==  len(derived_vars[pqvar].axes) -1 # no time dimension
+      dedata[pqvar] = np.zeros(tmpshape) # allocate     
+  
       
   # prepare computation of monthly means  
   filecounter = 0 # number of wrfout file currently processed 
@@ -306,7 +328,7 @@ def processFileList(pid, filelist, filetype, ndom):
     
     # prepare summation of output time steps
     lcomplete = False # 
-    ntime = 0 # accumulated output time steps
+    ntime = 0 # accumulated output time steps     
     # time when accumulation starts (in minutes)        
     # N.B.: the first value is saved as negative, so that adding the last value yields a positive interval
     if lxtime: xtime = -1 * wrfout.variables[wrfxtime][wrfstartidx] # seconds
@@ -318,16 +340,17 @@ def processFileList(pid, filelist, filetype, ndom):
     ## loop over files and average
     while not lcomplete:
       
-      # determine valid time index range
+      # determine valid time index range by checking dates from the end counting backwards
       wrfendidx = len(wrfout.dimensions[wrftime])-1
       while currentdate < str().join(wrfout.variables[wrftimestamp][wrfendidx,0:7]):
         if not lcomplete: lcomplete = True # break loop over file if next month is in this file        
         wrfendidx -= 1 # count backwards
-      wrfendidx +=1 # reverse last step so that counter sits at fist step of next month 
+      wrfendidx += 1 # reverse last step so that counter sits at fist step of next month 
+      # N.B.: if this is not the last file, there was no iteration wrfendidx is the length of the the file
       assert wrfendidx > wrfstartidx
             
       if not lskip:
-        # compute monthly averages
+        ## compute monthly averages
         for varname in varlist:
           #print(varname+', '),
           var = wrfout.variables[varname]
@@ -353,16 +376,53 @@ def processFileList(pid, filelist, filetype, ndom):
                 bkt = wrfout.variables[bktpfx+varname]
                 tmp += bkt.__getitem__(slices) * acclist[varname]   
               data[varname] +=  tmp # the starting data is already negative
+            # if variable is a prerequisit to others, compute instantaneous values
+            if varname in pqset:
+              # compute mean via sum over all elements; normalize by number of time steps
+              slices[tax] = slice(wrfstartidx,wrfendidx) # relevant time interval
+              intmp = var.__getitem__(slices)
+              outtmp = np.zeros_like(intmp)
+              diff = np.diff(intmp, n=1, axis=tax)
+              if tax == 0:
+                # compute centered differences, except at the edges, where forward/backward difference are used
+                outtmp[0:-1,:] += diff; outtmp[1:,:] += diff; outtmp[1:-1,:] /= 2
+              else: raise NotImplementedError  
+              pqdata[varname] = outtmp
           elif varname[0:len(bktpfx)] == bktpfx: pass # do not process buckets
           else: # normal variables
             # compute mean via sum over all elements; normalize by number of time steps
             slices[tax] = slice(wrfstartidx,wrfendidx) # relevant time interval
             tmp = var.__getitem__(slices) # get array
             if missing_value is not None:
+              # N.B.: missing value handling is really only necessary when missing values time-dependent
               tmp = np.where(tmp == missing_value, np.NaN, tmp) # set missing values to NaN
               #tmp = ma.masked_equal(tmp, missing_value, copy=False) # mask missing values
             data[varname] = data[varname] + tmp.sum(axis=tax) # add to sum
             # N.B.: in-place operations with non-masked array destroy the mask, hence need to use this
+            # keep data in memory if used in computation of derived variables
+            if varname in pqset: pqdata[varname] = tmp
+        ## compute derived variables
+        # But first, normalize accumulated pqdata
+        if laccpq:
+          if lxtime:
+            delta = wrfout.variables[wrfxtime][wrfendidx] - wrfout.variables[wrfxtime][wrfstartidx]
+            delta *=  60. # convert minutes to seconds   
+          else: 
+            dt1 = datetime.strptime(str().join(wrfout.variables[wrftimestamp][wrfstartidx,:]), '%Y-%m-%d_%H:%M:%S')
+            dt2 = datetime.strptime(str().join(wrfout.variables[wrftimestamp][wrfendidx,:]), '%Y-%m-%d_%H:%M:%S')
+            delta = (dt2-dt1).total_seconds() # the difference creates a timedelta object
+          delta /=  (wrfendidx - wrfstartidx - 1)
+          # loop over time-step data
+          for pqname,pqvar in pqdata.items():
+            if pqname in acclist: pqvar /= delta # normalize
+        # loop over derived variables
+        for dename,devar in derived_vars.items():
+          if not devar.linear: # only non-linear ones here, linear one at the end
+            tmp = devar.computeValues(pqdata) 
+            dedata[dename] += tmp.sum(axis=tax)
+            if dename in pqset: pqdata[dename] = tmp
+            # N.B.: missing values should be handled implicitly, following missing values in pre-requisites            
+          
         # increment counters
         ntime += wrfendidx - wrfstartidx
         if lcomplete: 
@@ -385,7 +445,7 @@ def processFileList(pid, filelist, filetype, ndom):
               else: assert dd == '29' # if there is a leap day
             else: assert dd == '%02i'%days_per_month_365[currentmonth-1] # if there is no leap day
            
-      # two ways to leave: month is done or reached end of file
+      # two possible ends: month is done or reached end of file
       # if we reached the end of the file, open a new one and go again
       if not lcomplete:            
         wrfout.close() # close file...
@@ -414,21 +474,27 @@ def processFileList(pid, filelist, filetype, ndom):
         if varname in acclist: vardata /= xtime 
         else: vardata /= ntime
         # save variable
-        var = mean.variables[varname] # this time the destination variable
+        ncvar = mean.variables[varname] # this time the destination variable
         if missing_value is not None: # make sure the missing value flag is preserved
           vardata = np.where(np.isnan(vardata), missing_value, vardata)
-          #data[varname] = data[varname].filled(fill_value=missing_value)
-          var.missing_value = missing_value # just to make sure
-        if var.ndim > 1: var[meanidx,:] = vardata # here time is always the outermost index
-        else: var[meanidx] = vardata
+          ncvar.missing_value = missing_value # just to make sure
+        if ncvar.ndim > 1: ncvar[meanidx,:] = vardata # here time is always the outermost index
+        else: ncvar[meanidx] = vardata
       # compute derived variables
-      for devar in derived_vars:
-        if not devar.linear: 
-          raise dv.DerivedVariableError, "%s Derived variable '%s' is not linear."%(pidstr,devar.name) 
+      for devar in derived_vars.values():
+        if devar.linear:           
+          vardata = devar.computeValues(data) # compute derived variable now from averages
+        else:
+          vardata = dedata[varname] / ntime # no accumulated variables here!
         # save variable
         ncvar = mean.variables[devar.name] # this time the destination variable
-        if ncvar.ndim > 1: ncvar[meanidx,:] = devar.computeValues(data) # here time is always the outermost index
-        else: ncvar[meanidx] = devar.computeValues(data)            
+        if missing_value is not None: # make sure the missing value flag is preserved
+          vardata = np.where(np.isnan(vardata), missing_value, vardata)
+          ncvar.missing_value = missing_value # just to make sure
+        if ncvar.ndim > 1: ncvar[meanidx,:] = vardata # here time is always the outermost index
+        else: ncvar[meanidx] = vardata
+          
+        #raise dv.DerivedVariableError, "%s Derived variable '%s' is not linear."%(pidstr,devar.name) 
       # sync data
       mean.sync()
   

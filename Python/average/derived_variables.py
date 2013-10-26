@@ -94,21 +94,59 @@ class Rain(DerivedVariable):
                               units='kg/m^2/s', # not accumulated anymore! 
                               prerequisites=['RAINNC', 'RAINC'], # it's the sum of these two 
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
-                              dtype='float', atts=None, linear=True) # this computation is actually linear
+                              dtype='float', atts=None, linear=False) 
+    # N.B.: this computation is actually linear, but some non-linear computations depend on it
 
-  def computeValues(self, avgdata, const=None):
+  def computeValues(self, wrfdata, const=None):
     ''' Compute total precipitation as the sum of convective  and non-convective precipitation. '''
-    super(Rain,self).computeValues(avgdata, const=None) # perform some type checks    
-    data = avgdata['RAINNC'] + avgdata['RAINC'] # compute
-    return data
+    super(Rain,self).computeValues(wrfdata, const=None) # perform some type checks    
+    outdata = wrfdata['RAINNC'] + wrfdata['RAINC'] # compute
+    return outdata
 
     
-class NetPrecip(DerivedVariable):
-  ''' DerivedVariable child implementing computation of net precipitation for WRF output. '''
+class LiquidPrecip(DerivedVariable):
+  ''' DerivedVariable child implementing computation of liquid precipitation for WRF output. '''
   
   def __init__(self):
     ''' Initialize with fixed values; constructor takes no arguments. '''
-    super(Rain,self).__init__(name='NetPrecip', # name of the variable
+    super(LiquidPrecip,self).__init__(name='LiquidPrecip', # name of the variable
+                              units='kg/m^2/s', # not accumulated anymore! 
+                              prerequisites=['RAIN', 'SR'], # it's the sum of these two 
+                              axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
+                              dtype='float', atts=None, linear=False) # this computation is actually linear
+
+  def computeValues(self, wrfdata, ntime, const=None):
+    ''' Compute total precipitation as the sum of convective  and non-convective precipitation. '''
+    super(LiquidPrecip,self).computeValues(wrfdata, const=None) # perform some type checks    
+    outdata = wrfdata['RAIN'] * ( 1 - wrfdata['SR'] ) # compute
+    return outdata
+
+
+class SolidPrecip(DerivedVariable):
+  ''' DerivedVariable child implementing computation of solid precipitation for WRF output. '''
+  
+  def __init__(self):
+    ''' Initialize with fixed values; constructor takes no arguments. '''
+    super(SolidPrecip,self).__init__(name='SolidPrecip', # name of the variable
+                              units='kg/m^2/s', # not accumulated anymore! 
+                              prerequisites=['RAIN', 'SR'], # it's the sum of these two 
+                              axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
+                              dtype='float', atts=None, linear=False) # this computation is actually linear
+
+  def computeValues(self, wrfdata, ntime, const=None):
+    ''' Compute total precipitation as the sum of convective  and non-convective precipitation. '''
+    super(SolidPrecip,self).computeValues(wrfdata, const=None) # perform some type checks    
+    outdata = wrfdata['RAIN'] * wrfdata['SR'] # compute
+    return outdata
+
+
+class NetPrecip_Hydro(DerivedVariable):
+  ''' DerivedVariable child implementing computation of net precipitation for WRF output.
+      This version can be computed in hydro files, and is more accurate. '''
+  
+  def __init__(self):
+    ''' Initialize with fixed values; constructor takes no arguments. '''
+    super(NetPrecip_Hydro,self).__init__(name='NetPrecip', # name of the variable
                               units='kg/m^2/s', # not accumulated anymore! 
                               prerequisites=['RAIN', 'SFCEVP'], # it's the sum of these two 
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
@@ -116,6 +154,42 @@ class NetPrecip(DerivedVariable):
 
   def computeValues(self, avgdata, const=None):
     ''' Compute total precipitation as the sum of convective  and non-convective precipitation. '''
-    super(Rain,self).computeValues(avgdata, const=None) # perform some type checks    
-    data = avgdata['RAIN'] - avgdata['SFCEVP'] # compute
-    return data
+    super(NetPrecip_Hydro,self).computeValues(avgdata, const=None) # perform some type checks    
+    outdata = avgdata['RAIN'] - avgdata['SFCEVP'] # compute
+    return outdata
+
+class NetPrecip_Srfc(DerivedVariable):
+  ''' DerivedVariable child implementing computation of net precipitation for WRF output. 
+      This version can be computed in srfc files, but is less accurate. '''  
+  
+  def __init__(self):
+    ''' Initialize with fixed values; constructor takes no arguments. '''
+    super(NetPrecip_Srfc,self).__init__(name='NetPrecip', # name of the variable
+                              units='kg/m^2/s', # not accumulated anymore! 
+                              prerequisites=['RAIN', 'QFX'], # it's the sum of these two 
+                              axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
+                              dtype='float', atts=None, linear=True) # this computation is actually linear
+
+  def computeValues(self, avgdata, const=None):
+    ''' Compute total precipitation as the sum of convective  and non-convective precipitation. '''
+    super(NetPrecip_Srfc,self).computeValues(avgdata, const=None) # perform some type checks    
+    outdata = avgdata['RAIN'] - avgdata['QFX'] # compute
+    return outdata
+
+
+class NetWaterFlux(DerivedVariable):
+  ''' DerivedVariable child implementing computation of net water flux at the surface for WRF output. '''
+  
+  def __init__(self):
+    ''' Initialize with fixed values; constructor takes no arguments. '''
+    super(NetWaterFlux,self).__init__(name='NetWaterFlux', # name of the variable
+                              units='kg/m^2/s', # not accumulated anymore! 
+                              prerequisites=['LiquidPrecip', 'SFCEVP', 'ACSNOM'], # it's the sum of these two 
+                              axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
+                              dtype='float', atts=None, linear=True) # this computation is actually linear
+
+  def computeValues(self, avgdata, const=None):
+    ''' Compute total precipitation as the sum of convective  and non-convective precipitation. '''
+    super(NetWaterFlux,self).computeValues(avgdata, const=None) # perform some type checks    
+    outdata = avgdata['LiquidPrecip'] - avgdata['SFCEVP']  + avgdata['ACSNOM'] # compute
+    return outdata
