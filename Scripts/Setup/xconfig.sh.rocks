@@ -14,14 +14,14 @@ ARINTERVAL='' # default is monthly (after every run), but yearly is preferable
 
 ## namelist definition section
 # list of namelist groups and used snippets
-MAXDOM=4 # number of domains in WRF and WPS
-DOM='columbia1-1km'
+MAXDOM=3 # number of domains in WRF and WPS
+DOM='columbia-brian'
 # WRF
 TIME_CONTROL="cycling,fineIO" # default I/O: only output stream #0
 DIAGS='hitop' # needs output stream #23
 PHYSICS='clim-hires' # this namelist has to be compatible with the WRF build used!
 NOAH_MP='barlage'
-DOMAINS="cfsr-1km,${DOM}-grid"
+DOMAINS="cfsr-castle,${DOM}-grid"
 # DOMAINS_MOD=' time_step = 300,: dx = 120000,: dy = 120000,'
 FDDA='spectral'
 DYNAMICS='default'

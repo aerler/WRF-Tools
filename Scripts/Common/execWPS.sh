@@ -20,7 +20,7 @@ DATATYPE=${DATATYPE:-'CESM'} # data source also see $PYWPS_DATA_SOURCE
 PYDATA="${WORKDIR}/data/" # data folder used by Python script
 PYLOG="pyWPS" # log folder for Python script (use relative path for tar)
 PYTGZ="${RUNNAME}_${PYLOG}.tgz" # archive for log folder
-METDATA=${METDATA:-''} # final destination for metgrid data
+METDATA=${METDATA:-''}
 # N.B.: to output metgrid data set "ldisk = True" in meta/namelist.py
 # real.exe
 RUNREAL=${RUNREAL:-1} # whether to run real.exe

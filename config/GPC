@@ -16,5 +16,4 @@ NC_INC = -I$(SCINET_NETCDF_INC)
 # the rest is required for linking to the parallel NetCDF library used in WPS.
 NC_LIB = -L$(SCINET_NETCDF_LIB) -lnetcdff -lnetcdf \
 #         -L$(SCINET_HDF5_LIB) -L$(SCINET_SZIP_LIB) -L$(SCINET_ZLIB_LIB) -L$(SCINET_MPI_LIB) \
-#         -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lm -lz -lsz -lgpfs -lmpi
-# all this is only necessary for the parallel version
+#         -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lm -lz -lsz -lgpfs -lmpi  all this is only necessary for the parallel version

@@ -1,0 +1,15 @@
+&geogrid
+ geog_data_res = 'usgs_lakes+10m','usgs_lakes+5m','usgs_lakes+30s','usgs_lakes+30s',
+ dx = 25000,
+ dy = 25000,
+ map_proj =  'lambert',
+ ref_lat   = 50,
+ ref_lon   = -130,
+ truelat1  = 50,
+ truelat2  = 50,
+ stand_lon = -78,
+ geog_data_path = '/pub/home_local/wrf/geog/',
+ opt_geogrid_tbl_path = 'meta/',
+ ref_x = 62.5,
+ ref_y = 62.5,
+/
