@@ -11,6 +11,7 @@ exactly one output file.
 
 ## imports
 import numpy as np
+from collections import OrderedDict
 #import numpy.ma as ma
 import os, re, sys
 import netCDF4 as nc
@@ -38,11 +39,12 @@ class ArgumentError(Exception):
 from socket import gethostname
 hostname = gethostname()
 if hostname=='komputer':
-  #WRFroot = '/home/DATA/DATA/WRF/test/'
-  WRFroot = '/home/me/Models/test/'
-  exp = 'test'
-  infolder = WRFroot + '/wrfout/'
-  outfolder = WRFroot + '/wrfavg/'
+#   WRFroot = '/home/me/Models/test/'
+#   WRFroot = '/data/WRF/wrfout/'
+  WRFroot = '/media/tmp/'
+  exp = 'max-ctrl'
+  infolder = WRFroot + exp + '/' # + '/wrfout/'
+  outfolder = infolder # + '/wrfavg/'
 elif hostname[0:3] == 'gpc': # i.e. on scinet...
   #if os.environ.has_key('PBS_O_WORKDIR'): 
   #  exproot = os.environ['PBS_O_WORKDIR']
@@ -51,9 +53,13 @@ elif hostname[0:3] == 'gpc': # i.e. on scinet...
   infolder = exproot + '/wrfout/' # input folder 
   outfolder = exproot + '/wrfavg/' # output folder
 else:
-  infolder = os.getcwd() # just operate in the current directory
-  outfolder = infolder
-  exp = '' # need to define experiment name...
+  exproot = os.getcwd()
+  exp = exproot.split('/')[-1] # root folder name
+  infolder = exproot + '/wrfout/' # input folder 
+  outfolder = exproot + '/wrfavg/' # output folder
+#   infolder = os.getcwd() # just operate in the current directory
+#   outfolder = infolder
+#   exp = '' # need to define experiment name...
   
 def getDateRegX(period):
   ''' function to define averaging period based on argument '''
@@ -66,7 +72,11 @@ def getDateRegX(period):
   elif period == '2045-2047': prdrgx = '204[5-7]' # 3 year future period
   elif period == '2045-2049': prdrgx = '204[5-9]' # 5 year future period
   elif period == '2045-2054': prdrgx = '20(4[5-9]|5[0-4])' # 10 year future period
-  elif period == '2045-2059': prdrgx = '20(4[5-9]|5[0-9])' # 15 year future period 
+  elif period == '2045-2059': prdrgx = '20(4[5-9]|5[0-9])' # 15 year future period
+  elif period == '2085-2087': prdrgx = '208[5-7]' # 3 year future period
+  elif period == '2085-2089': prdrgx = '208[5-9]' # 5 year future period
+  elif period == '2085-2094': prdrgx = '20(8[5-9]|9[0-4])' # 10 year future period
+  elif period == '2085-2099': prdrgx = '20(8[5-9]|9[0-9])' # 15 year future period  
   elif period == '2090-2094': prdrgx = '209[0-4]' # 5 year future period
   else: prdrgx = None
   return prdrgx 
@@ -76,16 +86,19 @@ def getDateRegX(period):
 if os.environ.has_key('PYAVG_THREADS'): 
   NP = int(os.environ['PYAVG_THREADS'])
 else: NP = None
+# NP = 1
 # only compute whole years 
 if os.environ.has_key('PYAVG_OVERWRITE'): 
   loverwrite =  os.environ['PYAVG_OVERWRITE'] == 'OVERWRITE' 
 else: loverwrite = False # i.e. append
+# loverwrite = True
 # N.B.: when loverwrite is True and and prdarg is empty, the entire file is replaced,
 #       otherwise only the selected months are recomputed 
 # file types to process 
 if os.environ.has_key('PYAVG_FILETYPES'): 
   filetypes = os.environ['PYAVG_FILETYPES'].split(';') # semi-colon separated list
 else: filetypes = None # defaults are set below
+# filetypes = ['hydro']
 # figure out time period
 if len(sys.argv) == 1:
   prdarg = ''
@@ -94,6 +107,7 @@ elif len(sys.argv) == 2:
   prdarg = sys.argv[1]
   period = prdarg.split('-') # regular expression identifying 
 else: raise ArgumentError
+# period = ['1979']
 # prdarg = '1980'; period = prdarg.split('-') # for tests
 # default time intervals
 yearstr = '\d\d\d\d'; monthstr = '\d\d'; daystr = '\d\d'  
@@ -141,14 +155,13 @@ bktpfx = 'I_' # prefix for bucket variables; these are processed together with t
 
 # derived variables
 derived_variables = {filetype:[] for filetype in filetypes} # derived variable lists by file type
-derived_variables['hydro'] = [dv.Rain(), dv.NetPrecip_Hydro(), dv.LiquidPrecip(), dv.SolidPrecip(), dv.NetWaterFlux]
-derived_variables['srfc'] = [dv.Rain(), dv.LiquidPrecip_Srfc(), dv.SolidPrecip()]
+derived_variables['hydro'] = [dv.Rain(), dv.LiquidPrecip(), dv.SolidPrecip(), dv.NetPrecip_Hydro(), dv.NetWaterFlux()]
+derived_variables['srfc'] = [dv.Rain(), dv.LiquidPrecip(), dv.SolidPrecip(), dv.NetPrecip_Srfc()]
 # N.B.: it is important that the derived variables are listed in order of dependency! 
 # set of pre-requisites
 prereq_vars = {key:set() for key in derived_variables.keys()} # pre-requisite variable set by file type
 for key in prereq_vars.keys():
-  for devar in derived_variables[key]:
-    for dep in devar.prerequisites: prereq_vars[key].add(dep)    
+  prereq_vars[key].update(*[devar.prerequisites for devar in derived_variables[key] if not devar.linear])    
 
 ## main work function
 # N.B.: the loop iterations should be entirely independent, so that they can be run in parallel
@@ -158,7 +171,11 @@ def processFileList(pid, filelist, filetype, ndom):
   ## setup files and folders
   
   # derived variable list
-  derived_vars = {devar.name:devar for devar in derived_variables[filetype]}
+  derived_vars = OrderedDict() # it is important that the derived variables are computed in order:
+  # the reason is that derived variables can depend on other derived variables, and the order in 
+  # which they are listed, takes this into account
+  for devar in derived_variables[filetype]:
+    derived_vars[devar.name] = devar 
   pqset = prereq_vars[filetype] # set of pre-requisites for derived variables
   laccpq = any([accvar in pqset for accvar in acclist]) # if accumulated variables are among the prerequisites
   
@@ -226,8 +243,9 @@ def processFileList(pid, filelist, filetype, ndom):
     copy_vars(mean, wrfout, varlist=varlist, dimmap=dimmap, copy_data=False) # do not copy data - need to average
     # change units of accumulated variables (per second)
     for varname in acclist:
-      meanvar = mean.variables[varname]
-      meanvar.units = meanvar.units + '/s' # units per second!
+      if varname in mean.variables:
+        meanvar = mean.variables[varname]
+        meanvar.units = meanvar.units + '/s' # units per second!
     # also create variable for time-stamps in new datasets
     if wrftimestamp in wrfout.variables:
       copy_vars(mean, wrfout, varlist=[wrftimestamp], dimmap=dimmap, copy_data=False) # do nto copy data - need to average
@@ -279,11 +297,11 @@ def processFileList(pid, filelist, filetype, ndom):
   # N.B.: since data is only referenced from existing arrays, allocation is not necessary
   dedata = dict() # non-linear derived variables
   # N.B.: linear derived variables are computed directly from the monthly averages 
-  for dename,devar in derived_vars:
+  for dename,devar in derived_vars.items():
     if not devar.linear:
-      tmpshape = [len(wrfout.dimensions[ax]) for ax in derived_vars[pqvar].axes if ax != time] # infer shape
-      assert len(tmpshape) ==  len(derived_vars[pqvar].axes) -1 # no time dimension
-      dedata[pqvar] = np.zeros(tmpshape) # allocate     
+      tmpshape = [len(wrfout.dimensions[ax]) for ax in devar.axes if ax != time] # infer shape
+      assert len(tmpshape) ==  len(devar.axes) -1 # no time dimension
+      dedata[dename] = np.zeros(tmpshape) # allocate     
   
       
   # prepare computation of monthly means  
@@ -418,6 +436,7 @@ def processFileList(pid, filelist, filetype, ndom):
         # loop over derived variables
         for dename,devar in derived_vars.items():
           if not devar.linear: # only non-linear ones here, linear one at the end
+            #print ; print dename, pqdata.keys()
             tmp = devar.computeValues(pqdata) 
             dedata[dename] += tmp.sum(axis=tax)
             if dename in pqset: pqdata[dename] = tmp
@@ -481,13 +500,14 @@ def processFileList(pid, filelist, filetype, ndom):
         if ncvar.ndim > 1: ncvar[meanidx,:] = vardata # here time is always the outermost index
         else: ncvar[meanidx] = vardata
       # compute derived variables
-      for devar in derived_vars.values():
+      for dename,devar in derived_vars.items():
         if devar.linear:           
           vardata = devar.computeValues(data) # compute derived variable now from averages
         else:
-          vardata = dedata[varname] / ntime # no accumulated variables here!
+          vardata = dedata[dename] / ntime # no accumulated variables here!
+        data[dename] = vardata # add to data array, so that it can be used to compute linear variables
         # save variable
-        ncvar = mean.variables[devar.name] # this time the destination variable
+        ncvar = mean.variables[dename] # this time the destination variable
         if missing_value is not None: # make sure the missing value flag is preserved
           vardata = np.where(np.isnan(vardata), missing_value, vardata)
           ncvar.missing_value = missing_value # just to make sure

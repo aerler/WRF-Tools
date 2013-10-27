@@ -53,17 +53,14 @@ class DerivedVariable(object):
     if not (const is None or isinstance(const, nc.Dataset)): raise TypeError
     check = True # any mismatch will set this to False
     # check all prerequisites
-    if self.linear:
-      for var in self.prerequisites:
-        if var in target.variables:
-          # check if prerequisite variable has compatible dimensions (including broadcasting) 
-          check = all([ax in self.axes for ax in target.variables[var].dimensions])
-        elif const is not None and var in const.variables:
-          check = all([ax in self.axes for ax in const.variables[var].dimensions])         
-        else: 
-          check = False # prerequisite variable not found
-    else: 
-      raise NotImplementedError, 'Currently only linear variables are supported (i.e. computation from averages)'
+    for var in self.prerequisites:
+      if var in target.variables:
+        # check if prerequisite variable has compatible dimensions (including broadcasting) 
+        check = all([ax in self.axes for ax in target.variables[var].dimensions])
+      elif const is not None and var in const.variables:
+        check = all([ax in self.axes for ax in const.variables[var].dimensions])         
+      else: 
+        check = False # prerequisite variable not found
     self.checked = check 
     return check
   
@@ -115,7 +112,7 @@ class LiquidPrecip(DerivedVariable):
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype='float', atts=None, linear=False) # this computation is actually linear
 
-  def computeValues(self, wrfdata, ntime, const=None):
+  def computeValues(self, wrfdata, const=None):
     ''' Compute total precipitation as the sum of convective  and non-convective precipitation. '''
     super(LiquidPrecip,self).computeValues(wrfdata, const=None) # perform some type checks    
     outdata = wrfdata['RAIN'] * ( 1 - wrfdata['SR'] ) # compute
@@ -133,7 +130,7 @@ class SolidPrecip(DerivedVariable):
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype='float', atts=None, linear=False) # this computation is actually linear
 
-  def computeValues(self, wrfdata, ntime, const=None):
+  def computeValues(self, wrfdata, const=None):
     ''' Compute total precipitation as the sum of convective  and non-convective precipitation. '''
     super(SolidPrecip,self).computeValues(wrfdata, const=None) # perform some type checks    
     outdata = wrfdata['RAIN'] * wrfdata['SR'] # compute
