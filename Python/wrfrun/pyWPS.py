@@ -652,24 +652,26 @@ if __name__ == '__main__':
     listoffilelists = divideList(os.listdir(DataDir), NP)
     # divide file processing among processes
     procs = []; queues = []
-    for pid in xrange(NP):
+    for n in xrange(NP):
+      pid = n + 1 # start from 1, not 0!
       q = multiprocessing.Queue()
       queues.append(q)
-      p = multiprocessing.Process(name=pname%pid, target=processFiles, args=(listoffilelists[pid], DataDir, q))
+      p = multiprocessing.Process(name=pname%pid, target=processFiles, args=(listoffilelists[n], DataDir, q))
       procs.append(p)
       p.start() 
     # terminate sub-processes and collect results    
     dates = [] # new date list with valid dates only
-    for pid in xrange(NP):
-      dates += queues[pid].get()
-      procs[pid].join()
+    for n in xrange(NP):
+      dates += queues[n].get()
+      procs[n].join()
     
     # divide up dates and process time-steps
     listofdates = divideList(dates, NP)
     # create processes
     procs = []
-    for pid in xrange(NP):
-      p = multiprocessing.Process(name=pname%pid, target=processTimesteps, args=(pid, listofdates[pid]))
+    for n in xrange(NP):
+      pid = n + 1 # start from 1, not 0!
+      p = multiprocessing.Process(name=pname%pid, target=processTimesteps, args=(pid, listofdates[n]))
       procs.append(p)
       p.start()     
     # terminate sub-processes

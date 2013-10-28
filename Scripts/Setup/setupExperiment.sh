@@ -370,12 +370,12 @@ cd "${RUNDIR}/scripts/"
 ln -sf "${WRFTOOLS}/Scripts/Common/execWPS.sh"
 ln -sf "${WRFTOOLS}/Scripts/${WPSSYS}/setup_${WPSSYS}.sh" 'setup_WPS.sh' # renaming
 if [[ "${WPSSYS}" == "GPC" ]] || [[ "${WPSSYS}" == "i7" ]]; then # link to
-    ln -sf "${WRFTOOLS}/Python/selectWPSqueue.py"; fi # if shell
+    ln -sf "${WRFTOOLS}/Python/wrfrun/selectWPSqueue.py"; fi # if shell
 cd "${RUNDIR}"
 # WPS/real executables (go into folder 'bin')
 mkdir -p "${RUNDIR}/bin/"
 cd "${RUNDIR}/bin/"
-ln -sf "${WRFTOOLS}/Python/pyWPS.py"
+ln -sf "${WRFTOOLS}/Python/wrfrun/pyWPS.py"
 ln -sf "${GEOEXE}"
 ln -sf "${METEXE}"
 ln -sf "${REALEXE}"
@@ -420,7 +420,7 @@ if [[ -n "${CYCLING}" ]]; then
     ln -sf "${WRFTOOLS}/Scripts/Common/launchPostP.sh"
     ln -sf "${WRFTOOLS}/Scripts/Common/resubJob.sh"
     ln -sf "${WRFTOOLS}/Scripts/Common/crashHandler.sh"
-    ln -sf "${WRFTOOLS}/Python/cycling.py"
+    ln -sf "${WRFTOOLS}/Python/wrfrun/cycling.py"
 fi # if cycling
 cd "${RUNDIR}"
 # WRF executable (go into folder 'bin')

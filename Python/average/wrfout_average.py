@@ -165,7 +165,7 @@ for key in prereq_vars.keys():
 
 ## main work function
 # N.B.: the loop iterations should be entirely independent, so that they can be run in parallel
-def processFileList(pid, filelist, filetype, ndom):
+def processFileList(lparallel, filelist, filetype, ndom):
   ''' This function is doing the main work, and is supposed to be run in a multiprocessing environment. '''  
   
   ## setup files and folders
@@ -189,7 +189,13 @@ def processFileList(pid, filelist, filetype, ndom):
              and np.issubdtype(var.dtype, np.number) and not varname[0:len(bktpfx)] == bktpfx]
   
   # announcement
-  pidstr = '' if pid < 0 else  '[proc%02i]'%pid # pid for parallel mode output
+  #pidstr = '' if pid < 0 else  '[proc%02i]'%pid # pid for parallel mode output
+  if lparallel:
+    #pid = multiprocessing.current_process().pid # some random number...
+    pid = int(multiprocessing.current_process().name.split('-')[-1]) # start at 1
+    pidstr = '[proc%02i]'%pid # pid for parallel mode output  
+  else:
+    pidstr = '' # don't print process ID, sicne there is only one
   begindate = datergx.search(filelist[0]).group()
   beginyear, beginmonth, beginday = [int(tmp) for tmp in begindate.split('-')]
   assert beginday == 1, 'always have to begin on the first of a month'
@@ -309,8 +315,8 @@ def processFileList(pid, filelist, filetype, ndom):
   wrfstartidx = 0 # output record / time step in current file
   i0 = t0-1 # index position we write to: i = i0 + n (zero-based, of course)
   ## start loop over month
-  if pid < 0: print('\n Processed dates:'),
-  else: progressstr = '' # a string printing the processed dates
+  if lparallel: progressstr = '' # a string printing the processed dates
+  else: print('\n Processed dates:'),
   
   # loop over month and progressively step through input files
   for n,t in enumerate(times):
@@ -336,8 +342,8 @@ def processFileList(pid, filelist, filetype, ndom):
     currentdate = '%04i-%02i'%(currentyear,currentmonth)
     # print feedback (the current month)
     if not lskip: # but not if we are skipping this step...
-      if pid < 0: print('%s,'%currentdate), # serial mode
-      else: progressstr += '%s, '%currentdate # bundle output in parallel mode
+      if lparallel: progressstr += '%s, '%currentdate # bundle output in parallel mode
+      else: print('%s,'%currentdate), # serial mode
     #print '%s-01_00:00:00'%(currentdate,),str().join(wrfout.variables[wrftimestamp][wrfstartidx,:])
     if '%s-01_00:00:00'%(currentdate,) == str().join(wrfout.variables[wrftimestamp][wrfstartidx,:]): pass # proper start of the month
     elif '%s-01_06:00:00'%(currentdate,) == str().join(wrfout.variables[wrftimestamp][wrfstartidx,:]): pass # for some reanalysis...
@@ -522,7 +528,7 @@ def processFileList(pid, filelist, filetype, ndom):
   # print progress
   
   # save to file
-  if pid < 0: print('') # terminate the line (of dates) 
+  if not lparallel: print('') # terminate the line (of dates) 
   else: print('\n%s Processed dates: %s'%(pidstr, progressstr))   
   mean.sync()
   print('\n%s Writing output to: %s\n(%s)\n'%(pidstr, filename, meanfile))
@@ -567,13 +573,13 @@ if __name__ == '__main__':
   if NP is not None and NP == 1:
     # don't parallelize, if there is only one process: just loop over files    
     for filelist,filetype,ndom in zip(joblist, typelist, domlist):
-      processFileList(-1, filelist, filetype, ndom) # negative pid means serial mode    
+      processFileList(False, filelist, filetype, ndom) # negative pid means serial mode, lparallel = False    
   else:
     if NP is None: pool = multiprocessing.Pool() 
     else: pool = multiprocessing.Pool(processes=NP)
     # distribute tasks to workers
-    for pid,filelist,filetype,ndom in zip(xrange(len(joblist)), joblist, typelist, domlist):
-      pool.apply_async(processFileList, (pid, filelist, filetype, ndom))
+    for filelist,filetype,ndom in zip(joblist, typelist, domlist):
+      pool.apply_async(processFileList, (True, filelist, filetype, ndom)) # lparallel = True
     pool.close()
     pool.join()
   print('')
