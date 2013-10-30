@@ -5,7 +5,7 @@
 # this script runs as a cron job at 7am every morning
 
 # environment
-EPD='/opt/epd-7.3-2-rh5-x86_64/bin/python'
+PY='/opt/epd-7.3-2-rh5-x86_64/bin/python' # Enthough Python Interpreter
 export CODE='/home/data/Code/' # code root
 export PYTHONPATH="${CODE}/PyGeoDat/src/:${CODE}/WRF Tools/Python/"
 export DATA='/data/WRF/wrfavg/' # local WRF data root
@@ -16,6 +16,6 @@ ${CODE}/WRF\ Tools/Scripts/Misc/sync-monthly.sh 1> ${DATA}/sync-monthly.log 2> $
 
 # run post-processing (update climatologies)
 export PYAVG_THREADS=4
-export PYAVG_TEST=FALSE
+export PYAVG_DEBUG=FALSE
 export PYAVG_OVERWRITE=FALSE
-$EPD ${CODE}/PyGeoDat/src/datasets/wrfavg.py 1> ${DATA}/wrfavg.log 2> ${DATA}/wrfavg.err
+${PY} ${CODE}/PyGeoDat/src/datasets/wrfavg.py 1> ${DATA}/wrfavg.log 2> ${DATA}/wrfavg.err
