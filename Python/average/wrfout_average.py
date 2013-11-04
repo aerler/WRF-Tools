@@ -72,6 +72,10 @@ else: loverwrite = False # i.e. append
 if os.environ.has_key('PYAVG_FILETYPES'): 
   filetypes = os.environ['PYAVG_FILETYPES'].split(';') # semi-colon separated list
 else: filetypes = None # defaults are set below
+# domains to process
+if os.environ.has_key('PYAVG_DOMAINS'): 
+  domains = os.environ['PYAVG_DOMAINS'].split(';') # semi-colon separated list
+else: domains = [1,2,3,4] # defaults are set below
 # run script in debug mode
 if os.environ.has_key('PYAVG_DEBUG'): 
   ldebug =  os.environ['PYAVG_DEBUG'] == 'DEBUG' 
@@ -82,10 +86,11 @@ if ldebug:
   NP = 2
   loverwrite = True
   filetypes = ['hydro']
+  domains = [3]
 #   WRFroot = '/data/WRF/wrfout/'
   WRFroot = '/media/tmp/'
-  exp = 'max-ctrl'
-#   exp = 'columbia'   
+#   exp = 'max-ctrl'
+  exp = 'columbia'   
   infolder = WRFroot + exp + '/' # + '/wrfout/'
   outfolder = infolder # + '/wrfavg/'
 else:
@@ -406,8 +411,9 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
               # compute mean via sum over all elements; normalize by number of time steps
               slices[tax] = slice(wrfstartidx,wrfendidx) # relevant time interval
               intmp = var.__getitem__(slices)
-              bkt = wrfout.variables[bktpfx+varname]
-              intmp += bkt.__getitem__(slices) * acclist[varname]
+              if acclist[varname] is not None: # add bucket level, if applicable
+                bkt = wrfout.variables[bktpfx+varname]
+                intmp += bkt.__getitem__(slices) * acclist[varname]
               outtmp = np.zeros_like(intmp)
               diff = np.diff(intmp, n=1, axis=tax)
               if tax == 0:
@@ -545,25 +551,23 @@ if __name__ == '__main__':
   print('\nOVERWRITE: {0:s}\n'.format(str(loverwrite)))
   
   # compile regular expression, used to infer start and end dates and month (later, during computation)
-  datestr = '%s-%s-%s'%(yearstr,monthstr,daystr)
+  datestr = '{0:s}-{1:s}-{2:s}'.format(yearstr,monthstr,daystr)
   datergx = re.compile(datestr)
     
   # get file list
-  wrfrgx = re.compile('wrf.*_d\d\d_%s_\d\d:\d\d:\d\d.nc'%(datestr,))
+  wrfrgx = re.compile('wrf.*_d\d\d_{0:s}_\d\d:\d\d:\d\d.nc'.format(datestr,))
   # regular expression to match the name pattern of WRF timestep output files
   masterlist = [wrfrgx.match(filename) for filename in os.listdir(infolder)] # list folder and match
   masterlist = [match.group() for match in masterlist if match is not None] # assemble valid file list
-  if len(masterlist) == 0: raise IOError, 'No matching WRF output files found for date: %s'%datestr
+  if len(masterlist) == 0: raise IOError, 'No matching WRF output files found for date: {0:s}'.format(datestr)
   
   ## loop over filetypes and domains to construct job list
-#   joblist = []; typelist = []; domlist = []
   args = []
   for filetype in filetypes:    
     # make list of files
-    filelist = []; ndom = 0
-    while len(filelist)>0 or ndom == 0:
-      ndom += 1
-      typergx = re.compile('wrf%s_d%02i_%s_\d\d:\d\d:\d\d.nc'%(filetype, ndom, datestr))
+    filelist = []
+    for domain in domains:
+      typergx = re.compile('wrf{0:s}_d{1:02d}_{2:s}_\d\d:\d\d:\d\d.nc'.format(filetype, domain, datestr))
       # regular expression to also match type and domain index
       filelist = [typergx.match(filename) for filename in masterlist] # list folder and match
       filelist = [match.group() for match in filelist if match is not None] # assemble valid file list
@@ -571,26 +575,9 @@ if __name__ == '__main__':
       # N.B.: sort alphabetically, so that files are in temporally sequence
       # now put everything into the lists
       if len(filelist) > 0:
-#         joblist.append(filelist)
-#         typelist.append(filetype)
-#         domlist.append(ndom)
-        args.append( (filelist, filetype, ndom) )
+        args.append( (filelist, filetype, domain) )
     
   # call parallel execution function
   kwargs = dict() # no keyword arguments
   asyncPoolEC(processFileList, args, kwargs, NP=NP, ldebug=ldebug, ltrialnerror=True)
     
-#   ## loop over and process all job sets
-#   if NP is not None and NP == 1:
-#     # don't parallelize, if there is only one process: just loop over files    
-#     for filelist,filetype,ndom in zip(joblist, typelist, domlist):
-#       processFileList(False, filelist, filetype, ndom) # negative pid means serial mode, lparallel = False    
-#   else:
-#     if NP is None: pool = multiprocessing.Pool() 
-#     else: pool = multiprocessing.Pool(processes=NP)
-#     # distribute tasks to workers
-#     for filelist,filetype,ndom in zip(joblist, typelist, domlist):
-#       pool.apply_async(processFileList, (True, filelist, filetype, ndom)) # lparallel = True
-#     pool.close()
-#     pool.join()
-#   print('')
