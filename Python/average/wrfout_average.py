@@ -406,6 +406,8 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
               # compute mean via sum over all elements; normalize by number of time steps
               slices[tax] = slice(wrfstartidx,wrfendidx) # relevant time interval
               intmp = var.__getitem__(slices)
+              bkt = wrfout.variables[bktpfx+varname]
+              intmp += bkt.__getitem__(slices) * acclist[varname]
               outtmp = np.zeros_like(intmp)
               diff = np.diff(intmp, n=1, axis=tax)
               if tax == 0:
