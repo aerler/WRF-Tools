@@ -12,14 +12,15 @@ exactly one output file.
 ## imports
 import numpy as np
 from collections import OrderedDict
+from socket import gethostname
 #import numpy.ma as ma
 import os, re, sys
 import netCDF4 as nc
 from datetime import datetime
 import calendar
-import multiprocessing # parallelization
 # my own netcdf stuff
 from geodata.nctools import add_coord, copy_dims, copy_ncatts, copy_vars
+from processing.multiprocess import asyncPoolEC
 # N.B.: importing from datasets.common causes problems with GDAL, if it is not installed
 # days per month without leap days (duplicate from datasets.common) 
 days_per_month_365 = np.array([31,28,31,30,31,30,31,31,30,31,30,31])
@@ -35,32 +36,6 @@ class ArgumentError(Exception):
   ''' Exceptions related to arguments passed to the script. '''
   pass
 
-# data root folder
-from socket import gethostname
-hostname = gethostname()
-if hostname=='komputer':
-#   WRFroot = '/home/me/Models/test/'
-#   WRFroot = '/data/WRF/wrfout/'
-  WRFroot = '/media/tmp/'
-  exp = 'max-ctrl'
-  infolder = WRFroot + exp + '/' # + '/wrfout/'
-  outfolder = infolder # + '/wrfavg/'
-elif hostname[0:3] == 'gpc': # i.e. on scinet...
-  #if os.environ.has_key('PBS_O_WORKDIR'): 
-  #  exproot = os.environ['PBS_O_WORKDIR']
-  exproot = os.getcwd()
-  exp = exproot.split('/')[-1] # root folder name
-  infolder = exproot + '/wrfout/' # input folder 
-  outfolder = exproot + '/wrfavg/' # output folder
-else:
-  exproot = os.getcwd()
-  exp = exproot.split('/')[-1] # root folder name
-  infolder = exproot + '/wrfout/' # input folder 
-  outfolder = exproot + '/wrfavg/' # output folder
-#   infolder = os.getcwd() # just operate in the current directory
-#   outfolder = infolder
-#   exp = '' # need to define experiment name...
-  
 def getDateRegX(period):
   ''' function to define averaging period based on argument '''
   # use '\d' for any number and [1-3,45] for ranges; '\d\d\d\d'
@@ -81,24 +56,57 @@ def getDateRegX(period):
   else: prdrgx = None
   return prdrgx 
 
+
 ## read arguments
 # number of processes NP 
 if os.environ.has_key('PYAVG_THREADS'): 
   NP = int(os.environ['PYAVG_THREADS'])
 else: NP = None
-# NP = 1
 # only compute whole years 
 if os.environ.has_key('PYAVG_OVERWRITE'): 
   loverwrite =  os.environ['PYAVG_OVERWRITE'] == 'OVERWRITE' 
 else: loverwrite = False # i.e. append
-# loverwrite = True
 # N.B.: when loverwrite is True and and prdarg is empty, the entire file is replaced,
 #       otherwise only the selected months are recomputed 
 # file types to process 
 if os.environ.has_key('PYAVG_FILETYPES'): 
   filetypes = os.environ['PYAVG_FILETYPES'].split(';') # semi-colon separated list
 else: filetypes = None # defaults are set below
-# filetypes = ['hydro']
+# run script in debug mode
+if os.environ.has_key('PYAVG_DEBUG'): 
+  ldebug =  os.environ['PYAVG_DEBUG'] == 'DEBUG' 
+else: ldebug = False # operational mode
+
+# some debugging settings
+if ldebug:
+  NP = 2
+  loverwrite = True
+  filetypes = ['hydro']
+#   WRFroot = '/data/WRF/wrfout/'
+  WRFroot = '/media/tmp/'
+  exp = 'max-ctrl'
+#   exp = 'columbia'   
+  infolder = WRFroot + exp + '/' # + '/wrfout/'
+  outfolder = infolder # + '/wrfavg/'
+else:
+  hostname = gethostname()
+  if hostname=='komputer':
+    #   WRFroot = '/home/me/Models/test/'
+    #   WRFroot = '/data/WRF/wrfout/'
+    WRFroot = '/media/tmp/'
+    exp = 'max-ctrl'
+    infolder = WRFroot + exp + '/' # + '/wrfout/'
+    outfolder = infolder # + '/wrfavg/'
+  elif hostname[0:3] == 'gpc': # i.e. on scinet...
+    #if os.environ.has_key('PBS_O_WORKDIR'): 
+    #  exproot = os.environ['PBS_O_WORKDIR']
+    exproot = os.getcwd()
+    exp = exproot.split('/')[-1] # root folder name
+    infolder = exproot + '/wrfout/' # input folder 
+    outfolder = exproot + '/wrfavg/' # output folder
+  else:
+    raise NotImplementedError, 'No settings for this machine found.'
+
 # figure out time period
 if len(sys.argv) == 1:
   prdarg = ''
@@ -165,7 +173,7 @@ for key in prereq_vars.keys():
 
 ## main work function
 # N.B.: the loop iterations should be entirely independent, so that they can be run in parallel
-def processFileList(lparallel, filelist, filetype, ndom):
+def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger=None):
   ''' This function is doing the main work, and is supposed to be run in a multiprocessing environment. '''  
   
   ## setup files and folders
@@ -189,13 +197,6 @@ def processFileList(lparallel, filelist, filetype, ndom):
              and np.issubdtype(var.dtype, np.number) and not varname[0:len(bktpfx)] == bktpfx]
   
   # announcement
-  #pidstr = '' if pid < 0 else  '[proc%02i]'%pid # pid for parallel mode output
-  if lparallel:
-    #pid = multiprocessing.current_process().pid # some random number...
-    pid = int(multiprocessing.current_process().name.split('-')[-1]) # start at 1
-    pidstr = '[proc%02i]'%pid # pid for parallel mode output  
-  else:
-    pidstr = '' # don't print process ID, sicne there is only one
   begindate = datergx.search(filelist[0]).group()
   beginyear, beginmonth, beginday = [int(tmp) for tmp in begindate.split('-')]
   assert beginday == 1, 'always have to begin on the first of a month'
@@ -212,7 +213,7 @@ def processFileList(lparallel, filelist, filetype, ndom):
   if varstr: titlestr += '\n Variable list: %s'%(varstr,)
   else: titlestr += '\n Variable list: None'
   if devarstr: titlestr += '\n Derived variables: %s'%(devarstr,)
-  print(titlestr)
+  logger.info(titlestr)
   
   # open/create monthly mean output file
   filename = outputpattern%(filetype,ndom)   
@@ -316,7 +317,7 @@ def processFileList(lparallel, filelist, filetype, ndom):
   i0 = t0-1 # index position we write to: i = i0 + n (zero-based, of course)
   ## start loop over month
   if lparallel: progressstr = '' # a string printing the processed dates
-  else: print('\n Processed dates:'),
+  else: logger.info('\n Processed dates:'),
   
   # loop over month and progressively step through input files
   for n,t in enumerate(times):
@@ -343,8 +344,8 @@ def processFileList(lparallel, filelist, filetype, ndom):
     # print feedback (the current month)
     if not lskip: # but not if we are skipping this step...
       if lparallel: progressstr += '%s, '%currentdate # bundle output in parallel mode
-      else: print('%s,'%currentdate), # serial mode
-    #print '%s-01_00:00:00'%(currentdate,),str().join(wrfout.variables[wrftimestamp][wrfstartidx,:])
+      else: logger.info('%s,'%currentdate), # serial mode
+    logger.debug('\n{0:s}{1:s}-01_00:00:00, {2:s}'.format(pidstr, currentdate, str().join(wrfout.variables[wrftimestamp][wrfstartidx,:])))
     if '%s-01_00:00:00'%(currentdate,) == str().join(wrfout.variables[wrftimestamp][wrfstartidx,:]): pass # proper start of the month
     elif '%s-01_06:00:00'%(currentdate,) == str().join(wrfout.variables[wrftimestamp][wrfstartidx,:]): pass # for some reanalysis...
     else: raise DateError, ("%s Did not find first day of month to compute monthly average."%(pidstr,) +
@@ -376,7 +377,7 @@ def processFileList(lparallel, filelist, filetype, ndom):
       if not lskip:
         ## compute monthly averages
         for varname in varlist:
-          #print(varname+', '),
+          logger.debug('{0:s} {1:s}'.format(pidstr,varname))
           var = wrfout.variables[varname]
           tax = var.dimensions.index(wrftime) # index of time axis
           slices = [slice(None)]*len(var.shape) 
@@ -442,7 +443,7 @@ def processFileList(lparallel, filelist, filetype, ndom):
         # loop over derived variables
         for dename,devar in derived_vars.items():
           if not devar.linear: # only non-linear ones here, linear one at the end
-            #print ; print dename, pqdata.keys()
+            logger.debug('\n{0:s}{1:s}, {2:s}'.format(pidstr, dename, str(pqdata.keys())))
             tmp = devar.computeValues(pqdata) 
             dedata[dename] += tmp.sum(axis=tax)
             if dename in pqset: pqdata[dename] = tmp
@@ -466,7 +467,7 @@ def processFileList(lparallel, filelist, filetype, ndom):
             if calendar.isleap(currentyear) and currentmonth==2:
               if dd == '28':
                 xtime -= 86400. # subtract leap day for calendars without leap day
-                print('\n%s Correcting time interval for %s: current calendar does not have leap-days.'%(pidstr,currentdate))
+                logger.info('\n%s Correcting time interval for %s: current calendar does not have leap-days.'%(pidstr,currentdate))
               else: assert dd == '29' # if there is a leap day
             else: assert dd == '%02i'%days_per_month_365[currentmonth-1] # if there is no leap day
            
@@ -528,15 +529,18 @@ def processFileList(lparallel, filelist, filetype, ndom):
   # print progress
   
   # save to file
-  if not lparallel: print('') # terminate the line (of dates) 
-  else: print('\n%s Processed dates: %s'%(pidstr, progressstr))   
+  if not lparallel: logger.info('') # terminate the line (of dates) 
+  else: logger.info('\n%s Processed dates: %s'%(pidstr, progressstr))   
   mean.sync()
-  print('\n%s Writing output to: %s\n(%s)\n'%(pidstr, filename, meanfile))
+  logger.info('\n%s Writing output to: %s\n(%s)\n'%(pidstr, filename, meanfile))
   # close files        
   mean.close()  
 
 # now begin execution    
 if __name__ == '__main__':
+
+  # print settings
+  print('\nOVERWRITE: {0:s}\n'.format(str(loverwrite)))
   
   # compile regular expression, used to infer start and end dates and month (later, during computation)
   datestr = '%s-%s-%s'%(yearstr,monthstr,daystr)
@@ -550,7 +554,8 @@ if __name__ == '__main__':
   if len(masterlist) == 0: raise IOError, 'No matching WRF output files found for date: %s'%datestr
   
   ## loop over filetypes and domains to construct job list
-  joblist = []; typelist = []; domlist = []
+#   joblist = []; typelist = []; domlist = []
+  args = []
   for filetype in filetypes:    
     # make list of files
     filelist = []; ndom = 0
@@ -564,22 +569,26 @@ if __name__ == '__main__':
       # N.B.: sort alphabetically, so that files are in temporally sequence
       # now put everything into the lists
       if len(filelist) > 0:
-        joblist.append(filelist)
-        typelist.append(filetype)
-        domlist.append(ndom)
+#         joblist.append(filelist)
+#         typelist.append(filetype)
+#         domlist.append(ndom)
+        args.append( (filelist, filetype, ndom) )
     
+  # call parallel execution function
+  kwargs = dict() # no keyword arguments
+  asyncPoolEC(processFileList, args, kwargs, NP=NP, ldebug=ldebug, ltrialnerror=True)
     
-  ## loop over and process all job sets
-  if NP is not None and NP == 1:
-    # don't parallelize, if there is only one process: just loop over files    
-    for filelist,filetype,ndom in zip(joblist, typelist, domlist):
-      processFileList(False, filelist, filetype, ndom) # negative pid means serial mode, lparallel = False    
-  else:
-    if NP is None: pool = multiprocessing.Pool() 
-    else: pool = multiprocessing.Pool(processes=NP)
-    # distribute tasks to workers
-    for filelist,filetype,ndom in zip(joblist, typelist, domlist):
-      pool.apply_async(processFileList, (True, filelist, filetype, ndom)) # lparallel = True
-    pool.close()
-    pool.join()
-  print('')
+#   ## loop over and process all job sets
+#   if NP is not None and NP == 1:
+#     # don't parallelize, if there is only one process: just loop over files    
+#     for filelist,filetype,ndom in zip(joblist, typelist, domlist):
+#       processFileList(False, filelist, filetype, ndom) # negative pid means serial mode, lparallel = False    
+#   else:
+#     if NP is None: pool = multiprocessing.Pool() 
+#     else: pool = multiprocessing.Pool(processes=NP)
+#     # distribute tasks to workers
+#     for filelist,filetype,ndom in zip(joblist, typelist, domlist):
+#       pool.apply_async(processFileList, (True, filelist, filetype, ndom)) # lparallel = True
+#     pool.close()
+#     pool.join()
+#   print('')
