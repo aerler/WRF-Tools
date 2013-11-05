@@ -39,7 +39,7 @@ echo "Running as local shell script; RAMIN=${RAMIN} and RAMOUT=${RAMOUT}"
 echo
 
 # RAM disk folder (cleared and recreated if needed)
-export RAMDISK="/dev/shm/${USER}/"
+export RAMDISK= "/dev/shm/${USER}/"
 # check if the RAM=disk is actually there
 if [[ ${RAMIN}==1 ]] || [[ ${RAMOUT}==1 ]]; then
     # create RAM-disk directory
@@ -68,11 +68,14 @@ export THREADS=${THREADS:-1} # number of OpenMP threads
 
 #export MPIHOSTS='/pub/home_local/wrf/Runs/Columbia_brian/ibhosts'
 
-export HYBRIDRUN=${HYBRIDRUN:-"/usr/mpi/gcc/mvapich2-1.7-qlc/bin/mpirun -n $((TASKS*NODES)) -ppn ${TASKS} "} #-machinefile ${IBHOSTS} "} # -machinefile ${MPIHOSTS}"} # OpenMPI, not Intel
+#export HYBRIDRUN=${HYBRIDRUN:-"/usr/mpi/gcc/openmpi-1.4.3-qlc/bin/mpirun -np $((TASKS*NODES)) -machinefile ${IBHOSTS} "} 
+export HYBRIDRUN=${HYBRIDRUN:-"/usr/mpi/gcc/mvapich2-1.7-qlc/bin/mpirun -np $((TASKS*NODES)) -machinefile ${IBHOSTS} "} # -machinefile ${MPIHOSTS}"} # OpenMPI, not Intel
+#export HYBRIDRUN=${HYBRIDRUN:-"/usr/mpi/gcc/mvapich2-1.7-qlc/bin/mpirun -n $((TASKS*NODES)) -ppn ${TASKS} "} #-machinefile ${IBHOSTS} "} # -machinefile ${MPIHOSTS}"} # OpenMPI, not Intel
 
 # WPS/preprocessing submission command (for next step)
 # export SUBMITWPS=${SUBMITWPS:-'ssh localhost "cd \"${INIDIR}\"; export NEXTSTEP=${NEXTSTEP}; ./${WPSSCRIPT}"'} # evaluated by launchPreP; use for tests on devel node
-export SUBMITWPS=${SUBMITWPS:-'ssh compute-0-0-ib.ib "cd \"${INIDIR}\"; export NEXTSTEP=${NEXTSTEP}; ./${WPSSCRIPT} >& ${JOB_NAME%_WRF}_WPS.${JOB_ID}.log" &'} # evaluated by launchPreP; use for production runs on compute nodes
+export SUBMITWPS=${SUBMITWPS:-'ssh rocks-ib.ib "cd \"${INIDIR}\"; export NEXTSTEP=${NEXTSTEP}; ./${WPSSCRIPT} >& ${JOB_NAME%_WRF}_WPS.${JOB_ID}.log" &'} # evaluated by launchPreP; use for production runs on compute nodes
+#export SUBMITWPS=${SUBMITWPS:-'cd \"${INIDIR}\"; export NEXTSTEP=${NEXTSTEP}; ./${WPSSCRIPT} >& ${JOB_NAME%_WRF}_WPS.${JOB_ID}.log'} # evaluated by launchPreP; use for production runs on compute nodes
 # N.B.: use '&' to spin off, but only on compute nodes, otherwise the system overloads
 
 # archive submission command (for last step)
@@ -81,5 +84,5 @@ export SUBMITAR="echo \'No archive script available.\'"
 # N.B.: requires $ARTAG to be set in the launch script
 
 # job submission command (for next step)
-#export RESUBJOB=${RESUBJOB-'ssh compute-0-0-ib.ib "cd \"${INIDIR}\"; export NEXTSTEP=${NEXTSTEP}; qsub ${WRFSCRIPT}"'} # evaluated by resubJob
-export RESUBJOB=${RESUBJOB-'ssh rocks "cd \"${INIDIR}\"; export NEXTSTEP=${NEXTSTEP}; export NOWPS=${NOWPS}; qsub ${WRFSCRIPT}"'} # evaluated by resubJob
+export RESUBJOB=${RESUBJOB-'ssh rocks-ib.ib "cd \"${INIDIR}\"; export NEXTSTEP=${NEXTSTEP}; qsub ${WRFSCRIPT}"'} # evaluated by resubJob
+#xport RESUBJOB=${RESUBJOB-'cd \"${INIDIR}\"; export NEXTSTEP=${NEXTSTEP}; export NOWPS=${NOWPS}; qsub ${WRFSCRIPT}'} # evaluated by resubJob
