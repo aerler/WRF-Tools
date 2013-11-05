@@ -75,7 +75,7 @@ else: filetypes = None # defaults are set below
 # domains to process
 if os.environ.has_key('PYAVG_DOMAINS'): 
   domains = os.environ['PYAVG_DOMAINS'].split(';') # semi-colon separated list
-else: domains = [1,2,3,4] # defaults are set below
+else: domains = None # defaults are set below
 # run script in debug mode
 if os.environ.has_key('PYAVG_DEBUG'): 
   ldebug =  os.environ['PYAVG_DEBUG'] == 'DEBUG' 
@@ -83,10 +83,9 @@ else: ldebug = False # operational mode
 
 # some debugging settings
 if ldebug:
-  NP = 2
+  NP = 1
   loverwrite = True
   filetypes = ['hydro']
-  domains = [3]
 #   WRFroot = '/data/WRF/wrfout/'
   WRFroot = '/media/tmp/'
 #   exp = 'max-ctrl'
@@ -110,7 +109,12 @@ else:
     infolder = exproot + '/wrfout/' # input folder 
     outfolder = exproot + '/wrfavg/' # output folder
   else:
-    raise NotImplementedError, 'No settings for this machine found.'
+    #raise NotImplementedError, 'No settings for this machine found.'
+    exproot = os.getcwd()
+    exp = exproot.split('/')[-1] # root folder name
+    infolder = exproot + '/wrfout/' # input folder 
+    outfolder = exproot + '/wrfavg/' # output folder
+
 
 # figure out time period
 if len(sys.argv) == 1:
@@ -148,11 +152,11 @@ if len(period) >= 3:
 liniout = True # indicates that the initialization/restart timestep is written to wrfout;
 # this means that the last timestep of the previous file is the same as the first of the next 
 # input files and folders
-#filetypes = ['plev3d'] # for testing 
-if filetypes is None: filetypes = ['srfc', 'plev3d', 'xtrm', 'hydro'] 
-# filetypes can also be set in an semi-colon-separated environment variable
-inputpattern = 'wrf%s_d%02i_%s-%s-%s_\d\d:\d\d:\d\d.nc' # expanded with %(type,domain,year,month) 
-outputpattern = 'wrf%s_d%02i_monthly.nc' # expanded with %(type,domain)
+filetypes = filetypes or ['srfc', 'plev3d', 'xtrm', 'hydro', 'lsm', 'rad']
+domains = domains or [1,2,3,4] 
+# filetypes and domains can also be set in an semi-colon-separated environment variable (see above)
+# inputpattern = 'wrf{0:s}_d{1:02d}_{2:s}-{3:s}-{4:s}_\d\d:\d\d:\d\d.nc' # expanded with format(type,domain,year,month) 
+outputpattern = 'wrf{0:s}_d{1:02d}_monthly.nc' # expanded with format(type,domain)
 # variable attributes
 wrftime = 'Time' # time dim in wrfout files
 wrfxtime = 'XTIME' # time in minutes since WRF simulation start
@@ -213,15 +217,15 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
   for devar in derived_vars.values(): devarstr += '%s, '%devar.name
       
   # print meta info (print everything in one chunk, so output from different processes does not get mangled)
-  titlestr = '\n\n%s    ***   Processing wrf%s files for domain %2i.   ***'%(pidstr,filetype,ndom)
-  titlestr += '\n          (monthly means from %s to %s, incl.)'%(begindate,enddate)
-  if varstr: titlestr += '\n Variable list: %s'%(varstr,)
+  titlestr = '\n\n{0:s}    ***   Processing wrf{1:s} files for domain {2:d}.   ***'.format(pidstr,filetype,ndom)
+  titlestr += '\n          (monthly means from {0:s} to {1:s}, incl.)'.format(begindate,enddate)
+  if varstr: titlestr += '\n Variable list: {0:s}'.format(str(varstr),)
   else: titlestr += '\n Variable list: None'
-  if devarstr: titlestr += '\n Derived variables: %s'%(devarstr,)
+  if devarstr: titlestr += '\n Derived variables: {0:s}'.format(str(devarstr),)
   logger.info(titlestr)
   
   # open/create monthly mean output file
-  filename = outputpattern%(filetype,ndom)   
+  filename = outputpattern.format(filetype,ndom)   
   meanfile = outfolder+filename
   if loverwrite and not prdarg and os.path.exists(meanfile): os.remove(meanfile)
   if os.path.exists(meanfile):
@@ -237,7 +241,8 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
     # check derived variables
     for var in derived_vars.values():
       if var.name not in mean.variables: 
-        raise dv.DerivedVariableError, "%s Derived variable '%s' not found in file '%s'"%(pidstr,var.name,filename)
+        raise (dv.DerivedVariableError, 
+               "{0:s} Derived variable '{1:s}' not found in file '{2:s}'".format(pidstr,var.name,filename))
       var.checkPrerequisites(mean)
   else:        
     mean = nc.Dataset(meanfile, 'w', format='NETCDF4') # open to start a new file (mode='w')
@@ -268,7 +273,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
     # copy global attributes
     copy_ncatts(mean, wrfout, prefix='') # copy all attributes (no need for prefix; all upper case are original)
     # some new attributes
-    mean.description = 'wrf%s_d%02i monthly means'%(filetype,ndom)
+    mean.description = 'wrf{0:s}_d{1:02d} monthly means'.format(filetype,ndom)
     mean.begin_date = begindate
     mean.experiment = exp
     mean.creator = 'Andre R. Erler'
@@ -318,13 +323,12 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
       
   # prepare computation of monthly means  
   filecounter = 0 # number of wrfout file currently processed 
-  wrfstartidx = 0 # output record / time step in current file
   i0 = t0-1 # index position we write to: i = i0 + n (zero-based, of course)
   ## start loop over month
   if lparallel: progressstr = '' # a string printing the processed dates
-  else: logger.info('\n Processed dates:'),
+  else: logger.info('\n Processed dates:')
   
-  # loop over month and progressively step through input files
+  # loop over month and progressively stepping through input files
   for n,t in enumerate(times):
     # extend time array / month counter
     meanidx = i0 + n
@@ -338,23 +342,27 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
       assert meanidx < len(mean.variables[time])
       lskip = True # skip this step, but we still have to verify the timing
     mean.variables[time][meanidx] = t # month since simulation start 
-    # save WRF time-stamp for beginning of month straight to the new file, for record
-    mean.variables[wrftimestamp][meanidx,:] = wrfout.variables[wrftimestamp][wrfstartidx,:] 
     # current date
     currentyear, currentmonth = divmod(n+beginmonth-1,12)
     currentyear += beginyear; currentmonth +=1 
     # sanity checks
     assert meanidx + 1 == mean.variables[time][meanidx]  
-    currentdate = '%04i-%02i'%(currentyear,currentmonth)
+    currentdate = '{0:04d}-{1:02d}'.format(currentyear,currentmonth)
+    # determine appropriate start index
+    wrfstartidx = 0    
+    while currentdate > str().join(wrfout.variables[wrftimestamp][wrfstartidx,0:7]):
+      wrfstartidx += 1 # count forward
+    # save WRF time-stamp for beginning of month straight to the new file, for record
+    mean.variables[wrftimestamp][meanidx,:] = wrfout.variables[wrftimestamp][wrfstartidx,:] 
     # print feedback (the current month)
     if not lskip: # but not if we are skipping this step...
-      if lparallel: progressstr += '%s, '%currentdate # bundle output in parallel mode
-      else: logger.info('%s,'%currentdate), # serial mode
+      if lparallel: progressstr += '{0:s}, '.format(currentdate) # bundle output in parallel mode
+      else: logger.info('{0:s},'.format(currentdate)) # serial mode
     logger.debug('\n{0:s}{1:s}-01_00:00:00, {2:s}'.format(pidstr, currentdate, str().join(wrfout.variables[wrftimestamp][wrfstartidx,:])))
-    if '%s-01_00:00:00'%(currentdate,) == str().join(wrfout.variables[wrftimestamp][wrfstartidx,:]): pass # proper start of the month
-    elif '%s-01_06:00:00'%(currentdate,) == str().join(wrfout.variables[wrftimestamp][wrfstartidx,:]): pass # for some reanalysis...
-    else: raise DateError, ("%s Did not find first day of month to compute monthly average."%(pidstr,) +
-                            "file: %s date: %s-01_00:00:00"%(filename,currentdate))
+    if '{0:s}-01_00:00:00'.format(currentdate,) == str().join(wrfout.variables[wrftimestamp][wrfstartidx,:]): pass # proper start of the month
+    elif '{0:s}-01_06:00:00'.format(currentdate,) == str().join(wrfout.variables[wrftimestamp][wrfstartidx,:]): pass # for some reanalysis...
+    else: raise DateError, ("{0:s} Did not find first day of month to compute monthly average.".format(pidstr) +
+                            "file: {0:s} date: {1:s}-01_00:00:00".format(filename,currentdate))
     
     # prepare summation of output time steps
     lcomplete = False # 
@@ -370,12 +378,15 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
     ## loop over files and average
     while not lcomplete:
       
-      # determine valid time index range by checking dates from the end counting backwards
+      # determine valid end index by checking dates from the end counting backwards
+      # N.B.: start index is determined above (if a new file was opened in the same month, 
+      #       the start index is automatically set to 0 or 1 when the file is opened, below)
       wrfendidx = len(wrfout.dimensions[wrftime])-1
       while currentdate < str().join(wrfout.variables[wrftimestamp][wrfendidx,0:7]):
-        if not lcomplete: lcomplete = True # break loop over file if next month is in this file        
+        if not lcomplete: lcomplete = True # break loop over file if next month is in this file (critical!)        
         wrfendidx -= 1 # count backwards
-      wrfendidx += 1 # reverse last step so that counter sits at fist step of next month 
+      if wrfendidx < len(wrfout.dimensions[wrftime])-1: # check if count-down actually happened 
+        wrfendidx += 1 # reverse last step so that counter sits at fist step of next month       
       # N.B.: if this is not the last file, there was no iteration wrfendidx is the length of the the file
       assert wrfendidx > wrfstartidx
             
@@ -444,7 +455,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
             dt1 = datetime.strptime(str().join(wrfout.variables[wrftimestamp][wrfstartidx,:]), '%Y-%m-%d_%H:%M:%S')
             dt2 = datetime.strptime(str().join(wrfout.variables[wrftimestamp][wrfendidx,:]), '%Y-%m-%d_%H:%M:%S')
             delta = (dt2-dt1).total_seconds() # the difference creates a timedelta object
-          delta /=  (wrfendidx - wrfstartidx - 1)
+          delta /=  (wrfendidx - wrfstartidx)
           # loop over time-step data
           for pqname,pqvar in pqdata.items():
             if pqname in acclist: pqvar /= delta # normalize
@@ -471,13 +482,13 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
             #       in order to correctly handle model calendars that don't have leap days
             yyyy, mm, dd = str().join(wrfout.variables[wrftimestamp][wrfendidx-1,0:10]).split('-')
             # also a bit of sanity checking...
-            assert yyyy == '%04i'%currentyear and mm == '%02i'%currentmonth
+            assert yyyy == '{0:04d}'.format(currentyear) and mm == '{0:02d}'.format(currentmonth)
             if calendar.isleap(currentyear) and currentmonth==2:
               if dd == '28':
                 xtime -= 86400. # subtract leap day for calendars without leap day
-                logger.info('\n%s Correcting time interval for %s: current calendar does not have leap-days.'%(pidstr,currentdate))
+                logger.info('\n{0:s} Correcting time interval for {1:s}: current calendar does not have leap-days.'.format(pidstr,currentdate))
               else: assert dd == '29' # if there is a leap day
-            else: assert dd == '%02i'%days_per_month_365[currentmonth-1] # if there is no leap day
+            else: assert dd == '{0:02d}'.format(days_per_month_365[currentmonth-1]) # if there is no leap day
            
       # two possible ends: month is done or reached end of file
       # if we reached the end of the file, open a new one and go again
@@ -538,9 +549,9 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
   
   # save to file
   if not lparallel: logger.info('') # terminate the line (of dates) 
-  else: logger.info('\n%s Processed dates: %s'%(pidstr, progressstr))   
+  else: logger.info('\n{0:s} Processed dates: {1:s}', pidstr, progressstr)   
   mean.sync()
-  logger.info('\n%s Writing output to: %s\n(%s)\n'%(pidstr, filename, meanfile))
+  logger.info('\n{0:s} Writing output to: {1:s}\n({2:s})\n'.format(pidstr, filename, meanfile))
   # close files        
   mean.close()  
 
