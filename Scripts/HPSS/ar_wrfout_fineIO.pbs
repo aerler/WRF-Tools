@@ -543,7 +543,7 @@ if [ ${ERRORS} == 0 ]; then
   echo
   exit 0
 else
-  echo "   >>>   WARNING: ${ERRORS} OPERATIONS FAILD OR INCOMPLETE!   <<<   "
+  echo "   >>>   WARNING: ${ERRORS} OPERATIONS FAILED OR INCOMPLETE!   <<<   "
   echo "   >>>                 ${OPERATIONS} OPERATIONS OK             <<<   "
   echo
   # /scinet/gpc/bin/exit2msg ${ERRORS} # translate exit codes to human-readable messages

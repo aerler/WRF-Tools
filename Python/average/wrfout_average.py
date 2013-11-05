@@ -83,13 +83,14 @@ else: ldebug = False # operational mode
 
 # some debugging settings
 if ldebug:
-  NP = 1
+  NP = 4
+  ldebug = False
   loverwrite = True
   filetypes = ['hydro']
 #   WRFroot = '/data/WRF/wrfout/'
   WRFroot = '/media/tmp/'
-#   exp = 'max-ctrl'
-  exp = 'columbia'   
+  exp = 'max-ctrl'
+#   exp = 'columbia'   
   infolder = WRFroot + exp + '/' # + '/wrfout/'
   outfolder = infolder # + '/wrfavg/'
 else:
@@ -460,9 +461,10 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
           for pqname,pqvar in pqdata.items():
             if pqname in acclist: pqvar /= delta # normalize
         # loop over derived variables
+        logger.debug('\n{0:s} Available prerequisites: {1:s}'.format(pidstr, str(pqdata.keys())))
         for dename,devar in derived_vars.items():
           if not devar.linear: # only non-linear ones here, linear one at the end
-            logger.debug('\n{0:s}{1:s}, {2:s}'.format(pidstr, dename, str(pqdata.keys())))
+            logger.debug('\n{0:s}{1:s}, {2:s}'.format(pidstr, dename, str(devar.prerequisites)))
             tmp = devar.computeValues(pqdata) 
             dedata[dename] += tmp.sum(axis=tax)
             if dename in pqset: pqdata[dename] = tmp
@@ -549,7 +551,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
   
   # save to file
   if not lparallel: logger.info('') # terminate the line (of dates) 
-  else: logger.info('\n{0:s} Processed dates: {1:s}', pidstr, progressstr)   
+  else: logger.info('\n{0:s} Processed dates: {1:s}'.format(pidstr, progressstr))   
   mean.sync()
   logger.info('\n{0:s} Writing output to: {1:s}\n({2:s})\n'.format(pidstr, filename, meanfile))
   # close files        
