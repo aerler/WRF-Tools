@@ -167,7 +167,10 @@ dimlist = ['x','y'] # dimensions we just copy
 dimmap = {time:wrftime} #{time:wrftime, 'x':'west_east','y':'south_north'}
 midmap = None #dict(zip(dimmap.values(),dimmap.keys())) # reverse dimmap
 # accumulated variables (only total accumulation since simulation start, not, e.g., daily accumulated)
-acclist = dict(RAINNC=100,RAINC=100,RAINSH=None,SNOWNC=None,GRAUPELNC=None,SFCEVP=None,POTEVP=None,ACSNOM=None) 
+acclist = dict(RAINNC=100,RAINC=100,RAINSH=None,SNOWNC=None,GRAUPELNC=None,SFCEVP=None,POTEVP=None,ACSNOM=None, # srfc vars
+               SFROFF=None,UDROFF=None,ACGRDFLX=None,ACSNOW=None,ACSNOM=None,ACHFX=None,ACLHF=None, # lsm vars
+               ACSWUPT=None,ACSWUPTC=None,ACSWDNT=None,ACSWDNTC=None,ACSWUPB=None,ACSWUPBC=None,ACSWDNB=None,ACSWDNBC=None, # rad vars
+               ACLWUPT=None,ACLWUPTC=None,ACLWDNT=None,ACLWDNTC=None,ACLWUPB=None,ACLWUPBC=None,ACLWDNB=None,ACLWDNBC=None) # rad vars
 # N.B.: keys = variables and values = bucket sizes; value = None or 0 means no bucket  
 bktpfx = 'I_' # prefix for bucket variables; these are processed together with their accumulated variables 
 
