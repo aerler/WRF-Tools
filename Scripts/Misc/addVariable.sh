@@ -26,14 +26,15 @@ ERR=0
 # loop over files
 for SRC in ${SRCPFX}*${NCSFX}
   do
+    #echo $SRC
     # construct destination file name
     DST="${DSTPFX}${SRC#${SRCPFX}}" # swap prefix
     # skip if variable already present
     if [[ -e "${DST}" ]] && [[ -z $(ncdump -h "${DST}" | grep "${VARNM}(") ]]
       then
-# 	echo cp "${DST}" "${DSTDIR}/${DST}"
+ 	#echo cp "${DST}" "${DSTDIR}/${DST}"
 	cp "${DST}" "${DSTDIR}/${DST}"
-# 	echo ncks -aA -d "${DIM}" -v "${VARNM}" "${SRC}" "${DSTDIR}/${DST}"
+ 	#echo ncks -aA -d "${DIM}" -v "${VARNM}" "${SRC}" "${DSTDIR}/${DST}"
 	ncks -aA -d "${DIM}" -v "${VARNM}" "${SRC}" "${DSTDIR}/${DST}"
 	# check exit code
 	if [[ $? == 0 ]] && [[ -n $(ncdump -h "${DSTDIR}/${DST}" | grep "${VARNM}(") ]]
