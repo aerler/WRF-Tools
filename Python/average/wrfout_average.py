@@ -394,9 +394,11 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
       # N.B.: if this is not the last file, there was no iteration and wrfendidx is the length of the the file;
       # if the first date in the file is already the next month, wrfendidx will be 0 and this is the final step 
       assert wrfendidx >= wrfstartidx
-      # another case, where we have to terminate, is, if this is the last file
-      if filecounter == len(filelist)-1: lcomplete = True
-            
+      # if this is the last file and the month is not complete, we have to forcefully terminate
+      if filecounter == len(filelist)-1 and not lcomplete: 
+        lcomplete = True # end loop
+        lskip = True # don't write results for this month!
+
       if not lskip:
         ## compute monthly averages
         for varname in varlist:
@@ -496,7 +498,8 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
                 xtime -= 86400. # subtract leap day for calendars without leap day
                 logger.info('\n{0:s} Correcting time interval for {1:s}: current calendar does not have leap-days.'.format(pidstr,currentdate))
               else: assert dd == '29' # if there is a leap day
-            else: assert dd == '{0:02d}'.format(days_per_month_365[currentmonth-1]) # if there is no leap day
+            else: 
+              assert dd == '{0:02d}'.format(days_per_month_365[currentmonth-1]) # if there is no leap day
            
       # two possible ends: month is done or reached end of file
       # if we reached the end of the file, open a new one and go again
