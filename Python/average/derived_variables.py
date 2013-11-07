@@ -190,3 +190,21 @@ class NetWaterFlux(DerivedVariable):
     super(NetWaterFlux,self).computeValues(avgdata, const=None) # perform some type checks    
     outdata = avgdata['LiquidPrecip'] - avgdata['SFCEVP']  + avgdata['ACSNOM'] # compute
     return outdata
+
+
+class RunOff(DerivedVariable):
+  ''' DerivedVariable child implementing computation of total run off for WRF output. '''
+  
+  def __init__(self):
+    ''' Initialize with fixed values; constructor takes no arguments. '''
+    super(RunOff,self).__init__(name='Runoff', # name of the variable
+                              units='kg/m^2/s', # not accumulated anymore! 
+                              prerequisites=['SFROFF', 'UDROFF'], # it's the sum of these two 
+                              axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
+                              dtype='float', atts=None, linear=True) 
+
+  def computeValues(self, wrfdata, const=None):
+    ''' Compute total runoff as the sum of surface and underground runoff. '''
+    super(RunOff,self).computeValues(wrfdata, const=None) # perform some type checks    
+    outdata = wrfdata['SFROFF'] + wrfdata['UDROFF'] # compute
+    return outdata
