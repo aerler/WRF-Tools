@@ -386,13 +386,14 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
       # N.B.: start index is determined above (if a new file was opened in the same month, 
       #       the start index is automatically set to 0 or 1 when the file is opened, below)
       wrfendidx = len(wrfout.dimensions[wrftime])-1
-      while currentdate < str().join(wrfout.variables[wrftimestamp][wrfendidx,0:7]):
+      while wrfendidx >= 0 and currentdate < str().join(wrfout.variables[wrftimestamp][wrfendidx,0:7]):
         if not lcomplete: lcomplete = True # break loop over file if next month is in this file (critical!)        
         wrfendidx -= 1 # count backwards
       if wrfendidx < len(wrfout.dimensions[wrftime])-1: # check if count-down actually happened 
         wrfendidx += 1 # reverse last step so that counter sits at fist step of next month       
-      # N.B.: if this is not the last file, there was no iteration wrfendidx is the length of the the file
-      assert wrfendidx > wrfstartidx
+      # N.B.: if this is not the last file, there was no iteration and wrfendidx is the length of the the file;
+      # if the first date in the file is already the next month, wrfendidx will be 0 and this is the final step 
+      assert wrfendidx >= wrfstartidx
             
       if not lskip:
         ## compute monthly averages
@@ -499,19 +500,22 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
       # if we reached the end of the file, open a new one and go again
       if not lcomplete:            
         wrfout.close() # close file...
-        filecounter += 1 # move to next file            
-        wrfout = nc.Dataset(infolder+filelist[filecounter], 'r', format='NETCDF4') # ... and open new one
-        if missing_value is not None:
-          assert missing_value == wrfout.P_LEV_MISSING
-        # reset output record / time step counter
-        if liniout: wrfstartidx = 1 # skip the initialization step (same as last step in previous file)
-        else: wrfstartidx = 0
-      elif liniout and wrfendidx == len(wrfout.dimensions[wrftime])-1:
-        wrfout.close() # close file...
-        filecounter += 1 # move to next file    
-        if filecounter < len(filelist):        
+        filecounter += 1 # move to next file
+        if filecounter < len(filelist):            
           wrfout = nc.Dataset(infolder+filelist[filecounter], 'r', format='NETCDF4') # ... and open new one
-          wrfstartidx = 0 # use initialization step (same as last step in previous file)
+          if missing_value is not None:
+            assert missing_value == wrfout.P_LEV_MISSING
+          # reset output record / time step counter
+          if liniout: wrfstartidx = 1 # skip the initialization step (same as last step in previous file)
+          else: wrfstartidx = 0
+        else: lcomplete = True # all files processed
+      else: # month complete
+        if wrfendidx == len(wrfout.dimensions[wrftime])-1: # at the end
+          wrfout.close() # close file...
+          filecounter += 1 # move to next file    
+          if filecounter < len(filelist):        
+            wrfout = nc.Dataset(infolder+filelist[filecounter], 'r', format='NETCDF4') # ... and open new one
+            wrfstartidx = 0 # use initialization step (same as last step in previous file)
                        
         
     ## now the loop over files terminated and we need to normalize and save the results
