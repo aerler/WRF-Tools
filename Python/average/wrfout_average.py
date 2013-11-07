@@ -394,6 +394,8 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
       # N.B.: if this is not the last file, there was no iteration and wrfendidx is the length of the the file;
       # if the first date in the file is already the next month, wrfendidx will be 0 and this is the final step 
       assert wrfendidx >= wrfstartidx
+      # another case, where we have to terminate, is, if this is the last file
+      if filecounter == len(filelist)-1: lcomplete = True
             
       if not lskip:
         ## compute monthly averages
@@ -500,23 +502,21 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
       # if we reached the end of the file, open a new one and go again
       if not lcomplete:            
         wrfout.close() # close file...
+        # N.B.: filecounter +1 < len(filelist) is already checked above 
         filecounter += 1 # move to next file
-        if filecounter < len(filelist):            
-          wrfout = nc.Dataset(infolder+filelist[filecounter], 'r', format='NETCDF4') # ... and open new one
-          if missing_value is not None:
-            assert missing_value == wrfout.P_LEV_MISSING
-          # reset output record / time step counter
-          if liniout: wrfstartidx = 1 # skip the initialization step (same as last step in previous file)
-          else: wrfstartidx = 0
-        else: lcomplete = True # all files processed
+        wrfout = nc.Dataset(infolder+filelist[filecounter], 'r', format='NETCDF4') # ... and open new one
+        if missing_value is not None:
+          assert missing_value == wrfout.P_LEV_MISSING
+        # reset output record / time step counter
+        if liniout: wrfstartidx = 1 # skip the initialization step (same as last step in previous file)
+        else: wrfstartidx = 0
       else: # month complete
         if wrfendidx == len(wrfout.dimensions[wrftime])-1: # at the end
           wrfout.close() # close file...
-          filecounter += 1 # move to next file    
-          if filecounter < len(filelist):        
+          filecounter += 1 # move to next file
+          if filecounter < len(filelist):    
             wrfout = nc.Dataset(infolder+filelist[filecounter], 'r', format='NETCDF4') # ... and open new one
             wrfstartidx = 0 # use initialization step (same as last step in previous file)
-                       
         
     ## now the loop over files terminated and we need to normalize and save the results
     
