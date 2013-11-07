@@ -194,16 +194,20 @@ class CFSR(Dataset):
     datestr = self.datestr%date # (years, months, days, hours)
     # create links to relevant source data (requires full path for linked files)
     plevfile = datestr+self.plevstr; Plevfile = self.PlevDir+plevfile
+    if not os.path.exists(Plevfile): 
+      raise IOError, "Pressure level input file '%s' not found!"%(Plevfile)     
     srfcfile = datestr+self.srfcstr; Srfcfile = self.SrfcDir+srfcfile
-    if os.path.exists(Srfcfile): 
-      print('\n '+mytag+' Processing time-step:  '+datestr+'\n    '+plevfile+'\n    '+srfcfile)
-      gribfiles = (Plevfile, Srfcfile)
-      vtables = (self.plevvtable, self.srfcvtable)
-    else:
-      print('\n '+mytag+' Processing time-step:  '+datestr+'\n    '+plevfile)
-      print('\n '+mytag+'   ***   WARNING: no surface data - this may not work!   ***')
-      gribfiles = (Plevfile,)
-      vtables = (self.plevvtable,)
+    if not os.path.exists(Srfcfile): 
+      raise IOError, "Surface input file '%s' not found!"%(Srfcfile)     
+    # print feedback
+    print('\n '+mytag+' Processing time-step:  '+datestr+'\n    '+plevfile+'\n    '+srfcfile)
+    gribfiles = (Plevfile, Srfcfile)
+    vtables = (self.plevvtable, self.srfcvtable)
+#     else:
+#       print('\n '+mytag+' Processing time-step:  '+datestr+'\n    '+plevfile)
+#       print('\n '+mytag+'   ***   WARNING: no surface data - this may not work!   ***')
+#       gribfiles = (Plevfile,)
+#       vtables = (self.plevvtable,)
       
     ## loop: process grib files and concatenate resulting IM files     
     print('\n  * '+mytag+' converting Grib2 to WRF IM format (ungrib.exe)')
@@ -379,17 +383,22 @@ class CESM(Dataset):
     # create links to relevant source data (requires full path for linked files)
     atmfile = self.atmpfx+datestr+self.ncext
     if self.yearlyfolders: atmfile = '%04i/%s'%(date[0],atmfile) 
+    if not os.path.exists(self.AtmDir+atmfile): 
+      raise IOError, "Atmosphere input file '%s' not found!"%(self.AtmDir+atmfile)
     os.symlink(self.AtmDir+atmfile,self.atmlnk)
     lndfile = self.lndpfx+datestr+self.ncext
     if self.yearlyfolders: lndfile = '%04i/%s'%(date[0],lndfile)
+    if not os.path.exists(self.LndDir+lndfile): 
+      raise IOError, "Land surface input file '%s' not found!"%(self.LndDir+lndfile)
     os.symlink(self.LndDir+lndfile,self.lndlnk)
     icefile = self.icepfx+datestr+self.ncext
     if self.yearlyfolders: icefile = '%04i/%s'%(date[0],icefile)
-    if os.path.exists(self.IceDir+icefile):
-      os.symlink(self.IceDir+icefile,self.icelnk)
-      print('\n '+mytag+' Processing time-step:  '+datestr+'\n    '+atmfile+'\n    '+lndfile+'\n    '+icefile)
-    else:
-      print('\n '+mytag+' Processing time-step:  '+datestr+'\n    '+atmfile+'\n    '+lndfile)
+    if not os.path.exists(self.IceDir+icefile): 
+      raise IOError, "Seaice input file '%s' not found!"%(self.IceDir+icefile)
+    os.symlink(self.IceDir+icefile,self.icelnk)
+    # print feedback
+    print('\n '+mytag+' Processing time-step:  '+datestr+'\n    '+atmfile+'\n    '+lndfile+'\n    '+icefile)
+    #else: print('\n '+mytag+' Processing time-step:  '+datestr+'\n    '+atmfile+'\n    '+lndfile)
     
     ##  convert data to intermediate files
     # run unccsm tool chain
