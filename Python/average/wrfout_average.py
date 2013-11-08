@@ -83,12 +83,13 @@ else: ldebug = False # operational mode
 
 # some debugging settings
 if ldebug:
-  NP = 4
-  ldebug = False
+  NP = 1
+  ldebug = True
   loverwrite = True
   filetypes = ['hydro']
-#   WRFroot = '/data/WRF/wrfout/'
-  WRFroot = '/media/tmp/'
+  domains = [2]
+  WRFroot = '/data/WRF/wrfout/'
+#   WRFroot = '/media/tmp/'
   exp = 'max-ctrl'
 #   exp = 'columbia'   
   infolder = WRFroot + exp + '/' # + '/wrfout/'
@@ -125,7 +126,6 @@ elif len(sys.argv) == 2:
   prdarg = sys.argv[1]
   period = prdarg.split('-') # regular expression identifying 
 else: raise ArgumentError
-# period = ['1979']
 # prdarg = '1980'; period = prdarg.split('-') # for tests
 # default time intervals
 yearstr = '\d\d\d\d'; monthstr = '\d\d'; daystr = '\d\d'  
@@ -169,8 +169,8 @@ midmap = None #dict(zip(dimmap.values(),dimmap.keys())) # reverse dimmap
 # accumulated variables (only total accumulation since simulation start, not, e.g., daily accumulated)
 acclist = dict(RAINNC=100,RAINC=100,RAINSH=None,SNOWNC=None,GRAUPELNC=None,SFCEVP=None,POTEVP=None, # srfc vars
                SFROFF=None,UDROFF=None,ACGRDFLX=None,ACSNOW=None,ACSNOM=None,ACHFX=None,ACLHF=None, # lsm vars
-               ACSWUPT=None,ACSWUPTC=None,ACSWDNT=None,ACSWDNTC=None,ACSWUPB=None,ACSWUPBC=None,ACSWDNB=None,ACSWDNBC=None, # rad vars
-               ACLWUPT=None,ACLWUPTC=None,ACLWDNT=None,ACLWDNTC=None,ACLWUPB=None,ACLWUPBC=None,ACLWDNB=None,ACLWDNBC=None) # rad vars
+               ACSWUPT=1.e9,ACSWUPTC=1.e9,ACSWDNT=1.e9,ACSWDNTC=1.e9,ACSWUPB=1.e9,ACSWUPBC=1.e9,ACSWDNB=1.e9,ACSWDNBC=1.e9, # rad vars
+               ACLWUPT=1.e9,ACLWUPTC=1.e9,ACLWDNT=1.e9,ACLWDNTC=1.e9,ACLWUPB=1.e9,ACLWUPBC=1.e9,ACLWDNB=1.e9,ACLWDNBC=1.e9) # rad vars
 # N.B.: keys = variables and values = bucket sizes; value = None or 0 means no bucket  
 bktpfx = 'I_' # prefix for bucket variables; these are processed together with their accumulated variables 
 
@@ -377,8 +377,10 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
     if lxtime: xtime = -1 * wrfout.variables[wrfxtime][wrfstartidx] # seconds
     else: xtime = str().join(wrfout.variables[wrftimestamp][wrfstartidx,:]) # datestring of format '%Y-%m-%d_%H:%M:%S'
     # clear temporary arrays
-    for var in varlist:
-      data[var] = np.zeros(data[var].shape) # clear/allocate
+    for varname,var in data.items(): # base variables
+      data[varname] = np.zeros(var.shape) # reset to zero
+    for dename,devar in dedata.items(): # derived variables
+      dedata[dename] = np.zeros(devar.shape) # reset to zero           
     
     ## loop over files and average
     while not lcomplete:
@@ -434,7 +436,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
               intmp = var.__getitem__(slices)
               if acclist[varname] is not None: # add bucket level, if applicable
                 bkt = wrfout.variables[bktpfx+varname]
-                intmp += bkt.__getitem__(slices) * acclist[varname]
+                intmp = intmp + bkt.__getitem__(slices) * acclist[varname]
               outtmp = np.zeros_like(intmp)
               diff = np.diff(intmp, n=1, axis=tax)
               if tax == 0:
@@ -475,7 +477,8 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
           if not devar.linear: # only non-linear ones here, linear one at the end
             logger.debug('\n{0:s}{1:s}, {2:s}'.format(pidstr, dename, str(devar.prerequisites)))
             tmp = devar.computeValues(pqdata) 
-            dedata[dename] += tmp.sum(axis=tax)
+            dedata[dename] = dedata[dename] + tmp.sum(axis=tax)
+            # N.B.: in-place operations with non-masked array destroy the mask, hence need to use this
             if dename in pqset: pqdata[dename] = tmp
             # N.B.: missing values should be handled implicitly, following missing values in pre-requisites            
           
@@ -539,11 +542,13 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
         if ncvar.ndim > 1: ncvar[meanidx,:] = vardata # here time is always the outermost index
         else: ncvar[meanidx] = vardata
       # compute derived variables
+      logger.debug('\n{0:s}   Derived Variable Stats: (mean/min/max)'.format(pidstr))
       for dename,devar in derived_vars.items():
         if devar.linear:           
           vardata = devar.computeValues(data) # compute derived variable now from averages
         else:
           vardata = dedata[dename] / ntime # no accumulated variables here!
+        logger.debug('{0:s} {1:s}, {2:f}, {3:f}, {4:f}'.format(pidstr,dename,vardata.mean(),vardata.min(),vardata.max()))
         data[dename] = vardata # add to data array, so that it can be used to compute linear variables
         # save variable
         ncvar = mean.variables[dename] # this time the destination variable
@@ -570,6 +575,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
 
 # now begin execution    
 if __name__ == '__main__':
+
 
   # print settings
   print('\nOVERWRITE: {0:s}\n'.format(str(loverwrite)))
