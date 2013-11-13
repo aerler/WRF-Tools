@@ -3,7 +3,7 @@
 
 ## queue/PBS settings
 #PBS -l nodes=1:ppn=8
-#PBS -l walltime=03:00:00
+#PBS -l walltime=01:00:00
 # merge standard error and output stream
 #PBS -j oe
 #PBS -o $PBS_JOBNAME.$PBS_JOBID.out
@@ -46,7 +46,12 @@ cd "${INIDIR}"
 echo
 if [[ -n "${PERIOD}" ]]; then
     time -p python "${SCRIPTDIR}/${PYAVG}" "${PERIOD}"
+    ERR=$? # capture exit code      
 else
     time -p python "${SCRIPTDIR}/${PYAVG}"
+    ERR=$? # capture exit code
 fi
 echo
+
+# exit with exit code from python script
+exit ${ERR}
