@@ -86,7 +86,7 @@ if ldebug:
   NP = 1
   ldebug = True
   loverwrite = True
-  filetypes = ['hydro']
+  filetypes = ['srfc']
   domains = [2]
   WRFroot = '/data/WRF/wrfout/'
 #   WRFroot = '/media/tmp/'
@@ -177,7 +177,7 @@ bktpfx = 'I_' # prefix for bucket variables; these are processed together with t
 # derived variables
 derived_variables = {filetype:[] for filetype in filetypes} # derived variable lists by file type
 derived_variables['hydro'] = [dv.Rain(), dv.LiquidPrecip(), dv.SolidPrecip(), dv.NetPrecip_Hydro(), dv.NetWaterFlux()]
-derived_variables['srfc'] = [dv.Rain(), dv.LiquidPrecip(), dv.SolidPrecip(), dv.NetPrecip_Srfc()]
+derived_variables['srfc'] = [dv.Rain(), dv.LiquidPrecip(), dv.SolidPrecip(), dv.NetPrecip_Srfc(), dv.WaterVapor()]
 derived_variables['lsm'] = [dv.RunOff()]
 # N.B.: it is important that the derived variables are listed in order of dependency! 
 # set of pre-requisites

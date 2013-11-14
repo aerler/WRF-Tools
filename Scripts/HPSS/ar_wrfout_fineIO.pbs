@@ -385,7 +385,14 @@ function PROCESSDATASET () {
       local MISC_D2="wrfhydro_d02_${DATESTR}_00:00:00.nc"
       local MISC_D3="wrfhydro_d03_${DATESTR}_00:00:00.nc"
       local MISC_D4="wrfhydro_d04_${DATESTR}_00:00:00.nc"
-    fi # HYDRO
+    fi # small diagnostic files: lsm, rad, hydro
+    # small files in misc 3D fields (retrieval only)
+    if [[ "${DATASET}" == 'MISCDIAG' ]] && [[ "${MODE}" == 'RETRIEVE' ]]; then
+      local MISC_D1="wrflsm_d01_${DATESTR}_00:00:00.nc wrfrad_d01_${DATESTR}_00:00:00.nc wrfhydro_d01_${DATESTR}_00:00:00.nc"
+      local MISC_D2="wrflsm_d02_${DATESTR}_00:00:00.nc wrfrad_d02_${DATESTR}_00:00:00.nc wrfhydro_d02_${DATESTR}_00:00:00.nc"
+      local MISC_D3="wrflsm_d03_${DATESTR}_00:00:00.nc wrfrad_d03_${DATESTR}_00:00:00.nc wrfhydro_d03_${DATESTR}_00:00:00.nc"
+      local MISC_D4="wrflsm_d04_${DATESTR}_00:00:00.nc wrfrad_d04_${DATESTR}_00:00:00.nc wrfhydro_d04_${DATESTR}_00:00:00.nc"
+    fi # MISCDIAG
     # return error if dataset not found
     if [[ -z "${FINAL}" ]] && [[ -z "${DIAGS}" ]] && [[ -z "${MISC_D1}" ]] && [[ -z "${MISC_D2}" ]] && [[ -z "${MISC_D3}" ]] && [[ -z "${MISC_D4}" ]] && [[ -z "${DYN_D1}" ]] && [[ -z "${DYN_D2}" ]] && [[ -z "${DYN_D3}" ]] && [[ -z "${DYN_D4}" ]]; then
       echo

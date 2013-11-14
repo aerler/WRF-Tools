@@ -208,3 +208,22 @@ class RunOff(DerivedVariable):
     super(RunOff,self).computeValues(wrfdata, const=None) # perform some type checks    
     outdata = wrfdata['SFROFF'] + wrfdata['UDROFF'] # compute
     return outdata
+
+
+class WaterVapor(DerivedVariable):
+  ''' DerivedVariable child implementing computation of water vapor partial pressure for WRF output. '''
+  
+  def __init__(self):
+    ''' Initialize with fixed values; constructor takes no arguments. '''
+    super(WaterVapor,self).__init__(name='WaterVapor', # name of the variable
+                              units='Pa', # not accumulated anymore! 
+                              prerequisites=['Q2', 'PSFC'], # it's the sum of these two 
+                              axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
+                              dtype='float', atts=None, linear=False)
+    self.Mratio = 28.96 / 18.02 # g/mol, Molecular mass ratio of dry air over water 
+
+  def computeValues(self, wrfdata, const=None):
+    ''' Compute total runoff as the sum of surface and underground runoff. '''
+    super(WaterVapor,self).computeValues(wrfdata, const=None) # perform some type checks    
+    outdata = wrfdata['Q2'] * wrfdata['PSFC'] * self.Mratio # compute
+    return outdata
