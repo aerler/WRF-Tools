@@ -24,7 +24,7 @@ echo
 date
 echo
 module purge
-module load intel/13.1.1 gcc/4.7.2 python/2.7.3 hdf5/187-v18-serial-intel netcdf/4.1.3_hdf5_serial-intel
+module load intel/13.1.1 gcc/4.8.1 python/2.7.3 hdf5/187-v18-serial-intel netcdf/4.1.3_hdf5_serial-intel
 module list
 echo
 
