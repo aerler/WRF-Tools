@@ -232,7 +232,9 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
   # open/create monthly mean output file
   filename = outputpattern.format(filetype,ndom)   
   meanfile = outfolder+filename
-  if loverwrite and not prdarg and os.path.exists(meanfile): os.remove(meanfile)
+  if os.path.exists(meanfile):
+    if (loverwrite and not prdarg) or os.path.getsize(meanfile) < 1e6: os.remove(meanfile)
+    # N.B.: NetCDF files smaller than 1MB are usually incomplete header fragments from a previous crashed
   if os.path.exists(meanfile):
     mean = nc.Dataset(meanfile, mode='a', format='NETCDF4') # open to append data (mode='a')
     # infer start index
