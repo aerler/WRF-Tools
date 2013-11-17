@@ -41,38 +41,38 @@ function WRITENML () {
     echo "&${NMLGRP}" >> 'TEMPFILE'
     # insert snippets
     for SNIP in ${SNIPPETS//,/ }; do
-				echo " ! --- ${SNIP} ---" >> 'TEMPFILE' # document origin of snippet
-				sed -e "${BEGIN}" -e "${END}" "${NMLDIR}/${NMLGRP}/${NMLGRP}.${SNIP}" | cat - >> 'TEMPFILE'
+        echo " ! --- ${SNIP} ---" >> 'TEMPFILE' # document origin of snippet
+        sed -e "${BEGIN}" -e "${END}" "${NMLDIR}/${NMLGRP}/${NMLGRP}.${SNIP}" | cat - >> 'TEMPFILE'
     done
     # apply modifications
     while [[ -n "${MODLIST}" ]] && [[ "${MODLIST}" != "${TOKEN}" ]]
       do
-				TOKEN="${MODLIST%%:*}" # read first token (cut off all others)
-				MODLIST="${MODLIST#*:}" # cut off first token and save
-				NAME=$( echo ${TOKEN%%=*} | xargs ) # cut off everything after '=' and trim spaces
-				MSG='this namelist entry has been edited by the setup script'
-			  if [[ -n $( grep ${NAME} 'TMPFILE' ) ]]
-					  do sed -i "/${NAME}/ s/^\s*${NAME}\s*=\s*.*$/${TOKEN} ! ${MSG}/" 'TEMPFILE'
-				    else echo "${TOKEN} ! ${MSG}"  >> 'TEMPFILE' # jsut append, if not already present
-			  fi 
-# 	echo "${TOKEN}"
-# 	echo "${MODLIST}"
-# 	echo "${NAME}"
+        TOKEN="${MODLIST%%:*}" # read first token (cut off all others)
+        MODLIST="${MODLIST#*:}" # cut off first token and save
+        NAME=$( echo ${TOKEN%%=*} | xargs ) # cut off everything after '=' and trim spaces
+        MSG='this namelist entry has been edited by the setup script'
+        if [[ -n $( grep "${NAME}" 'TEMPFILE' ) ]]
+            then sed -i "/${NAME}/ s/^\s*${NAME}\s*=\s*.*$/${TOKEN} ! ${MSG}/" 'TEMPFILE'
+            else echo "${TOKEN} ! ${MSG}"  >> 'TEMPFILE' # just append, if not already present
+        fi 
+#   echo "${TOKEN}"
+#   echo "${MODLIST}"
+#   echo "${NAME}"
     done # while $MODLIST
     # close namelist group
     echo '/' >> 'TEMPFILE'; echo '' >> 'TEMPFILE'
     # append namelist group
     cat 'TEMPFILE' >> "${FILENAME}"
     rm 'TEMPFILE'
-}
+} # fct. WRITENML
 
 # write preamble
 function WRITEPREAMBLE () {
-		DATE=$( date )
-		echo "! This file was automatically generated on $DATE" >> "${1}"
-		echo "! The namelist snippets from which this file was concatenated, can be found in" >> "${1}"
-		echo "! ${NMLDIR}" >> "${1}"
-		echo '' >> "${1}"
+    DATE=$( date )
+    echo "! This file was automatically generated on $DATE" >> "${1}"
+    echo "! The namelist snippets from which this file was concatenated, can be found in" >> "${1}"
+    echo "! ${NMLDIR}" >> "${1}"
+    echo '' >> "${1}"
 }
 
 ## assemble WRF namelist

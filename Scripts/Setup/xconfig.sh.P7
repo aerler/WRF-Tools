@@ -1,7 +1,7 @@
 #!/bin/bash
 WRFTOOLS="${MODEL_ROOT}/WRF Tools/"
 ## scenario definition section
-NAME='test'
+NAME='max-nmp'
 # GHG emission scenario
 GHG='RCP8.5' # CAMtr_volume_mixing_ratio.* file to be used
 # time period and cycling interval
@@ -18,8 +18,9 @@ DOM='arb2-30km'
 # WRF
 TIME_CONTROL="cycling,$IO"
 DIAGS='hitop'
-PHYSICS='clim'
-NOAH_MP=''
+PHYSICS='clim-max'
+PHYSICS_MOD='sf_surface_physics = 4, 4, 4,'
+NOAH_MP='new'
 DOMAINS="cesm-30km,${DOM}-grid"
 FDDA='spectral'
 DYNAMICS='default'
@@ -49,5 +50,5 @@ WPSSYS="GPC" # also affects unccsm.exe
 # WRF executable (see WRFSRC)
 POLARWRF=0 # use PolarWRF
 FLAKE=1 # use FLake
-WRFSYS="P7"
+WRFSYS="TCS"
 # set path for geogrid.exe and wrf.exe eplicitly using GEOEXE and WRFEXE
