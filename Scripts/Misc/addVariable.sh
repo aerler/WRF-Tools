@@ -7,13 +7,26 @@
 module list
 
 # settings
-VARNM='SR' # variable to be transferred
-DIM='Time,,,4' # dimension/hyperslab argument (only record dim supports stride)
 SRCDIR="${PWD}/wrfout/"
-SRCPFX='wrfsrfc'
-DSTDIR="${PWD}/wrftmp/"
-DSTPFX='wrfhydro'
+DSTDIR="${PWD}/wrfout/"
 NCSFX='.nc'
+# variable specific settings
+VARNM="$1" # passed as argument
+# VARNM='ACSNOW'|'SR' # variable to be transferred
+if [[ "${VARNM}" == 'SR' ]]; then
+	DIM='Time,,,4' # dimension/hyperslab argument (only record dim supports stride)
+	SRCPFX='wrfsrfc'
+	DSTPFX='wrfhydro'
+elif [[ "${VARNM}" == 'ACSNOW' ]]; then
+	DIM='' # same time intervall
+	SRCPFX='wrflsm'
+	DSTPFX='wrfhydro'
+else
+  echo
+  echo "No Settings found for Variable ${VARNM} - aborting!"
+  echo
+  exit 1
+fi # if $VARNM
 
 # prepare
 echo
@@ -33,9 +46,13 @@ for SRC in ${SRCPFX}*${NCSFX}
     if [[ -e "${DST}" ]] && [[ -z $(ncdump -h "${DST}" | grep "${VARNM}(") ]]
       then
  	#echo cp "${DST}" "${DSTDIR}/${DST}"
-	cp "${DST}" "${DSTDIR}/${DST}"
+	if [[ "${SRCDIR}" != "${DSTDIR}" ]]
+	  then cp "${DST}" "${DSTDIR}/${DST}"; fi
  	#echo ncks -aA -d "${DIM}" -v "${VARNM}" "${SRC}" "${DSTDIR}/${DST}"
-	ncks -aA -d "${DIM}" -v "${VARNM}" "${SRC}" "${DSTDIR}/${DST}"
+  if [[ -n "${DIM}" ]]; 
+    then ncks -aA -d "${DIM}" -v "${VARNM}" "${SRC}" "${DSTDIR}/${DST}" # potentially different time spacing
+    else  ncks -aA -v "${VARNM}" "${SRC}" "${DSTDIR}/${DST}" # same time spacing
+  fi # if $DIM
 	# check exit code
 	if [[ $? == 0 ]] && [[ -n $(ncdump -h "${DSTDIR}/${DST}" | grep "${VARNM}(") ]]
 	  then echo " ...wrote ${DST} successfully"
