@@ -150,8 +150,6 @@ if len(period) >= 3:
 
 
 ## definitions
-liniout = True # indicates that the initialization/restart timestep is written to wrfout;
-# this means that the last timestep of the previous file is the same as the first of the next 
 # input files and folders
 filetypes = filetypes or ['srfc', 'plev3d', 'xtrm', 'hydro', 'lsm', 'rad']
 domains = domains or [1,2,3,4] 
@@ -192,7 +190,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
   ''' This function is doing the main work, and is supposed to be run in a multiprocessing environment. '''  
   
   ## setup files and folders
-  
+
   # derived variable list
   derived_vars = OrderedDict() # it is important that the derived variables are computed in order:
   # the reason is that derived variables can depend on other derived variables, and the order in 
@@ -336,10 +334,16 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
   if lparallel: progressstr = '' # a string printing the processed dates
   else: logger.info('\n Processed dates:')
   
+
   try:
     
     # loop over month and progressively stepping through input files
     for n,t in enumerate(times):
+     
+      liniout = True # determines whether last timestep is the same as first time step in next file
+      # N.B.: when moving to the next file, the script auto-detects and resets this property, no need to change here!
+      #       However (!) it is necessary to reset this for every month, because it is not consistent!
+
       # extend time array / month counter
       meanidx = i0 + n
       # check if we are overwriting existing data
@@ -465,7 +469,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
               if varname in pqset: pqdata[varname] = tmp
           ## compute derived variables
           # But first, normalize accumulated pqdata
-          if laccpq:
+          if laccpq and ( wrfendidx > wrfstartidx ):
             if lxtime:
               delta = wrfout.variables[wrfxtime][wrfendidx] - wrfout.variables[wrfxtime][wrfstartidx]
               delta *=  60. # convert minutes to seconds   
@@ -477,6 +481,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
             # loop over time-step data
             for pqname,pqvar in pqdata.items():
               if pqname in acclist: pqvar /= delta # normalize
+	    # N.B.: if wrfendidx == wrfstartidx, just use previous values...
           # loop over derived variables
           logger.debug('\n{0:s} Available prerequisites: {1:s}'.format(pidstr, str(pqdata.keys())))
           for dename,devar in derived_vars.items():
@@ -500,7 +505,11 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
               xtime = (dt2-dt1).total_seconds() # the difference creates a timedelta object
               # N.B.: the datetime module always includes leapdays; the code below is to remove leap days
               #       in order to correctly handle model calendars that don't have leap days
-              yyyy, mm, dd = str().join(wrfout.variables[wrftimestamp][wrfendidx-1,0:10]).split('-')
+              if liniout:
+                assert wrfendidx > 0
+                yyyy, mm, dd = str().join(wrfout.variables[wrftimestamp][wrfendidx-1,0:10]).split('-')
+              else:
+                yyyy, mm, dd = lasttimestamp[0:10].split('-') # gets set below, when moving to the next file
               # also a bit of sanity checking...
               assert yyyy == '{0:04d}'.format(currentyear) and mm == '{0:02d}'.format(currentmonth)
               if calendar.isleap(currentyear) and currentmonth==2:
@@ -508,21 +517,28 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
                   xtime -= 86400. # subtract leap day for calendars without leap day
                   logger.info('\n{0:s} Correcting time interval for {1:s}: current calendar does not have leap-days.'.format(pidstr,currentdate))
                 else: assert dd == '29' # if there is a leap day
-              else: 
-                assert dd == '{0:02d}'.format(days_per_month_365[currentmonth-1]) # if there is no leap day
+              else:
+                dpm = '{0:02d}'.format(days_per_month_365[currentmonth-1])
+                assert dd == dpm, '{0:s}-{1:s}-{2:s}: {2:s} != {3:s}'.format(yyyy,mm,dd,dpm)  # if there is no leap day
              
         # two possible ends: month is done or reached end of file
         # if we reached the end of the file, open a new one and go again
         if not lcomplete:            
+	  lasttimestamp = str().join(wrfout.variables[wrftimestamp][wrfendidx,:]) # needed to determine, if first timestep is the same as last
           wrfout.close() # close file...
           # N.B.: filecounter +1 < len(filelist) is already checked above 
           filecounter += 1 # move to next file
           wrfout = nc.Dataset(infolder+filelist[filecounter], 'r', format='NETCDF4') # ... and open new one
+	  firsttimestamp = str().join(wrfout.variables[wrftimestamp][0,:]) # check first timestep (compare to last of previous file)
           if missing_value is not None:
             assert missing_value == wrfout.P_LEV_MISSING
           # reset output record / time step counter
-          if liniout: wrfstartidx = 1 # skip the initialization step (same as last step in previous file)
-          else: wrfstartidx = 0
+          if firsttimestamp == lasttimestamp: 
+            wrfstartidx = 1 # skip the initialization step (same as last step in previous file)
+            liniout = True # needed later to detect leapdays
+	  else: 
+            wrfstartidx = 0 # no duplicates: first timestep in next file was not present in previous file
+            liniout = False # needed later to detect leapdays
         else: # month complete
           if wrfendidx == len(wrfout.dimensions[wrftime])-1: # at the end
             wrfout.close() # close file...
