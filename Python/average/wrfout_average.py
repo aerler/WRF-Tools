@@ -86,7 +86,7 @@ if ldebug:
   NP = 1
   ldebug = True
   loverwrite = True
-  filetypes = ['srfc']
+  filetypes = ['hydro']
   domains = [2]
   WRFroot = '/data/WRF/wrfout/'
 #   WRFroot = '/media/tmp/'
@@ -126,7 +126,7 @@ elif len(sys.argv) == 2:
   prdarg = sys.argv[1]
   period = prdarg.split('-') # regular expression identifying 
 else: raise ArgumentError
-# prdarg = '1980'; period = prdarg.split('-') # for tests
+# prdarg = '1979'; period = prdarg.split('-') # for tests
 # default time intervals
 yearstr = '\d\d\d\d'; monthstr = '\d\d'; daystr = '\d\d'  
 # figure out time interval
@@ -176,8 +176,9 @@ bktpfx = 'I_' # prefix for bucket variables; these are processed together with t
 
 # derived variables
 derived_variables = {filetype:[] for filetype in filetypes} # derived variable lists by file type
-derived_variables['hydro'] = [dv.Rain(), dv.LiquidPrecip(), dv.SolidPrecip(), dv.NetPrecip_Hydro(), dv.NetWaterFlux()]
-derived_variables['srfc'] = [dv.Rain(), dv.LiquidPrecip(), dv.SolidPrecip(), dv.NetPrecip_Srfc(), dv.WaterVapor()]
+derived_variables['hydro'] = [dv.Rain(), dv.LiquidPrecip(), dv.SolidPrecip(),                            
+                              dv.NetPrecip_Hydro(), dv.NetWaterFlux()]
+derived_variables['srfc'] = [dv.Rain(), dv.LiquidPrecipSR(), dv.SolidPrecipSR(), dv.NetPrecip_Srfc(), dv.WaterVapor()]
 derived_variables['lsm'] = [dv.RunOff()]
 # N.B.: it is important that the derived variables are listed in order of dependency! 
 # set of pre-requisites
@@ -233,7 +234,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
   filename = outputpattern.format(filetype,ndom)   
   meanfile = outfolder+filename
   if os.path.exists(meanfile):
-    if (loverwrite and not prdarg) or os.path.getsize(meanfile) < 1e6: os.remove(meanfile)
+    if loverwrite or os.path.getsize(meanfile) < 1e6: os.remove(meanfile)
     # N.B.: NetCDF files smaller than 1MB are usually incomplete header fragments from a previous crashed
   if os.path.exists(meanfile):
     mean = nc.Dataset(meanfile, mode='a', format='NETCDF4') # open to append data (mode='a')
@@ -335,235 +336,252 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
   if lparallel: progressstr = '' # a string printing the processed dates
   else: logger.info('\n Processed dates:')
   
-  # loop over month and progressively stepping through input files
-  for n,t in enumerate(times):
-    # extend time array / month counter
-    meanidx = i0 + n
-    # check if we are overwriting existing data
-    if meanidx == len(mean.variables[time]): 
-      lskip = False # append next data point / time step
-    elif loverwrite: 
-      assert meanidx < len(mean.variables[time])
-      lskip = False # overwrite this step
-    else: 
-      assert meanidx < len(mean.variables[time])
-      lskip = True # skip this step, but we still have to verify the timing
-    mean.variables[time][meanidx] = t # month since simulation start 
-    # current date
-    currentyear, currentmonth = divmod(n+beginmonth-1,12)
-    currentyear += beginyear; currentmonth +=1 
-    # sanity checks
-    assert meanidx + 1 == mean.variables[time][meanidx]  
-    currentdate = '{0:04d}-{1:02d}'.format(currentyear,currentmonth)
-    # determine appropriate start index
-    wrfstartidx = 0    
-    while currentdate > str().join(wrfout.variables[wrftimestamp][wrfstartidx,0:7]):
-      wrfstartidx += 1 # count forward
-    # save WRF time-stamp for beginning of month straight to the new file, for record
-    mean.variables[wrftimestamp][meanidx,:] = wrfout.variables[wrftimestamp][wrfstartidx,:] 
-    # print feedback (the current month)
-    if not lskip: # but not if we are skipping this step...
-      if lparallel: progressstr += '{0:s}, '.format(currentdate) # bundle output in parallel mode
-      else: logger.info('{0:s},'.format(currentdate)) # serial mode
-    logger.debug('\n{0:s}{1:s}-01_00:00:00, {2:s}'.format(pidstr, currentdate, str().join(wrfout.variables[wrftimestamp][wrfstartidx,:])))
-    if '{0:s}-01_00:00:00'.format(currentdate,) == str().join(wrfout.variables[wrftimestamp][wrfstartidx,:]): pass # proper start of the month
-    elif '{0:s}-01_06:00:00'.format(currentdate,) == str().join(wrfout.variables[wrftimestamp][wrfstartidx,:]): pass # for some reanalysis...
-    else: raise DateError, ("{0:s} Did not find first day of month to compute monthly average.".format(pidstr) +
-                            "file: {0:s} date: {1:s}-01_00:00:00".format(filename,currentdate))
+  try:
     
-    # prepare summation of output time steps
-    lcomplete = False # 
-    ntime = 0 # accumulated output time steps     
-    # time when accumulation starts (in minutes)        
-    # N.B.: the first value is saved as negative, so that adding the last value yields a positive interval
-    if lxtime: xtime = -1 * wrfout.variables[wrfxtime][wrfstartidx] # seconds
-    else: xtime = str().join(wrfout.variables[wrftimestamp][wrfstartidx,:]) # datestring of format '%Y-%m-%d_%H:%M:%S'
-    # clear temporary arrays
-    for varname,var in data.items(): # base variables
-      data[varname] = np.zeros(var.shape) # reset to zero
-    for dename,devar in dedata.items(): # derived variables
-      dedata[dename] = np.zeros(devar.shape) # reset to zero           
-    
-    ## loop over files and average
-    while not lcomplete:
+    # loop over month and progressively stepping through input files
+    for n,t in enumerate(times):
+      # extend time array / month counter
+      meanidx = i0 + n
+      # check if we are overwriting existing data
+      if meanidx == len(mean.variables[time]): 
+        lskip = False # append next data point / time step
+      elif loverwrite: 
+        assert meanidx < len(mean.variables[time])
+        lskip = False # overwrite this step
+      else: 
+        assert meanidx < len(mean.variables[time])
+        lskip = True # skip this step, but we still have to verify the timing
+      meantime = t # month since simulation start
+      # N.B.: writing records is delayed to avoid incomplete records in case of a crash
+      # current date
+      currentyear, currentmonth = divmod(n+beginmonth-1,12)
+      currentyear += beginyear; currentmonth +=1 
+      # sanity checks
+      assert meanidx + 1 == meantime  
+      currentdate = '{0:04d}-{1:02d}'.format(currentyear,currentmonth)
+      # determine appropriate start index
+      wrfstartidx = 0    
+      while currentdate > str().join(wrfout.variables[wrftimestamp][wrfstartidx,0:7]):
+        wrfstartidx += 1 # count forward
+      # save WRF time-stamp for beginning of month for the new file, for record
+      starttimestamp = wrfout.variables[wrftimestamp][wrfstartidx,:] # written to file later
+      # print feedback (the current month)
+      if not lskip: # but not if we are skipping this step...
+        if lparallel: progressstr += '{0:s}, '.format(currentdate) # bundle output in parallel mode
+        else: logger.info('{0:s},'.format(currentdate)) # serial mode
+      logger.debug('\n{0:s}{1:s}-01_00:00:00, {2:s}'.format(pidstr, currentdate, str().join(wrfout.variables[wrftimestamp][wrfstartidx,:])))
+      if '{0:s}-01_00:00:00'.format(currentdate,) == str().join(wrfout.variables[wrftimestamp][wrfstartidx,:]): pass # proper start of the month
+      elif '{0:s}-01_06:00:00'.format(currentdate,) == str().join(wrfout.variables[wrftimestamp][wrfstartidx,:]): pass # for some reanalysis...
+      else: raise DateError, ("{0:s} Did not find first day of month to compute monthly average.".format(pidstr) +
+                              "file: {0:s} date: {1:s}-01_00:00:00".format(filename,currentdate))
       
-      # determine valid end index by checking dates from the end counting backwards
-      # N.B.: start index is determined above (if a new file was opened in the same month, 
-      #       the start index is automatically set to 0 or 1 when the file is opened, below)
-      wrfendidx = len(wrfout.dimensions[wrftime])-1
-      while wrfendidx >= 0 and currentdate < str().join(wrfout.variables[wrftimestamp][wrfendidx,0:7]):
-        if not lcomplete: lcomplete = True # break loop over file if next month is in this file (critical!)        
-        wrfendidx -= 1 # count backwards
-      if wrfendidx < len(wrfout.dimensions[wrftime])-1: # check if count-down actually happened 
-        wrfendidx += 1 # reverse last step so that counter sits at fist step of next month       
-      # N.B.: if this is not the last file, there was no iteration and wrfendidx is the length of the the file;
-      # if the first date in the file is already the next month, wrfendidx will be 0 and this is the final step 
-      assert wrfendidx >= wrfstartidx
-      # if this is the last file and the month is not complete, we have to forcefully terminate
-      if filecounter == len(filelist)-1 and not lcomplete: 
-        lcomplete = True # end loop
-        lskip = True # don't write results for this month!
-
-      if not lskip:
-        ## compute monthly averages
-        for varname in varlist:
-          logger.debug('{0:s} {1:s}'.format(pidstr,varname))
-          var = wrfout.variables[varname]
-          tax = var.dimensions.index(wrftime) # index of time axis
-          slices = [slice(None)]*len(var.shape) 
-          # decide how to average
-          if varname in acclist: # accumulated variables
-            if missing_value is not None: 
-              raise NotImplementedError, "Can't handle accumulated variables with missing values yet."
-            # compute mean as difference between end points; normalize by time difference
-            if ntime == 0: # first time step of the month
-              slices[tax] = wrfstartidx # relevant time interval
-              tmp = var.__getitem__(slices)
-              if acclist[varname] is not None: # add bucket level, if applicable
-                bkt = wrfout.variables[bktpfx+varname]
-                tmp += bkt.__getitem__(slices) * acclist[varname]   
-              data[varname] = -1 * tmp # so we can do an in-place operation later 
-            # N.B.: both, begin and end, can be in the same file, hence elif is not appropriate! 
-            if lcomplete: # last step
-              slices[tax] = wrfendidx # relevant time interval
-              tmp = var.__getitem__(slices)
-              if acclist[varname] is not None: # add bucket level, if applicable 
-                bkt = wrfout.variables[bktpfx+varname]
-                tmp += bkt.__getitem__(slices) * acclist[varname]   
-              data[varname] +=  tmp # the starting data is already negative
-            # if variable is a prerequisit to others, compute instantaneous values
-            if varname in pqset:
+      # prepare summation of output time steps
+      lcomplete = False # 
+      ntime = 0 # accumulated output time steps     
+      # time when accumulation starts (in minutes)        
+      # N.B.: the first value is saved as negative, so that adding the last value yields a positive interval
+      if lxtime: xtime = -1 * wrfout.variables[wrfxtime][wrfstartidx] # seconds
+      else: xtime = str().join(wrfout.variables[wrftimestamp][wrfstartidx,:]) # datestring of format '%Y-%m-%d_%H:%M:%S'
+      # clear temporary arrays
+      for varname,var in data.items(): # base variables
+        data[varname] = np.zeros(var.shape) # reset to zero
+      for dename,devar in dedata.items(): # derived variables
+        dedata[dename] = np.zeros(devar.shape) # reset to zero           
+      
+      ## loop over files and average
+      while not lcomplete:
+        
+        # determine valid end index by checking dates from the end counting backwards
+        # N.B.: start index is determined above (if a new file was opened in the same month, 
+        #       the start index is automatically set to 0 or 1 when the file is opened, below)
+        wrfendidx = len(wrfout.dimensions[wrftime])-1
+        while wrfendidx >= 0 and currentdate < str().join(wrfout.variables[wrftimestamp][wrfendidx,0:7]):
+          if not lcomplete: lcomplete = True # break loop over file if next month is in this file (critical!)        
+          wrfendidx -= 1 # count backwards
+        if wrfendidx < len(wrfout.dimensions[wrftime])-1: # check if count-down actually happened 
+          wrfendidx += 1 # reverse last step so that counter sits at fist step of next month       
+        # N.B.: if this is not the last file, there was no iteration and wrfendidx is the length of the the file;
+        # if the first date in the file is already the next month, wrfendidx will be 0 and this is the final step 
+        assert wrfendidx >= wrfstartidx
+        # if this is the last file and the month is not complete, we have to forcefully terminate
+        if filecounter == len(filelist)-1 and not lcomplete: 
+          lcomplete = True # end loop
+          lskip = True # don't write results for this month!
+  
+        if not lskip:
+          ## compute monthly averages
+          for varname in varlist:
+            logger.debug('{0:s} {1:s}'.format(pidstr,varname))
+            var = wrfout.variables[varname]
+            tax = var.dimensions.index(wrftime) # index of time axis
+            slices = [slice(None)]*len(var.shape) 
+            # decide how to average
+            if varname in acclist: # accumulated variables
+              if missing_value is not None: 
+                raise NotImplementedError, "Can't handle accumulated variables with missing values yet."
+              # compute mean as difference between end points; normalize by time difference
+              if ntime == 0: # first time step of the month
+                slices[tax] = wrfstartidx # relevant time interval
+                tmp = var.__getitem__(slices)
+                if acclist[varname] is not None: # add bucket level, if applicable
+                  bkt = wrfout.variables[bktpfx+varname]
+                  tmp += bkt.__getitem__(slices) * acclist[varname]   
+                data[varname] = -1 * tmp # so we can do an in-place operation later 
+              # N.B.: both, begin and end, can be in the same file, hence elif is not appropriate! 
+              if lcomplete: # last step
+                slices[tax] = wrfendidx # relevant time interval
+                tmp = var.__getitem__(slices)
+                if acclist[varname] is not None: # add bucket level, if applicable 
+                  bkt = wrfout.variables[bktpfx+varname]
+                  tmp += bkt.__getitem__(slices) * acclist[varname]   
+                data[varname] +=  tmp # the starting data is already negative
+              # if variable is a prerequisit to others, compute instantaneous values
+              if varname in pqset:
+                # compute mean via sum over all elements; normalize by number of time steps
+                slices[tax] = slice(wrfstartidx,wrfendidx) # relevant time interval
+                intmp = var.__getitem__(slices)
+                if acclist[varname] is not None: # add bucket level, if applicable
+                  bkt = wrfout.variables[bktpfx+varname]
+                  intmp = intmp + bkt.__getitem__(slices) * acclist[varname]
+                outtmp = np.zeros_like(intmp)
+                diff = np.diff(intmp, n=1, axis=tax)
+                if tax == 0:
+                  # compute centered differences, except at the edges, where forward/backward difference are used
+                  outtmp[0:-1,:] += diff; outtmp[1:,:] += diff; outtmp[1:-1,:] /= 2
+                else: raise NotImplementedError  
+                pqdata[varname] = outtmp
+            elif varname[0:len(bktpfx)] == bktpfx: pass # do not process buckets
+            else: # normal variables
               # compute mean via sum over all elements; normalize by number of time steps
               slices[tax] = slice(wrfstartidx,wrfendidx) # relevant time interval
-              intmp = var.__getitem__(slices)
-              if acclist[varname] is not None: # add bucket level, if applicable
-                bkt = wrfout.variables[bktpfx+varname]
-                intmp = intmp + bkt.__getitem__(slices) * acclist[varname]
-              outtmp = np.zeros_like(intmp)
-              diff = np.diff(intmp, n=1, axis=tax)
-              if tax == 0:
-                # compute centered differences, except at the edges, where forward/backward difference are used
-                outtmp[0:-1,:] += diff; outtmp[1:,:] += diff; outtmp[1:-1,:] /= 2
-              else: raise NotImplementedError  
-              pqdata[varname] = outtmp
-          elif varname[0:len(bktpfx)] == bktpfx: pass # do not process buckets
-          else: # normal variables
-            # compute mean via sum over all elements; normalize by number of time steps
-            slices[tax] = slice(wrfstartidx,wrfendidx) # relevant time interval
-            tmp = var.__getitem__(slices) # get array
-            if missing_value is not None:
-              # N.B.: missing value handling is really only necessary when missing values time-dependent
-              tmp = np.where(tmp == missing_value, np.NaN, tmp) # set missing values to NaN
-              #tmp = ma.masked_equal(tmp, missing_value, copy=False) # mask missing values
-            data[varname] = data[varname] + tmp.sum(axis=tax) # add to sum
-            # N.B.: in-place operations with non-masked array destroy the mask, hence need to use this
-            # keep data in memory if used in computation of derived variables
-            if varname in pqset: pqdata[varname] = tmp
-        ## compute derived variables
-        # But first, normalize accumulated pqdata
-        if laccpq:
-          if lxtime:
-            delta = wrfout.variables[wrfxtime][wrfendidx] - wrfout.variables[wrfxtime][wrfstartidx]
-            delta *=  60. # convert minutes to seconds   
-          else: 
-            dt1 = datetime.strptime(str().join(wrfout.variables[wrftimestamp][wrfstartidx,:]), '%Y-%m-%d_%H:%M:%S')
-            dt2 = datetime.strptime(str().join(wrfout.variables[wrftimestamp][wrfendidx,:]), '%Y-%m-%d_%H:%M:%S')
-            delta = (dt2-dt1).total_seconds() # the difference creates a timedelta object
-          delta /=  (wrfendidx - wrfstartidx)
-          # loop over time-step data
-          for pqname,pqvar in pqdata.items():
-            if pqname in acclist: pqvar /= delta # normalize
-        # loop over derived variables
-        logger.debug('\n{0:s} Available prerequisites: {1:s}'.format(pidstr, str(pqdata.keys())))
-        for dename,devar in derived_vars.items():
-          if not devar.linear: # only non-linear ones here, linear one at the end
-            logger.debug('\n{0:s}{1:s}, {2:s}'.format(pidstr, dename, str(devar.prerequisites)))
-            tmp = devar.computeValues(pqdata) 
-            dedata[dename] = dedata[dename] + tmp.sum(axis=tax)
-            # N.B.: in-place operations with non-masked array destroy the mask, hence need to use this
-            if dename in pqset: pqdata[dename] = tmp
-            # N.B.: missing values should be handled implicitly, following missing values in pre-requisites            
-          
-        # increment counters
-        ntime += wrfendidx - wrfstartidx
-        if lcomplete: 
-          if lxtime:
-            xtime += wrfout.variables[wrfxtime][wrfendidx] # get final time interval (in minutes)
-            xtime *=  60. # convert minutes to seconds   
-          else: 
-            dt1 = datetime.strptime(xtime, '%Y-%m-%d_%H:%M:%S')
-            dt2 = datetime.strptime(str().join(wrfout.variables[wrftimestamp][wrfendidx,:]), '%Y-%m-%d_%H:%M:%S')
-            xtime = (dt2-dt1).total_seconds() # the difference creates a timedelta object
-            # N.B.: the datetime module always includes leapdays; the code below is to remove leap days
-            #       in order to correctly handle model calendars that don't have leap days
-            yyyy, mm, dd = str().join(wrfout.variables[wrftimestamp][wrfendidx-1,0:10]).split('-')
-            # also a bit of sanity checking...
-            assert yyyy == '{0:04d}'.format(currentyear) and mm == '{0:02d}'.format(currentmonth)
-            if calendar.isleap(currentyear) and currentmonth==2:
-              if dd == '28':
-                xtime -= 86400. # subtract leap day for calendars without leap day
-                logger.info('\n{0:s} Correcting time interval for {1:s}: current calendar does not have leap-days.'.format(pidstr,currentdate))
-              else: assert dd == '29' # if there is a leap day
+              tmp = var.__getitem__(slices) # get array
+              if missing_value is not None:
+                # N.B.: missing value handling is really only necessary when missing values time-dependent
+                tmp = np.where(tmp == missing_value, np.NaN, tmp) # set missing values to NaN
+                #tmp = ma.masked_equal(tmp, missing_value, copy=False) # mask missing values
+              data[varname] = data[varname] + tmp.sum(axis=tax) # add to sum
+              # N.B.: in-place operations with non-masked array destroy the mask, hence need to use this
+              # keep data in memory if used in computation of derived variables
+              if varname in pqset: pqdata[varname] = tmp
+          ## compute derived variables
+          # But first, normalize accumulated pqdata
+          if laccpq:
+            if lxtime:
+              delta = wrfout.variables[wrfxtime][wrfendidx] - wrfout.variables[wrfxtime][wrfstartidx]
+              delta *=  60. # convert minutes to seconds   
             else: 
-              assert dd == '{0:02d}'.format(days_per_month_365[currentmonth-1]) # if there is no leap day
-           
-      # two possible ends: month is done or reached end of file
-      # if we reached the end of the file, open a new one and go again
-      if not lcomplete:            
-        wrfout.close() # close file...
-        # N.B.: filecounter +1 < len(filelist) is already checked above 
-        filecounter += 1 # move to next file
-        wrfout = nc.Dataset(infolder+filelist[filecounter], 'r', format='NETCDF4') # ... and open new one
-        if missing_value is not None:
-          assert missing_value == wrfout.P_LEV_MISSING
-        # reset output record / time step counter
-        if liniout: wrfstartidx = 1 # skip the initialization step (same as last step in previous file)
-        else: wrfstartidx = 0
-      else: # month complete
-        if wrfendidx == len(wrfout.dimensions[wrftime])-1: # at the end
+              dt1 = datetime.strptime(str().join(wrfout.variables[wrftimestamp][wrfstartidx,:]), '%Y-%m-%d_%H:%M:%S')
+              dt2 = datetime.strptime(str().join(wrfout.variables[wrftimestamp][wrfendidx,:]), '%Y-%m-%d_%H:%M:%S')
+              delta = (dt2-dt1).total_seconds() # the difference creates a timedelta object
+            delta /=  (wrfendidx - wrfstartidx)
+            # loop over time-step data
+            for pqname,pqvar in pqdata.items():
+              if pqname in acclist: pqvar /= delta # normalize
+          # loop over derived variables
+          logger.debug('\n{0:s} Available prerequisites: {1:s}'.format(pidstr, str(pqdata.keys())))
+          for dename,devar in derived_vars.items():
+            if not devar.linear: # only non-linear ones here, linear one at the end
+              logger.debug('\n{0:s}{1:s}, {2:s}'.format(pidstr, dename, str(devar.prerequisites)))
+              tmp = devar.computeValues(pqdata) 
+              dedata[dename] = dedata[dename] + tmp.sum(axis=tax)
+              # N.B.: in-place operations with non-masked array destroy the mask, hence need to use this
+              if dename in pqset: pqdata[dename] = tmp
+              # N.B.: missing values should be handled implicitly, following missing values in pre-requisites            
+            
+          # increment counters
+          ntime += wrfendidx - wrfstartidx
+          if lcomplete: 
+            if lxtime:
+              xtime += wrfout.variables[wrfxtime][wrfendidx] # get final time interval (in minutes)
+              xtime *=  60. # convert minutes to seconds   
+            else: 
+              dt1 = datetime.strptime(xtime, '%Y-%m-%d_%H:%M:%S')
+              dt2 = datetime.strptime(str().join(wrfout.variables[wrftimestamp][wrfendidx,:]), '%Y-%m-%d_%H:%M:%S')
+              xtime = (dt2-dt1).total_seconds() # the difference creates a timedelta object
+              # N.B.: the datetime module always includes leapdays; the code below is to remove leap days
+              #       in order to correctly handle model calendars that don't have leap days
+              yyyy, mm, dd = str().join(wrfout.variables[wrftimestamp][wrfendidx-1,0:10]).split('-')
+              # also a bit of sanity checking...
+              assert yyyy == '{0:04d}'.format(currentyear) and mm == '{0:02d}'.format(currentmonth)
+              if calendar.isleap(currentyear) and currentmonth==2:
+                if dd == '28':
+                  xtime -= 86400. # subtract leap day for calendars without leap day
+                  logger.info('\n{0:s} Correcting time interval for {1:s}: current calendar does not have leap-days.'.format(pidstr,currentdate))
+                else: assert dd == '29' # if there is a leap day
+              else: 
+                assert dd == '{0:02d}'.format(days_per_month_365[currentmonth-1]) # if there is no leap day
+             
+        # two possible ends: month is done or reached end of file
+        # if we reached the end of the file, open a new one and go again
+        if not lcomplete:            
           wrfout.close() # close file...
+          # N.B.: filecounter +1 < len(filelist) is already checked above 
           filecounter += 1 # move to next file
-          if filecounter < len(filelist):    
-            wrfout = nc.Dataset(infolder+filelist[filecounter], 'r', format='NETCDF4') # ... and open new one
-            wrfstartidx = 0 # use initialization step (same as last step in previous file)
-        
-    ## now the loop over files terminated and we need to normalize and save the results
-    
-    if not lskip:
-      # loop over variable names
-      for varname in varlist:
-        vardata = data[varname]
-        # decide how to normalize
-        if varname in acclist: vardata /= xtime 
-        else: vardata /= ntime
-        # save variable
-        ncvar = mean.variables[varname] # this time the destination variable
-        if missing_value is not None: # make sure the missing value flag is preserved
-          vardata = np.where(np.isnan(vardata), missing_value, vardata)
-          ncvar.missing_value = missing_value # just to make sure
-        if ncvar.ndim > 1: ncvar[meanidx,:] = vardata # here time is always the outermost index
-        else: ncvar[meanidx] = vardata
-      # compute derived variables
-      logger.debug('\n{0:s}   Derived Variable Stats: (mean/min/max)'.format(pidstr))
-      for dename,devar in derived_vars.items():
-        if devar.linear:           
-          vardata = devar.computeValues(data) # compute derived variable now from averages
-        else:
-          vardata = dedata[dename] / ntime # no accumulated variables here!
-        logger.debug('{0:s} {1:s}, {2:f}, {3:f}, {4:f}'.format(pidstr,dename,vardata.mean(),vardata.min(),vardata.max()))
-        data[dename] = vardata # add to data array, so that it can be used to compute linear variables
-        # save variable
-        ncvar = mean.variables[dename] # this time the destination variable
-        if missing_value is not None: # make sure the missing value flag is preserved
-          vardata = np.where(np.isnan(vardata), missing_value, vardata)
-          ncvar.missing_value = missing_value # just to make sure
-        if ncvar.ndim > 1: ncvar[meanidx,:] = vardata # here time is always the outermost index
-        else: ncvar[meanidx] = vardata
+          wrfout = nc.Dataset(infolder+filelist[filecounter], 'r', format='NETCDF4') # ... and open new one
+          if missing_value is not None:
+            assert missing_value == wrfout.P_LEV_MISSING
+          # reset output record / time step counter
+          if liniout: wrfstartidx = 1 # skip the initialization step (same as last step in previous file)
+          else: wrfstartidx = 0
+        else: # month complete
+          if wrfendidx == len(wrfout.dimensions[wrftime])-1: # at the end
+            wrfout.close() # close file...
+            filecounter += 1 # move to next file
+            if filecounter < len(filelist):    
+              wrfout = nc.Dataset(infolder+filelist[filecounter], 'r', format='NETCDF4') # ... and open new one
+              wrfstartidx = 0 # use initialization step (same as last step in previous file)
           
-        #raise dv.DerivedVariableError, "%s Derived variable '%s' is not linear."%(pidstr,devar.name) 
-      # sync data
-      mean.sync()
-  
+      ## now the loop over files terminated and we need to normalize and save the results
+      
+      if not lskip:
+        # update time axis
+        mean.variables[time][meanidx] = meantime
+        mean.variables[wrftimestamp][meanidx,:] = starttimestamp 
+        # loop over variable names
+        for varname in varlist:
+          vardata = data[varname]
+          # decide how to normalize
+          if varname in acclist: vardata /= xtime 
+          else: vardata /= ntime
+          # save variable
+          ncvar = mean.variables[varname] # this time the destination variable
+          if missing_value is not None: # make sure the missing value flag is preserved
+            vardata = np.where(np.isnan(vardata), missing_value, vardata)
+            ncvar.missing_value = missing_value # just to make sure
+          if ncvar.ndim > 1: ncvar[meanidx,:] = vardata # here time is always the outermost index
+          else: ncvar[meanidx] = vardata
+        # compute derived variables
+        logger.debug('\n{0:s}   Derived Variable Stats: (mean/min/max)'.format(pidstr))
+        for dename,devar in derived_vars.items():
+          if devar.linear:           
+            vardata = devar.computeValues(data) # compute derived variable now from averages
+          else:
+            vardata = dedata[dename] / ntime # no accumulated variables here!
+          logger.debug('{0:s} {1:s}, {2:f}, {3:f}, {4:f}'.format(pidstr,dename,float(vardata.mean()),float(vardata.min()),float(vardata.max())))
+          data[dename] = vardata # add to data array, so that it can be used to compute linear variables
+          # save variable
+          ncvar = mean.variables[dename] # this time the destination variable
+          if missing_value is not None: # make sure the missing value flag is preserved
+            vardata = np.where(np.isnan(vardata), missing_value, vardata)
+            ncvar.missing_value = missing_value # just to make sure
+          if ncvar.ndim > 1: ncvar[meanidx,:] = vardata # here time is always the outermost index
+          else: ncvar[meanidx] = vardata
+            
+          #raise dv.DerivedVariableError, "%s Derived variable '%s' is not linear."%(pidstr,devar.name) 
+        # sync data
+        mean.sync()
+        
+    ec = 0 # set zero exit code for this operation
+        
+  except Exception:
+    # report error
+    logger.exception('\n # {0:s} WARNING: an Error occured while stepping through files! '.format(pidstr)+
+                     '\n # Last State: month={0:d}, variable={1:s}, file={2:s}'.format(meanidx,varname,filename)+
+                     '\n # Saving current data and exiting\n')
+    logger.exception(pidstr) # print stack trace of last exception and current process ID
+    ec = 1 # set non-zero exit code
+    # N.B.: this enables us to still close the file!
+    
   ## here the loop over months finishes and we can close the output file 
   # print progress
   
@@ -574,6 +592,8 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
   logger.info('\n{0:s} Writing output to: {1:s}\n({2:s})\n'.format(pidstr, filename, meanfile))
   # close files        
   mean.close()  
+  # return exit code
+  return ec
 
 # now begin execution    
 if __name__ == '__main__':
