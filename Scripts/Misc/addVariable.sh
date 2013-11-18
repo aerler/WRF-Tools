@@ -30,9 +30,13 @@ fi # if $VARNM
 
 # prepare
 echo
-echo "Saving new files in ${DSTDIR} (clearing directory)"
-rm -rf "${DSTDIR}"
-mkdir -p "${DSTDIR}"
+if [[ "${SRCDIR}" != "${DSTDIR}" ]]; then
+  echo "Saving new files in ${DSTDIR} (clearing directory)"
+  rm -rf "${DSTDIR}"
+  mkdir -p "${DSTDIR}"
+else
+  echo "Saving new files in source directory ${DSTDIR}"
+fi
 echo
 cd "${SRCDIR}"
 ERR=0
@@ -43,11 +47,11 @@ for SRC in ${SRCPFX}*${NCSFX}
     # construct destination file name
     DST="${DSTPFX}${SRC#${SRCPFX}}" # swap prefix
     # skip if variable already present
-    if [[ -e "${DST}" ]] && [[ -z $(ncdump -h "${DST}" | grep "${VARNM}(") ]]
+    if [[ -e "${DST}" ]] && [[ -z $( ncdump -h "${DST}" | grep "${VARNM}(" ) ]]
       then
  	#echo cp "${DST}" "${DSTDIR}/${DST}"
-	if [[ "${SRCDIR}" != "${DSTDIR}" ]]
-	  then cp "${DST}" "${DSTDIR}/${DST}"; fi
+	if [[ "${SRCDIR}" != "${DSTDIR}" ]]; then
+            cp "${DST}" "${DSTDIR}/${DST}"; fi
  	#echo ncks -aA -d "${DIM}" -v "${VARNM}" "${SRC}" "${DSTDIR}/${DST}"
   if [[ -n "${DIM}" ]]; 
     then ncks -aA -d "${DIM}" -v "${VARNM}" "${SRC}" "${DSTDIR}/${DST}" # potentially different time spacing
