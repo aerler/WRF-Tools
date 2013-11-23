@@ -15,26 +15,30 @@ function CHECK {
 		  echo
       if [[ -z $( echo ${LISTING} | grep ${E}_WRF ) ]]
 				then 
-				  echo "Restarting ${E} on ${MAC}!"
-				  MIA=$(( $MIA + 1 )) # modifies global counter!
+				  echo "Restarting ${E} on ${MAC}!"				  
           INIDIR="${DR}/${E}"
           cd "$INIDIR"
           # figure out next step
           CURRENTSTEP=$( ls [0-9][0-9][0-9][0-9]-[0-9][0-9]* -d | head -n 1 ) # first step folder
           NEXTSTEP=$( ls [0-9][0-9][0-9][0-9]-[0-9][0-9]* -d | tail -n 1 ) # second/last step folder
           if [[ -f "${INIDIR}/${NEXTSTEP}/run_cycling.WPS.pbs" ]]; then NOWPS='NOWPS' 
-          else NOWPS='FALSE'; fi
+          else NOWPS='FALSE'; fi          
           echo "   NEXTSTEP=${CURRENTSTEP}; NOWPS=${NOWPS}"
           # clean up a bit
-          rm -rf ${CURRENTSTEP}/rsl.* ${CURRENTSTEP}/wrf*.nc
-          # restart job (this is a bit hackish and not as general as I would like it...)
-          if [[ "$MAC" == 'GPC' ]]; then 
-              ssh gpc01 "cd \"${INIDIR}\"; qsub ./run_cycling_WRF.pbs -v NOWPS=${NOWPS},NEXTSTEP=${CURRENTSTEP}"
-          elif [[ "$MAC" == 'TCS' ]]; then
-              ssh tcs02 "cd \"${INIDIR}\"; export NEXTSTEP=${CURRENTSTEP}; export NOWPS=${NOWPS}; llsubmit ./run_cycling_WRF.ll"
-          elif [[ "$MAC" == 'P7' ]]; then
-              ssh p701 "cd \"${INIDIR}\"; export NEXTSTEP=${CURRENTSTEP}; export NOWPS=${NOWPS}; llsubmit ./run_cycling_WRF.ll"
-          fi # if MAC                              
+          if [[ -n "${CURRENTSTEP}" ]] && [[ -f "${INIDIR}/${CURRENTSTEP}/run_cycling.WPS.pbs" ]]; then
+            rm -rf ${CURRENTSTEP}/rsl.* ${CURRENTSTEP}/wrf*.nc
+	          # restart job (this is a bit hackish and not as general as I would like it...)
+	          if [[ "$MAC" == 'GPC' ]]; then 
+	            ssh gpc01 "cd \"${INIDIR}\"; qsub ./run_cycling_WRF.pbs -v NOWPS=${NOWPS},NEXTSTEP=${CURRENTSTEP}"
+	          elif [[ "$MAC" == 'TCS' ]]; then
+	            ssh tcs02 "cd \"${INIDIR}\"; export NEXTSTEP=${CURRENTSTEP}; export NOWPS=${NOWPS}; llsubmit ./run_cycling_WRF.ll"
+	          elif [[ "$MAC" == 'P7' ]]; then
+	            ssh p701 "cd \"${INIDIR}\"; export NEXTSTEP=${CURRENTSTEP}; export NOWPS=${NOWPS}; llsubmit ./run_cycling_WRF.ll"
+	          fi # if MAC
+            MIA=$(( $MIA + 1 )) # modifies global counter!
+          else
+            echo "ERROR: No active run directory found for experiment ${E}!"
+          fi # if folder exists (prevent accidential deletion)                                 
 			  else
 				  echo "Experiment ${E} on ${MAC} is running!"
 				  OK=$(( $OK + 1 )) # modifies global counter!
@@ -65,7 +69,7 @@ if [ ${MIA} == 0 ]
     echo "   <<<   All ${OK} jobs were still running!  >>>   "
 elif [ ${OK} == 0 ]
   then
-    echo "   ###   All ${MIA} jobs were restarted!  ###   "
+    echo "   ===   ${MIA} jobs were restarted!  ===   "
 else
     echo "   ===   ${MIA} jobs were restarted, ${OK} were still running...  ===   "
 fi # summary
