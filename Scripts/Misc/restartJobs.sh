@@ -16,16 +16,16 @@ function CHECK {
       if [[ -z $( echo ${LISTING} | grep ${E}_WRF ) ]]
 				then 
 				  echo "Restarting ${E} on ${MAC}!"				  
-          INIDIR="${DR}/${E}"
+          INIDIR="${DR}/${E}/"
           cd "$INIDIR"
           # figure out next step
           CURRENTSTEP=$( ls [0-9][0-9][0-9][0-9]-[0-9][0-9]* -d | head -n 1 ) # first step folder
           NEXTSTEP=$( ls [0-9][0-9][0-9][0-9]-[0-9][0-9]* -d | tail -n 1 ) # second/last step folder
-          if [[ -f "${INIDIR}/${NEXTSTEP}/run_cycling.WPS.pbs" ]]; then NOWPS='NOWPS' 
+          if [[ -f "${INIDIR}/${NEXTSTEP}/run_cycling_WPS.pbs" ]]; then NOWPS='NOWPS' 
           else NOWPS='FALSE'; fi          
           echo "   NEXTSTEP=${CURRENTSTEP}; NOWPS=${NOWPS}"
           # clean up a bit
-          if [[ -n "${CURRENTSTEP}" ]] && [[ -f "${INIDIR}/${CURRENTSTEP}/run_cycling.WPS.pbs" ]]; then
+          if [[ -n "${CURRENTSTEP}" ]] && [[ -f "${INIDIR}/${CURRENTSTEP}/run_cycling_WPS.pbs" ]]; then
             rm -rf ${CURRENTSTEP}/rsl.* ${CURRENTSTEP}/wrf*.nc
 	          # restart job (this is a bit hackish and not as general as I would like it...)
 	          if [[ "$MAC" == 'GPC' ]]; then 
