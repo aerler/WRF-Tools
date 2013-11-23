@@ -24,6 +24,7 @@ function CHECK {
           NEXTSTEP=$( ls [0-9][0-9][0-9][0-9]-[0-9][0-9]* -d | tail -n 1 ) # second/last step folder
           if [[ -f "${INIDIR}/${NEXTSTEP}/run_cycling.WPS.pbs" ]]; then NOWPS='NOWPS' 
           else NOWPS='FALSE'; fi
+          echo "   NEXTSTEP=${CURRENTSTEP}; NOWPS=${NOWPS}"
           # clean up a bit
           rm -rf ${CURRENTSTEP}/rsl.* ${CURRENTSTEP}/wrf*.nc
           # restart job (this is a bit hackish and not as general as I would like it...)
@@ -32,7 +33,8 @@ function CHECK {
           elif [[ "$MAC" == 'TCS' ]]; then
               ssh tcs02 "cd \"${INIDIR}\"; export NEXTSTEP=${CURRENTSTEP}; export NOWPS=${NOWPS}; llsubmit ./run_cycling_WRF.ll"
           elif [[ "$MAC" == 'P7' ]]; then
-              ssh p701 "cd \"${INIDIR}\"; export NEXTSTEP=${CURRENTSTEP}; export NOWPS=${NOWPS}; llsubmit ./run_cycling_WRF.ll"                              
+              ssh p701 "cd \"${INIDIR}\"; export NEXTSTEP=${CURRENTSTEP}; export NOWPS=${NOWPS}; llsubmit ./run_cycling_WRF.ll"
+          fi # if MAC                              
 			  else
 				  echo "Experiment ${E} on ${MAC} is running!"
 				  OK=$(( $OK + 1 )) # modifies global counter!
