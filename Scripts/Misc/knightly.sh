@@ -19,4 +19,4 @@ ${CODE}/WRF\ Tools/Scripts/Misc/sync-monthly.sh 1> ${DATA}/sync-monthly.log 2> $
 export PYAVG_THREADS=4
 export PYAVG_DEBUG=FALSE
 export PYAVG_OVERWRITE=FALSE
-${PY} ${CODE}/PyGeoDat/src/datasets/wrfavg.py 1> ${DATA}/wrfavg.log 2> ${DATA}/wrfavg.err
+${PY} ${CODE}/PyGeoDat/src/processing/wrfavg.py 1> ${DATA}/wrfavg.log 2> ${DATA}/wrfavg.err
