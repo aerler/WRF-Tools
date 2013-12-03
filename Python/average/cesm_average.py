@@ -180,11 +180,7 @@ if __name__ == '__main__':
     copy_vars(clim, cesmout, varlist=varlist, namemap=None, dimmap=dimmap, copy_data=False)
   
   # length of time, x, and y dimensions
-  nvar = len(varlist)
-  nlon = len(cesmout.dimensions['lon'])
-  nlat = len(cesmout.dimensions['lat'])
   nfiles = len(filelist) # number of files
-
   # monthly means
   climdata = dict()
   for var in varlist:

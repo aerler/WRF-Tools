@@ -1,22 +1,21 @@
 #!/bin/bash
 # a short script to run averaging operations over a number of CESM archives
 
-#SRCR='/reserved1/p/peltier/marcdo/FromHpss' # Marc's folder on reserved
+SRCR='/reserved1/p/peltier/marcdo/FromHpss' # Marc's folder on reserved
 #SRCR='/scratch/p/peltier/marcdo/archive/' # Marc's folder on scratch
-SRCR="$CCA" # my archive
 DSTR="$CCA" # my CESM archive folder
 
-# historical runs
 shopt -s extglob
+# historical runs
 #RUNS='@(h[abc]|t)b20trcn1x1/' # glob expression that identifies CESM archives
-#PERIODS='1979-1988' # averaging period; period defined in avgWRF.py
+#PERIODS='1979-1989' # averaging period; period defined in avgWRF.py
 # projections
-#RUNS='[abcz]brcp85cn1x1' # glob expression that identifies CESM archives
-RUNS='seaice-5r-hf' # glob expression that identifies CESM archives
-PERIODS='2045-2055' # averaging period; period defined in avgWRF.py
+RUNS='h[abcz]brcp85cn1x1' # glob expression that identifies CESM archives
+#RUNS='seaice-5r-hf'; SRCR="$CCA" # my sea-ice simulation
+PERIODS='2045-2055' # averaging period
 RECALC='RECALC'
 # cesm_average settings
-export PYAVG_FILETYPE=${PYAVG_FILETYPE:-'atm'}
+FILETYPES='atm lnd ice'
 
 # loop over runs
 ERRCNT=0
@@ -35,33 +34,37 @@ for AR in $SRCR/$RUNS
     #fi # if $DSTR != $SRCR
     ln -sf "${DSTR}/cesm_average.py" # link archiving script
     # loop over averaging periods
-    echo $PERIODS
+    #echo $PERIODS
     for PERIOD in $PERIODS
       do
-	## start averaging
-	echo "   ***   Averaging $RUN ($PERIOD)   ***   "
-	echo "   ($RUNDIR)"	
-	# launch python script, save output in log file
-	if [[ ! -e "cesmatm_clim_${PERIOD}.nc" ]] || [[ "$RECALC" == 'RECALC' ]]
-	  then
-	    python cesm_average.py "$PERIOD" "$RUNDIR" > "cesm_average_$PERIOD.log"
-	    ERR=$?
-	  else
-	    echo "WARNING: The file cesmatm_clim_${PERIOD}.nc already exits! Skipping computation!"
-	    ERR=0 # count as success
-	fi # if already file exits
-	# clean up
-	if [[ $ERR == 0 ]]
-	  then
-	    echo "   Averaging successful! Saving data to:"
-	    rm cesm_average.py # remove archiving script
-	  else
-	    echo "   WARNING: averaging failed!!! Exit code: $ERR"
-	    ERRCNT=$(( ERRCNT + 1 )) # increase error counter
-	fi # if $ERR
-	echo "   $AVGDIR"
-	echo
+        for FILETYPE in $FILETYPES
+          do
+            ## start averaging
+            echo "   ***   Averaging $RUN ($PERIOD,$FILETYPE)   ***   "
+            echo "   ($RUNDIR)"	
+            export PYAVG_FILETYPE=$FILETYPE # set above
+            # launch python script, save output in log file
+            if [[ ! -e "cesmatm_clim_${PERIOD}.nc" ]] || [[ "$RECALC" == 'RECALC' ]]
+              then
+                python cesm_average.py "$PERIOD" "$RUNDIR" > "cesm_average_$PERIOD.log"
+                ERR=$?
+              else
+                echo "WARNING: The file cesmatm_clim_${PERIOD}.nc already exits! Skipping computation!"
+                ERR=0 # count as success
+            fi # if already file exits
+            # clean up
+            if [[ $ERR == 0 ]]
+              then
+                echo "   Averaging successful! Saving data to:"
+              else
+                echo "   WARNING: averaging failed!!! Exit code: $ERR"
+                ERRCNT=$(( ERRCNT + 1 )) # increase error counter
+            fi # if $ERR
+            echo "   $AVGDIR"
+            echo
+        done # for FILETYPES
     done # for $PERIODS
+    rm cesm_average.py # remove archiving script
 done # for $RUNS
 
 # summary / feedback
