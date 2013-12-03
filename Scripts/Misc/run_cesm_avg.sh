@@ -13,7 +13,7 @@ shopt -s extglob
 # projections
 #RUNS='[abcz]brcp85cn1x1' # glob expression that identifies CESM archives
 RUNS='seaice-5r-hf' # glob expression that identifies CESM archives
-PERIODS='2045-2048' # averaging period; period defined in avgWRF.py
+PERIODS='2045-2055' # averaging period; period defined in avgWRF.py
 RECALC='RECALC'
 
 # loop over runs
@@ -52,7 +52,7 @@ for AR in $SRCR/$RUNS
 	if [[ $ERR == 0 ]]
 	  then
 	    echo "   Averaging successful! Saving data to:"
-	    rm 'avgCESM.py' # remove archiving script
+	    rm cesm_average.py # remove archiving script
 	  else
 	    echo "   WARNING: averaging failed!!! Exit code: $ERR"
 	    ERRCNT=$(( ERRCNT + 1 )) # increase error counter
