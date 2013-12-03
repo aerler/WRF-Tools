@@ -15,6 +15,8 @@ shopt -s extglob
 RUNS='seaice-5r-hf' # glob expression that identifies CESM archives
 PERIODS='2045-2055' # averaging period; period defined in avgWRF.py
 RECALC='RECALC'
+# cesm_average settings
+export PYAVG_FILETYPE=${PYAVG_FILETYPE:-'atm'}
 
 # loop over runs
 ERRCNT=0

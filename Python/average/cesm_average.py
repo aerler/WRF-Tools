@@ -43,10 +43,10 @@ def checkList(varlist, statlist, dimlist, ignorelist):
   if statlist is None: 
     statlist = []
   else:
-    for i in xrange(len(statlist)):
+    for i in xrange(len(statlist)-1,-1,-1): # avoid problems with deletions, hence go backwards
       if statlist[i] not in cesmout.variables:
         print('\nWARNING: variable %s not found in source file!\n'%(statlist[i],))
-        del statlist[i] # remove variable if not present in soruce file        
+        del statlist[i] # remove variable if not present in source file        
   # check varlist
   if varlist is None:
     varlist = []
@@ -56,7 +56,7 @@ def checkList(varlist, statlist, dimlist, ignorelist):
         elif varname not in dimlist: statlist.append(varname) # another static variable
       #varlist = [var for var in cesmout.variables.iterkeys() if var not in statlist]
   else:
-    for i in xrange(len(varlist)):
+    for i in xrange(len(varlist)-1,-1,-1): # avoid problems with deletions
       if varlist[i] not in cesmout.variables:
         print('\nWARNING: variable %s not found in source file!\n'%(varlist[i],))
         del varlist[i] # remove variable if not present in soruce file
@@ -69,15 +69,19 @@ def checkList(varlist, statlist, dimlist, ignorelist):
 
 
 ## read arguments
+# file types to process 
+if os.environ.has_key('PYAVG_FILETYPE'): 
+  filetype = os.environ['PYAVG_FILETYPE'] # currently only one at a time
+else: filetype = 'atm' # defaults are set below  
 # averaging period
 if len(sys.argv) > 1:
   period = sys.argv[1]
 else: period = None
 # source folder (overwrite default)
 if len(sys.argv) > 2:
-  srcdir = sys.argv[2] + '/atm/hist/'
+  srcdir = sys.argv[2] + '/' + filetype + '/hist/'
 else:
-  srcdir = os.getcwd() + '/atm/hist/'
+  srcdir = os.getcwd() + '/' + filetype + '/hist/'
 # set other variables
 dstdir = os.getcwd() + '/'
 cesmname = srcdir.split('/')[-4] # root folder name
@@ -89,15 +93,18 @@ cesmname = srcdir.split('/')[-4] # root folder name
   
 ## definitions
 # input files and folders
-cesmpfx = cesmname + '.cam2.h0.' # use monthly means
+if filetype == 'atm': cesmpfx = cesmname + '.cam2.h0.' # use monthly means
+elif filetype == 'lnd': cesmpfx = cesmname + '.clm2.h0.' # use monthly means
+elif filetype == 'ice': cesmpfx = cesmname + '.cice.h.' # use monthly means
+else: raise ValueError, 'Unknown filetype \'%s\''%(filetype,)
 cesmext = '.nc'
 # output files and folders
 if period: 
   prdrgx = getDateRegX(period)
-  climfile = 'cesmatm_clim_' + period + '.nc'
+  climfile = 'cesm' + filetype + '_clim_' + period + '.nc'
 else: 
   prdrgx = '\d\d\d\d-\d\d'
-  climfile = 'cesmatm_clim.nc'
+  climfile = 'cesm' + filetype + '_clim.nc'
 # variables
 tax = 0 # time axis (to average over)
 ignorelist = ['time'] #,'date','datesec','time_bnds','date_written','time_written'] # averages would be meaningless...
@@ -166,9 +173,11 @@ if __name__ == '__main__':
   # check lists
   varlist,statlist = checkList(varlist, statlist, dimlist, ignorelist)
   # copy constant variables (no time dimension)
-  copy_vars(clim, cesmout, varlist=statlist, namemap=None, dimmap=dimmap, remove_dims=['time'], copy_data=True)
+  if statlist:
+    copy_vars(clim, cesmout, varlist=statlist, namemap=None, dimmap=dimmap, remove_dims=['time'], copy_data=True)
   # copy variables to new datasets
-  copy_vars(clim, cesmout, varlist=varlist, namemap=None, dimmap=dimmap, copy_data=False)
+  if varlist:
+    copy_vars(clim, cesmout, varlist=varlist, namemap=None, dimmap=dimmap, copy_data=False)
   
   # length of time, x, and y dimensions
   nvar = len(varlist)
