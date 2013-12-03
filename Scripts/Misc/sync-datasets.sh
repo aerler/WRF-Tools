@@ -1,8 +1,8 @@
 #!/bin/bash
 # script to synchronize datasets with SciNet
 
-LOC='/data/' # local datasets root
-REM='/reserved1/p/peltier/aerler/Datasets/' # datasets root on SciNet
+LOC=/data/ # local datasets root
+REM=/reserved1/p/peltier/aerler/Datasets/ # datasets root on SciNet
 DATASETS='GPCC NARR CFSR CRU PRISM' # list of datasets/folders
 # DATASETS='PRISM' # for tests
 

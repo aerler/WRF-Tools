@@ -2,7 +2,7 @@
 # script to synchronize monthly means with SciNet
 
 # WRF downscaling roots
-L="${DATA:-'/data/WRF/wrfavg/'}" # should be supplied by caller
+L="${DATA:-/data/WRF/wrfavg/}" # should be supplied by caller
 DR='/reserved1/p/peltier/aerler/Downscaling'
 DS='/scratch/p/peltier/aerler/Downscaling'
 # ssh settings: special identity/ssh key, batch mode, and connection sharing
