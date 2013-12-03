@@ -7,6 +7,7 @@
 # environment
 #PY='/opt/epd-7.3-2-rh5-x86_64/bin/python' # Enthough Python Interpreter
 PY='/home/data/EPD/bin/python' # New Enthough Canopy Python Interpreter
+export GDAL_DATA=/usr/local/share/gdal # for GDAL API
 export CODE='/home/data/Code/' # code root
 export PYTHONPATH="${CODE}/PyGeoDat/src/:${CODE}/WRF Tools/Python/"
 export DATA='/data/WRF/wrfavg/' # local WRF data root
