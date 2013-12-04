@@ -23,7 +23,7 @@ echo
 ERR=0
 #shopt -s extglob
 # loop over all relevant experiments
-D="$CCA/seaice-5r-hf/ $CCA/h[abc]b20trcn1x1 $CCA/tb20trcn1x1 $CCA/h[abcz]brcp85cn1x1"
+D="$CCA/seaice-5r-hf/ $CCA/h[abc]b20trcn1x1 $CCA/tb20trcn1x1 $CCA/h[abcz]brcp85cn1x1 $CCA/tbrcp85cn1x1"
 for E in $( ssh $SSH $HOST "ls -d $D" ) # get folder listing from scinet
   do 
     #echo $E
