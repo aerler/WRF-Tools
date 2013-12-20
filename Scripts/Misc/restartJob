@@ -1,0 +1,76 @@
+#!/bin/bash
+# Andre R. Erler, 20/12/2013
+# script to restart a crashed experiment on SciNet
+
+ERR=0
+# load job/experiment parameters
+INIDIR=${INIDIR:-"${PWD}"}; cd "$INIDIR" # make sure that this is the current directory
+CURRENTSTEP=$( ls [0-9][0-9][0-9][0-9]-[0-9][0-9]* -d | head -n 1 ) # first step folder
+WORKDIR=${WORKDIR:-"$INIDIR/$CURRENTSTEP/"}
+NEXTSTEP=$( ls [0-9][0-9][0-9][0-9]-[0-9][0-9]* -d | tail -n 1 ) # second/last step folder
+# determine if WPS has to be run for next step
+if [[ -f "${INIDIR}/${NEXTSTEP}/run_cycling_WPS"* ]]; then NOWPS='NOWPS' 
+else NOWPS='FALSE'; fi          
+# determine machine
+MAC=${MAC:-''}
+if [[ -f 'start_cycle_GPC.sh' ]]; then MAC='GPC'
+elif [[ -f 'start_cycle_TCS.sh' ]]; then MAC='TCS'
+elif [[ -f 'start_cycle_P7.sh' ]]; then MAC='P7'
+elif [[ -z "$MAC" ]]; then 
+    echo 'ERROR: unknown machine!'
+    exit 1 # abort
+fi # if $MAC
+
+# parse current namelist for stability parameters
+cd "${WORKDIR}"
+CUR_DELT=$(sed -n '/time_step/ s/^\s*time_step\s*=\s*\([0-9]*\).*$/\1/p' namelist.input) # time step
+ERR=$(( ${ERR} + $? )) # capture exit code
+CUR_EPSS=$(sed -n '/epssm/ s/^\s*epssm\s*=\s*\([0-9]\?.[0-9]*\).*$/\1/p' namelist.input) # epssm parameter; one ore zero times: [0-9]\?.5 -> .5 or 0.5
+ERR=$(( ${ERR} + $? )) # capture exit code
+
+## define new stability parameters
+if [[ "$INI_DELT" == '150' ]] && [[ "$INI_EPSS" == *'.55' ]]; then
+  NEW_DELT='120'; NEW_EPSS='0.75'
+elif [[ "$INI_DELT" == '120' ]] && [[ "$INI_EPSS" == *'.75' ]]; then
+  NEW_DELT='90'; NEW_EPSS='0.85'
+elif [[ "$INI_DELT" == '90' ]] && [[ "$INI_EPSS" == *'.75' ]]; then
+  NEW_DELT='60'; NEW_EPSS='0.95'
+fi # current state
+
+# change namelist
+cd "${WORKDIR}"
+if [[ -n "${NEW_DELT}" ]]; then
+  sed -i "/time_step/ s/^\s*time_step\s*=\s*[0-9]*.*$/ time_step = ${NEW_DELT}, ! edited by the auto-restart script; original value: ${CUR_DELT}/" namelist.input
+  ERR=$(( ${ERR} + $? )) # capture exit code
+fi; if [[ -n "${NEW_EPSS}" ]]; then
+  sed -i "/epssm/ s/^\s*epssm\s*=\s*[0-9]\?.[0-9]*.*$/ epssm = ${NEW_EPSS}, ${NEW_EPSS}, ${NEW_EPSS}, ${NEW_EPSS}, ! edited by the auto-restart script; original value: ${CUR_EPSS}/" namelist.input    
+  ERR=$(( ${ERR} + $? )) # capture exit code
+fi
+
+## resubmit job
+cd "${INIDIR}"
+# Feedback
+echo "Restarting Experiment ${E} on ${MAC}:"
+echo "   NEXTSTEP=${CURRENTSTEP}; NOWPS=${NOWPS}"
+echo "   TIME_STEP=${NEW_DELT}; EPSSM=${NEW_EPSS}"
+echo
+# launch restart
+rm -rf ${CURRENTSTEP}/rsl.* ${CURRENTSTEP}/wrf*.nc
+# restart job (this is a bit hackish and not as general as I would like it...)
+if [[ "$MAC" == 'GPC' ]]; then 
+  ssh gpc01 "cd \"${INIDIR}\"; qsub ./run_cycling_WRF.pbs -v NOWPS=${NOWPS},NEXTSTEP=${CURRENTSTEP}"
+  ERR=$(( ${ERR} + $? )) # capture exit code
+elif [[ "$MAC" == 'TCS' ]]; then
+  ssh tcs02 "cd \"${INIDIR}\"; export NEXTSTEP=${CURRENTSTEP}; export NOWPS=${NOWPS}; llsubmit ./run_cycling_WRF.ll"
+  ERR=$(( ${ERR} + $? )) # capture exit code
+elif [[ "$MAC" == 'P7' ]]; then
+  ssh p701 "cd \"${INIDIR}\"; export NEXTSTEP=${CURRENTSTEP}; export NOWPS=${NOWPS}; llsubmit ./run_cycling_WRF.ll"
+  ERR=$(( ${ERR} + $? )) # capture exit code
+fi # if MAC
+# report errors
+if [ ${ERR} > 0 ]; then
+  echo "ERROR: $ERR Errors(s) occured!"
+  exit 1
+else
+  exit 0
+fi # summary

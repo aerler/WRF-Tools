@@ -21,7 +21,7 @@ function CHECK {
           # figure out next step
           CURRENTSTEP=$( ls [0-9][0-9][0-9][0-9]-[0-9][0-9]* -d | head -n 1 ) # first step folder
           NEXTSTEP=$( ls [0-9][0-9][0-9][0-9]-[0-9][0-9]* -d | tail -n 1 ) # second/last step folder
-          if [[ -f "${INIDIR}/${NEXTSTEP}/run_cycling_WPS.pbs" ]]; then NOWPS='NOWPS' 
+          if [[ -f "${INIDIR}/${NEXTSTEP}/run_cycling_WPS"* ]]; then NOWPS='NOWPS' 
           else NOWPS='FALSE'; fi          
           echo "   NEXTSTEP=${CURRENTSTEP}; NOWPS=${NOWPS}"
           # clean up a bit
