@@ -5,7 +5,7 @@
 # settings
 OVERWRITE=${OVERWRITE:-'FALSE'} # whether or not to overwrite existing files...
 #OVERWRITE=${OVERWRITE:-'OVERWRITE'} # whether or not to overwrite existing files...
-EXCLUDE=${EXCLUDE:-'TSK,SolidPrecip_SR,LiquidPrecip_SR'} # variables to be excluded from average (because the cause trouble)
+EXCLUDE=${EXCLUDE:-'TSK,SolidPrecip_SR,LiquidPrecip_SR,liqprec_sr,solprec_sr'} # variables to be excluded from average (because the cause trouble)
 VERBOSITY=${VERBOSITY:-1} # level of warning and error reporting
 NCOFLAGS=${NCOFLAGS:-'--netcdf4 --overwrite'} # flags passed to NCO call
 CLIMFILES='*clim*.nc' # regular expression defining the files to be averaged
