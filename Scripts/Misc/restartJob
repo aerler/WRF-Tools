@@ -5,6 +5,7 @@
 ERR=0
 # load job/experiment parameters
 INIDIR=${INIDIR:-"${PWD}"}; cd "$INIDIR" # make sure that this is the current directory
+EXP="${INIDIR%/}"; EXP="${EXP##*/}" # name of experiment
 CURRENTSTEP=$( ls [0-9][0-9][0-9][0-9]-[0-9][0-9]* -d | head -n 1 ) # first step folder
 WORKDIR=${WORKDIR:-"$INIDIR/$CURRENTSTEP/"}
 NEXTSTEP=$( ls [0-9][0-9][0-9][0-9]-[0-9][0-9]* -d | tail -n 1 ) # second/last step folder
@@ -45,28 +46,26 @@ fi # current state
 # change namelist
 cd "${WORKDIR}"
 if [[ -n "${NEW_DELT}" ]]; then
-  sed -i "/time_step/ s/^\s*time_step\s*=\s*[0-9]*.*$/ time_step = ${NEW_DELT}, ! edited by the auto-restart script; original value: ${CUR_DELT}/" namelist.input
+  sed -i "/time_step/ s/^\s*time_step\s*=\s*[0-9]*.*$/ time_step = ${NEW_DELT}, ! edited by restart script; original value: ${CUR_DELT}/" namelist.input
   ERR=$(( ${ERR} + $? )) # capture exit code
 fi; if [[ -n "${NEW_EPSS}" ]]; then
-  sed -i "/epssm/ s/^\s*epssm\s*=\s*[0-9]\?.[0-9]*.*$/ epssm = ${NEW_EPSS}, ${NEW_EPSS}, ${NEW_EPSS}, ${NEW_EPSS}, ! edited by the auto-restart script; original value: ${CUR_EPSS}/" namelist.input    
+  sed -i "/epssm/ s/^\s*epssm\s*=\s*[0-9]\?.[0-9]*.*$/ epssm = ${NEW_EPSS}, ${NEW_EPSS}, ${NEW_EPSS}, ${NEW_EPSS}, ! edited by restart script; original value: ${CUR_EPSS}/" namelist.input    
   ERR=$(( ${ERR} + $? )) # capture exit code
 fi; if [[ -n "${NEW_DAMP}" ]]; then
-  sed -i "/dampcoef/ s/^\s*dampcoef\s*=\s*[0-9]\?.[0-9]*.*$/ dampcoef = ${NEW_DAMP}, ${NEW_DAMP}, ${NEW_DAMP}, ${NEW_DAMP}, ! edited by the auto-restart script; original value: ${CUR_DAMP}/" namelist.input    
+  sed -i "/dampcoef/ s/^\s*dampcoef\s*=\s*[0-9]\?.[0-9]*.*$/ dampcoef = ${NEW_DAMP}, ${NEW_DAMP}, ${NEW_DAMP}, ${NEW_DAMP}, ! edited by restart script; original value: ${CUR_DAMP}/" namelist.input    
   ERR=$(( ${ERR} + $? )) # capture exit code
 fi; if [[ -n "${NEW_DIFF}" ]]; then
-  sed -i "/diff_6th_factor/ s/^\s*diff_6th_factor\s*=\s*[0-9]\?.[0-9]*.*$/ diff_6th_factor = ${NEW_DIFF}, ${NEW_DIFF}, ${NEW_DIFF}, ${NEW_DIFF}, ! edited by the auto-restart script; original value: ${CUR_DIFF}/" namelist.input    
+  sed -i "/diff_6th_factor/ s/^\s*diff_6th_factor\s*=\s*[0-9]\?.[0-9]*.*$/ diff_6th_factor = ${NEW_DIFF}, ${NEW_DIFF}, ${NEW_DIFF}, ${NEW_DIFF}, ! edited by restart script; original value: ${CUR_DIFF}/" namelist.input    
   ERR=$(( ${ERR} + $? )) # capture exit code
 fi; if [[ -n "${NEW_SND}" ]]; then
-  sed -i "/time_step_sound/ s/^\s*time_step_sound\s*=\s*[0-9]\?.[0-9]*.*$/ time_step_sound = ${NEW_SND}, ${NEW_SND}, ${NEW_SND}, ${NEW_SND}, ! edited by the auto-restart script; original value: ${CUR_SND}/" namelist.input    
+  sed -i "/time_step_sound/ s/^\s*time_step_sound\s*=\s*[0-9]\?.[0-9]*.*$/ time_step_sound = ${NEW_SND}, ${NEW_SND}, ${NEW_SND}, ${NEW_SND}, ! edited by restart script; original value: ${CUR_SND}/" namelist.input    
   ERR=$(( ${ERR} + $? )) # capture exit code
 fi
 
 ## resubmit job
 cd "${INIDIR}"
 # Feedback
-echo "Restarting Experiment ${E} on ${MAC}:"
-echo "   NEXTSTEP=${CURRENTSTEP}; NOWPS=${NOWPS}"
-echo "   TIME_STEP=${NEW_DELT}; EPSSM=${NEW_EPSS}"
+echo "Restarting Experiment ${EXP} on ${MAC}: NEXTSTEP=${CURRENTSTEP}; NOWPS=${NOWPS}; TIME_STEP=${NEW_DELT}; EPSSM=${NEW_EPSS}"
 # launch restart
 rm -rf ${CURRENTSTEP}/rsl.* ${CURRENTSTEP}/wrf*.nc
 # restart job (this is a bit hackish and not as general as I would like it...)
