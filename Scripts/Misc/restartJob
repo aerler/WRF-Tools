@@ -29,12 +29,17 @@ CUR_EPSS=$(sed -n '/epssm/ s/^\s*epssm\s*=\s*\([0-9]\?.[0-9]*\).*$/\1/p' namelis
 ERR=$(( ${ERR} + $? )) # capture exit code
 
 ## define new stability parameters
-if [[ "$INI_DELT" == '150' ]] && [[ "$INI_EPSS" == *'.55' ]]; then
+if [[ "$CUR_DELT" == '150' ]] && [[ "$CUR_EPSS" == *'.55' ]]; then
   NEW_DELT='120'; NEW_EPSS='0.75'
-elif [[ "$INI_DELT" == '120' ]] && [[ "$INI_EPSS" == *'.75' ]]; then
-  NEW_DELT='90'; NEW_EPSS='0.85'
-elif [[ "$INI_DELT" == '90' ]] && [[ "$INI_EPSS" == *'.75' ]]; then
-  NEW_DELT='60'; NEW_EPSS='0.95'
+elif [[ "$CUR_DELT" == '120' ]] && [[ "$CUR_EPSS" == *'.75' ]]; then
+  NEW_DELT='90'; NEW_EPSS='0.85'; NEW_DAMP='0.06'
+elif [[ "$CUR_DELT" == '90' ]] && [[ "$CUR_EPSS" == *'.85' ]]; then
+  NEW_DELT='60'; NEW_EPSS='0.95'; NEW_DIFF='0.09'; NEW_DAMP='0.09'; NEW_SND='6'
+elif [[ "$CUR_DELT" == '60' ]] && [[ "$CUR_EPSS" == *'.95' ]]; then
+  NEW_DELT='50'; NEW_EPSS='0.95'; NEW_DIFF='0.12'; NEW_DAMP='0.12'; NEW_SND='8'
+else
+  echo 'Error: No applicable set of parameters found!'
+  exit 1
 fi # current state
 
 # change namelist
@@ -45,6 +50,15 @@ if [[ -n "${NEW_DELT}" ]]; then
 fi; if [[ -n "${NEW_EPSS}" ]]; then
   sed -i "/epssm/ s/^\s*epssm\s*=\s*[0-9]\?.[0-9]*.*$/ epssm = ${NEW_EPSS}, ${NEW_EPSS}, ${NEW_EPSS}, ${NEW_EPSS}, ! edited by the auto-restart script; original value: ${CUR_EPSS}/" namelist.input    
   ERR=$(( ${ERR} + $? )) # capture exit code
+fi; if [[ -n "${NEW_DAMP}" ]]; then
+  sed -i "/dampcoef/ s/^\s*dampcoef\s*=\s*[0-9]\?.[0-9]*.*$/ dampcoef = ${NEW_DAMP}, ${NEW_DAMP}, ${NEW_DAMP}, ${NEW_DAMP}, ! edited by the auto-restart script; original value: ${CUR_DAMP}/" namelist.input    
+  ERR=$(( ${ERR} + $? )) # capture exit code
+fi; if [[ -n "${NEW_DIFF}" ]]; then
+  sed -i "/diff_6th_factor/ s/^\s*diff_6th_factor\s*=\s*[0-9]\?.[0-9]*.*$/ diff_6th_factor = ${NEW_DIFF}, ${NEW_DIFF}, ${NEW_DIFF}, ${NEW_DIFF}, ! edited by the auto-restart script; original value: ${CUR_DIFF}/" namelist.input    
+  ERR=$(( ${ERR} + $? )) # capture exit code
+fi; if [[ -n "${NEW_SND}" ]]; then
+  sed -i "/time_step_sound/ s/^\s*time_step_sound\s*=\s*[0-9]\?.[0-9]*.*$/ time_step_sound = ${NEW_SND}, ${NEW_SND}, ${NEW_SND}, ${NEW_SND}, ! edited by the auto-restart script; original value: ${CUR_SND}/" namelist.input    
+  ERR=$(( ${ERR} + $? )) # capture exit code
 fi
 
 ## resubmit job
@@ -53,7 +67,6 @@ cd "${INIDIR}"
 echo "Restarting Experiment ${E} on ${MAC}:"
 echo "   NEXTSTEP=${CURRENTSTEP}; NOWPS=${NOWPS}"
 echo "   TIME_STEP=${NEW_DELT}; EPSSM=${NEW_EPSS}"
-echo
 # launch restart
 rm -rf ${CURRENTSTEP}/rsl.* ${CURRENTSTEP}/wrf*.nc
 # restart job (this is a bit hackish and not as general as I would like it...)
@@ -68,7 +81,7 @@ elif [[ "$MAC" == 'P7' ]]; then
   ERR=$(( ${ERR} + $? )) # capture exit code
 fi # if MAC
 # report errors
-if [ ${ERR} > 0 ]; then
+if [[ "${ERR}" != '0' ]]; then
   echo "ERROR: $ERR Errors(s) occured!"
   exit 1
 else
