@@ -2,6 +2,15 @@
 # Andre R. Erler, 20/12/2013
 # script to restart a crashed experiment on SciNet
 
+# default parameters
+FORCE=0 # force restart, even if no paramter set was found
+# parse arguments
+while getopts 'f' OPTION; do
+  case ${OPTION} in
+    f) FORCE=1;;
+  esac # case $OPTION
+done # while getopts  
+
 ERR=0
 # load job/experiment parameters
 INIDIR=${INIDIR:-"${PWD}"}; cd "$INIDIR" # make sure that this is the current directory
@@ -38,7 +47,7 @@ elif [[ "$CUR_DELT" == '90' ]] && [[ "$CUR_EPSS" == *'.85' ]]; then
   NEW_DELT='60'; NEW_EPSS='0.95'; NEW_DIFF='0.09'; NEW_DAMP='0.09'; NEW_SND='6'
 elif [[ "$CUR_DELT" == '60' ]] && [[ "$CUR_EPSS" == *'.95' ]]; then
   NEW_DELT='50'; NEW_EPSS='0.95'; NEW_DIFF='0.12'; NEW_DAMP='0.12'; NEW_SND='8'
-else
+elif [[ $FORCE != 1 ]]; then
   echo 'Error: No applicable set of parameters found!'
   exit 1
 fi # current state
