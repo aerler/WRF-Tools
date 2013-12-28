@@ -77,6 +77,7 @@ cd "${RAMDISK}"
 
 
 ## build WRF
+WRFEXIT=0
 if [[ ${BLDWRF} == 1 ]]
   then
     # get WRF source code
@@ -163,6 +164,7 @@ elif [[ ${BLDWPS} == 1 ]]
 fi # if $BLDWRF
 
 ## build WPS
+WPSEXIT=0
 if [[ ${BLDWPS} == 1 ]]
   then
     # get WPS source code

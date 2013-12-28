@@ -251,6 +251,7 @@ echo
 echo "   Creating Root Directory for Experiment ${NAME}"
 echo
 mkdir -p "${RUNDIR}"
+mkdir -p "${WRFOUT}"
 
 # backup existing files
 echo 'Backing-up existing files (moved to folder "backup/")'
@@ -452,6 +453,7 @@ if [[ -n "${AVGSCRIPT}" ]]; then
     # copy script and change job name
     ln -s "${WRFTOOLS}/Python/average/wrfout_average.py" "./scripts/"
     cp -f "${WRFTOOLS}/Scripts/${WPSSYS}/${AVGSCRIPT}" .
+    mkdir -p 'wrfavg' # folder for averaged output
     sed -i "/#PBS -N/ s/#PBS -N\s.*$/#PBS -N ${NAME}_avg/" "${AVGSCRIPT}"
     echo "Setting up averaging: ${AVGSCRIPT}"
     # update folder names

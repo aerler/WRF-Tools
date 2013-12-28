@@ -4,10 +4,12 @@
 
 # default parameters
 FORCE=0 # force restart, even if no paramter set was found
+SIMPLE=0 # simple restart without increasing stability 
 # parse arguments
-while getopts 'f' OPTION; do
+while getopts 'fs' OPTION; do
   case ${OPTION} in
     f) FORCE=1;;
+    s) SIMPLE=1;;
   esac # case $OPTION
 done # while getopts  
 
@@ -39,18 +41,20 @@ CUR_EPSS=$(sed -n '/epssm/ s/^\s*epssm\s*=\s*\([0-9]\?.[0-9]*\).*$/\1/p' namelis
 ERR=$(( ${ERR} + $? )) # capture exit code
 
 ## define new stability parameters
-if [[ "$CUR_DELT" == '150' ]] && [[ "$CUR_EPSS" == *'.55' ]]; then
-  NEW_DELT='120'; NEW_EPSS='0.75'
-elif [[ "$CUR_DELT" == '120' ]] && [[ "$CUR_EPSS" == *'.75' ]]; then
-  NEW_DELT='90'; NEW_EPSS='0.85'; NEW_DAMP='0.06'
-elif [[ "$CUR_DELT" == '90' ]] && [[ "$CUR_EPSS" == *'.85' ]]; then
-  NEW_DELT='60'; NEW_EPSS='0.95'; NEW_DIFF='0.09'; NEW_DAMP='0.09'; NEW_SND='6'
-elif [[ "$CUR_DELT" == '60' ]] && [[ "$CUR_EPSS" == *'.95' ]]; then
-  NEW_DELT='50'; NEW_EPSS='0.95'; NEW_DIFF='0.12'; NEW_DAMP='0.12'; NEW_SND='8'
-elif [[ $FORCE != 1 ]]; then
-  echo 'Error: No applicable set of parameters found!'
-  exit 1
-fi # current state
+if [[ "$SIMPLE" == '0' ]]; then
+  if [[ "$CUR_DELT" == '150' ]] && [[ "$CUR_EPSS" == *'.55' ]]; then
+    NEW_DELT='120'; NEW_EPSS='0.75'
+  elif [[ "$CUR_DELT" == '120' ]] && [[ "$CUR_EPSS" == *'.75' ]]; then
+    NEW_DELT='90'; NEW_EPSS='0.85'; NEW_DAMP='0.06'
+  elif [[ "$CUR_DELT" == '90' ]] && [[ "$CUR_EPSS" == *'.85' ]]; then
+    NEW_DELT='60'; NEW_EPSS='0.95'; NEW_DIFF='0.09'; NEW_DAMP='0.09'; NEW_SND='6'
+  elif [[ "$CUR_DELT" == '60' ]] && [[ "$CUR_EPSS" == *'.95' ]]; then
+    NEW_DELT='50'; NEW_EPSS='0.95'; NEW_DIFF='0.12'; NEW_DAMP='0.12'; NEW_SND='8'
+  elif [[ $FORCE != 1 ]]; then
+    echo 'Error: No applicable set of parameters found!'
+    exit 1
+  fi # current state
+fi # no simple restart
 
 # change namelist
 cd "${WORKDIR}"

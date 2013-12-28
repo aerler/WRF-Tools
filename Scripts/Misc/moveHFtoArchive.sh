@@ -4,7 +4,7 @@ export case=seaice-5r-hf
 
 echo
 
-for year in {2045..2059}
+for year in {2055..2059}
   do 
 
     echo year $year
