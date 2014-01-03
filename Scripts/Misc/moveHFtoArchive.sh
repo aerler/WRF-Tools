@@ -1,24 +1,48 @@
 #!/bin/bash
 
-export case=seaice-5r-hf
+# seaice
+CASES='seaice-5r-hf'
+YEARS=$(seq 2055 2060)
+# ensemble 2100
+#CASES='habrcp85cn1x1d hbbrcp85cn1x1d hcbrcp85cn1x1d'
+#YEARS=$(seq 2085 2100)
 
+date
+echo
+echo Settings:
+echo "  CASES: $CASES" 
+echo "  YEARS: $YEARS"
 echo
 
-for year in {2055..2059}
+for YEAR in $YEARS
   do 
 
-    echo year $year
-    mkdir -p ${CCA}/${case}/atm/hist/${year}
-    mkdir -p ${CCA}/${case}/lnd/hist/${year}
-    mkdir -p ${CCA}/${case}/ice/hist/${year}
+    echo "YEAR: $YEAR"
+
+    for CASE in $CASES
+      do
     
-    mv ${CCR}/${case}/run/${case}.cam2.h1.${year}* ${CCA}/${case}/atm/hist/${year}/
-    mv ${CCR}/${case}/run/${case}.clm2.h1.${year}* ${CCA}/${case}/lnd/hist/${year}/
-    mv ${CCR}/${case}/run/${case}.cice.h1_inst.${year}* ${CCA}/${case}/ice/hist/${year}/
-    mv ${CCR}/${case}/run/${case}.cice.h.${year}* ${CCA}/${case}/ice/hist/
+        echo "CASE: $CASE"
+    
+        mkdir -p ${CCA}/${CASE}/atm/hist/${YEAR}
+        mkdir -p ${CCA}/${CASE}/lnd/hist/${YEAR}
+        mkdir -p ${CCA}/${CASE}/ice/hist/${YEAR}
+        
+        mv ${CCR}/${CASE}/run/${CASE}.cam2.h1.${YEAR}* ${CCA}/${CASE}/atm/hist/${YEAR}/
+        mv ${CCR}/${CASE}/run/${CASE}.clm2.h1.${YEAR}* ${CCA}/${CASE}/lnd/hist/${YEAR}/
+        mv ${CCR}/${CASE}/run/${CASE}.cice.h1_inst.${YEAR}* ${CCA}/${CASE}/ice/hist/${YEAR}/
+        mv ${CCR}/${CASE}/run/${CASE}.cice.h.${YEAR}* ${CCA}/${CASE}/ice/hist/
+    
+    done # CASES
 
-done
+    echo
+
+done # YEARS
 
 echo
-echo '   Done moving files - don'\''t forget to run the linking script!'
+date
+echo '   Done moving files - running linking script!'
 echo
+export CASES
+export YEARS
+./linkYears.sh

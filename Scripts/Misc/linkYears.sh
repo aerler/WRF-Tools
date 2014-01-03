@@ -1,66 +1,105 @@
 #!/bin/bash
 
-export case=seaice-5r-hf
+date
+echo
+echo Settings:
 
-for year in {2045..2060}
-  do
-    
-    echo year ${year}
-    til=../${year}
-    
-    ## atmosphere files
-    lstyr=$((${year}-1))
-    tt=${CCA}/${case}/atm/hist/${lstyr}
-    ti=${CCA}/${case}/atm/hist/${year}
-    if [ -e ${tt} ] && [ -e ${ti} ] ; then
-      #echo linking ${case}.cam2.h1.${year}-01-01-00000.nc to the previous year directory
-      ln -s ${til}/${case}.cam2.h1.${year}-01-01-00000.nc ${tt}/
-      ls -l ${tt}/*${year}-01-01-00000.nc
-    elif [ ! -e ${tt} ] && [ -e ${ti} ] ; then
-      #echo linking ${case}.cam2.h1.${year}-01-01-21600.nc to linking ${case}.cam2.h1.${year}-01-01-00000.nc
-      ln -s ${case}.cam2.h1.${year}-01-01-21600.nc ${ti}/${case}.cam2.h1.${year}-01-01-00000.nc
-      ls -l ${ti}/*${year}-01-01-00000.nc
-    elif [ -e ${tt} ] && [ ! -e ${ti} ] ; then
-      #echo linking ${case}.cam2.h1.${lstyr}-12-31-64800.nc to linking ${case}.cam2.h1.${year}-01-01-00000.nc
-      ln -s ${case}.cam2.h1.${lstyr}-12-31-64800.nc ${tt}/${case}.cam2.h1.${year}-01-01-00000.nc
-      ls -l ${tt}/*${year}-01-01-00000.nc
-    fi
-    
-    ## land files
-    lstyr=$((${year}-1))
-    tt=${CCA}/${case}/lnd/hist/${lstyr}
-    ti=${CCA}/${case}/lnd/hist/${year}
-    if [ -e ${tt} ] && [ -e ${ti} ] ; then
-      #echo linking ${case}.clm2.h1.${year}-01-01-00000.nc to the previous year directory
-      ln -s ${til}/${case}.clm2.h1.${year}-01-01-00000.nc ${tt}/
-      ls -l ${tt}/*${year}-01-01-00000.nc
-    elif [ ! -e ${tt} ] && [ -e ${ti} ] ; then
-      #echo linking ${case}.clm2.h1.${year}-01-01-21600.nc to linking ${case}.clm2.h1.${year}-01-01-00000.nc
-      ln -s ${case}.clm2.h1.${year}-01-01-21600.nc ${ti}/${case}.clm2.h1.${year}-01-01-00000.nc
-      ls -l ${ti}/*${year}-01-01-00000.nc
-    elif [ -e ${tt} ] && [ ! -e ${ti} ] ; then
-      #echo linking ${case}.clm2.h1.${lstyr}-12-31-64800.nc to linking ${case}.clm2.h1.${year}-01-01-00000.nc
-      ln -s ${case}.clm2.h1.${lstyr}-12-31-64800.nc ${tt}/${case}.clm2.h1.${year}-01-01-00000.nc
-      ls -l ${tt}/*${year}-01-01-00000.nc
-    fi
-    
-    ## ice files
-    lstyr=$((${year}-1))
-    tt=${CCA}/${case}/ice/hist/${lstyr}
-    ti=${CCA}/${case}/ice/hist/${year}
-    if [ -e ${tt} ] && [ -e ${ti} ] ; then
-      #echo linking ${case}.cice.h1_inst.${year}-01-01-00000.nc to the previous year directory
-      ln -s ${til}/${case}.cice.h1_inst.${year}-01-01-00000.nc ${tt}/
-      ls -l ${tt}/*${year}-01-01-00000.nc
-    elif [ ! -e ${tt} ] && [ -e ${ti} ] ; then
-      #echo linking ${case}.cice.h1_inst.${year}-01-01-21600.nc to linking ${case}.cice.h1_inst.${year}-01-01-00000.nc
-      ln -s ${case}.cice.h1_inst.${year}-01-01-21600.nc ${ti}/${case}.cice.h1_inst.${year}-01-01-00000.nc
-      ls -l ${ti}/*${year}-01-01-00000.nc
-    elif [ -e ${tt} ] && [ ! -e ${ti} ] ; then
-      #echo linking ${case}.cice.h1_inst.${lstyr}-12-31-64800.nc to linking ${case}.cice.h1_inst.${year}-01-01-00000.nc
-      ln -s ${case}.cice.h1_inst.${lstyr}-12-31-64800.nc ${tt}/${case}.cice.h1_inst.${year}-01-01-00000.nc
-      ls -l ${tt}/*${year}-01-01-00000.nc
-    fi
-    
-done
+if [[ -z "$CASES" ]] || [[ -z "$YEARS" ]]
+  then
 
+    # seaice
+    CASES='seaice-5r-hf'
+    YEARS=$(seq 2055 2060)
+    # ensemble 2100
+    #CASES='habrcp85cn1x1d hbbrcp85cn1x1d hcbrcp85cn1x1d'
+    #YEARS=$(seq 2085 2100)
+
+  else
+
+    echo '(inherited from caller)'	  
+
+fi # CASES & YEARS
+
+echo "  CASES: $CASES" 
+echo "  YEARS: $YEARS"
+echo
+
+# start loop
+for YEAR in $YEARS
+  do 
+
+    echo "YEAR: $YEAR"
+
+    for CASE in $CASES
+      do
+    
+        echo "CASE: $CASE"
+    
+        mkdir -p ${CCA}/${CASE}/atm/hist/${YEAR}
+        mkdir -p ${CCA}/${CASE}/lnd/hist/${YEAR}
+        mkdir -p ${CCA}/${CASE}/ice/hist/${YEAR}
+
+        til=../${YEAR}
+        
+        ## atmosphere files
+        lstyr=$((${YEAR}-1))
+        tt=${CCA}/${CASE}/atm/hist/${lstyr}
+        ti=${CCA}/${CASE}/atm/hist/${YEAR}
+        if [ -e ${tt} ] && [ -e ${ti} ] ; then
+          #echo linking ${CASE}.cam2.h1.${YEAR}-01-01-00000.nc to the previous year directory
+          ln -s ${til}/${CASE}.cam2.h1.${YEAR}-01-01-00000.nc ${tt}/
+          ls -l ${tt}/*${YEAR}-01-01-00000.nc
+        elif [ ! -e ${tt} ] && [ -e ${ti} ] ; then
+          #echo linking ${CASE}.cam2.h1.${YEAR}-01-01-21600.nc to linking ${CASE}.cam2.h1.${YEAR}-01-01-00000.nc
+          ln -s ${CASE}.cam2.h1.${YEAR}-01-01-21600.nc ${ti}/${CASE}.cam2.h1.${YEAR}-01-01-00000.nc
+          ls -l ${ti}/*${YEAR}-01-01-00000.nc
+        elif [ -e ${tt} ] && [ ! -e ${ti} ] ; then
+          #echo linking ${CASE}.cam2.h1.${lstyr}-12-31-64800.nc to linking ${CASE}.cam2.h1.${YEAR}-01-01-00000.nc
+          ln -s ${CASE}.cam2.h1.${lstyr}-12-31-64800.nc ${tt}/${CASE}.cam2.h1.${YEAR}-01-01-00000.nc
+          ls -l ${tt}/*${YEAR}-01-01-00000.nc
+        fi
+        
+        ## land files
+        lstyr=$((${YEAR}-1))
+        tt=${CCA}/${CASE}/lnd/hist/${lstyr}
+        ti=${CCA}/${CASE}/lnd/hist/${YEAR}
+        if [ -e ${tt} ] && [ -e ${ti} ] ; then
+          #echo linking ${CASE}.clm2.h1.${YEAR}-01-01-00000.nc to the previous year directory
+          ln -s ${til}/${CASE}.clm2.h1.${YEAR}-01-01-00000.nc ${tt}/
+          ls -l ${tt}/*${YEAR}-01-01-00000.nc
+        elif [ ! -e ${tt} ] && [ -e ${ti} ] ; then
+          #echo linking ${CASE}.clm2.h1.${YEAR}-01-01-21600.nc to linking ${CASE}.clm2.h1.${YEAR}-01-01-00000.nc
+          ln -s ${CASE}.clm2.h1.${YEAR}-01-01-21600.nc ${ti}/${CASE}.clm2.h1.${YEAR}-01-01-00000.nc
+          ls -l ${ti}/*${YEAR}-01-01-00000.nc
+        elif [ -e ${tt} ] && [ ! -e ${ti} ] ; then
+          #echo linking ${CASE}.clm2.h1.${lstyr}-12-31-64800.nc to linking ${CASE}.clm2.h1.${YEAR}-01-01-00000.nc
+          ln -s ${CASE}.clm2.h1.${lstyr}-12-31-64800.nc ${tt}/${CASE}.clm2.h1.${YEAR}-01-01-00000.nc
+          ls -l ${tt}/*${YEAR}-01-01-00000.nc
+        fi
+        
+        ## ice files
+        lstyr=$((${YEAR}-1))
+        tt=${CCA}/${CASE}/ice/hist/${lstyr}
+        ti=${CCA}/${CASE}/ice/hist/${YEAR}
+        if [ -e ${tt} ] && [ -e ${ti} ] ; then
+          #echo linking ${CASE}.cice.h1_inst.${YEAR}-01-01-00000.nc to the previous year directory
+          ln -s ${til}/${CASE}.cice.h1_inst.${YEAR}-01-01-00000.nc ${tt}/
+          ls -l ${tt}/*${YEAR}-01-01-00000.nc
+        elif [ ! -e ${tt} ] && [ -e ${ti} ] ; then
+          #echo linking ${CASE}.cice.h1_inst.${YEAR}-01-01-21600.nc to linking ${CASE}.cice.h1_inst.${YEAR}-01-01-00000.nc
+          ln -s ${CASE}.cice.h1_inst.${YEAR}-01-01-21600.nc ${ti}/${CASE}.cice.h1_inst.${YEAR}-01-01-00000.nc
+          ls -l ${ti}/*${YEAR}-01-01-00000.nc
+        elif [ -e ${tt} ] && [ ! -e ${ti} ] ; then
+          #echo linking ${CASE}.cice.h1_inst.${lstyr}-12-31-64800.nc to linking ${CASE}.cice.h1_inst.${YEAR}-01-01-00000.nc
+          ln -s ${CASE}.cice.h1_inst.${lstyr}-12-31-64800.nc ${tt}/${CASE}.cice.h1_inst.${YEAR}-01-01-00000.nc
+          ls -l ${tt}/*${YEAR}-01-01-00000.nc
+        fi
+    
+
+    done # CASES
+
+done # YEARS
+
+echo
+date
+echo

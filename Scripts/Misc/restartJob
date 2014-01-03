@@ -50,6 +50,8 @@ if [[ "$SIMPLE" == '0' ]]; then
     NEW_DELT='60'; NEW_EPSS='0.95'; NEW_DIFF='0.09'; NEW_DAMP='0.09'; NEW_SND='6'
   elif [[ "$CUR_DELT" == '60' ]] && [[ "$CUR_EPSS" == *'.95' ]]; then
     NEW_DELT='50'; NEW_EPSS='0.95'; NEW_DIFF='0.12'; NEW_DAMP='0.12'; NEW_SND='8'
+  elif [[ "$CUR_DELT" == '50' ]] && [[ "$CUR_EPSS" == *'.95' ]]; then
+    NEW_DELT='40'; NEW_EPSS='0.95'; NEW_DIFF='0.15'; NEW_DAMP='0.12'; NEW_SND='8'
   elif [[ $FORCE != 1 ]]; then
     echo 'Error: No applicable set of parameters found!'
     exit 1
