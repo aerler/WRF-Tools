@@ -28,10 +28,10 @@ for YEAR in $YEARS
         mkdir -p ${CCA}/${CASE}/lnd/hist/${YEAR}
         mkdir -p ${CCA}/${CASE}/ice/hist/${YEAR}
         
-        mv ${CCR}/${CASE}/run/${CASE}.cam2.h1.${YEAR}* ${CCA}/${CASE}/atm/hist/${YEAR}/
-        mv ${CCR}/${CASE}/run/${CASE}.clm2.h1.${YEAR}* ${CCA}/${CASE}/lnd/hist/${YEAR}/
-        mv ${CCR}/${CASE}/run/${CASE}.cice.h1_inst.${YEAR}* ${CCA}/${CASE}/ice/hist/${YEAR}/
-        mv ${CCR}/${CASE}/run/${CASE}.cice.h.${YEAR}* ${CCA}/${CASE}/ice/hist/
+        cp ${CCR}/${CASE}/run/${CASE}.cam2.h1.${YEAR}* ${CCA}/${CASE}/atm/hist/${YEAR}/
+        cp ${CCR}/${CASE}/run/${CASE}.clm2.h1.${YEAR}* ${CCA}/${CASE}/lnd/hist/${YEAR}/
+        cp ${CCR}/${CASE}/run/${CASE}.cice.h1_inst.${YEAR}* ${CCA}/${CASE}/ice/hist/${YEAR}/
+        cp ${CCR}/${CASE}/run/${CASE}.cice.h.${YEAR}* ${CCA}/${CASE}/ice/hist/
     
     done # CASES
 

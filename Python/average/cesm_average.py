@@ -25,7 +25,8 @@ def getDateRegX(period):
   elif period == '1979-1982': prdrgx = '19(79|8[0-1])-\d\d' # 3 year historical period
   elif period == '1979-1984': prdrgx = '19(79|8[0-3])-\d\d' # 5 year historical period
   elif period == '1979-1989': prdrgx = '19(79|8[0-8])-\d\d' # 10 year historical period
-  elif period == '1980-1995': prdrgx = '19(8[0-9]|9[04])-\d\d' # 15 year historical period
+  elif period == '1979-1994': prdrgx = '19(79|8[0-9]|9[0-3])-\d\d' # 15 year historical period
+  elif period == '1980-1995': prdrgx = '19(8[0-9]|9[0-4])-\d\d' # 15 year historical period
   elif period == '2045-2048': prdrgx = '204[5-7]-\d\d' # 3 year future period
   elif period == '2045-2050': prdrgx = '204[5-9]-\d\d' # 5 year future period
   elif period == '2045-2055': prdrgx = '20(4[5-9]|5[0-4])-\d\d' # 10 year future period
