@@ -8,18 +8,18 @@ DSTR="$CCA" # my CESM archive folder as destination (always)
 
 shopt -s extglob
 # historical runs
-RUNS='@(h[abc]|t)b20trcn1x1/' # glob expression that identifies CESM archives
-PERIODS='1979-1994' # averaging period; period defined in avgWRF.py
+#RUNS='@(h[abc]|t)b20trcn1x1/' # glob expression that identifies CESM archives
+#PERIODS='1979-1994' # averaging period; period defined in avgWRF.py
 # projections
 #RUNS='h[abct]brcp85cn1x1' # glob expression that identifies CESM archives
 #PERIODS='2045-2060' # averaging period
-#RUNS='h[abc]brcp85cn1x1d'; SRCR="$CCA" # my CESM simulations
+#RUNS='h[abc]brcp85cn1x1d'; SRCR="$SCRATCH/CESM/archive/" # my CESM simulations
 #PERIODS='2085-2100' # averaging period
 #RUNS='htbrcp85cn1x1b' # Marc's 2085 simulation
 #PERIODS='2085-2095' # averaging period
 # seaice experiments
-#RUNS='seaice-5r-hf'; SRCR="$CCA" # my sea-ice simulation
-#PERIODS='2045-2060' # averaging period
+RUNS='seaice-3r-hf'; SRCR="$CCA" # my sea-ice simulation
+PERIODS='2045-2060' # averaging period
 # cesm_average settings
 RECALC='RECALC'
 FILETYPES='atm lnd ice'
