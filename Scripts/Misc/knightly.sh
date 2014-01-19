@@ -15,14 +15,16 @@ export WRFDATA="${ROOT}/WRF/" # local WRF data root
 export CESMDATA="${ROOT}/CESM/" # local CESM data root
 
 ## synchronize data with SciNet
-
+# WRF
 ${CODE}/WRF\ Tools/Scripts/Misc/sync-wrf.sh 1> ${WRFDATA}/sync-wrf.log 2> ${WRFDATA}/sync-wrf.err # 2>&1 
 # CESM
 ${CODE}/WRF\ Tools/Scripts/Misc/sync-cesm.sh 1> ${CESMDATA}/sync-cesm.log 2> ${CESMDATA}/sync-cesm.err # 2>&1 
+# Datasets
+${CODE}/WRF\ Tools/Scripts/Misc/sync-datasets.sh 1> ${ROOT}/sync-datasets.log 2> ${ROOT}/sync-datasets.err # 2>&1 
 
 ## run post-processing (update climatologies)
 # WRF
 export PYAVG_THREADS=4
 export PYAVG_DEBUG=FALSE
 export PYAVG_OVERWRITE=FALSE
-#${PYTHONHOME}/bin/python ${CODE}/PyGeoDat/src/processing/wrfavg.py 1> ${DATA}/wrfavg.log 2> ${DATA}/wrfavg.err
+${PYTHONHOME}/bin/python ${CODE}/PyGeoDat/src/processing/wrfavg.py 1> ${DATA}/wrfavg.log 2> ${DATA}/wrfavg.err
