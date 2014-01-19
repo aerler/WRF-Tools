@@ -2,11 +2,12 @@
 # script to synchronize monthly means with SciNet
 
 # WRF downscaling roots
-L="${DATA:-/data/WRF/wrfavg/}" # should be supplied by caller
+WRFDATA="${WRFDATA:-/data/WRF/}" # should be supplied by caller
+WRFAVG="${WRFDATA}/wrfavg/"
 DR='/reserved1/p/peltier/aerler/Downscaling'
 DS='/scratch/p/peltier/aerler/Downscaling'
 # ssh settings: special identity/ssh key, batch mode, and connection sharing
-SSH="-i /home/me/.ssh/rsync -o BatchMode=yes -o ControlPath=${L}/master-%l-%r@%h:%p -o ControlMaster=auto -o ControlPersist=1"
+SSH="-i /home/me/.ssh/rsync -o BatchMode=yes -o ControlPath=${WRFDATA}/master-%l-%r@%h:%p -o ControlMaster=auto -o ControlPersist=1"
 HOST='aerler@login.scinet.utoronto.ca'
 
 echo
@@ -16,7 +17,7 @@ date
 echo 
 echo "   >>>   Synchronizing Local Averaged WRF Data with SciNet   <<<   " 
 echo
-echo "      Local:  ${L}"
+echo "      Local:  ${WRFDATA}"
 echo "      Host: ${HOST}"
 echo
 echo
@@ -35,7 +36,7 @@ for D in "$DR/*-*/" "$DS/*-*/"
 				if [ $? == 0 ] # check exit code 
 			    then
 				    N=${E##*/} # isolate folder name (local folder name)
-			    	M="$L/$N" # absolute path
+			    	M="${WRFAVG}/${N}" # absolute path
 			    	mkdir -p "$M" # make sure directory is there
 				    echo "$N" # feedback
 			    	# use rsync for the transfer; verbose, archive, update (gzip is probably not necessary)

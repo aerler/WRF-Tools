@@ -5,19 +5,24 @@
 # this script runs as a cron job at 7am every morning
 
 # environment
-#PY='/opt/epd-7.3-2-rh5-x86_64/bin/python' # Enthough Python Interpreter
-PY='/home/data/EPD/bin/python' # New Enthough Canopy Python Interpreter
+export PYTHONHOME='/home/data/EPD/' # New Enthought Canopy Python libraries
+#export PYTHONHOME='/opt/epd-7.3-2-rh5-x86_64/' # Enthough Python Interpreter
 export GDAL_DATA=/usr/local/share/gdal # for GDAL API
-export CODE='/home/data/Code/' # code root
+export CODE="${CODE:-/home/data/Code/}" # code root
 export PYTHONPATH="${CODE}/PyGeoDat/src/:${CODE}/WRF Tools/Python/"
-export DATA='/data/WRF/wrfavg/' # local WRF data root
+export ROOT='/data/'
+export WRFDATA="${ROOT}/WRF/" # local WRF data root
+export CESMDATA="${ROOT}/CESM/" # local CESM data root
 
-# synchronize data with SciNet
-#${CODE}/WRF\ Tools/Scripts/Misc/sync-monthly.sh 2>&1 1> ${DATA}/sync-monthly.log
-${CODE}/WRF\ Tools/Scripts/Misc/sync-monthly.sh 1> ${DATA}/sync-monthly.log 2> ${DATA}/sync-monthly.err 
+## synchronize data with SciNet
 
-# run post-processing (update climatologies)
+${CODE}/WRF\ Tools/Scripts/Misc/sync-wrf.sh 1> ${WRFDATA}/sync-wrf.log 2> ${WRFDATA}/sync-wrf.err # 2>&1 
+# CESM
+${CODE}/WRF\ Tools/Scripts/Misc/sync-cesm.sh 1> ${CESMDATA}/sync-cesm.log 2> ${CESMDATA}/sync-cesm.err # 2>&1 
+
+## run post-processing (update climatologies)
+# WRF
 export PYAVG_THREADS=4
 export PYAVG_DEBUG=FALSE
 export PYAVG_OVERWRITE=FALSE
-${PY} ${CODE}/PyGeoDat/src/processing/wrfavg.py 1> ${DATA}/wrfavg.log 2> ${DATA}/wrfavg.err
+#${PYTHONHOME}/bin/python ${CODE}/PyGeoDat/src/processing/wrfavg.py 1> ${DATA}/wrfavg.log 2> ${DATA}/wrfavg.err
