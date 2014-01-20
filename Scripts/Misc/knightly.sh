@@ -7,7 +7,7 @@
 # environment
 export GDAL_DATA=/usr/local/share/gdal # for GDAL API
 CODE="${CODE:-/home/data/Code/}" # code root
-#export PYTHONPATH="${CODE}/PyGeoDat/src/:${CODE}/WRF Tools/Python/"
+export PYTHONPATH="${CODE}/PyGeoDat/src/:${CODE}/WRF Tools/Python/" # my own modules...
 #export PYTHONHOME='/home/data/EPD/' # New Enthought Canopy Python libraries
 #export PYTHONHOME='/opt/epd-7.3-2-rh5-x86_64/' # Enthough Python Interpreter
 # scripts/executables
