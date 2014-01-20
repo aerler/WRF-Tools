@@ -27,4 +27,17 @@ ${CODE}/WRF\ Tools/Scripts/Misc/sync-datasets.sh 1> ${ROOT}/sync-datasets.log 2>
 export PYAVG_THREADS=4
 export PYAVG_DEBUG=FALSE
 export PYAVG_OVERWRITE=FALSE
-${PYTHONHOME}/bin/python ${CODE}/PyGeoDat/src/processing/wrfavg.py 1> ${DATA}/wrfavg.log 2> ${DATA}/wrfavg.err
+${PYTHONHOME}/bin/python ${CODE}/PyGeoDat/src/processing/wrfavg.py 1> ${WRFDATA}/wrfavg.log 2> ${WRFDATA}/wrfavg.err
+
+## compute ensemble averages
+# WRF
+cd "${WRFDATA}/cesmavg/"
+for E in *ensemble*/; do 
+   ./ensembleAverage.sh ${E} 1> ${E}/ensembleAverage.log 2> ${E}/ensembleAverage.err
+done
+# CESM
+cd "${CESMDATA}/cesmavg/"
+for E in ens*/; do 
+   ./ensembleAverage.sh ${E} 1> ${E}/ensembleAverage.log 2> ${E}/ensembleAverage.err
+done
+
