@@ -31,7 +31,7 @@ ${PYTHONHOME}/bin/python ${CODE}/PyGeoDat/src/processing/wrfavg.py 1> ${WRFDATA}
 
 ## compute ensemble averages
 # WRF
-cd "${WRFDATA}/cesmavg/"
+cd "${WRFDATA}/wrfavg/"
 for E in *ensemble*/; do 
    ./ensembleAverage.sh ${E} 1> ${E}/ensembleAverage.log 2> ${E}/ensembleAverage.err
 done
