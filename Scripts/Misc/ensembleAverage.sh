@@ -5,7 +5,7 @@
 # settings
 OVERWRITE=${OVERWRITE:-'FALSE'} # whether or not to overwrite existing files...
 #OVERWRITE=${OVERWRITE:-'OVERWRITE'} # whether or not to overwrite existing files...
-EXCLUDE=${EXCLUDE:-'TSK,SolidPrecip_SR,LiquidPrecip_SR,liqprec_sr,solprec_sr'} # variables to be excluded from average (because the cause trouble)
+#EXCLUDE=${EXCLUDE:-'TSK,SolidPrecip_SR,LiquidPrecip_SR,liqprec_sr,solprec_sr'} # variables to be excluded from average (because the cause trouble)
 VERBOSITY=${VERBOSITY:-1} # level of warning and error reporting
 NCOFLAGS=${NCOFLAGS:-'--netcdf4 --overwrite'} # flags passed to NCO call
 CLIMFILES='*clim*.nc' # regular expression defining the files to be averaged
@@ -18,8 +18,6 @@ MASTERDIR="$ROOTDIR/$MASTER/" # folder for file list
 TMP=$(cat "$ENSDIR/members.txt") # list of ensemble members
 MEMBERS=''; for M in $TMP; do MEMBERS="$MEMBERS $M"; done # get rid of new-line characters
 MEMDIRS=''; for M in $MEMBERS; do MEMDIRS="$MEMDIRS $ROOTDIR/$M/"; done # associated directories
-# append EXCLUDE list to NCOFLAGS
-if [[ -n "$EXCLUDE" ]]; then NCOFLAGS="$NCOFLAGS --exclude --variable $EXCLUDE"; fi
 
 ERR=0 # count errors (from exit codes)
 OK=0 # count successes
@@ -52,10 +50,17 @@ for FILE in $FILELIST
             echo "Skipping $FN - already exists!"
           else
             echo "${FN}"
+            unset EXCLUDE # clear eclude list
+            # detect file type and set an exlude list
+            if [[ $FN == *hydro* ]]; then EXCLUDE='T2,Tmean,SolidPrecip_SR,LiquidPrecip_SR,liqprec_sr,solprec_sr'
+            elif [[ $FN == *srfc* ]]; then EXCLUDE='TSK'
+            fi # file type/name
+            # add flags to EXCLUDE list
+            if [[ -n "$EXCLUDE" ]]; then EXCLUDE="--exclude --variable $EXCLUDE"; fi
             MEMFILES=''; for M in $MEMDIRS; do MEMFILES="$MEMFILES $M/$FN"; done # source files
             # NCO command
-            if [[ $VERBOSITY -gt 0 ]]; then echo "ncea $NCOFLAGS $MEMFILES $ENSDIR/$FN"; fi
-            ncea $NCOFLAGS $MEMFILES $ENSDIR/$FN # can't use quotes, or member filelist is interpreted as one file...
+            if [[ $VERBOSITY -gt 0 ]]; then echo "ncea $NCOFLAGS $EXCLUDE $MEMFILES $ENSDIR/$FN"; fi
+            ncea $NCOFLAGS $EXCLUDE $MEMFILES $ENSDIR/$FN # can't use quotes, or member filelist is interpreted as one file...
             if [ $? == 0 ]; then
                 OK=$(( $OK + 1 ))
             else
@@ -66,7 +71,7 @@ for FILE in $FILELIST
       else
         if [[ $VERBOSITY -gt 0 ]]; then 
             echo
-            echo "WARNING: skipping $FN!"
+            echo "WARNING: skipping $FN - $MISS inputs missing!"
         fi
       fi # if $MISS           
 done # loop over $FILELIST
