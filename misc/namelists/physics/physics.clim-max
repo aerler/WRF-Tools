@@ -8,7 +8,7 @@
  sf_urban_physics                    = 1,   1,   1, ! single layer UCM
  bl_pbl_physics                      = 5,   5,   5, ! MYNN 2.5 TKE
  bldt                                = 0,   0,   0, ! every time-step
- cu_physics                          = 5,   5,   5, ! New Grell 3D scheme (G3)
+ cu_physics                          = 5,   5,   0, ! New Grell 3D scheme (G3)
  cudt                                = 0,   0,   0, ! every time-step
  cugd_avedx                          = 1, ! G3 subsidence spreading
  ishallow                            = 1 ! shallow convection (G3)
