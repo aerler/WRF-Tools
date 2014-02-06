@@ -15,13 +15,13 @@ shopt -s extglob
 #PERIODS='2045-2060' # averaging period
 #RUNS='h[abc]brcp85cn1x1d'; SRCR="$SCRATCH/CESM/archive/" # my CESM simulations
 #PERIODS='2085-2100' # averaging period
-#RUNS='htbrcp85cn1x1b' # Marc's 2085 simulation
-#PERIODS='2085-2095' # averaging period
+RUNS='htbrcp85cn1x1d' # Marc's 2085 simulation
+PERIODS='2085-2095' # averaging period
 # seaice experiments
-RUNS='seaice-3r-hf'; SRCR="$CCA" # my sea-ice simulation
-PERIODS='2045-2060' # averaging period
+#RUNS='seaice-3r-hf'; SRCR="$CCA" # my sea-ice simulation
+#PERIODS='2045-2060' # averaging period
 # cesm_average settings
-RECALC='RECALC'
+#RECALC='RECALC'
 FILETYPES='atm lnd ice'
 
 # loop over runs
@@ -51,9 +51,9 @@ for AR in $SRCR/$RUNS
             echo "   ($RUNDIR)"	
             export PYAVG_FILETYPE=$FILETYPE # set above
             # launch python script, save output in log file
-            if [[ ! -e "cesmatm_clim_${PERIOD}.nc" ]] || [[ "$RECALC" == 'RECALC' ]]
+            if [[ ! -e "cesm${FILETYPE}_clim_${PERIOD}.nc" ]] || [[ "$RECALC" == 'RECALC' ]]
               then
-                python cesm_average.py "$PERIOD" "$RUNDIR" > "cesm_average_$PERIOD.log"
+                python -u cesm_average.py "$PERIOD" "$RUNDIR" > "cesm_average_$PERIOD.log"
                 ERR=$?
               else
                 echo "WARNING: The file cesmatm_clim_${PERIOD}.nc already exits! Skipping computation!"
