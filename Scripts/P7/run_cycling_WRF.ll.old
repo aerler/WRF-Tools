@@ -1,40 +1,26 @@
 #!/bin/bash
 # LoadLeveler submission script for SciNet P7
+# Specifies the name of the shell to use for the job
+# @ shell = /bin/bash 
 ##=====================================
-# @ job_name = test_2x128
-# @ wall_clock_limit = 18:00:00
+# @ job_name = max-ctrl-2100_WRF
+# @ wall_clock_limit = 48:00:00
 # @ node = 1
 # @ tasks_per_node = 128
 # @ notification = error
 # @ output = $(job_name).$(jobid).out
 # @ error = $(job_name).$(jobid).out
-#@ environment = $NEXTSTEP; $NOWPS; MP_INFOLEVEL=1; \
-#                MP_USE_BULK_XFER=yes; MP_BULK_MIN_MSG_SIZE=64K; \
-#                MP_EAGER_LIMIT=64K; LAPI_DEBUG_ENABLE_AFFINITY=no; \
-#                MP_TASK_AFFINITY=CPU:1; MP_BINDPROC=yes
-# #MP_FIFO_MTU=4K;
-##=====================================
+# @ environment = $NEXTSTEP; $NOWPS; MP_INFOLEVEL=1; \
+#                 MP_USE_BULK_XFER=yes; MP_BULK_MIN_MSG_SIZE=64K; \
+#                 MP_EAGER_LIMIT=64K; LAPI_DEBUG_ENABLE_AFFINITY=no; \
+#                 MP_TASK_AFFINITY=CPU:1; MP_BINDPROC=yes
 # @ job_type = parallel
 # @ class = verylong
-# @ node_usage = not_shared
-# Specifies the name of the shell to use for the job
-# @ shell = /bin/bash
-##=====================================
-## affinity settings
-# #@ task_affinity=cpu(1)
-# #@ cpus_per_core=4
-# @ rset = rset_mcm_affinity
-# @ mcm_affinity_options=mcm_distribute mcm_mem_req mcm_sni_none
 ##=====================================
 ## this is necessary in order to avoid core dumps for batch files
 ## which can cause the system to be overloaded
 # ulimits
 # @ core_limit = 0
-#=====================================
-## necessary to force use of infiniband network for MPI traffic
-# #@ network.mpi = sn_single,not_shared,us,,instances=2
-# #@ network.MPI = sn_all,not_shared,us, ,instances=1
-# #@ network.MPI = sn_all,not_shared,US,HIGH
 ##=====================================
 # @ queue
 
