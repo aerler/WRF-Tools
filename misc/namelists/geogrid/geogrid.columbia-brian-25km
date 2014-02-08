@@ -1,5 +1,5 @@
 &geogrid
- geog_data_res = 'usgs_lakes+10m','usgs_lakes+5m','usgs_lakes+30s','usgs_lakes+30s',
+ geog_data_res = 'usgs_lakes+10m','usgs_lakes+2m','usgs_lakes+30s','usgs_lakes+30s',
  dx = 25000,
  dy = 25000,
  map_proj =  'lambert',
