@@ -77,6 +77,12 @@ fi; if [[ -n "${NEW_SND}" ]]; then
   ERR=$(( ${ERR} + $? )) # capture exit code
 fi
 
+# put in restart links
+for DOM in {1..4}; do
+  if [ -f ../wrfout/wrfrst_d0${DOM}_${CURRENTSTEP}* ] # check if restart file for DOM exists; don't use [[ ]] here!
+    then ln -sf ../wrfout/wrfrst_d0${DOM}_${CURRENTSTEP}*; fi # create link
+done # loop over domains
+
 ## resubmit job
 cd "${INIDIR}"
 # Feedback
