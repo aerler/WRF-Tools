@@ -30,21 +30,37 @@ for D in "$DR/*-*/" "$DS/*-*/"
       do 
 	 	 	 	E=${E%/} # necessary for subsequent step (see below)
         F="$E/wrfavg/wrf*_d0?_monthly.nc" # monthly means
-        #F="$E/wrfout/wrfconst_d0?.nc" # constants files
+        G="$E/wrfout/wrfconst_d0?.nc" # constants files
+        H="$E/wrfout/static.tgz" # config files 
 	      # check if experiment has any data
-				ssh $SSH $HOST "ls $F" &> /dev/null
-				if [ $? == 0 ] # check exit code 
-			    then
-				    N=${E##*/} # isolate folder name (local folder name)
+        ssh $SSH $HOST "ls $F" &> /dev/null
+        if [ $? == 0 ]; then # check exit code 
+            N=${E##*/} # isolate folder name (local folder name)
 			    	M="${WRFAVG}/${N}" # absolute path
 			    	mkdir -p "$M" # make sure directory is there
 				    echo "$N" # feedback
+        fi # if ls scinet
+    		# transfer monthly averages 
+				ssh $SSH $HOST "ls $F" &> /dev/null
+				if [ $? == 0 ]; then # check exit code 			    
 			    	# use rsync for the transfer; verbose, archive, update (gzip is probably not necessary)
+				    # N.B.: with connection sharing, repeating connection attempts is not really necessary
 			    	rsync -vau -e "ssh $SSH" "$HOST:$F" $M/ 
 				    ERR=$(( $ERR + $? )) # capture exit code, and repeat, if unsuccessful
-				    # N.B.: with connection sharing, repeating connection attempts is not really necessary
-				    echo
 			  fi # if ls scinet
+        # transfer constants files
+        ssh $SSH $HOST "ls $G" &> /dev/null
+        if [ $? == 0 ]; then # check exit code 
+            rsync -vau -e "ssh $SSH" "$HOST:$G" $M/ 
+            ERR=$(( $ERR + $? )) # capture exit code, and repeat, if unsuccessful
+        fi # if ls scinet
+        # transfer config files
+        ssh $SSH $HOST "ls $H" &> /dev/null
+        if [ $? == 0 ]; then # check exit code 
+            rsync -vau -e "ssh $SSH" "$HOST:$H" $M/ 
+            ERR=$(( $ERR + $? )) # capture exit code, and repeat, if unsuccessful
+        fi # if ls scinet
+        echo
     done # for subsets    
 done # for regex sets
 
