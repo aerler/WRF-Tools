@@ -20,35 +20,35 @@ function RENAME () {
     ## queue dependent changes
     # WPS run-script
     if [[ "${FILE}" == *WPS* ]] && [[ "${WPSQ}" == "${Q}" ]]; then
-			if [[ "${WPSQ}" == "pbs" ]]; then
-		    sed -i "/#PBS -N/ s/#PBS -N\s.*$/#PBS -N ${NAME}_WPS/" "${FILE}" # name
-		    sed -i "/#PBS -l/ s/#PBS -l nodes=.*:\(.*\)$/#PBS -l nodes=1:\1/" "${FILE}" # nodes (WPS only runs on one node)
-		    sed -i "/#PBS -l/ s/#PBS -l walltime=.*$/#PBS -l walltime=${WPSWCT}/" "${FILE}" # wallclock time	    
-			else
-	    sed -i "/export JOBNAME/ s+export\sJOBNAME=.*$+export JOBNAME=${NAME}_WPS  # job name (dummy variable, since there is no queue)+" "${FILE}" # name
-	  	fi # $Q
+      if [[ "${WPSQ}" == "pbs" ]]; then
+        sed -i "/#PBS -N/ s/#PBS -N\s.*$/#PBS -N ${NAME}_WPS/" "${FILE}" # name
+        sed -i "/#PBS -l/ s/#PBS -l nodes=.*:\(.*\)$/#PBS -l nodes=1:\1/" "${FILE}" # nodes (WPS only runs on one node)
+        sed -i "/#PBS -l/ s/#PBS -l walltime=.*$/#PBS -l walltime=${WPSWCT}/" "${FILE}" # wallclock time      
+      else
+      sed -i "/export JOBNAME/ s+export\sJOBNAME=.*$+export JOBNAME=${NAME}_WPS  # job name (dummy variable, since there is no queue)+" "${FILE}" # name
+      fi # $Q
     fi # if WPS
     # WRF run-script
     if [[ "${FILE}" == *WRF* ]] && [[ "${WRFQ}" == "${Q}" ]]; then
-			if [[ "${WRFQ}" == "pbs" ]]; then
-		    sed -i "/#PBS -N/ s/#PBS -N\s.*$/#PBS -N ${NAME}_WRF/" "run_${CASETYPE}_WRF.${WRFQ}" # experiment name
-		    sed -i "/#PBS -W/ s/#PBS -W\s.*$/#PBS -W depend:afterok:${NAME}_WPS/" "${FILE}" # dependency on WPS
-		    sed -i "/#PBS -l/ s/#PBS -l nodes=.*:\(.*\)$/#PBS -l nodes=${WRFNODES}:\1/" "${FILE}" # number of nodes
-		    sed -i "/#PBS -l/ s/#PBS -l walltime=.*$/#PBS -l walltime=${WRFWCT}/" "${FILE}" # wallclock time
-		    sed -i "/qsub/ s/qsub ${WRFSCRIPT} -v NEXTSTEP=*\s-W*$/qsub ${WRFSCRIPT} -v NEXTSTEP=*\s-W\s${NAME}_WPS/" "${FILE}" # dependency
-			elif [[ "${WRFQ}" == "sge" ]]; then
-		    sed -i "/#$ -N/ s/#$ -N\s.*$/#$ -N ${NAME}_WRF/" "run_${CASETYPE}_WRF.${WRFQ}" # experiment name
-     	  #sed -i "/#PBS -W/ s/#PBS -W\s.*$/#PBS -W depend:afterok:${NAME}_WPS/" "${FILE}" # dependency on WPS
-		    sed -i "/#$ -pe/ s/#$ -pe .*$/#$ -pe mpich $((WRFNODES*16))/" "${FILE}" # number of MPI tasks
-		    sed -i "/#$ -l/ s/#$ -l h_rt=.*$/#$ -l h_rt=${WRFWCT}/" "${FILE}" # wallclock time
-			elif [[ "${WRFQ}" == "ll" ]]; then
-		    sed -i "/#\s*@\s*job_name/ s/#\s*@\s*job_name\s*=.*$/# @ job_name = ${NAME}_WRF/" "${FILE}" # experiment name
-		    sed -i "/#\s*@\s*node/ s/#\s*@\s*node\s*=.*$/# @ node = ${WRFNODES}/" "${FILE}" # number of nodes
-		    sed -i "/#\s*@\s*wall_clock_limit/ s/#\s*@\s*wall_clock_limit\s*=.*$/# @ wall_clock_limit = ${WRFWCT}/" "${FILE}" # wallclock time
-			else
-		    sed -i "/export JOBNAME/ s+export\sJOBNAME=.*$+export JOBNAME=${NAME}_WRF # job name (dummy variable, since there is no queue)+" "${FILE}" # name
-		    sed -i "/export TASKS/ s+export\sTASKS=.*$+export TASKS=${WRFNODES} # number of MPI tasks+" "${FILE}" # number of tasks (instead of nodes...)
-			fi # $Q
+      if [[ "${WRFQ}" == "pbs" ]]; then
+        sed -i "/#PBS -N/ s/#PBS -N\s.*$/#PBS -N ${NAME}_WRF/" "run_${CASETYPE}_WRF.${WRFQ}" # experiment name
+        sed -i "/#PBS -W/ s/#PBS -W\s.*$/#PBS -W depend:afterok:${NAME}_WPS/" "${FILE}" # dependency on WPS
+        sed -i "/#PBS -l/ s/#PBS -l nodes=.*:\(.*\)$/#PBS -l nodes=${WRFNODES}:\1/" "${FILE}" # number of nodes
+        sed -i "/#PBS -l/ s/#PBS -l walltime=.*$/#PBS -l walltime=${MAXWCT}/" "${FILE}" # wallclock time
+        sed -i "/qsub/ s/qsub ${WRFSCRIPT} -v NEXTSTEP=*\s-W*$/qsub ${WRFSCRIPT} -v NEXTSTEP=*\s-W\s${NAME}_WPS/" "${FILE}" # dependency
+      elif [[ "${WRFQ}" == "sge" ]]; then
+        sed -i "/#$ -N/ s/#$ -N\s.*$/#$ -N ${NAME}_WRF/" "run_${CASETYPE}_WRF.${WRFQ}" # experiment name
+         #sed -i "/#PBS -W/ s/#PBS -W\s.*$/#PBS -W depend:afterok:${NAME}_WPS/" "${FILE}" # dependency on WPS
+        sed -i "/#$ -pe/ s/#$ -pe .*$/#$ -pe mpich $((WRFNODES*16))/" "${FILE}" # number of MPI tasks
+        sed -i "/#$ -l/ s/#$ -l h_rt=.*$/#$ -l h_rt=${MAXWCT}/" "${FILE}" # wallclock time
+      elif [[ "${WRFQ}" == "ll" ]]; then
+        sed -i "/#\s*@\s*job_name/ s/#\s*@\s*job_name\s*=.*$/# @ job_name = ${NAME}_WRF/" "${FILE}" # experiment name
+        sed -i "/#\s*@\s*node/ s/#\s*@\s*node\s*=.*$/# @ node = ${WRFNODES}/" "${FILE}" # number of nodes
+        sed -i "/#\s*@\s*wall_clock_limit/ s/#\s*@\s*wall_clock_limit\s*=.*$/# @ wall_clock_limit = ${MAXWCT}/" "${FILE}" # wallclock time
+      else
+        sed -i "/export JOBNAME/ s+export\sJOBNAME=.*$+export JOBNAME=${NAME}_WRF # job name (dummy variable, since there is no queue)+" "${FILE}" # name
+        sed -i "/export TASKS/ s+export\sTASKS=.*$+export TASKS=${WRFNODES} # number of MPI tasks+" "${FILE}" # number of tasks (instead of nodes...)
+      fi # $Q
     fi # if WRF
     ## queue independent changes
     # WRF script
@@ -210,6 +210,7 @@ if [[ "${AVGSCRIPT}" == 'DEFAULT' ]]
     then AVGSCRIPT="run_wrf_avg.${WPSQ}"; fi
 
 # default WRF and geogrid executables
+MAXWCT=${MAXWCT:-'48:00:00'} # maximum walltime on system - used for WRF walltime
 if [[ "${WRFSYS}" == "GPC" ]]; then
     WRFQ='pbs' # queue system
     WRFWCT=${WRFWCT:-'06:00:00'}; WRFNODES=${WRFNODES:-16} # WRF resource config on GPC
