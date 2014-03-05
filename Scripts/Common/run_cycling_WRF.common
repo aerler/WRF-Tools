@@ -75,6 +75,7 @@ if [[ $ERR != 0 ]]; then
   echo  
   
   # launch crash handler script (mostly for auto-restart)
+  export RSTCNT # export restart counter 
   eval "${SCRIPTDIR}/crashHandler.sh" # restart job with smaller time-step
   ERR=$(( ${ERR} + $? )) # capture exit code
   

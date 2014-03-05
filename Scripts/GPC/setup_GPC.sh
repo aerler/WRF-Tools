@@ -81,4 +81,4 @@ export SUBMITAVG=${SUBMITAVG:-'ssh gpc-f104n084 "cd \"${INIDIR}\"; qsub ./${AVGS
 # N.B.: requires $AVGTAG to be set in the launch script
 
 # job submission command (for next step)
-export RESUBJOB=${RESUBJOB-'ssh gpc01 "cd \"${INIDIR}\"; qsub ./${WRFSCRIPT} -v NOWPS=${NOWPS},NEXTSTEP=${NEXTSTEP}"'} # evaluated by resubJob
+export RESUBJOB=${RESUBJOB-'ssh gpc01 "cd \"${INIDIR}\"; qsub ./${WRFSCRIPT} -v NOWPS=${NOWPS},NEXTSTEP=${NEXTSTEP},RSTCNT=${RSTCNT}"'} # evaluated by resubJob

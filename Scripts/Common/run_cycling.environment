@@ -25,6 +25,7 @@ export WPSWCT='' # WPS wallclock  time limit; e.g. '01:00:00'
 export DATATYPE='' # type of initial and boundary forcing data
 # misc settings
 export AUTORST='RESTART' # perform auto restart after numerical instability
+export MAXRST=3 # number of restarts to be performed
 
 ## WRF settings
 # N.B.: these settings serve as fallback options when inferring from namelist fails

@@ -1,19 +1,27 @@
  #!/bin/bash
 # script to automatically restart job after a crash due to numerical instability
-# Andre R. Erler, 21/08/2013
+# Andre R. Erler, 21/08/2013, revised 04/03/2014
 
 # The following environment variables have to be set by the caller:
-# INIDIR, RSTDIR, WRFSCRIPT, WRFSCRIPT, RESUBJOB, NEXTSTEP
-# optional: DEL_DELT, DEL_EPSS
+# INIDIR, WORKDIR, SCRIPTDIR, CURRENTSTEP, WRFSCRIPT, RESUBJOB
+# optional: AUTORST, MAXRST, DEL_DELT, MUL_EPSS, ENU_SNDT, DEN_SNDT
+# N.B.: the variable RSTCNT is set and reused by this script, so it shoudl also be passed on by the caller
 
-DEL_DELT=${DEL_DELT:-'30'} # positive time-step increment
-DEL_EPSS=${DEL_EPSS:-'0.25'} # positive epssm increment
+# maximum number of restarts
+AUTORST=${AUTORST:-'RESTART'} # restart once by default
+MAXRST=${MAXRST:-0} # this can be set externally, is ignored the first time...
+# N.B.: the default settings and behavior is for backward compatibility... 
+# stability parameters
+DEL_DELT=${DEL_DELT:-'30'} # negative time-step increment
+MUL_EPSS=${MUL_EPSS:-'0.50'} # epssm factor
+ENU_SNDT=${ENU_SNDT:-5} # sound time step enumerator
+DEN_SNDT=${DEN_SNDT:-4} # sound time step denominator
 
 # initialize Error counter
 ERR=0
 
 # skip if restart is not desired
-if [[ "${AUTORST}" == 'RESTART' ]]
+if [[ "${AUTORST}" == 'RESTART' ]] # && [ ${MAXRST} > 0 ] 
   then
 
 ## start restart logic
@@ -33,50 +41,71 @@ if [[ "${RTERR}" == 'RTERR' ]]
     cd "${WORKDIR}"
     CUR_DELT=$(sed -n '/time_step/ s/^\s*time_step\s*=\s*\([0-9]*\).*$/\1/p' namelist.input) # time step
     CUR_EPSS=$(sed -n '/epssm/ s/^\s*epssm\s*=\s*\([0-9]\?.[0-9]*\).*$/\1/p' namelist.input) # epssm parameter; one ore zero times: [0-9]\?.5 -> .5 or 0.5
-
+    CUR_SNDT=$(sed -n '/time_step_sound/ s/^\s*time_step_sound\s*=\s*\([0-9]*\).*$/\1/p' namelist.input) # sound time step multiplier
     # parse default namelist for stability parameters
     cd "${INIDIR}"
     INI_DELT=$(sed -n '/time_step/ s/^\s*time_step\s*=\s*\([0-9]*\).*$/\1/p' namelist.input) # time step
-    INI_EPSS=$(sed -n '/epssm/ s/^\s*epssm\s*=\s*\([0-9]\?.[0-9]*\).*$/\1/p' namelist.input) # epssm parameter
 
     # only restart, if stability parameters have not been changed yet
-    if [[ "${CUR_DELT}" == "${INI_DELT}" ]] && [[ "${CUR_EPSS}" == "${INI_EPSS}" ]]
+    if [[ "${CUR_DELT}" == "${INI_DELT}" ]] || [[ ${RSTCNT} > 0 ]] && [[ ${RSTCNT} < ${MAXRST} ]] && [ ${CUR_DELT} > ${DEL_DELT} ]
+    # N.B.: for reasons I do not fully understand, the first three statements need double brackets and only the last on need single brackets  
       then
 	
-	## change stability parameters
-	# calculate new parameters (need to use bc for floating-point math)
-	NEW_DELT=$( echo "${CUR_DELT} - ${DEL_DELT}" | bc ) # decrease time step
-	NEW_EPSS=$( echo "${CUR_EPSS} + ${DEL_EPSS}" | bc ) # increase epssm parameter
-	# change namelist
-	cd "${WORKDIR}"
-	sed -i "/time_step/ s/^\s*time_step\s*=\s*[0-9]*.*$/ time_step = ${NEW_DELT}, ! edited by the auto-restart script; original value: ${CUR_DELT}/" namelist.input
-	sed -i "/epssm/ s/^\s*epssm\s*=\s*[0-9]\?.[0-9]*.*$/ epssm = ${NEW_EPSS}, ${NEW_EPSS}, ${NEW_EPSS}, ${NEW_EPSS}, ! edited by the auto-restart script; original value: ${CUR_EPSS}/" namelist.input    
-	
-	## resubmit job for next step
-	cd "${INIDIR}"
-	echo
-	echo "   ***   Modifying namelist parameters for auto-restart   ***   "    
-	echo
-	echo "   TIME_STEP = ${NEW_DELT}"
-	echo "   EPSSM     = ${NEW_EPSS}"
-	echo
-	# reset job step
-	export NEXTSTEP="${CURRENTSTEP}"
-	export NOWPS='NOWPS' # do not submit another WPS job!
-	# launch restart
-	eval "${SCRIPTDIR}/resubJob.sh" # requires submission command from setup script
-	ERR=$(( ${ERR} + $? )) # capture exit code
+	      ## increment restart counter 
+        RSTCNT=$(( $RSTCNT + 1 )) # if RSTCNT is not defined, 0 is assumed, and the result is 1
 
+			 	## change stability parameters
+		    # calculate new parameters (need to use bc for floating-point math)
+				NEW_DELT=$( echo "${CUR_DELT} - ${DEL_DELT}" | bc ) # decrease time step by fixed amount
+				NEW_EPSS=$( echo "1.00 - ${MUL_EPSS}*(1.00 - ${CUR_EPSS})" | bc ) # increase epssm parameter
+        NEW_SNDT=$( echo "${ENU_SNDT}*${CUR_SNDT}/${DEN_SNDT}" | bc ) # increase epssm parameter
+
+		    # change namelist
+				cd "${WORKDIR}"
+				sed -i "/time_step/ s/^\s*time_step\s*=\s*[0-9]*.*$/ time_step = ${NEW_DELT}, ! edited by the auto-restart script; previous value: ${CUR_DELT}/" namelist.input
+				sed -i "/epssm/ s/^\s*epssm\s*=\s*[0-9]\?.[0-9]*.*$/ epssm = ${NEW_EPSS}, ${NEW_EPSS}, ${NEW_EPSS}, ${NEW_EPSS}, ! edited by the auto-restart script; previous value: ${CUR_EPSS}/" namelist.input    
+				sed -i "/time_step_sound/ s/^\s*time_step_sound\s*=\s*[0-9]*.*$/ time_step_sound = ${NEW_SNDT}, ${NEW_SNDT}, ${NEW_SNDT}, ${NEW_SNDT}, ! edited by the auto-restart script; previous value: ${CUR_SNDT}/" namelist.input
+				
+		    ## resubmit job for next step
+				cd "${INIDIR}"
+				echo
+				echo "   ***   Modifying namelist parameters for auto-restart   ***   "    
+        echo "            (this is restart attempt number ${RSTCNT} of ${MAXRST})"
+				echo
+				echo "         TIME_STEP = ${NEW_DELT}"
+				echo "             EPSSM = ${NEW_EPSS}"
+        echo "   TIME_STEP_SOUND = ${NEW_SNDT}"
+				echo
+		    # reset job step
+        export RSTDIR="${WORKDIR}"
+				export NEXTSTEP="${CURRENTSTEP}"
+				export NOWPS='NOWPS' # do not submit another WPS job!
+        export RSTCNT # restart counter, set above
+		    # launch restart
+				eval "${SCRIPTDIR}/resubJob.sh" # requires submission command from setup script
+				ERR=$(( ${ERR} + $? )) # capture exit code
+      
     else # stability parameters have been changed
 
-	## print error message
-	echo
-	echo "   ###   No auto-restart because namelist parameters have been modified!   ###   "
-	echo "            (a severe numerical instability is likely!)"
-	echo
-	echo "   TIME_STEP  = ${CUR_DELT};   EPSSM  = ${CUR_EPSS}"
-	echo
-	ERR=$(( ${ERR} + 1 )) # increase exit code
+		    ## print error message
+				echo
+        if [[ 0 == ${MAXRST} ]]; then # maximum restarts exceeded
+		        echo "   ###   No auto-restart because maximum number of restarts is set to 0!   ###   "
+		        echo "                (one restart may have been performed nevertheless)          "
+		    elif [[ ${RSTCNT} == ${MAXRST} ]]; then # maximum restarts exceeded
+            echo "   ###   No auto-restart because maximum number of restarts (${MAXRST}) was exceeded!   ###   "
+            echo "                 (a severe numberical instability is likely!)          "
+        elif [ ${CUR_DELT} -le ${DEL_DELT} ]; then # maximum restarts exceeded
+            echo "   ###   No auto-restart because the time step would become negative!   ###   "
+            echo "              (consider reducing the maximum number of restarts)          "        
+        else
+						echo "   ###   No auto-restart because namelist parameters have been modified!   ###   "
+				    echo "         (and no restart counter was set; likely due to manual restart)          "
+			  fi
+				echo
+				echo "   TIME_STEP  = ${CUR_DELT};   EPSSM  = ${CUR_EPSS};   TIME_STEP_SOUND  = ${CUR_SNDT}"
+				echo
+				ERR=$(( ${ERR} + 1 )) # increase exit code
       
     fi # if first auto-restart
 
