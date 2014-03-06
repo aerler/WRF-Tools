@@ -77,7 +77,7 @@ if [[ "${RTERR}" == 'RTERR' ]]
         echo "   TIME_STEP_SOUND = ${NEW_SNDT}"
 				echo
 		    # reset job step
-        export RSTDIR="${WORKDIR}"
+        export RSTDIR # set in job script; usually output dir
 				export NEXTSTEP="${CURRENTSTEP}"
 				export NOWPS='NOWPS' # do not submit another WPS job!
         export RSTCNT # restart counter, set above
