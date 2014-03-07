@@ -47,6 +47,10 @@ if [[ "${RTERR}" == 'RTERR' ]]
     INI_DELT=$(sed -n '/time_step/ s/^\s*time_step\s*=\s*\([0-9]*\).*$/\1/p' namelist.input) # time step
 
     # only restart, if stability parameters have not been changed yet
+    # N.B.: the restart will only be triggered, if 
+    #       1) the timestep has not been changed yet (no previous restart)
+    #       2) the restart counter is set and larger than 0 and smaller than MAXRST
+    #           and the timestep is larger than the DELT increment (i.e. will still be positive)
     if [[ "${CUR_DELT}" == "${INI_DELT}" ]] || [[ ${RSTCNT} > 0 ]] && [[ ${RSTCNT} < ${MAXRST} ]] && [ ${CUR_DELT} > ${DEL_DELT} ]
     # N.B.: for reasons I do not fully understand, the first three statements need double brackets and only the last on need single brackets  
       then
