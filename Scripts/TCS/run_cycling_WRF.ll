@@ -8,7 +8,7 @@
 # @ notification = error
 # @ output = $(job_name).$(jobid).out
 # @ error = $(job_name).$(jobid).out
-# @ environment = $NEXTSTEP; $NOWPS; MEMORY_AFFINITY=MCM; MP_SYNC_QP=YES; \
+# @ environment = $NEXTSTEP; $NOWPS; $RSTCNT; MEMORY_AFFINITY=MCM; MP_SYNC_QP=YES; \
 #                MP_RFIFO_SIZE=16777216; MP_SHM_ATTACH_THRESH=500000; \
 #                MP_EUIDEVELOP=min; MP_USE_BULK_XFER=yes; \
 #                MP_RDMA_MTU=4K; MP_BULK_MIN_MSG_SIZE=64k; MP_RC_MAX_QP=8192; \

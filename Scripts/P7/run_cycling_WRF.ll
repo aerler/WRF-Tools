@@ -8,7 +8,7 @@
 # @ notification = error
 # @ output = $(job_name).$(jobid).out
 # @ error = $(job_name).$(jobid).out
-#@ environment = $NEXTSTEP; $NOWPS; MP_INFOLEVEL=1; \
+#@ environment = $NEXTSTEP; $NOWPS; $RSTCNT; MP_INFOLEVEL=1; \
 #                MP_USE_BULK_XFER=yes; MP_BULK_MIN_MSG_SIZE=64K; \
 #                MP_EAGER_LIMIT=64K; LAPI_DEBUG_ENABLE_AFFINITY=no; \
 #                MP_TASK_AFFINITY=CPU:1; MP_BINDPROC=yes

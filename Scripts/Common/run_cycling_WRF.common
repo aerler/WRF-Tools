@@ -94,6 +94,7 @@ else # only if WRF completed successfully
 
 
   ## resubmit job for next step
+  export RSTCNT=0 # reset restart counter
   eval "${SCRIPTDIR}/resubJob.sh" # requires submission command from setup script
   ERR=$(( ${ERR} + $? )) # capture exit code
 
