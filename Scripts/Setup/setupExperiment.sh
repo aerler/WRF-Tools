@@ -96,7 +96,7 @@ AUTORST='RESTART' # whether or not to restart job after a numerical instability 
 DATADIR='' # root directory for data
 DATATYPE='CESM' # boundary forcing type
 ## run configuration
-WRFROOT="${HOME}/WRFV3.4/"
+WRFROOT="${MODEL_ROOT}/WRFV3.4/"
 WRFTOOLS="${MODEL_ROOT}/WRF Tools/"
 # I/O, archiving, and averaging 
 IO='fineIO' # this is used for namelist construction and archiving

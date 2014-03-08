@@ -131,6 +131,72 @@ class Dataset():
     # method that generates the WRF IM file for metgrid.exe
     pass 
 
+## Multifile GRIB Dataset (generic, using ungrib)
+class MultiGrib(Dataset):
+  # a Dataset class that implements methods to concatenate multiple grib files using ungrib
+  # some common defaults
+  prefix = '' # data prefix
+  grbext = '' # grib extension
+  tmpfile = 'TMP%02i' # temporary files created during ungribbing (including an iterator)
+  preimfile = 'FILEOUT'
+  dateform = '\d\d\d\d\d\d\d\d\d\d00' # YYYYMMDDHHMM
+  datestr = '%04i%02i%02i%02i00' # year, month, day, hour (and minutes=00)
+
+  def __init__(self, folder=None):
+    # some general assignments
+    # N.B.: self.MainDir and self.mainrgx need to be assigned as well!
+    # files and folders
+    if not isinstance(folder,basestring): raise IOError, 'Warning: need to specify root folder!'
+    self.folder = folder # needs to be set externally for different applications
+    self.UNGRIB = './' + self.ungrib_exe
+    # regex to extract dates from filenames
+    self.dateregx = re.compile(self.dateform)
+
+  def getDataDir(self):
+    # universal wrapper method for folder with "master-filelist"
+    if self.folder: return self.MainDir # use atmosphere folder as master
+    else: return None # None if no folder is set
+
+  def extractDate(self, filename):
+    # method to generate date tuple from date string in filename
+    # match valid filenames
+    match = self.mainrgx.match(filename) # return match object
+    if match is None:
+      return None # if the filename doesn't match the regex
+    else:
+      # extract date string
+      datestr = self.dateregx.search(filename).group()
+      # split date string into tuple
+      year = int(datestr[0:4])
+      month = int(datestr[4:6])
+      day = int(datestr[6:8])
+      hour = int(datestr[8:10])
+      return (year, month, day, hour)
+
+  def ungribList(self, date, mytag, gribfiles, vtables):
+    # method that generates the WRF IM file for metgrid.exe
+    ## loop: process grib files and concatenate resulting IM files     
+    print('\n  * '+mytag+' converting Grib2 to WRF IM format (ungrib.exe)')
+    ungribout = self.ungribout%date # ungrib.exe names output files in a specific format
+    preimfile = open(self.preimfile,'wb') # open final (combined) WRF IM file 
+    # N.B.: binary mode 'b' is not really necessary on Unix
+    fungrib = open(self.ungrib_log, 'a') # ungrib.exe output and error log
+    for i in xrange(len(gribfiles)):
+      os.symlink(gribfiles[i],self.gribname) # link current file
+      os.symlink(Meta+vtables[i],self.vtable) # link VTable
+      # run ungrib.exe
+      subprocess.call([self.UNGRIB], stdout=fungrib, stderr=fungrib)
+      os.remove(self.gribname) # remove link for next step
+      os.remove(self.vtable) # remove link for next step
+      # append output to single WRF IM files (preimfile)
+      shutil.copyfileobj(open(ungribout,'rb'),preimfile)
+      os.remove(ungribout) # cleanup for next file      
+    # finish concatenation of ungrib.exe output
+    preimfile.close()
+    fungrib.close() # close log file for ungrib    
+    # renaming happens outside, so we don't have to know about metgrid format
+    return self.preimfile
+
 ## CFSR
 class CFSR(Dataset):
   # a class that holds meta data and implements operations specific to CFSR data
