@@ -92,7 +92,7 @@ class Dataset():
   vtable = 'Vtable'
   ungrib_exe = 'ungrib.exe'
   ungrib_log = 'ungrib.exe.log'
-  gribname = 'GRIBFILE.AAA' # first (only) ungrib input filename is always GRIBFILE.AAA
+  gribname = 'GRIBFILE' # ungrib input filename trunk (needs extension, e.g. .AAA)
   ungribout = 'FILE:%04i-%02i-%02i_%02i' # YYYY-MM-DD_HH ungrib.exe output format
   ## these functions will be very similar for all datasets using ungrib.exe (overload when not using ungrib.exe)
   def setup(self, src, dst, lsymlink=False):
@@ -173,8 +173,27 @@ class MultiGrib(Dataset):
       hour = int(datestr[8:10])
       return (year, month, day, hour)
 
-  def ungribList(self, date, mytag, gribfiles, vtables):
+  def ungrib(self, date, mytag):
     # method that generates the WRF IM file for metgrid.exe
+    # create formatted date string
+    datestr = self.datestr%date # (years, months, days, hours)
+    # create links to relevant source data (requires full path for linked files)
+    plevfile = datestr+self.plevstr; Plevfile = self.PlevDir+plevfile
+    if not os.path.exists(Plevfile): 
+      raise IOError, "Pressure level input file '%s' not found!"%(Plevfile)     
+    srfcfile = datestr+self.srfcstr; Srfcfile = self.SrfcDir+srfcfile
+    if not os.path.exists(Srfcfile): 
+      raise IOError, "Surface input file '%s' not found!"%(Srfcfile)     
+    # print feedback
+    print('\n '+mytag+' Processing time-step:  '+datestr+'\n    '+plevfile+'\n    '+srfcfile)
+    gribfiles = (Plevfile, Srfcfile)
+    vtables = (self.plevvtable, self.srfcvtable)
+#     else:
+#       print('\n '+mytag+' Processing time-step:  '+datestr+'\n    '+plevfile)
+#       print('\n '+mytag+'   ***   WARNING: no surface data - this may not work!   ***')
+#       gribfiles = (Plevfile,)
+#       vtables = (self.plevvtable,)
+      
     ## loop: process grib files and concatenate resulting IM files     
     print('\n  * '+mytag+' converting Grib2 to WRF IM format (ungrib.exe)')
     ungribout = self.ungribout%date # ungrib.exe names output files in a specific format
@@ -193,18 +212,22 @@ class MultiGrib(Dataset):
       os.remove(ungribout) # cleanup for next file      
     # finish concatenation of ungrib.exe output
     preimfile.close()
-    fungrib.close() # close log file for ungrib    
+    fungrib.close() # close log file for ungrib
+    
     # renaming happens outside, so we don't have to know about metgrid format
     return self.preimfile
+
 
 ## CFSR
 class CFSR(Dataset):
   # a class that holds meta data and implements operations specific to CFSR data
+  # CFSR is special in that surface and pressure level files are handled separately
   # note that this class does not hold any actual data
   # N.B.: ungrib.exe must be Grib2 capable!
   # CFSR data source
   prefix = '' # reanalysis generally doesn't have a prefix'
   grbext = '.grb2' # probably not needed
+  gribname = 'GRIBFILE.AAA' # this is CFSR specific - only one file type is handled at a time  
   tmpfile = 'TMP%02i' # temporary files created during ungribbing (including an iterator)
   preimfile = 'FILEOUT'
   dateform = '\d\d\d\d\d\d\d\d\d\d00' # YYYYMMDDHHMM
