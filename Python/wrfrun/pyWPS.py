@@ -88,12 +88,20 @@ class Dataset():
   # note that this class does not hold any actual data 
   prefix = '' # reanalysis generally doesn't have a prefix'
   # ungrib
-  grbext = '.grb' # this may vary...
   vtable = 'Vtable'
   ungrib_exe = 'ungrib.exe'
   ungrib_log = 'ungrib.exe.log'
   gribname = 'GRIBFILE' # ungrib input filename trunk (needs extension, e.g. .AAA)
   ungribout = 'FILE:%04i-%02i-%02i_%02i' # YYYY-MM-DD_HH ungrib.exe output format
+  # meta data defaults
+  plevdir = 'plev/'
+  plevvtable = 'Vtable.CFSR_plev'
+  grbstr = '' # list of source files; filename including date string  
+  grbext = '.grb' # grib extension
+  preimfile = 'FILEOUT'
+  dateform = '\d\d\d\d\d\d\d\d\d\d00' # YYYYMMDDHHMM (for matching regex)
+  datestr = '%04i%02i%02i%02i00' # year, month, day, hour (and minutes=00; for printing)
+
   ## these functions will be very similar for all datasets using ungrib.exe (overload when not using ungrib.exe)
   def setup(self, src, dst, lsymlink=False):
     # method to copy dataset specific files and folders working directory
@@ -113,35 +121,7 @@ class Dataset():
     # use current directory
     os.remove(self.ungrib_exe)
     os.chdir(cwd)
-  ## these functions are dataset specific and have to be implemented in the child class
-  def __init__(self):
-    # currently no function
-    pass
-  def dataDir(self):
-    # universal wrapper method for folder with "master-filelist"
-    pass
-  def checkSubDir(self, *args):
-    # method to determine whether a subfolder contains valid data and can be processed recursively
-    # most datasets will not have subfolders, we skip all subfolders by default    
-    return False
-  def extractDate(self):
-    # method to generate date tuple from date string in filename 
-    pass
-  def ungrib(self):
-    # method that generates the WRF IM file for metgrid.exe
-    pass 
-
-## Multifile GRIB Dataset (generic, using ungrib)
-class MultiGrib(Dataset):
-  # a Dataset class that implements methods to concatenate multiple grib files using ungrib
-  # some common defaults
-  prefix = '' # data prefix
-  grbext = '' # grib extension
-  tmpfile = 'TMP%02i' # temporary files created during ungribbing (including an iterator)
-  preimfile = 'FILEOUT'
-  dateform = '\d\d\d\d\d\d\d\d\d\d00' # YYYYMMDDHHMM
-  datestr = '%04i%02i%02i%02i00' # year, month, day, hour (and minutes=00)
-
+  ## these functions are dataset specific and may have to be implemented in the child class
   def __init__(self, folder=None):
     # some general assignments
     # N.B.: self.MainDir and self.mainrgx need to be assigned as well!
@@ -173,11 +153,18 @@ class MultiGrib(Dataset):
       hour = int(datestr[8:10])
       return (year, month, day, hour)
 
+  def checkSubDir(self, *args):
+    # method to determine whether a subfolder contains valid data and can be processed recursively
+    # most datasets will not have subfolders, we skip all subfolders by default    
+    return False
+
   def ungrib(self, date, mytag):
     # method that generates the WRF IM file for metgrid.exe
     # create formatted date string
     datestr = self.datestr%date # (years, months, days, hours)
+    msg = '\n '+mytag+' Processing time-step:  '+datestr+'\n    '
     # create links to relevant source data (requires full path for linked files)
+    for 
     plevfile = datestr+self.plevstr; Plevfile = self.PlevDir+plevfile
     if not os.path.exists(Plevfile): 
       raise IOError, "Pressure level input file '%s' not found!"%(Plevfile)     
@@ -185,7 +172,7 @@ class MultiGrib(Dataset):
     if not os.path.exists(Srfcfile): 
       raise IOError, "Surface input file '%s' not found!"%(Srfcfile)     
     # print feedback
-    print('\n '+mytag+' Processing time-step:  '+datestr+'\n    '+plevfile+'\n    '+srfcfile)
+    print(+plevfile+'\n    '+srfcfile)
     gribfiles = (Plevfile, Srfcfile)
     vtables = (self.plevvtable, self.srfcvtable)
 #     else:

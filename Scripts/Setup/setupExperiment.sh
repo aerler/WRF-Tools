@@ -141,6 +141,9 @@ elif [[ "${DATATYPE}" == 'CFSR' ]]; then
   VTABLE_PLEV=${VTABLE_PLEV:-'Vtable.CFSR_press_pgbh06'}
   VTABLE_SRFC=${VTABLE_SRFC:-'Vtable.CFSR_sfc_flxf06'}
   METGRIDTBL=${METGRIDTBL:-'METGRID.TBL.ARW'}
+elif [[ "${DATATYPE}" == 'ERA-I' ]]; then
+  VTABLE=${VTABLE:-'Vtable.ERA-interim.pl'}
+  METGRIDTBL=${METGRIDTBL:-'METGRID.TBL.ARW'}
 else # WPS default
   METGRIDTBL=${METGRIDTBL:-'METGRID.TBL.ARW'}
 fi # $DATATYPE
@@ -330,6 +333,8 @@ if [[ "${DATATYPE}" == 'CESM' ]] || [[ "${DATATYPE}" == 'CCSM' ]]; then
 elif [[ "${DATATYPE}" == 'CFSR' ]]; then
   ln -sf "${WPSSRC}/ungrib/Variable_Tables/${VTABLE_PLEV}" 'Vtable.CFSR_plev'
   ln -sf "${WPSSRC}/ungrib/Variable_Tables/${VTABLE_SRFC}" 'Vtable.CFSR_srfc'
+elif [[ "${DATATYPE}" == 'ERA-I' ]]; then
+  ln -sf "${WPSSRC}/ungrib/Variable_Tables/${VTABLE}" 'Vtable.ERA-interim'
 fi # $DATATYPE
 # link boundary data
 echo "Linking boundary data: ${DATADIR}"
@@ -342,8 +347,13 @@ if [[ "${DATATYPE}" == 'CESM' ]] || [[ "${DATATYPE}" == 'CCSM' ]]; then
   ln -sf "${DATADIR}/ice/hist/" 'ice' # sea ice
 elif [[ "${DATATYPE}" == 'CFSR' ]]; then
   rm -f 'plev' 'srfc'
-  ln -sf "${DATADIR}/PLEV/" 'plev' # pressure level date (3D, 0.5 deg)
-  ln -sf "${DATADIR}/SRFC/" 'srfc' # surface date (2D, 0.33 deg)
+  ln -sf "${DATADIR}/plev/" 'plev' # pressure level date (3D, 0.5 deg)
+  ln -sf "${DATADIR}/srfc/" 'srfc' # surface data (2D, 0.33 deg)
+elif [[ "${DATATYPE}" == 'ERA-I' ]]; then
+  rm -f 'uv' 'sc' 'sfc' 
+  ln -sf "${DATADIR}/uv/" 'uv' # pressure level date (3D, 0.7 deg)
+  ln -sf "${DATADIR}/sc/" 'sc' # pressure level date (3D, 0.7 deg)
+  ln -sf "${DATADIR}/sfc/" 'src' # surface data (2D, 0.7 deg)
 fi # $DATATYPE
 # set correct path for geogrid data
 echo "Setting path for geogrid data"
