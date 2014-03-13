@@ -90,7 +90,7 @@ if __name__ == '__main__':
       elif "Idle" == linesplit[2]: lidl = True
     # process time
     if lrun or lidl:
-      np =  int(linesplit[3])
+      np =  float(linesplit[3]) # ensure floating point division below: np / ppn
       if np != 16 and np != 32: print('WARNING: strange number of processes: %i --- rounding up.'%np)
       np = math.ceil(np / ppn) # next full multiple of ppn
       time = linesplit[4]
