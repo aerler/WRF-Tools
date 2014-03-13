@@ -16,10 +16,12 @@ import shutil # copy and move
 import re # regular expressions
 import subprocess # launching external programs
 import multiprocessing # parallelization
+import string # to iterate over alphabet...
 # my modules
 from namelist import time
 
 ##  Default Settings (may be overwritten by in meta/namelist.py)
+Alphabet = string.ascii_uppercase
 tmp = 'tmp/'
 meta = 'meta/'
 # metgrid
@@ -94,14 +96,37 @@ class Dataset():
   gribname = 'GRIBFILE' # ungrib input filename trunk (needs extension, e.g. .AAA)
   ungribout = 'FILE:%04i-%02i-%02i_%02i' # YYYY-MM-DD_HH ungrib.exe output format
   # meta data defaults
-  plevdir = 'plev/'
-  plevvtable = 'Vtable.CFSR_plev'
-  grbstr = '' # list of source files; filename including date string  
-  grbext = '.grb' # grib extension
-  preimfile = 'FILEOUT'
+  grbdirs = None # list of source folders (same order as strings)
+  grbstrs = None # list of source files; filename including date string  
   dateform = '\d\d\d\d\d\d\d\d\d\d00' # YYYYMMDDHHMM (for matching regex)
   datestr = '%04i%02i%02i%02i00' # year, month, day, hour (and minutes=00; for printing)
 
+  ## these functions are dataset specific and may have to be implemented in the child class
+  def __init__(self, folder=None):
+    # type checking
+    if not isinstance(self.grbdirs,(list,tuple)): raise TypeError, 'Need to define a list of grib folders.'
+    if not isinstance(self.grbstrs,(list,tuple)): raise TypeError, 'Need to define a list of grib file names.'
+    if len(self.grbstrs) != len(self.grbdirs): raise ValueError, 'Grid file types and folders need to be of the same number.'
+    if len(self.grbstrs) > len(Alphabet): raise ValueError, 'Currently only {0:d} file types are supported.'.format(len(Alphabet))
+    # some general assignments
+    # N.B.: self.MainDir and self.mainrgx need to be assigned as well!
+    # files and folders
+    if not isinstance(folder,basestring): raise IOError, 'Warning: need to specify root folder!'
+    self.folder = folder # needs to be set externally for different applications
+    self.GrbDirs = ['{0:s}/{1:s}'.format(folder,grbdir) for grbdir in self.grbdirs]
+    self.UNGRIB = './' + self.ungrib_exe
+    # generate required ungrib names
+    gribnames = []
+    for i in xrange(len(self.grbstrs)):
+      gribname = '{0:s}.AA{1:s}'.format(self.gribname,Alphabet[i])
+      gribnames.append(gribname)
+    self.gribnames = gribnames
+    # regex to extract dates from filenames
+    self.dateregx = re.compile(self.dateform)
+    # master file list (first element in grib file list)
+    self.MainDir = os.readlink(folder + self.GrbDirs[0][:-1]) # directory to be searched for dates    
+    self.mainrgx = re.compile(self.grbstrs[0].format(self.dateform)+'$') # use as master list    
+  
   ## these functions will be very similar for all datasets using ungrib.exe (overload when not using ungrib.exe)
   def setup(self, src, dst, lsymlink=False):
     # method to copy dataset specific files and folders working directory
@@ -111,32 +136,21 @@ class Dataset():
       os.chdir(dst)
       # use current directory
       os.symlink(src+self.ungrib_exe, self.ungrib_exe)
+      os.symlink(Meta+self.vtable,self.vtable) # link VTable
       os.chdir(cwd)
     else:
       shutil.copy(src+self.ungrib_exe, dst)
+      shutil.copy(Meta+self.vtable, dst)
+  
   def cleanup(self, tgt):
     # method to remove dataset specific files and links
     cwd = os.getcwd()
     os.chdir(tgt)
     # use current directory
     os.remove(self.ungrib_exe)
+    os.remove(self.vtable)
     os.chdir(cwd)
-  ## these functions are dataset specific and may have to be implemented in the child class
-  def __init__(self, folder=None):
-    # some general assignments
-    # N.B.: self.MainDir and self.mainrgx need to be assigned as well!
-    # files and folders
-    if not isinstance(folder,basestring): raise IOError, 'Warning: need to specify root folder!'
-    self.folder = folder # needs to be set externally for different applications
-    self.UNGRIB = './' + self.ungrib_exe
-    # regex to extract dates from filenames
-    self.dateregx = re.compile(self.dateform)
-
-  def getDataDir(self):
-    # universal wrapper method for folder with "master-filelist"
-    if self.folder: return self.MainDir # use atmosphere folder as master
-    else: return None # None if no folder is set
-
+  
   def extractDate(self, filename):
     # method to generate date tuple from date string in filename
     # match valid filenames
@@ -154,7 +168,7 @@ class Dataset():
       return (year, month, day, hour)
 
   def checkSubDir(self, *args):
-    # method to determine whether a subfolder contains valid data and can be processed recursively
+    # method to determine whether data is stored in subfolders and can be processed recursively
     # most datasets will not have subfolders, we skip all subfolders by default    
     return False
 
@@ -162,47 +176,30 @@ class Dataset():
     # method that generates the WRF IM file for metgrid.exe
     # create formatted date string
     datestr = self.datestr%date # (years, months, days, hours)
-    msg = '\n '+mytag+' Processing time-step:  '+datestr+'\n    '
+    msg = datestr # status output; message printed later
     # create links to relevant source data (requires full path for linked files)
-    for 
-    plevfile = datestr+self.plevstr; Plevfile = self.PlevDir+plevfile
-    if not os.path.exists(Plevfile): 
-      raise IOError, "Pressure level input file '%s' not found!"%(Plevfile)     
-    srfcfile = datestr+self.srfcstr; Srfcfile = self.SrfcDir+srfcfile
-    if not os.path.exists(Srfcfile): 
-      raise IOError, "Surface input file '%s' not found!"%(Srfcfile)     
+    Grbfiles = [] # list of relevant source files
+    for GrbDir,grbstr in zip(self.GrbDirs,self.grbstrs):
+      grbfile = grbstr.format(datestr) # insert current date
+      Grbfile = '{0:s}/{1:s}'.format(GrbDir,grbfile) # absolute path
+      if not os.path.exists(Grbfile): 
+        raise IOError, "Input file '{0:s}' not found!".format(Grbfile)     
+      else:
+        msg += '\n    '+grbfile # add to output
+        Grbfiles.append(Grbfile) # append to file list
     # print feedback
-    print(+plevfile+'\n    '+srfcfile)
-    gribfiles = (Plevfile, Srfcfile)
-    vtables = (self.plevvtable, self.srfcvtable)
-#     else:
-#       print('\n '+mytag+' Processing time-step:  '+datestr+'\n    '+plevfile)
-#       print('\n '+mytag+'   ***   WARNING: no surface data - this may not work!   ***')
-#       gribfiles = (Plevfile,)
-#       vtables = (self.plevvtable,)
-      
-    ## loop: process grib files and concatenate resulting IM files     
-    print('\n  * '+mytag+' converting Grib2 to WRF IM format (ungrib.exe)')
-    ungribout = self.ungribout%date # ungrib.exe names output files in a specific format
-    preimfile = open(self.preimfile,'wb') # open final (combined) WRF IM file 
+    print('\n '+mytag+' Processing time-step:  '+msg)    
+    for Gribfile,gribname in zip(Grbfiles,self.girbnames): os.symlink(Gribfile,gribname) # link current file      
+    print('\n  * '+mytag+' converting Grib to WRF IM format (ungrib.exe)')
     # N.B.: binary mode 'b' is not really necessary on Unix
+    # run ungrib.exe
     fungrib = open(self.ungrib_log, 'a') # ungrib.exe output and error log
-    for i in xrange(len(gribfiles)):
-      os.symlink(gribfiles[i],self.gribname) # link current file
-      os.symlink(Meta+vtables[i],self.vtable) # link VTable
-      # run ungrib.exe
-      subprocess.call([self.UNGRIB], stdout=fungrib, stderr=fungrib)
-      os.remove(self.gribname) # remove link for next step
-      os.remove(self.vtable) # remove link for next step
-      # append output to single WRF IM files (preimfile)
-      shutil.copyfileobj(open(ungribout,'rb'),preimfile)
-      os.remove(ungribout) # cleanup for next file      
-    # finish concatenation of ungrib.exe output
-    preimfile.close()
+    subprocess.call([self.UNGRIB], stdout=fungrib, stderr=fungrib)
     fungrib.close() # close log file for ungrib
-    
+    for gribname in self.gribnames: os.remove(gribname) # remove link for next step    
     # renaming happens outside, so we don't have to know about metgrid format
-    return self.preimfile
+    ungribout = self.ungribout%date # ungrib.exe names output files in a specific format
+    return ungribout # return name of output file
 
 
 ## CFSR
@@ -212,13 +209,9 @@ class CFSR(Dataset):
   # note that this class does not hold any actual data
   # N.B.: ungrib.exe must be Grib2 capable!
   # CFSR data source
-  prefix = '' # reanalysis generally doesn't have a prefix'
-  grbext = '.grb2' # probably not needed
   gribname = 'GRIBFILE.AAA' # this is CFSR specific - only one file type is handled at a time  
   tmpfile = 'TMP%02i' # temporary files created during ungribbing (including an iterator)
   preimfile = 'FILEOUT'
-  dateform = '\d\d\d\d\d\d\d\d\d\d00' # YYYYMMDDHHMM
-  datestr = '%04i%02i%02i%02i00' # year, month, day, hour (and minutes=00)
   # pressure levels (3D)
   plevdir = 'plev/'
   plevvtable = 'Vtable.CFSR_plev'
@@ -236,33 +229,32 @@ class CFSR(Dataset):
     self.PlevDir = os.readlink(folder + self.plevdir[:-1])
     self.SrfcDir = os.readlink(folder + self.srfcdir[:-1])
     self.UNGRIB = './' + self.ungrib_exe
-
-    ## compile regular expressions (needed to extract dates)
     # use pressure level files as master list
-    self.plevrgx = re.compile(self.dateform+self.plevstr+'$')
-    # regex to extract dates from filenames
-    self.dateregx = re.compile(self.dateform)
+    self.MainDir = self.PlevDir # directory to be searched for dates    
+    ## compile regular expressions (needed to extract dates)
+    self.mainrgx = re.compile(self.dateform+self.plevstr+'$') # use as master list    
+    self.dateregx = re.compile(self.dateform) # regex to extract dates from filenames
 
-  def getDataDir(self):
-    # universal wrapper method for folder with "master-filelist"
-    if self.folder: return self.PlevDir # use atmosphere folder as master
-    else: return None # None if no folder is set
-
-  def extractDate(self, filename):
-    # method to generate date tuple from date string in filename
-    # match valid filenames
-    match = self.plevrgx.match(filename) # return match object
-    if match is None:
-      return None # if the filename doesn't match the regex
+  def setup(self, src, dst, lsymlink=False):
+    # method to copy dataset specific files and folders working directory
+    # executables
+    if lsymlink:
+      cwd = os.getcwd()
+      os.chdir(dst)
+      # use current directory
+      os.symlink(src+self.ungrib_exe, self.ungrib_exe)
+      os.chdir(cwd)
     else:
-      # extract date string
-      datestr = self.dateregx.search(filename).group()
-      # split date string into tuple
-      year = int(datestr[0:4])
-      month = int(datestr[4:6])
-      day = int(datestr[6:8])
-      hour = int(datestr[8:10])
-      return (year, month, day, hour)
+      shutil.copy(src+self.ungrib_exe, dst)
+    # N.B.: the difference to the default method is that CFSR has two Vtables, and not just one
+  
+  def cleanup(self, tgt):
+    # method to remove dataset specific files and links
+    cwd = os.getcwd()
+    os.chdir(tgt)
+    # use current directory
+    os.remove(self.ungrib_exe)
+    os.chdir(cwd)
 
   def ungrib(self, date, mytag):
     # method that generates the WRF IM file for metgrid.exe
@@ -283,8 +275,7 @@ class CFSR(Dataset):
 #       print('\n '+mytag+' Processing time-step:  '+datestr+'\n    '+plevfile)
 #       print('\n '+mytag+'   ***   WARNING: no surface data - this may not work!   ***')
 #       gribfiles = (Plevfile,)
-#       vtables = (self.plevvtable,)
-      
+#       vtables = (self.plevvtable,)      
     ## loop: process grib files and concatenate resulting IM files     
     print('\n  * '+mytag+' converting Grib2 to WRF IM format (ungrib.exe)')
     ungribout = self.ungribout%date # ungrib.exe names output files in a specific format
@@ -303,8 +294,7 @@ class CFSR(Dataset):
       os.remove(ungribout) # cleanup for next file      
     # finish concatenation of ungrib.exe output
     preimfile.close()
-    fungrib.close() # close log file for ungrib
-    
+    fungrib.close() # close log file for ungrib    
     # renaming happens outside, so we don't have to know about metgrid format
     return self.preimfile
   
@@ -389,17 +379,13 @@ class CESM(Dataset):
 
     ## compile regular expressions (needed to extract dates)
     # use atmosphere files as master list 
-    self.atmrgx = re.compile(self.atmpfx+self.dateform+self.ncext+'$')
+    self.MainDir = self.AtmDir
+    self.mainrgx = re.compile(self.atmpfx+self.dateform+self.ncext+'$') # use atmosphere files as master list
     # regex to extract dates from filenames
     self.dateregx = re.compile(self.dateform)
     # subfolder format (at the moment just calendar years)
     self.subdregx = re.compile(self.subdform+'$')
       
-  def getDataDir(self):
-    # universal wrapper method for folder with "master-filelist"
-    if self.folder: return self.AtmDir # use atmosphere folder as master
-    else: return None # None if no folder is set
-    
   def checkSubDir(self, subdir, start, end):
     # method to determine whether a subfolder contains valid data and can be processed recursively
     # check that the subfolder name is a valid calendar year 
@@ -414,7 +400,7 @@ class CESM(Dataset):
   def extractDate(self, filename): # , zero=2000
     # method to generate date tuple from date string in filename
     # match valid filenames
-    match = self.atmrgx.match(filename) # return match object
+    match = self.mainrgx.match(filename) # return match object
     if match is None:
       return None # if the filename doesn't match the regex
     else:
@@ -423,7 +409,6 @@ class CESM(Dataset):
       # split date string into tuple 
       year, month, day, second = datestr.split('-')
 #      if year[0] == '0': year = int(year)+zero # start at year 2000 (=0000)
-#      else: 
       year = int(year)
       month = int(month); day = int(day)
       hour = int(second)/3600 
@@ -476,12 +461,11 @@ class CESM(Dataset):
     print('\n '+mytag+' Processing time-step:  '+datestr+'\n    '+atmfile+'\n    '+lndfile+'\n    '+icefile)
     #else: print('\n '+mytag+' Processing time-step:  '+datestr+'\n    '+atmfile+'\n    '+lndfile)
     
-    ##  convert data to intermediate files
-    # run unccsm tool chain
+    ##  convert data to intermediate files (run unccsm tool chain)
     # run NCL script (suppressing output)
     print('\n  * '+mytag+' interpolating to pressure levels (eta2p.ncl)')
     fncl = open(self.unncl_log, 'a') # NCL output and error log
-    # On SciNet we have to pass this command through the shell, so that the NCL module is loaded.
+    # on SciNet we have to pass this command through the shell, so that the NCL module is loaded.
     subprocess.call(self.NCL_ETA2P, shell=True, stdout=fncl, stderr=fncl)
     ## otherwise we don't need the shell and it's a security risk
     #subprocess.call([NCL,self.unncl_ncl], stdout=fncl, stderr=fncl)
@@ -492,9 +476,7 @@ class CESM(Dataset):
     subprocess.call([self.UNCCSM], stdout=funccsm, stderr=funccsm)   
     funccsm.close()
     # cleanup
-    os.remove(self.atmlnk)
-    os.remove(self.lndlnk)
-    os.remove(self.icelnk)
+    os.remove(self.atmlnk); os.remove(self.lndlnk); os.remove(self.icelnk)
     os.remove(self.nclfile)    # temporary file generated by NCL script 
     # renaming happens outside, so we don't have to know about metgrid format
     return self.preimfile
@@ -728,7 +710,7 @@ if __name__ == '__main__':
       dataset = CESM(folder=Root)
     # setup working directory with dataset specific stuff
     dataset.setup(src=Root, dst=Tmp) #
-    DataDir = dataset.getDataDir() # should be absolute path
+    DataDir = dataset.MainDir # should be absolute path
     
     
     ## multiprocessing
