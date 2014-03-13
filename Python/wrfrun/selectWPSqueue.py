@@ -134,7 +134,7 @@ if __name__ == '__main__':
     timelimit = convertTime(WRFWCT) # basic time limit from WRF execution time
     if WPSWCT: timelimit -= convertTime(WPSWCT) # subtract execution time for WPS
     # launch WPS
-    if waittime < timelimit:    
+    if timelimit == 0 or waittime < timelimit:    
       print('   >>> submitting to primary queue system:')
       print(submitPrimary)
       subprocess.Popen(submitPrimary, shell=True)
