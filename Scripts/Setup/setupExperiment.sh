@@ -162,7 +162,7 @@ if [[ -z "$WRFBLD" ]]; then
   # GCM or reanalysis
   if [[ "${DATATYPE}" == 'CESM' ]] || [[ "${DATATYPE}" == 'CCSM' ]]; then
     WRFBLD="Clim-${WRFBLD}" # variable GHG scenarios and no leap-years
-  elif [[ "${DATATYPE}" == 'CFSR' ]]; then
+  elif [[ "${DATATYPE}" == 'ERA-I' ]] || [[ "${DATATYPE}" == 'CFSR' ]]; then
     WRFBLD="ReA-${WRFBLD}" # variable GHG scenarios with leap-years
   else
     WRFBLD="Default-${WRFBLD}" # standard WRF build
