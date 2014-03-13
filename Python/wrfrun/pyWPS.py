@@ -24,16 +24,16 @@ from namelist import time
 Alphabet = string.ascii_uppercase
 tmp = 'tmp/'
 meta = 'meta/'
-# metgrid
-nmlform = '%04.0f-%02.0f-%02.0f_%02.0f:00:00' # date in namelist.wps
-imform = '%04.0f-%02.0f-%02.0f_%02.0f' # date in IM filename
+# metgrid (this is all hard coded into metgrid)
+nmlform = '{:04d}-{:02d}-{:02d}_{:02d}:00:00' # date in namelist.wps
+imform = '{:04d}-{:02d}-{:02d}_{:02d}' # date in IM filename
 impfx = 'FILE:'
-metpfx = 'met_em.d%02.0f.'
+metpfx = 'met_em.d{:02d}.'
 metsfx = ':00:00.nc'
-geopfx = 'geo_em.d%02.0f'
+geopfx = 'geo_em.d{:02d}'
 # parallelization
-pname = 'proc%02i'
-pdir = 'proc%02i/'
+pname = 'proc{:02d}'
+pdir = 'proc{:02d}/'
 # destination folder(s)
 ramlnk = 'ram' # automatically generated link to ramdisk (if applicable)
 data = 'data/' # data folder in ram
@@ -94,12 +94,12 @@ class Dataset():
   gribname = 'GRIBFILE' # ungrib input filename trunk (needs extension, e.g. .AAA)
   ungrib_exe = 'ungrib.exe'
   ungrib_log = 'ungrib.exe.log'
-  ungribout = 'FILE:%04i-%02i-%02i_%02i' # YYYY-MM-DD_HH ungrib.exe output format
+  ungribout = 'FILE:{:04d}-{:02d}-{:02d}_{:02d}' # YYYY-MM-DD_HH ungrib.exe output format
   # meta data defaults
   grbdirs = None # list of source folders; same order as strings; has to be defined in child
   grbstrs = None # list of source files; filename including date string; has to be defined in child
-  dateform = '\d\d\d\d\d\d\d\d\d\d00' # YYYYMMDDHHMM (for matching regex)
-  datestr = '%04i%02i%02i%02i00' # year, month, day, hour (and minutes=00; for printing)
+  dateform = '\d\d\d\d\d\d\d\d\d\d' # YYYYMMDDHHMM (for matching regex)
+  datestr = '{:04d}{:02d}{:02d}{:02d}' # year, month, day, hour (for printing)
 
   ## these functions are dataset specific and may have to be implemented in the child class
   def __init__(self, folder=None):
@@ -176,7 +176,7 @@ class Dataset():
   def ungrib(self, date, mytag):
     # method that generates the WRF IM file for metgrid.exe
     # create formatted date string
-    datestr = self.datestr%date # (years, months, days, hours)
+    datestr = self.datestr.format(*date) # (years, months, days, hours)
     msg = datestr # status output; message printed later
     # create links to relevant source data (requires full path for linked files)
     Grbfiles = [] # list of relevant source files
@@ -199,7 +199,7 @@ class Dataset():
     fungrib.close() # close log file for ungrib
     for gribname in self.gribnames: os.remove(gribname) # remove link for next step    
     # renaming happens outside, so we don't have to know about metgrid format
-    ungribout = self.ungribout%date # ungrib.exe names output files in a specific format
+    ungribout = self.ungribout.format(*date) # ungrib.exe names output files in a specific format
     return ungribout # return name of output file
 
 
@@ -209,7 +209,7 @@ class ERAI(Dataset):
   grbdirs = ['uv','sc','sfc']
   grbstrs = ['ei.oper.an.pl.regn128uv.{:s}','ei.oper.an.pl.regn128sc.{:s}','ei.oper.an.sfc.regn128sc.{:s}']
   dateform = '\d\d\d\d\d\d\d\d\d\d' # YYYYMMDDHH (for matching regex)
-  datestr = '%04i%02i%02i%02i' # year, month, day, hour (for printing)
+  datestr = '{:04d}{:02d}{:02d}{:02d}' # year, month, day, hour (for printing)
   # all other variables have default values
 
 ## CFSR
@@ -220,8 +220,9 @@ class CFSR(Dataset):
   # N.B.: ungrib.exe must be Grib2 capable!
   # CFSR data source
   gribname = 'GRIBFILE.AAA' # this is CFSR specific - only one file type is handled at a time  
-  tmpfile = 'TMP%02i' # temporary files created during ungribbing (including an iterator)
+  tmpfile = 'TMP{:02d}' # temporary files created during ungribbing (including an iterator)
   preimfile = 'FILEOUT'
+  datestr = '{:04d}{:02d}{:02d}{:02d}00' # year, month, day, hour (for printing)
   # pressure levels (3D)
   plevdir = 'plev'
   plevvtable = 'Vtable.CFSR_plev'
@@ -270,14 +271,14 @@ class CFSR(Dataset):
   def ungrib(self, date, mytag):
     # method that generates the WRF IM file for metgrid.exe
     # create formatted date string
-    datestr = self.datestr%date # (years, months, days, hours)
+    datestr = self.datestr.format(*date) # (years, months, days, hours)
     # create links to relevant source data (requires full path for linked files)
     plevfile = datestr+self.plevstr; Plevfile = self.PlevDir+plevfile
     if not os.path.exists(Plevfile): 
-      raise IOError, "Pressure level input file '%s' not found!"%(Plevfile)     
+      raise IOError, "Pressure level input file '{:s}' not found!".format(Plevfile)     
     srfcfile = datestr+self.srfcstr; Srfcfile = self.SrfcDir+srfcfile
     if not os.path.exists(Srfcfile): 
-      raise IOError, "Surface input file '%s' not found!"%(Srfcfile)     
+      raise IOError, "Surface input file '{:s}' not found!".format(Srfcfile)     
     # print feedback
     print('\n '+mytag+' Processing time-step:  '+datestr+'\n    '+plevfile+'\n    '+srfcfile)
     gribfiles = (Plevfile, Srfcfile)
@@ -289,7 +290,7 @@ class CFSR(Dataset):
 #       vtables = (self.plevvtable,)      
     ## loop: process grib files and concatenate resulting IM files     
     print('\n  * '+mytag+' converting Grib2 to WRF IM format (ungrib.exe)')
-    ungribout = self.ungribout%date # ungrib.exe names output files in a specific format
+    ungribout = self.ungribout.format(*date) # ungrib.exe names output files in a specific format
     preimfile = open(self.preimfile,'wb') # open final (combined) WRF IM file 
     # N.B.: binary mode 'b' is not really necessary on Unix
     fungrib = open(self.ungrib_log, 'a') # ungrib.exe output and error log
@@ -325,7 +326,7 @@ class CESM(Dataset):
   prefix = '' # 'cesm19752000v2', 'cesmpdwrf1x1'
   ncext = ncext
   dateform = '\d\d\d\d-\d\d-\d\d-\d\d\d\d\d'
-  datestr = '%04i-%02i-%02i-%05i' # year, month, day, seconds
+  datestr = '{:04d}-{:02d}-{:02d}-{:05d}' # year, month, day, seconds
   yearlyfolders = False # use subfolders for every year
   subdform = '\d\d\d\d' # subdirectories in calendar year format 
   # atmosphere
@@ -451,22 +452,22 @@ class CESM(Dataset):
   def ungrib(self, date, mytag):
     # method that generates the WRF IM file for metgrid.exe
     # create formatted date string
-    datestr = self.datestr%(date[0],date[1],date[2],date[3]*3600) # not hours, but seconds...
+    datestr = self.datestr.format(date[0],date[1],date[2],date[3]*3600) # not hours, but seconds...
     # create links to relevant source data (requires full path for linked files)
     atmfile = self.atmpfx+datestr+self.ncext
-    if self.yearlyfolders: atmfile = '%04i/%s'%(date[0],atmfile) 
+    if self.yearlyfolders: atmfile = '{:04d}/{:s}'.format(date[0],atmfile) 
     if not os.path.exists(self.AtmDir+atmfile): 
-      raise IOError, "Atmosphere input file '%s' not found!"%(self.AtmDir+atmfile)
+      raise IOError, "Atmosphere input file '{:s}' not found!".format(self.AtmDir+atmfile)
     os.symlink(self.AtmDir+atmfile,self.atmlnk)
     lndfile = self.lndpfx+datestr+self.ncext
-    if self.yearlyfolders: lndfile = '%04i/%s'%(date[0],lndfile)
+    if self.yearlyfolders: lndfile = '{:04d}/{:s}'.format(date[0],lndfile)
     if not os.path.exists(self.LndDir+lndfile): 
-      raise IOError, "Land surface input file '%s' not found!"%(self.LndDir+lndfile)
+      raise IOError, "Land surface input file '{:s}' not found!".format(self.LndDir+lndfile)
     os.symlink(self.LndDir+lndfile,self.lndlnk)
     icefile = self.icepfx+datestr+self.ncext
-    if self.yearlyfolders: icefile = '%04i/%s'%(date[0],icefile)
+    if self.yearlyfolders: icefile = '{:04d}/{:s}'.format(date[0],icefile)
     if not os.path.exists(self.IceDir+icefile): 
-      raise IOError, "Seaice input file '%s' not found!"%(self.IceDir+icefile)
+      raise IOError, "Seaice input file '{:s}' not found!".format(self.IceDir+icefile)
     os.symlink(self.IceDir+icefile,self.icelnk)
     # print feedback
     print('\n '+mytag+' Processing time-step:  '+datestr+'\n    '+atmfile+'\n    '+lndfile+'\n    '+icefile)
@@ -568,9 +569,9 @@ def processFiles(qfilelist, qListDir, queue):
 def processTimesteps(myid, dates):
   
   # create process sub-folder
-  mydir = pdir%myid
+  mydir = pdir.format(myid)
   MyDir = Tmp + mydir
-  mytag = '['+pname%myid+']'
+  mytag = '['+pname.format(myid)+']'
   if os.path.exists(mydir): 
     shutil.rmtree(mydir)
   os.mkdir(mydir)
@@ -585,7 +586,7 @@ def processTimesteps(myid, dates):
   # link geogrid (data) and metgrid
   os.symlink(Tmp+metgrid_exe, metgrid_exe)
   for i in doms: # loop over all geogrid domains
-    geoname = geopfx%(i)+ncext
+    geoname = geopfx.format(i)+ncext
     os.symlink(Tmp+geoname, geoname)
   
   ## loop over (atmospheric) time steps
@@ -599,9 +600,10 @@ def processTimesteps(myid, dates):
     for i in xrange(1,maxdom): # check sub-domains
       ldoms[i] = time.checkDate(date, starts[i], ends[i])
     # update date string in namelist.wps
-    imdate = imform%date    
+    print imform,date
+    imdate = imform.format(*date)    
     imfile = impfx+imdate
-    nmldate = nmlform%date # also used by metgrid
+    nmldate = nmlform.format(*date) # also used by metgrid
     time.writeNamelist(nmlstwps, ldoms, nmldate, imd, isd, ied)
     
     # N.B.: in case the stack size limit causes segmentation faults, here are some workarounds
@@ -628,7 +630,7 @@ def processTimesteps(myid, dates):
     # copy/move data back to disk (one per domain) and/or keep in memory
     tmpstr = '\n '+mytag+' Writing output to disk: ' # gather output for later display
     for i in xrange(maxdom):
-      metfile = metpfx%(i+1)+nmldate+ncext
+      metfile = metpfx.format(i+1)+nmldate+ncext
       if ldoms[i]:
         tmpstr += '\n                           '+metfile
         if ldisk: 
@@ -651,7 +653,7 @@ def processTimesteps(myid, dates):
   dataset.cleanup(tgt=MyDir)
   os.remove(metgrid_exe)
   for i in doms: # loop over all geogrid domains
-    os.remove(geopfx%(i)+ncext)
+    os.remove(geopfx.format(i)+ncext)
     
     
 if __name__ == '__main__':
@@ -706,7 +708,7 @@ if __name__ == '__main__':
     shutil.copy(metgrid_exe, Tmp)
     shutil.copy(nmlstwps, Tmp)
     for i in doms: # loop over all geogrid domains
-      shutil.copy(geopfx%(i)+ncext, Tmp)
+      shutil.copy(geopfx.format(i)+ncext, Tmp)
     # N.B.: shutil.copy copies the actual file that is linked to, not just the link
     # change working directory to tmp folder
     os.chdir(Tmp)
@@ -736,7 +738,7 @@ if __name__ == '__main__':
       pid = n + 1 # start from 1, not 0!
       q = multiprocessing.Queue()
       queues.append(q)
-      p = multiprocessing.Process(name=pname%pid, target=processFiles, args=(listoffilelists[n], DataDir, q))
+      p = multiprocessing.Process(name=pname.format(pid), target=processFiles, args=(listoffilelists[n], DataDir, q))
       procs.append(p)
       p.start() 
     # terminate sub-processes and collect results    
@@ -747,6 +749,7 @@ if __name__ == '__main__':
       
     # report suspicious behaviour
     if len(dates) == 0: raise IOError, "No matching input files found for regex '{:s}' ".format(dataset.mainfiles)
+    #print dates
     
     # divide up dates and process time-steps
     listofdates = divideList(dates, NP)
@@ -754,7 +757,7 @@ if __name__ == '__main__':
     procs = []
     for n in xrange(NP):
       pid = n + 1 # start from 1, not 0!
-      p = multiprocessing.Process(name=pname%pid, target=processTimesteps, args=(pid, listofdates[n]))
+      p = multiprocessing.Process(name=pname.format(pid), target=processTimesteps, args=(pid, listofdates[n]))
       procs.append(p)
       p.start()     
     # terminate sub-processes
