@@ -600,7 +600,7 @@ def processTimesteps(myid, dates):
     for i in xrange(1,maxdom): # check sub-domains
       ldoms[i] = time.checkDate(date, starts[i], ends[i])
     # update date string in namelist.wps
-    print imform,date
+    #print imform,date
     imdate = imform.format(*date)    
     imfile = impfx+imdate
     nmldate = nmlform.format(*date) # also used by metgrid
