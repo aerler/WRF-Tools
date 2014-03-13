@@ -61,6 +61,10 @@ if [[ ${RUNPYWPS} == 1 ]]
 		# CFSR Reanalysis Data
 		cp ${NOCLOBBER} -P "${INIDIR}/plev" "${INIDIR}/srfc" "${WORKDIR}"
 		cp ${NOCLOBBER} -P "${BINDIR}/ungrib.exe" "${WORKDIR}"
+	elif [[ "${DATATYPE}" == 'ERA-I' ]]; then
+    # CFSR Reanalysis Data
+    cp ${NOCLOBBER} -P "${INIDIR}/uv" "${INIDIR}/sc" "${INIDIR}/sfc" "${WORKDIR}"
+    cp ${NOCLOBBER} -P "${BINDIR}/ungrib.exe" "${WORKDIR}"
 	fi # $DATATYPE
     cp ${NOCLOBBER} -r "${INIDIR}/meta/" "${WORKDIR}"
     cp ${NOCLOBBER} -P "${INIDIR}/"geo_em.d??.nc "${WORKDIR}" # copy or link to geogrid files

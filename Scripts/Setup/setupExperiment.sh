@@ -268,7 +268,8 @@ eval $( cp -dRf --preserve=all 'scripts' 'bin' 'meta' 'tables' 'backup/' &> /dev
 if [[ -e 'backup/xconfig.sh' && -e 'backup/setupExperiment.sh' ]]
   then # presumably everything went OK, if these two are in the backup folder
     eval $( rm -f *.sh *.pbs *.ll &> /dev/null ) # delete scripts
-    eval $( rm -rf 'scripts' 'bin' 'meta' 'tables' &> /dev/null ) # delete script and data folders
+    eval $( rm -rf 'scripts' 'bin' 'meta' 'tables' &> /dev/null ) # delete script and table folders
+    eval $( rm -f 'atm' 'lnd' 'ice' 'plev' 'srfc' 'uv' 'sc' 'sfc' &> /dev/null ) # delete input data folders
     # N.B.: don't append '/' so that links to folders are also removed
     cp -P 'backup/setupExperiment.sh' 'backup/xconfig.sh' .
     rm -rf 'backup_backup/' # remove backup of backup, because we have a new backup
@@ -334,7 +335,7 @@ elif [[ "${DATATYPE}" == 'CFSR' ]]; then
   ln -sf "${WPSSRC}/ungrib/Variable_Tables/${VTABLE_PLEV}" 'Vtable.CFSR_plev'
   ln -sf "${WPSSRC}/ungrib/Variable_Tables/${VTABLE_SRFC}" 'Vtable.CFSR_srfc'
 elif [[ "${DATATYPE}" == 'ERA-I' ]]; then
-  ln -sf "${WPSSRC}/ungrib/Variable_Tables/${VTABLE}" 'Vtable.ERA-interim'
+  ln -sf "${WPSSRC}/ungrib/Variable_Tables/${VTABLE}" 'Vtable'
 fi # $DATATYPE
 # link boundary data
 echo "Linking boundary data: ${DATADIR}"
@@ -353,7 +354,7 @@ elif [[ "${DATATYPE}" == 'ERA-I' ]]; then
   rm -f 'uv' 'sc' 'sfc' 
   ln -sf "${DATADIR}/uv/" 'uv' # pressure level date (3D, 0.7 deg)
   ln -sf "${DATADIR}/sc/" 'sc' # pressure level date (3D, 0.7 deg)
-  ln -sf "${DATADIR}/sfc/" 'src' # surface data (2D, 0.7 deg)
+  ln -sf "${DATADIR}/sfc/" 'sfc' # surface data (2D, 0.7 deg)
 fi # $DATATYPE
 # set correct path for geogrid data
 echo "Setting path for geogrid data"

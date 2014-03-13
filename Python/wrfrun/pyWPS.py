@@ -90,14 +90,14 @@ class Dataset():
   # note that this class does not hold any actual data 
   prefix = '' # reanalysis generally doesn't have a prefix'
   # ungrib
-  vtable = 'Vtable'
+  vtable = 'Vtable' # this is hard coded into ungrib 
+  gribname = 'GRIBFILE' # ungrib input filename trunk (needs extension, e.g. .AAA)
   ungrib_exe = 'ungrib.exe'
   ungrib_log = 'ungrib.exe.log'
-  gribname = 'GRIBFILE' # ungrib input filename trunk (needs extension, e.g. .AAA)
   ungribout = 'FILE:%04i-%02i-%02i_%02i' # YYYY-MM-DD_HH ungrib.exe output format
   # meta data defaults
-  grbdirs = None # list of source folders (same order as strings)
-  grbstrs = None # list of source files; filename including date string  
+  grbdirs = None # list of source folders; same order as strings; has to be defined in child
+  grbstrs = None # list of source files; filename including date string; has to be defined in child
   dateform = '\d\d\d\d\d\d\d\d\d\d00' # YYYYMMDDHHMM (for matching regex)
   datestr = '%04i%02i%02i%02i00' # year, month, day, hour (and minutes=00; for printing)
 
@@ -124,8 +124,9 @@ class Dataset():
     # regex to extract dates from filenames
     self.dateregx = re.compile(self.dateform)
     # master file list (first element in grib file list)
-    self.MainDir = os.readlink(folder + self.GrbDirs[0][:-1]) # directory to be searched for dates    
-    self.mainrgx = re.compile(self.grbstrs[0].format(self.dateform)+'$') # use as master list    
+    self.MainDir = os.readlink(self.GrbDirs[0]) # directory to be searched for dates
+    self.mainfiles = self.grbstrs[0].format(self.dateform) # regex definition for master list
+    self.mainrgx = re.compile(self.mainfiles+'$') # use as master list    
   
   ## these functions will be very similar for all datasets using ungrib.exe (overload when not using ungrib.exe)
   def setup(self, src, dst, lsymlink=False):
@@ -189,7 +190,7 @@ class Dataset():
         Grbfiles.append(Grbfile) # append to file list
     # print feedback
     print('\n '+mytag+' Processing time-step:  '+msg)    
-    for Gribfile,gribname in zip(Grbfiles,self.girbnames): os.symlink(Gribfile,gribname) # link current file      
+    for Gribfile,gribname in zip(Grbfiles,self.gribnames): os.symlink(Gribfile,gribname) # link current file      
     print('\n  * '+mytag+' converting Grib to WRF IM format (ungrib.exe)')
     # N.B.: binary mode 'b' is not really necessary on Unix
     # run ungrib.exe
@@ -202,6 +203,15 @@ class Dataset():
     return ungribout # return name of output file
 
 
+## ERA-Interim
+class ERAI(Dataset):
+  # a class that holds meta data specific to ERA-Interim data
+  grbdirs = ['uv','sc','sfc']
+  grbstrs = ['ei.oper.an.pl.regn128uv.{:s}','ei.oper.an.pl.regn128sc.{:s}','ei.oper.an.sfc.regn128sc.{:s}']
+  dateform = '\d\d\d\d\d\d\d\d\d\d' # YYYYMMDDHH (for matching regex)
+  datestr = '%04i%02i%02i%02i' # year, month, day, hour (for printing)
+  # all other variables have default values
+
 ## CFSR
 class CFSR(Dataset):
   # a class that holds meta data and implements operations specific to CFSR data
@@ -213,26 +223,27 @@ class CFSR(Dataset):
   tmpfile = 'TMP%02i' # temporary files created during ungribbing (including an iterator)
   preimfile = 'FILEOUT'
   # pressure levels (3D)
-  plevdir = 'plev/'
+  plevdir = 'plev'
   plevvtable = 'Vtable.CFSR_plev'
   plevstr = '.pgbh06.gdas.grb2' # including filename extension
   # surface data
-  srfcdir = 'srfc/'
+  srfcdir = 'srfc'
   srfcvtable = 'Vtable.CFSR_srfc'
   srfcstr = '.flxf06.gdas.grb2' # including filename extension
 
   def __init__(self, folder=None):
 
-    assert folder, 'Warning: need to specify root folder!'
+    if not isinstance(folder,basestring): raise IOError, 'Warning: need to specify root folder!'
     ## CESM specific files and folders (only necessary for file operations)
     self.folder = folder # needs to be set externally for different applications
-    self.PlevDir = os.readlink(folder + self.plevdir[:-1])
-    self.SrfcDir = os.readlink(folder + self.srfcdir[:-1])
+    self.PlevDir = os.readlink(folder + self.plevdir)
+    self.SrfcDir = os.readlink(folder + self.srfcdir)
     self.UNGRIB = './' + self.ungrib_exe
     # use pressure level files as master list
     self.MainDir = self.PlevDir # directory to be searched for dates    
     ## compile regular expressions (needed to extract dates)
-    self.mainrgx = re.compile(self.dateform+self.plevstr+'$') # use as master list    
+    self.mainfiles = self.dateform+self.plevstr # regex definition for master list
+    self.mainrgx = re.compile(self.mainfiles+'$') # use as master list
     self.dateregx = re.compile(self.dateform) # regex to extract dates from filenames
 
   def setup(self, src, dst, lsymlink=False):
@@ -332,8 +343,7 @@ class CESM(Dataset):
 
   def __init__(self, folder=None, prefix=None):
     
-    assert folder, 'Warning: need to specify root folder!'
-    
+    if not isinstance(folder,basestring): raise IOError, 'Warning: need to specify root folder!'    
     ## CESM specific files and folders (only necessary for file operations)
     self.folder = folder # needs to be set externally for different applications
     self.AtmDir = os.readlink(folder + self.atmdir[:-1])
@@ -380,7 +390,8 @@ class CESM(Dataset):
     ## compile regular expressions (needed to extract dates)
     # use atmosphere files as master list 
     self.MainDir = self.AtmDir
-    self.mainrgx = re.compile(self.atmpfx+self.dateform+self.ncext+'$') # use atmosphere files as master list
+    self.mainfiles = self.atmpfx+self.dateform+self.ncext
+    self.mainrgx = re.compile(self.mainfiles+'$') # use atmosphere files as master list
     # regex to extract dates from filenames
     self.dateregx = re.compile(self.dateform)
     # subfolder format (at the moment just calendar years)
@@ -546,7 +557,7 @@ def processFiles(qfilelist, qListDir, queue):
           if lok: okdates.append(date)
     return okdates
   # start checking file list (start with empty results list)
-  qokdates = checkFileList(qfilelist, qListDir, [], 0) 
+  qokdates = checkFileList(qfilelist, qListDir, [], 0)   
   # return list of valid datestrs
   queue.put(qokdates)
   
@@ -705,9 +716,11 @@ if __name__ == '__main__':
       dataset = CESM(folder=Root)
     elif dataset  == 'CFSR': 
       dataset = CFSR(folder=Root)
+    elif dataset  == 'ERA-I': 
+      dataset = ERAI(folder=Root)    
     else:
-      # for backwards compatibility
-      dataset = CESM(folder=Root)
+      raise ValueError, 'Unknown dataset type: {}'.format(dataset)
+      #dataset = CESM(folder=Root) # for backwards compatibility
     # setup working directory with dataset specific stuff
     dataset.setup(src=Root, dst=Tmp) #
     DataDir = dataset.MainDir # should be absolute path
@@ -731,6 +744,9 @@ if __name__ == '__main__':
     for n in xrange(NP):
       dates += queues[n].get()
       procs[n].join()
+      
+    # report suspicious behaviour
+    if len(dates) == 0: raise IOError, "No matching input files found for regex '{:s}' ".format(dataset.mainfiles)
     
     # divide up dates and process time-steps
     listofdates = divideList(dates, NP)
