@@ -13,8 +13,9 @@ if [[ -n "${NEXTSTEP}" ]]
     # read date string for restart file
     echo "${PATH}"
     which sed
-    RSTDATE=$(sed -n "/${NEXTSTEP}/ s/${NEXTSTEP}\ .\(.*\).\ .*$/\1/p" stepfile)
-    # some code to catch file access errors on TCS
+    RSTDATE=$(sed -n "/${NEXTSTEP}/ s/${NEXTSTEP}[[:space:]]\+.\(.*\).[[:space:]].*$/\1/p" stepfile)
+    # N.B.: '[[:space:]]' also matches tabs; '\ ' only matches one space; '\+' means one or more
+    # some code to catch sed errors on TCS
     if [[ -z "${RSTDATE}" ]]
       then 
         echo "   ###   ERROR: cannot read step file - aborting!   ###   "
@@ -25,7 +26,7 @@ if [[ -n "${NEXTSTEP}" ]]
 #    while [[ -z "${RSTDATE}" ]] 
 #      do # loop appears to be necessary to prevent random read errors on TCS
 #       	echo ' Error: could not read stepfile - trying again!'
-#        RSTDATE=$(sed -n "/${NEXTSTEP}/ s/${NEXTSTEP}\ .\(.*\).\ .*$/\1/p" stepfile)
+#        RSTDATE=$(sed -n "/${NEXTSTEP}/ s/${NEXTSTEP}[[:space:]].\(.*\).[[:space:]].*$/\1/p" stepfile)
 #      	sleep 600 # prevent too much file access
 #    done
     NEXTDIR="${INIDIR}/${NEXTSTEP}" # next $WORKDIR
