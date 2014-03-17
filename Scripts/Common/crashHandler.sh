@@ -51,8 +51,8 @@ if [[ "${RTERR}" == 'RTERR' ]]
     #       1) the timestep has not been changed yet (no previous restart)
     #       2) the restart counter is set and larger than 0 and smaller than MAXRST
     #           and the timestep is larger than the DELT increment (i.e. will still be positive)
-    if [[ "${CUR_DELT}" == "${INI_DELT}" ]] || [[ ${RSTCNT} > 0 ]] && [[ ${RSTCNT} < ${MAXRST} ]] && [ ${CUR_DELT} > ${DEL_DELT} ]
-    # N.B.: for reasons I do not fully understand, the first three statements need double brackets and only the last on need single brackets  
+    if  [ ${RSTCNT} -gt 0 ] && [ ${RSTCNT} -lt ${MAXRST} ] && [ ${CUR_DELT} -gt ${DEL_DELT} ] || [ ${CUR_DELT} -eq ${INI_DELT} ]
+    # N.B.: in single brackets the < > operators act as in shell commands; -lt and -gt have to be used
       then
 	
 	      ## increment restart counter 
