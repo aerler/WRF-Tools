@@ -102,7 +102,7 @@ if [[ ${RUNPYWPS} == 1 ]]
     cp -r "${RAMTMP}" "${WORKDIR}/${PYLOG}/" # copy entire folder and rename
     rm -rf "${RAMTMP}"
     # archive log files
-    tar czf ${PYTGZ} "${PYLOG}/"
+    tar cf - "${PYLOG}/" | gzip > ${PYTGZ} # pipe and gzip necessary for AIX compatibility
     # move metgrid data to final destination (if pyWPS wrote data to disk)
     if [[ -n "${METDATA}" ]] && [[ "${METDATA}" != "${WORKDIR}" ]]; then
 		mkdir -p "${METDATA}"
@@ -198,7 +198,7 @@ if [[ ${RUNREAL} == 1 ]]
     # save log files and meta data
     mv rsl.*.???? namelist.output "${REALLOG}"
     cp -P namelist.input real.exe "${REALLOG}" # leave namelist in place
-    tar czf ${REALTGZ} "${REALLOG}" # archive logs with data
+    tar cf - "${REALLOG}" | gzip > ${REALTGZ} # archive logs with data (pipe necessary for AIX compatibility)
     if [[ "${REALDIR}" != "${WORKDIR}" ]]; then
 	rm -rf "${WORKDIR}/${REALLOG}" # remove existing logs, just in case
 	mv "${REALLOG}" "${WORKDIR}" # move log folder to working directory

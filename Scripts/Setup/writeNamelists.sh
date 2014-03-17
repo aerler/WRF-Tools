@@ -34,8 +34,8 @@ function WRITENML () {
     FILENAME="$3" # file name
     MODLIST="$4" # list of modifications
     # boundaries
-    BEGIN='0,/^\s*&\w.*$/d' # regex matching the namelist group opening
-    END='/^\s*\/\s*$/,$d' # regex matching the namelist group closing
+    BEGIN='0,/^\ *&\w.*$/d' # regex matching the namelist group opening
+    END='/^\ *\/\ *$/,$d' # regex matching the namelist group closing
     # open namelist group
     rm -f 'TEMPFILE'; touch 'TEMPFILE' # temporary file
     echo "&${NMLGRP}" >> 'TEMPFILE'
@@ -52,7 +52,7 @@ function WRITENML () {
         NAME=$( echo ${TOKEN%%=*} | xargs ) # cut off everything after '=' and trim spaces
         MSG='this namelist entry has been edited by the setup script'
         if [[ -n $( grep "${NAME}" 'TEMPFILE' ) ]]
-            then sed -i "/${NAME}/ s/^\s*${NAME}\s*=\s*.*$/${TOKEN} ! ${MSG}/" 'TEMPFILE'
+            then sed -i "/${NAME}/ s/^\ *${NAME}\ *=\ *.*$/${TOKEN} ! ${MSG}/" 'TEMPFILE'
             else echo "${TOKEN} ! ${MSG}"  >> 'TEMPFILE' # just append, if not already present
         fi 
 #   echo "${TOKEN}"

@@ -50,7 +50,7 @@ if [[ ${RUNWRF} == 1 ]]
 
     ## figure out data tables (for radiation and surface scheme)
     # radiation scheme: try to infer from namelist using 'sed'
-    SEDRAD=$(sed -n '/ra_lw_physics/ s/^\s*ra_lw_physics\s*=\s*\(.\),.*$/\1/p' namelist.input) # \s = space
+    SEDRAD=$(sed -n '/ra_lw_physics/ s/^\ *ra_lw_physics\ *=\ *\(.\),.*$/\1/p' namelist.input) # \  = space
     if [[ -n "${SEDRAD}" ]]; then
 		RAD="${SEDRAD}" # prefer namelist value over pre-set default
 		echo "Determining radiation scheme from namelist: RAD=${RAD}"
@@ -71,7 +71,7 @@ if [[ ${RUNWRF} == 1 ]]
         # this will only happen if no defaults are set and inferring from namelist via 'sed' failed
     fi
     # urban surface scheme
-    SEDURB=$(sed -n '/sf_urban_physics/ s/^\s*sf_urban_physics\s*=\s*\(.\),.*$/\1/p' namelist.input) # \s = space
+    SEDURB=$(sed -n '/sf_urban_physics/ s/^\ *sf_urban_physics\ *=\ *\(.\),.*$/\1/p' namelist.input) # \  = space
     if [[ -n "${SEDURB}" ]]; then
 	    URB="${SEDURB}" # prefer namelist value over pre-set default
         echo "Determining urban surface scheme from namelist: URB=${URB}"
@@ -86,14 +86,14 @@ if [[ ${RUNWRF} == 1 ]]
     elif [[ ${URB} == 'multi' ]] || [[ ${URB} == 2 ]]; then
         echo "  Using multi-layer urban surface scheme."
         URBTAB="URBPARM_UZE.TBL"
-        PBL=$(sed -n '/bl_pbl_physics/ s/^\s*bl_pbl_physics\s*=\s*\(.\),.*$/\1/p' namelist.input) # \s = space
+        PBL=$(sed -n '/bl_pbl_physics/ s/^\ *bl_pbl_physics\ *=\ *\(.\),.*$/\1/p' namelist.input) # \  = space
         if [[ ${PBL} != 2 ]] && [[ ${PBL} != 8 ]]; then
           echo 'WARNING: sf_urban_physics = 2 requires bl_pbl_physics = 2 or 8!'; fi
     else
         echo 'No no urban scheme selected! Default: none.'
     fi
     # land-surface scheme: try to infer from namelist using 'sed'
-    SEDLSM=$(sed -n '/sf_surface_physics/ s/^\s*sf_surface_physics\s*=\s*\(.\),.*$/\1/p' namelist.input) # \s = space
+    SEDLSM=$(sed -n '/sf_surface_physics/ s/^\ *sf_surface_physics\ *=\ *\(.\),.*$/\1/p' namelist.input) # \  = space
     if [[ -n "${SEDLSM}" ]]; then
 	LSM="${SEDLSM}" # prefer namelist value over pre-set default
 	echo "Determining land-surface scheme from namelist: LSM=${LSM}"
@@ -183,7 +183,8 @@ if [[ ${RUNWRF} == 1 ]]
     if [[ -n "${GHG}" ]]; then # also add emission scenario to log
 	    mv 'CAMtr_volume_mixing_ratio' "${WRFLOG}/CAMtr_volume_mixing_ratio.${GHG}"
     fi
-    tar czf ${WRFTGZ} "${WRFLOG}" # archive logs with data
+    which tar
+    tar cf - "${WRFLOG}" | gzip > ${WRFTGZ} # archive logs with data (pipe necessary for AIX compatibility)
     if [[ ! "${WRFDIR}" == "${WORKDIR}" ]]; then
 	    mv "${WRFLOG}" "${WORKDIR}" # move log folder to working directory
     fi

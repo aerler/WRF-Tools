@@ -1,13 +1,14 @@
 #!/bin/bash
 
 # seaice
-#CASES='seaice-5r-hf'
+CASES='seaice-5r-hf'
+YEARS=2092
 #YEARS=$(seq 2055 2060)
 # ensemble 2100
 #CASES='habrcp85cn1x1d hbbrcp85cn1x1d hcbrcp85cn1x1d'
 #YEARS=$(seq 2085 2100)
-CASES='hcbrcp85cn1x1d'
-YEARS='2085'
+#CASES='hcbrcp85cn1x1d'
+#YEARS='2085'
 
 CCA=$PWD # use current directory as archive root
 

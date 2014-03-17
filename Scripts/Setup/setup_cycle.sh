@@ -94,9 +94,9 @@ if [[ "${RESTART}" == 'RESTART' ]]
 
   # prepare first working directory
   # set restart to False for first step
-  sed -i '/restart\s/ s/restart\s*=\s*\.true\..*$/restart = .false.,/' "${INIDIR}/${NEXTSTEP}/namelist.input"
+  sed -i '/restart\ / s/restart\ *=\ *\.true\..*$/restart = .false.,/' "${INIDIR}/${NEXTSTEP}/namelist.input"
   # and make sure the rest is on restart
-  sed -i '/restart\s/ s/restart\s*=\s*\.false\..*$/restart = .true.,/' "${INIDIR}/namelist.input"
+  sed -i '/restart\ / s/restart\ *=\ *\.false\..*$/restart = .true.,/' "${INIDIR}/namelist.input"
   echo "   Setting restart option and interval in namelist."
 
 
@@ -107,7 +107,7 @@ if [[ "${RESTART}" == 'RESTART' ]]
     mkdir -p 'static'
     echo $( cp -P * 'static/' &> /dev/null ) # trap this error and hide output
     cp -rL 'scripts/' 'bin/' 'meta/' 'tables/' 'static/'
-    tar czf "${STATICTGZ}" 'static/'
+    tar cf - 'static/' | gzip > "${STATICTGZ}"
     rm -r 'static/'
     mv "${STATICTGZ}" "${WRFOUT}"
     echo "   Saved backup file for static data:"

@@ -35,15 +35,15 @@ fi # if $MAC
 
 # parse current namelist for stability parameters
 cd "${WORKDIR}"
-CUR_DELT=$(sed -n '/time_step/ s/^\s*time_step\s*=\s*\([0-9]*\).*$/\1/p' namelist.input) # time step
+CUR_DELT=$(sed -n '/time_step/ s/^\ *time_step\ *=\ *\([0-9]*\).*$/\1/p' namelist.input) # time step
 ERR=$(( ${ERR} + $? )) # capture exit code
-CUR_EPSS=$(sed -n '/epssm/ s/^\s*epssm\s*=\s*\([0-9]\?.[0-9]*\).*$/\1/p' namelist.input) # epssm parameter; one or zero times: [0-9]\?.5 -> .5 or 0.5
+CUR_EPSS=$(sed -n '/epssm/ s/^\ *epssm\ *=\ *\([0-9]\?.[0-9]*\).*$/\1/p' namelist.input) # epssm parameter; one or zero times: [0-9]\?.5 -> .5 or 0.5
 ERR=$(( ${ERR} + $? )) # capture exit code
-CUR_DAMP=$(sed -n '/dampcoef/ s/^\s*dampcoef\s*=\s*\([0-9]\?.[0-9]*\).*$/\1/p' namelist.input) # dampcoef parameter; one or zero times: [0-9]\?.5 -> .5 or 0.5
+CUR_DAMP=$(sed -n '/dampcoef/ s/^\ *dampcoef\ *=\ *\([0-9]\?.[0-9]*\).*$/\1/p' namelist.input) # dampcoef parameter; one or zero times: [0-9]\?.5 -> .5 or 0.5
 ERR=$(( ${ERR} + $? )) # capture exit code
-CUR_DIFF=$(sed -n '/diff_6th_factor/ s/^\s*diff_6th_factor\s*=\s*\([0-9]\?.[0-9]*\).*$/\1/p' namelist.input) # diff_6th_factor parameter; one or zero times: [0-9]\?.5 -> .5 or 0.5
+CUR_DIFF=$(sed -n '/diff_6th_factor/ s/^\ *diff_6th_factor\ *=\ *\([0-9]\?.[0-9]*\).*$/\1/p' namelist.input) # diff_6th_factor parameter; one or zero times: [0-9]\?.5 -> .5 or 0.5
 ERR=$(( ${ERR} + $? )) # capture exit code
-CUR_SNDT=$(sed -n '/time_step_sound/ s/^\s*time_step_sound\s*=\s*\([0-9]*\).*$/\1/p' namelist.input) # time_step_sound parameter; integer
+CUR_SNDT=$(sed -n '/time_step_sound/ s/^\ *time_step_sound\ *=\ *\([0-9]*\).*$/\1/p' namelist.input) # time_step_sound parameter; integer
 ERR=$(( ${ERR} + $? )) # capture exit code
 
 
@@ -68,19 +68,19 @@ fi # no simple restart
 # change namelist
 cd "${WORKDIR}"
 if [[ -n "${NEW_DELT}" ]]; then
-  sed -i "/time_step/ s/^\s*time_step\s*=\s*[0-9]*.*$/ time_step = ${NEW_DELT}, ! edited by restart script; original value: ${CUR_DELT}/" namelist.input
+  sed -i "/time_step/ s/^\ *time_step\ *=\ *[0-9]*.*$/ time_step = ${NEW_DELT}, ! edited by restart script; original value: ${CUR_DELT}/" namelist.input
   ERR=$(( ${ERR} + $? )) # capture exit code
 fi; if [[ -n "${NEW_EPSS}" ]]; then
-  sed -i "/epssm/ s/^\s*epssm\s*=\s*[0-9]\?.[0-9]*.*$/ epssm = ${NEW_EPSS}, ${NEW_EPSS}, ${NEW_EPSS}, ${NEW_EPSS}, ! edited by restart script; original value: ${CUR_EPSS}/" namelist.input    
+  sed -i "/epssm/ s/^\ *epssm\ *=\ *[0-9]\?.[0-9]*.*$/ epssm = ${NEW_EPSS}, ${NEW_EPSS}, ${NEW_EPSS}, ${NEW_EPSS}, ! edited by restart script; original value: ${CUR_EPSS}/" namelist.input    
   ERR=$(( ${ERR} + $? )) # capture exit code
 fi; if [[ -n "${NEW_DAMP}" ]]; then
-  sed -i "/dampcoef/ s/^\s*dampcoef\s*=\s*[0-9]\?.[0-9]*.*$/ dampcoef = ${NEW_DAMP}, ${NEW_DAMP}, ${NEW_DAMP}, ${NEW_DAMP}, ! edited by restart script; original value: ${CUR_DAMP}/" namelist.input    
+  sed -i "/dampcoef/ s/^\ *dampcoef\ *=\ *[0-9]\?.[0-9]*.*$/ dampcoef = ${NEW_DAMP}, ${NEW_DAMP}, ${NEW_DAMP}, ${NEW_DAMP}, ! edited by restart script; original value: ${CUR_DAMP}/" namelist.input    
   ERR=$(( ${ERR} + $? )) # capture exit code
 fi; if [[ -n "${NEW_DIFF}" ]]; then
-  sed -i "/diff_6th_factor/ s/^\s*diff_6th_factor\s*=\s*[0-9]\?.[0-9]*.*$/ diff_6th_factor = ${NEW_DIFF}, ${NEW_DIFF}, ${NEW_DIFF}, ${NEW_DIFF}, ! edited by restart script; original value: ${CUR_DIFF}/" namelist.input    
+  sed -i "/diff_6th_factor/ s/^\ *diff_6th_factor\ *=\ *[0-9]\?.[0-9]*.*$/ diff_6th_factor = ${NEW_DIFF}, ${NEW_DIFF}, ${NEW_DIFF}, ${NEW_DIFF}, ! edited by restart script; original value: ${CUR_DIFF}/" namelist.input    
   ERR=$(( ${ERR} + $? )) # capture exit code
 fi; if [[ -n "${NEW_SNDT}" ]]; then
-  sed -i "/time_step_sound/ s/^\s*time_step_sound\s*=\s*[0-9]\?.[0-9]*.*$/ time_step_sound = ${NEW_SNDT}, ${NEW_SNDT}, ${NEW_SNDT}, ${NEW_SNDT}, ! edited by restart script; original value: ${CUR_SNDT}/" namelist.input    
+  sed -i "/time_step_sound/ s/^\ *time_step_sound\ *=\ *[0-9]\?.[0-9]*.*$/ time_step_sound = ${NEW_SNDT}, ${NEW_SNDT}, ${NEW_SNDT}, ${NEW_SNDT}, ! edited by restart script; original value: ${CUR_SNDT}/" namelist.input    
   ERR=$(( ${ERR} + $? )) # capture exit code
 fi
 

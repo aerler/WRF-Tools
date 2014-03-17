@@ -11,13 +11,23 @@ if [[ -n "${NEXTSTEP}" ]]
   then
 
     # read date string for restart file
-    RSTDATE=$(sed -n "/${NEXTSTEP}/ s/${NEXTSTEP}\s.\(.*\).\s.*$/\1/p" stepfile)
-    while [[ -z "${RSTDATE}" ]] 
-      do # loop appears to be necessary to prevent random read errors on TCS
-	echo ' Error: could not read stepfile - trying again!'
-        RSTDATE=$(sed -n "/${NEXTSTEP}/ s/${NEXTSTEP}\s.\(.*\).\s.*$/\1/p" stepfile)
-	sleep 600 # prevent too much file access
-    done
+    echo "${PATH}"
+    which sed
+    RSTDATE=$(sed -n "/${NEXTSTEP}/ s/${NEXTSTEP}\ .\(.*\).\ .*$/\1/p" stepfile)
+    # some code to catch file access errors on TCS
+    if [[ -z "${RSTDATE}" ]]
+      then 
+        echo "   ###   ERROR: cannot read step file - aborting!   ###   "
+        grep "${NEXTSTEP}" stepfile        
+        stat stepfile
+        exit 1
+    fi # RSTDATE
+#    while [[ -z "${RSTDATE}" ]] 
+#      do # loop appears to be necessary to prevent random read errors on TCS
+#       	echo ' Error: could not read stepfile - trying again!'
+#        RSTDATE=$(sed -n "/${NEXTSTEP}/ s/${NEXTSTEP}\ .\(.*\).\ .*$/\1/p" stepfile)
+#      	sleep 600 # prevent too much file access
+#    done
     NEXTDIR="${INIDIR}/${NEXTSTEP}" # next $WORKDIR
     cd "${NEXTDIR}"
     # link restart files

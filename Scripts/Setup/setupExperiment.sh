@@ -21,33 +21,33 @@ function RENAME () {
     # WPS run-script
     if [[ "${FILE}" == *WPS* ]] && [[ "${WPSQ}" == "${Q}" ]]; then
       if [[ "${WPSQ}" == "pbs" ]]; then
-        sed -i "/#PBS -N/ s/#PBS -N\s.*$/#PBS -N ${NAME}_WPS/" "${FILE}" # name
+        sed -i "/#PBS -N/ s/#PBS -N\ .*$/#PBS -N ${NAME}_WPS/" "${FILE}" # name
         sed -i "/#PBS -l/ s/#PBS -l nodes=.*:\(.*\)$/#PBS -l nodes=1:\1/" "${FILE}" # nodes (WPS only runs on one node)
         sed -i "/#PBS -l/ s/#PBS -l walltime=.*$/#PBS -l walltime=${WPSWCT}/" "${FILE}" # wallclock time      
       else
-      sed -i "/export JOBNAME/ s+export\sJOBNAME=.*$+export JOBNAME=${NAME}_WPS  # job name (dummy variable, since there is no queue)+" "${FILE}" # name
+      sed -i "/export JOBNAME/ s+export\ JOBNAME=.*$+export JOBNAME=${NAME}_WPS  # job name (dummy variable, since there is no queue)+" "${FILE}" # name
       fi # $Q
     fi # if WPS
     # WRF run-script
     if [[ "${FILE}" == *WRF* ]] && [[ "${WRFQ}" == "${Q}" ]]; then
       if [[ "${WRFQ}" == "pbs" ]]; then
-        sed -i "/#PBS -N/ s/#PBS -N\s.*$/#PBS -N ${NAME}_WRF/" "run_${CASETYPE}_WRF.${WRFQ}" # experiment name
-        sed -i "/#PBS -W/ s/#PBS -W\s.*$/#PBS -W depend:afterok:${NAME}_WPS/" "${FILE}" # dependency on WPS
+        sed -i "/#PBS -N/ s/#PBS -N\ .*$/#PBS -N ${NAME}_WRF/" "run_${CASETYPE}_WRF.${WRFQ}" # experiment name
+        sed -i "/#PBS -W/ s/#PBS -W\ .*$/#PBS -W depend:afterok:${NAME}_WPS/" "${FILE}" # dependency on WPS
         sed -i "/#PBS -l/ s/#PBS -l nodes=.*:\(.*\)$/#PBS -l nodes=${WRFNODES}:\1/" "${FILE}" # number of nodes
         sed -i "/#PBS -l/ s/#PBS -l walltime=.*$/#PBS -l walltime=${MAXWCT}/" "${FILE}" # wallclock time
-        sed -i "/qsub/ s/qsub ${WRFSCRIPT} -v NEXTSTEP=*\s-W*$/qsub ${WRFSCRIPT} -v NEXTSTEP=*\s-W\s${NAME}_WPS/" "${FILE}" # dependency
+        sed -i "/qsub/ s/qsub ${WRFSCRIPT} -v NEXTSTEP=*\ -W*$/qsub ${WRFSCRIPT} -v NEXTSTEP=*\ -W\ ${NAME}_WPS/" "${FILE}" # dependency
       elif [[ "${WRFQ}" == "sge" ]]; then
-        sed -i "/#$ -N/ s/#$ -N\s.*$/#$ -N ${NAME}_WRF/" "run_${CASETYPE}_WRF.${WRFQ}" # experiment name
-         #sed -i "/#PBS -W/ s/#PBS -W\s.*$/#PBS -W depend:afterok:${NAME}_WPS/" "${FILE}" # dependency on WPS
+        sed -i "/#$ -N/ s/#$ -N\ .*$/#$ -N ${NAME}_WRF/" "run_${CASETYPE}_WRF.${WRFQ}" # experiment name
+         #sed -i "/#PBS -W/ s/#PBS -W\ .*$/#PBS -W depend:afterok:${NAME}_WPS/" "${FILE}" # dependency on WPS
         sed -i "/#$ -pe/ s/#$ -pe .*$/#$ -pe mpich $((WRFNODES*16))/" "${FILE}" # number of MPI tasks
         sed -i "/#$ -l/ s/#$ -l h_rt=.*$/#$ -l h_rt=${MAXWCT}/" "${FILE}" # wallclock time
       elif [[ "${WRFQ}" == "ll" ]]; then
-        sed -i "/#\s*@\s*job_name/ s/#\s*@\s*job_name\s*=.*$/# @ job_name = ${NAME}_WRF/" "${FILE}" # experiment name
-        sed -i "/#\s*@\s*node/ s/#\s*@\s*node\s*=.*$/# @ node = ${WRFNODES}/" "${FILE}" # number of nodes
-        sed -i "/#\s*@\s*wall_clock_limit/ s/#\s*@\s*wall_clock_limit\s*=.*$/# @ wall_clock_limit = ${MAXWCT}/" "${FILE}" # wallclock time
+        sed -i "/#\ *@\ *job_name/ s/#\ *@\ *job_name\ *=.*$/# @ job_name = ${NAME}_WRF/" "${FILE}" # experiment name
+        sed -i "/#\ *@\ *node/ s/#\ *@\ *node\ *=.*$/# @ node = ${WRFNODES}/" "${FILE}" # number of nodes
+        sed -i "/#\ *@\ *wall_clock_limit/ s/#\ *@\ *wall_clock_limit\ *=.*$/# @ wall_clock_limit = ${MAXWCT}/" "${FILE}" # wallclock time
       else
-        sed -i "/export JOBNAME/ s+export\sJOBNAME=.*$+export JOBNAME=${NAME}_WRF # job name (dummy variable, since there is no queue)+" "${FILE}" # name
-        sed -i "/export TASKS/ s+export\sTASKS=.*$+export TASKS=${WRFNODES} # number of MPI tasks+" "${FILE}" # number of tasks (instead of nodes...)
+        sed -i "/export JOBNAME/ s+export\ JOBNAME=.*$+export JOBNAME=${NAME}_WRF # job name (dummy variable, since there is no queue)+" "${FILE}" # name
+        sed -i "/export TASKS/ s+export\ TASKS=.*$+export TASKS=${WRFNODES} # number of MPI tasks+" "${FILE}" # number of tasks (instead of nodes...)
       fi # $Q
     fi # if WRF
     ## queue independent changes
@@ -314,12 +314,12 @@ mv writeNamelists.sh scripts/
 export WRFTOOLS
 ./scripts/writeNamelists.sh
 # number of domains (WRF and WPS namelist!)
-sed -i "/max_dom/ s/^\s*max_dom\s*=\s*.*$/ max_dom = ${MAXDOM}, ! this entry was edited by the setup script/" namelist.input namelist.wps
+sed -i "/max_dom/ s/^\ *max_dom\ *=\ *.*$/ max_dom = ${MAXDOM}, ! this entry was edited by the setup script/" namelist.input namelist.wps
 # remove references to FLake, if not used
 if [[ "${FLAKE}" != 1 ]]; then
-  sed -i "/flake_update/ s/^\s*flake_update\s*=\s*.*$/! flake_update was removed because FLake is not used/" namelist.input
-  sed -i "/tsk_flake/ s/^\s*tsk_flake\s*=\s*.*$/! tsk_flake was removed because FLake is not used/" namelist.input
-  sed -i "/lake_depth_limit/ s/^\s*lake_depth_limit\s*=\s*.*$/! lake_depth_limit was removed because FLake is not used/" namelist.input
+  sed -i "/flake_update/ s/^\ *flake_update\ *=\ *.*$/! flake_update was removed because FLake is not used/" namelist.input
+  sed -i "/tsk_flake/ s/^\ *tsk_flake\ *=\ *.*$/! tsk_flake was removed because FLake is not used/" namelist.input
+  sed -i "/lake_depth_limit/ s/^\ *lake_depth_limit\ *=\ *.*$/! lake_depth_limit was removed because FLake is not used/" namelist.input
 fi # flake
 
 ## link data and meta data
@@ -359,7 +359,7 @@ fi # $DATATYPE
 # set correct path for geogrid data
 echo "Setting path for geogrid data"
 if [[ -n "${GEODATA}" ]]; then
-  sed -i "/geog_data_path/ s+\s*geog_data_path\s*=\s*.*$+ geog_data_path = \'${GEODATA}\',+" namelist.wps
+  sed -i "/geog_data_path/ s+\ *geog_data_path\ *=\ *.*$+ geog_data_path = \'${GEODATA}\',+" namelist.wps
   echo "  ${GEODATA}"
 else echo "WARNING: no geogrid path selected!"; fi
 
@@ -448,15 +448,15 @@ cd "${RUNDIR}"
 if [[ -n "${ARSCRIPT}" ]]; then
     # copy script and change job name
     cp -f "${WRFTOOLS}/Scripts/HPSS/${ARSCRIPT}" .
-    sed -i "/#PBS -N/ s/#PBS -N\s.*$/#PBS -N ${NAME}_ar/" "${ARSCRIPT}"
+    sed -i "/#PBS -N/ s/#PBS -N\ .*$/#PBS -N ${NAME}_ar/" "${ARSCRIPT}"
     echo "Setting up archiving: ${ARSCRIPT}"
     # set archiving interval
     if [[ -n "${ARINTERVAL}" ]]; then
-      sed -i "/INTERVAL/ s/^\s*INTERVAL=.*$/INTERVAL=\'${ARINTERVAL}\' # interval in which the archive script is to be executed/" "${ARSCRIPT}"
+      sed -i "/INTERVAL/ s/^\ *INTERVAL=.*$/INTERVAL=\'${ARINTERVAL}\' # interval in which the archive script is to be executed/" "${ARSCRIPT}"
     fi
     # set dataset variable for number of domains
     ARDOM=''; for I in $( seq 1 ${MAXDOM} ); do ARDOM="${ARDOM}${I}"; done
-    sed -i "/DOMAINS/ s/^\s*DOMAINS=\${DOMAINS:-.*}\s.*$/DOMAINS=\${DOMAINS:-'${ARDOM}'} # default dataset: everything (one domain)/" "${ARSCRIPT}"    
+    sed -i "/DOMAINS/ s/^\ *DOMAINS=\${DOMAINS:-.*}\ .*$/DOMAINS=\${DOMAINS:-'${ARDOM}'} # default dataset: everything (one domain)/" "${ARSCRIPT}"    
     # update folder names
     RENAME "${ARSCRIPT}"
 fi # $ARSCRIPT
@@ -466,7 +466,7 @@ if [[ -n "${AVGSCRIPT}" ]]; then
     ln -s "${WRFTOOLS}/Python/average/wrfout_average.py" "./scripts/"
     cp -f "${WRFTOOLS}/Scripts/${WPSSYS}/${AVGSCRIPT}" .
     mkdir -p 'wrfavg' # folder for averaged output
-    sed -i "/#PBS -N/ s/#PBS -N\s.*$/#PBS -N ${NAME}_avg/" "${AVGSCRIPT}"
+    sed -i "/#PBS -N/ s/#PBS -N\ .*$/#PBS -N ${NAME}_avg/" "${AVGSCRIPT}"
     echo "Setting up averaging: ${AVGSCRIPT}"
     # update folder names
     RENAME "${AVGSCRIPT}"
@@ -475,10 +475,10 @@ fi # $AVGSCRIPT
 
 ## copy data tables for selected physics options
 # radiation scheme
-RAD=$(sed -n '/ra_lw_physics/ s/^\s*ra_lw_physics\s*=\s*\(.\),.*$/\1/p' namelist.input) # \s = space
+RAD=$(sed -n '/ra_lw_physics/ s/^\ *ra_lw_physics\ *=\ *\(.\),.*$/\1/p' namelist.input) # \  = space
 echo "Determining radiation scheme from namelist: RAD=${RAD}"
 # write default RAD into job script ('sed' sometimes fails on TCS...)
-sed -i "/export RAD/ s/export\sRAD=.*$/export RAD=\'${RAD}\' # radiation scheme set by setup script/" "run_${CASETYPE}_WRF.${WRFQ}"
+sed -i "/export RAD/ s/export\ RAD=.*$/export RAD=\'${RAD}\' # radiation scheme set by setup script/" "run_${CASETYPE}_WRF.${WRFQ}"
 # select scheme and print confirmation
 if [[ ${RAD} == 1 ]]; then
     echo "  Using RRTM radiation scheme."
@@ -494,10 +494,10 @@ else
     echo 'WARNING: no radiation scheme selected!'
 fi
 # urban surface scheme
-URB=$(sed -n '/sf_urban_physics/ s/^\s*sf_urban_physics\s*=\s*\(.\),.*$/\1/p' namelist.input) # \s = space
+URB=$(sed -n '/sf_urban_physics/ s/^\ *sf_urban_physics\ *=\ *\(.\),.*$/\1/p' namelist.input) # \  = space
 echo "Determining urban surface scheme from namelist: URB=${URB}"
 # write default URB into job script ('sed' sometimes fails on TCS...)
-sed -i "/export URB/ s/export\sURB=.*$/export URB=\'${URB}\' # radiation scheme set by setup script/" "run_${CASETYPE}_WRF.${WRFQ}"
+sed -i "/export URB/ s/export\ URB=.*$/export URB=\'${URB}\' # radiation scheme set by setup script/" "run_${CASETYPE}_WRF.${WRFQ}"
 # select scheme and print confirmation
 if [[ ${URB} == 0 ]]; then
     echo 'No urban surface scheme selected.'
@@ -508,17 +508,17 @@ elif [[ ${URB} == 1 ]]; then
 elif [[ ${URB} == 2 ]]; then
     echo "  Using multi-layer urban surface scheme."
     URBTAB="URBPARM_UZE.TBL"
-    PBL=$(sed -n '/bl_pbl_physics/ s/^\s*bl_pbl_physics\s*=\s*\(.\),.*$/\1/p' namelist.input) # \s = space
+    PBL=$(sed -n '/bl_pbl_physics/ s/^\ *bl_pbl_physics\ *=\ *\(.\),.*$/\1/p' namelist.input) # \  = space
     if [[ ${PBL} != 2 ]] && [[ ${PBL} != 8 ]]; then
       echo 'WARNING: sf_urban_physics = 2 requires bl_pbl_physics = 2 or 8!'; fi
 else
     echo 'No urban scheme selected! Default: none.'
 fi
 # land-surface scheme
-LSM=$(sed -n '/sf_surface_physics/ s/^\s*sf_surface_physics\s*=\s*\(.\),.*$/\1/p' namelist.input) # \s = space
+LSM=$(sed -n '/sf_surface_physics/ s/^\ *sf_surface_physics\ *=\ *\(.\),.*$/\1/p' namelist.input) # \  = space
 echo "Determining land-surface scheme from namelist: LSM=${LSM}"
 # write default LSM into job script ('sed' sometimes fails on TCS...)
-sed -i "/export LSM/ s/export\sLSM=.*$/export LSM=\'${LSM}\' # land surface scheme set by setup script/" "run_${CASETYPE}_WRF.${WRFQ}"
+sed -i "/export LSM/ s/export\ LSM=.*$/export LSM=\'${LSM}\' # land surface scheme set by setup script/" "run_${CASETYPE}_WRF.${WRFQ}"
 # select scheme and print confirmation
 if [[ ${LSM} == 1 ]]; then
     echo "  Using diffusive land-surface scheme."
@@ -571,7 +571,7 @@ if [[ -n "${GHG}" ]]; then # only if $GHG is defined!
 fi
 cd "${RUNDIR}" # return to run directory
 # GHG emission scenario (if no GHG scenario is selected, the variable will be empty)
-sed -i "/export GHG/ s/export\sGHG=.*$/export GHG=\'${GHG}\' # GHG emission scenario set by setup script/" "run_${CASETYPE}_WRF.${WRFQ}"
+sed -i "/export GHG/ s/export\ GHG=.*$/export GHG=\'${GHG}\' # GHG emission scenario set by setup script/" "run_${CASETYPE}_WRF.${WRFQ}"
 
 
 ## finish up
