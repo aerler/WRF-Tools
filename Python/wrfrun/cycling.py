@@ -32,8 +32,9 @@ if os.environ.has_key('INIDIR'):
   IniDir = os.environ['INIDIR'] # where the step file is found
 else: IniDir = os.getcwd() + '/' # current directory
 if os.environ.has_key('DATATYPE'):
-  if os.environ['DATATYPE'] == 'CFSR': lly = True # reanalysis like CFSR have leap-years
-  else: lly = False # GCMs like CESM/CCSM generally don't have leap-years
+  if os.environ['DATATYPE'] == 'CESM': lly = False # CESM does not have leap-years
+  elif os.environ['DATATYPE'] == 'CCSM': lly = False # CCSM does not have leap-years
+  else: lly = True # reanalysis have leap-years
 else: lly = False # GCMs like CESM/CCSM generally don't have leap-years
 nmlstwps = 'namelist.wps' # WPS namelist file
 nmlstwrf = 'namelist.input' # WRF namelist file
