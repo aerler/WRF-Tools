@@ -19,10 +19,11 @@ INIDIR=${INIDIR:-"${PWD}"}; cd "$INIDIR" # make sure that this is the current di
 EXP="${INIDIR%/}"; EXP="${EXP##*/}" # name of experiment
 CURRENTSTEP=$( ls [0-9][0-9][0-9][0-9]-[0-9][0-9]* -d | head -n 1 ) # first step folder
 WORKDIR=${WORKDIR:-"$INIDIR/$CURRENTSTEP/"}
-NEXTSTEP=$( ls [0-9][0-9][0-9][0-9]-[0-9][0-9]* -d | tail -n 1 ) # second/last step folder
+NEXTSTEP=$( ls [0-9][0-9][0-9][0-9]-[0-9][0-9]* -d | head -n 2 | tail -n 1 ) # second step folder
 # determine if WPS has to be run for next step
-if [[ -f "${INIDIR}/${NEXTSTEP}/run_cycling_WPS"* ]]; then NOWPS='NOWPS' 
-else NOWPS='FALSE'; fi          
+if [ -f "${INIDIR}/${NEXTSTEP}"/run_*_WPS.* ]; then NOWPS='NOWPS' 
+else NOWPS='FALSE'; fi
+# N.B.: single brakets are essential, otherwise the globbing expression is not recognized
 # determine machine
 MAC=${MAC:-''}
 if [[ -f 'start_cycle_GPC.sh' ]]; then MAC='GPC'
