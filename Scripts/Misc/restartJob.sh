@@ -4,13 +4,15 @@
 
 # default parameters
 FORCE=0 # force restart, even if no paramter set was found
-SIMPLE=0 # simple restart without increasing stability 
+SIMPLE=0 # simple restart without increasing stability
+QUIET=0 # suppress output 
 # parse arguments
 #while getopts 'fs' OPTION; do # getopts version... supports only short options
 while true; do
   case "$1" in
     -f | --force ) FORCE=1; shift;;
     -s | --simple ) SIMPLE=1; shift;;
+    -q | --quiet ) QUIET=1; shift;;
     -- ) shift; break;; # this terminates the argument list, if GNU getopt is used
     * ) break;;
   esac # case $@
@@ -33,7 +35,7 @@ if [[ -f 'start_cycle_GPC.sh' ]]; then MAC='GPC'
 elif [[ -f 'start_cycle_TCS.sh' ]]; then MAC='TCS'
 elif [[ -f 'start_cycle_P7.sh' ]]; then MAC='P7'
 elif [[ -z "$MAC" ]]; then 
-    echo 'ERROR: unknown machine!'
+    [ $QUIET == 1 ] && echo 'ERROR: unknown machine!'
     exit 1 # abort
 fi # if $MAC
 
@@ -97,7 +99,7 @@ done # loop over domains
 ## resubmit job
 cd "${INIDIR}"
 # Feedback
-echo "Restarting Experiment ${EXP} on ${MAC}: NEXTSTEP=${CURRENTSTEP}; NOWPS=${NOWPS}; TIME_STEP=${NEW_DELT}; EPSSM=${NEW_EPSS}"
+[ $QUIET == 1 ] && echo "Restarting Experiment ${EXP} on ${MAC}: NEXTSTEP=${CURRENTSTEP}; NOWPS=${NOWPS}; TIME_STEP=${NEW_DELT}; EPSSM=${NEW_EPSS}"
 # launch restart
 rm -rf ${CURRENTSTEP}/rsl.* ${CURRENTSTEP}/wrf*.nc
 # restart job (this is a bit hackish and not as general as I would like it...)
@@ -113,7 +115,7 @@ elif [[ "$MAC" == 'P7' ]]; then
 fi # if MAC
 # report errors
 if [[ "${ERR}" != '0' ]]; then
-  echo "ERROR: $ERR Errors(s) occured!"
+  [ $QUIET == 1 ] && echo "ERROR: $ERR Errors(s) occured!"
   exit 1
 else
   exit 0

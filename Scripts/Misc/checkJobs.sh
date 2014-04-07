@@ -2,8 +2,16 @@
 # Andre R. Erler, 06/09/2013, revised 07/04/2014
 # script to list status of active experiments on SciNet
 
+# pre-process arguments using getopt
+if [ -z $( getopt -T ) ]; then
+  TMP=$( getopt -o m:q --long machine:,quiet -n 'checkJobs' -- "$@" ) # pre-process arguments
+  if [ $? != 0 ] ; then echo "ERROR: invalid option(s) - aborting!" >&2 ; exit 1 ; fi
+  eval set -- "$TMP" # I don't know what this step does...
+fi # check if GNU getopt ("enhanced")
+# set argument defaults
 LGPC=1; LTCS=1; LP7=1 # check these machines
-QUIET=0 # print summary or just return exit code 
+QUIET=0 # print summary or just return exit code
+# parse arguments 
 while true; do
   case "$1" in
     -m | --machine )
