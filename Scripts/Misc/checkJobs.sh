@@ -1,5 +1,5 @@
 #!/bin/bash
-# Andre R. Erler, 06/09/2013
+# Andre R. Erler, 06/09/2013, revised 07/04/2014
 # script to list status of active experiments on SciNet
 
 LGPC=1; LTCS=1; LP7=1 # check these machines
@@ -14,7 +14,7 @@ while true; do
         p7 | P7 ) LGPC=0; LTCS=0;;
       esac # case $2 
       shift 2 ;;
-    -q | --quiet ) QUIET=0; shift;;
+    -q | --quiet ) QUIET=1; shift;;
     -- ) shift; break;; # this terminates the argument list, if GNU getopt is used
     * ) break;;
   esac # case $@
@@ -43,29 +43,34 @@ function CHECK {
 } # CHECK
 
 # query machine for running jobs
+N=0 # total number of jobs (count)
 OK=0 # counter for running jobs
 MIA=0 # counter for crashed jobs
 
 # GPC
-if [ LGPC == 1 ]; then
-	GPC_LIST=$( ssh gpc01 'showq -nu aerler | grep aerler' )
-	CHECK "${GPC_JOBS}" "${GPC_LIST}" 'GPC'
+if [ $LGPC == 1 ]; then
+  # query queue for my jobs
+	GPC_QUEUE=$( ssh gpc01 'showq -n -u ${USER} | grep ${USER}' )
+  # check showq output against "registered" jobs
+	CHECK "${GPC_JOBS}" "${GPC_QUEUE}" 'GPC'
+  # count entries in job list
+  N=$(( $N + $( echo $GPC_JOBS | wc -w ) ))
 fi # if $LGPC
 
 # TCS
-if [ LTCS == 1 ]; then
-	TCS_LIST=$( ssh tcs01 'llq -l | grep -B 3 '\''Owner: aerler'\''' )
-	CHECK "${TCS_JOBS}" "${TCS_LIST}" 'TCS'
+if [ $LTCS == 1 ]; then
+	TCS_QUEUE=$( ssh tcs01 'llq -l -u ${USER} | grep '\''Job Name'\''' )
+	CHECK "${TCS_JOBS}" "${TCS_QUEUE}" 'TCS'
+  N=$(( $N + $( echo $TCS_JOBS | wc -w ) ))
 fi # if $LTCS
 
 # P7
-if [ LP7 == 1 ]; then
-	P7_LIST=$( ssh p701 'llq -m | grep '\''Job Name'\''' )
-	CHECK "${P7_JOBS}" "${P7_LIST}" 'P7'
+if [ $LP7 == 1 ]; then
+	P7_QUEUE=$( ssh p701 'llq -m -u ${USER} | grep '\''Job Name'\''' )
+	CHECK "${P7_JOBS}" "${P7_QUEUE}" 'P7'
+  N=$(( $N + $( echo $P7_JOBS | wc -w ) ))
 fi # if $LP7
 
-# count number of jobs
-N=$( echo $GPC_JOBS $TCS_JOBS $P7_JOBS | wc -w )
 # number of jobs unaccounted for
 ERR=$(( $N - $OK - $MIA ))
 
