@@ -52,45 +52,45 @@ if [[ ${RUNWRF} == 1 ]]
     # radiation scheme: try to infer from namelist using 'sed'
     SEDRAD=$(sed -n '/ra_lw_physics/ s/^[[:space:]]*ra_lw_physics[[:space:]]*=[[:space:]]*\(.\),.*$/\1/p' namelist.input) # [[:space:]] = space
     if [[ -n "${SEDRAD}" ]]; then
-		RAD="${SEDRAD}" # prefer namelist value over pre-set default
-		echo "Determining radiation scheme from namelist: RAD=${RAD}"
+		  RAD="${SEDRAD}" # prefer namelist value over pre-set default
+		  echo "Determining radiation scheme from namelist: RAD=${RAD}"
     fi
     # select scheme and print confirmation
     if [[ ${RAD} == 'RRTM' ]] || [[ ${RAD} == 1 ]]; then
-		echo "Using RRTM radiation scheme."
-		RADTAB="RRTM_DATA RRTM_DATA_DBL"
+		  echo "  Using RRTM radiation scheme."
+		  RADTAB="RRTM_DATA RRTM_DATA_DBL"
     elif [[ ${RAD} == 'CAM' ]] || [[ ${RAD} == 3 ]]; then
-		echo "Using CAM radiation scheme."
-		RADTAB="CAM_ABS_DATA CAM_AEROPT_DATA ozone.formatted ozone_lat.formatted ozone_plev.formatted"
+		  echo "  Using CAM radiation scheme."
+		  RADTAB="CAM_ABS_DATA CAM_AEROPT_DATA ozone.formatted ozone_lat.formatted ozone_plev.formatted"
     	#RADTAB="${RADTAB} CAMtr_volume_mixing_ratio" # this is handled below
     elif [[ ${RAD} == 'RRTMG' ]] || [[ ${RAD} == 4 ]]; then
-	    echo "Using RRTMG radiation scheme."
-		RADTAB="RRTMG_LW_DATA RRTMG_LW_DATA_DBL RRTMG_SW_DATA RRTMG_SW_DATA_DBL"
+	    echo "  Using RRTMG radiation scheme."
+		  RADTAB="RRTMG_LW_DATA RRTMG_LW_DATA_DBL RRTMG_SW_DATA RRTMG_SW_DATA_DBL"
     else
 	    echo 'WARNING: no radiation scheme selected!'
-        # this will only happen if no defaults are set and inferring from namelist via 'sed' failed
+      # this will only happen if no defaults are set and inferring from namelist via 'sed' failed
     fi
     # urban surface scheme
     SEDURB=$(sed -n '/sf_urban_physics/ s/^[[:space:]]*sf_urban_physics[[:space:]]*=[[:space:]]*\(.\),.*$/\1/p' namelist.input) # [[:space:]] = space
     if [[ -n "${SEDURB}" ]]; then
 	    URB="${SEDURB}" # prefer namelist value over pre-set default
-        echo "Determining urban surface scheme from namelist: URB=${URB}"
+      echo "Determining urban surface scheme from namelist: URB=${URB}"
     fi
     # select scheme and print confirmation
     if [[ ${URB} == 0 ]]; then
-        echo 'No urban surface scheme selected.'
-        URBTAB=""
+      echo 'No urban surface scheme selected.'
+      URBTAB=""
     elif [[ ${URB} == 'single' ]] || [[ ${URB} == 1 ]]; then
-        echo "  Using single layer urban surface scheme."
-        URBTAB="URBPARM.TBL"
+      echo "  Using single layer urban surface scheme."
+      URBTAB="URBPARM.TBL"
     elif [[ ${URB} == 'multi' ]] || [[ ${URB} == 2 ]]; then
-        echo "  Using multi-layer urban surface scheme."
-        URBTAB="URBPARM_UZE.TBL"
-        PBL=$(sed -n '/bl_pbl_physics/ s/^[[:space:]]*bl_pbl_physics[[:space:]]*=[[:space:]]*\(.\),.*$/\1/p' namelist.input) # [[:space:]] = space
-        if [[ ${PBL} != 2 ]] && [[ ${PBL} != 8 ]]; then
-          echo 'WARNING: sf_urban_physics = 2 requires bl_pbl_physics = 2 or 8!'; fi
+      echo "  Using multi-layer urban surface scheme."
+      URBTAB="URBPARM_UZE.TBL"
+      PBL=$(sed -n '/bl_pbl_physics/ s/^[[:space:]]*bl_pbl_physics[[:space:]]*=[[:space:]]*\(.\),.*$/\1/p' namelist.input) # [[:space:]] = space
+      if [[ ${PBL} != 2 ]] && [[ ${PBL} != 8 ]]; then
+      echo 'WARNING: sf_urban_physics = 2 requires bl_pbl_physics = 2 or 8!'; fi
     else
-        echo 'No no urban scheme selected! Default: none.'
+      echo 'No no urban scheme selected! Default: none.'
     fi
     # land-surface scheme: try to infer from namelist using 'sed'
     SEDLSM=$(sed -n '/sf_surface_physics/ s/^[[:space:]]*sf_surface_physics[[:space:]]*=[[:space:]]*\(.\),.*$/\1/p' namelist.input) # [[:space:]] = space
@@ -100,22 +100,22 @@ if [[ ${RUNWRF} == 1 ]]
     fi
     # select scheme and print confirmation
     if [[ ${LSM} == 'Diff' ]] || [[ ${LSM} == 1 ]]; then
-	echo "Using diffusive land-surface scheme."
-	LSMTAB="LANDUSE.TBL"
+      echo "  Using diffusive land-surface scheme."
+      LSMTAB="LANDUSE.TBL"
     elif [[ ${LSM} == 'Noah' ]] || [[ ${LSM} == 2 ]]; then
-	echo "Using Noah land-surface scheme."
-	LSMTAB="SOILPARM.TBL VEGPARM.TBL GENPARM.TBL LANDUSE.TBL"
+	    echo "  Using Noah land-surface scheme."
+      LSMTAB="SOILPARM.TBL VEGPARM.TBL GENPARM.TBL LANDUSE.TBL"
     elif [[ ${LSM} == 'RUC' ]] || [[ ${LSM} == 3 ]]; then
-	echo "Using RUC land-surface scheme."
-	LSMTAB="SOILPARM.TBL VEGPARM.TBL GENPARM.TBL LANDUSE.TBL"
+      echo "  Using RUC land-surface scheme."
+      LSMTAB="SOILPARM.TBL VEGPARM.TBL GENPARM.TBL LANDUSE.TBL"
     elif [[ ${LSM} == 'Noah-MP' ]] || [[ ${LSM} == 4 ]]; then
-	echo "Using Noah-MP land-surface scheme."
-	LSMTAB="SOILPARM.TBL VEGPARM.TBL GENPARM.TBL LANDUSE.TBL MPTABLE.TBL"
+      echo "  Using Noah-MP land-surface scheme."
+      LSMTAB="SOILPARM.TBL VEGPARM.TBL GENPARM.TBL LANDUSE.TBL MPTABLE.TBL"
     elif [[ ${LSM} == 'CLM4' ]] || [[ ${LSM} == 5 ]]; then
-	echo "Using CLM4 land-surface scheme."
-	LSMTAB="SOILPARM.TBL VEGPARM.TBL GENPARM.TBL LANDUSE.TBL CLM_ALB_ICE_DFS_DATA CLM_ASM_ICE_DFS_DATA CLM_DRDSDT0_DATA CLM_EXT_ICE_DRC_DATA CLM_TAU_DATA CLM_ALB_ICE_DRC_DATA CLM_ASM_ICE_DRC_DATA CLM_EXT_ICE_DFS_DATA CLM_KAPPA_DATA"
+      echo "  Using CLM4 land-surface scheme."
+      LSMTAB="SOILPARM.TBL VEGPARM.TBL GENPARM.TBL LANDUSE.TBL CLM_ALB_ICE_DFS_DATA CLM_ASM_ICE_DFS_DATA CLM_DRDSDT0_DATA CLM_EXT_ICE_DRC_DATA CLM_TAU_DATA CLM_ALB_ICE_DRC_DATA CLM_ASM_ICE_DRC_DATA CLM_EXT_ICE_DFS_DATA CLM_KAPPA_DATA"
     else
-	echo 'WARNING: no land-surface model selected!'
+      echo 'WARNING: no land-surface model selected!'
 	# this will only happen if no defaults are set and inferring from namelist via 'sed' failed
     fi
     # copy appropriate tables for physics options
@@ -125,12 +125,12 @@ if [[ ${RUNWRF} == 1 ]]
     if [[ -n "${GHG}" ]]; then # only if $GHG is defined!
 	echo
 	if [[ ${RAD} == 'RRTM' ]] || [[ ${RAD} == 1 ]] || [[ ${RAD} == 'CAM' ]]  || [[ ${RAD} == 3 ]] || [[ ${RAD} == 'RRTMG' ]] || [[ ${RAD} == 4 ]]; then
-	    echo "GHG emission scenario: ${GHG}"
-	    cp ${NOCLOBBER} "CAMtr_volume_mixing_ratio.${GHG}" "${WRFDIR}/CAMtr_volume_mixing_ratio"
+	  echo "GHG emission scenario: ${GHG}"
+	  cp ${NOCLOBBER} "CAMtr_volume_mixing_ratio.${GHG}" "${WRFDIR}/CAMtr_volume_mixing_ratio"
 	else
-	    echo "WARNING: variable GHG emission scenarios not available with the ${RAD} scheme!"
-	    unset GHG
-	    # N.B.: $GHG is used later to test if a variable GHG scenario has been used (for logging purpose)fi
+	  echo "WARNING: variable GHG emission scenarios not available with the ${RAD} scheme!"
+	  unset GHG
+	  # N.B.: $GHG is used later to test if a variable GHG scenario has been used (for logging purpose)fi
 	fi
 	echo
     fi

@@ -12,7 +12,7 @@
 #PBS -M aerler@atmosp.physics.utoronto.ca
 #PBS -m ae
 # job name
-#PBS -N ar_seaice-5r
+#PBS -N ar_seaice-5r-hf
 ## submit to queue (NB: this has to be the last PBS line!)
 #PBS -q archive
  
@@ -30,17 +30,17 @@ trap "echo 'Job script not completed';exit 129" TERM INT
 #years="2006-2019"
 #list="hcbrcp85cn1x1"
 #years="2045-2049"
-list="seaice-5r"
-years="2060-2085"
-#list="seaice-5r-hf"
+#list="seaice-5r"
+#years="2060-2085"
+list="seaice-5r-hf"
 #years="2055-2060"
 #list='hcbrcp85cn1x1d'
-#years='2085-2100'
+years='2085-2100'
 direc="atm  cpl  dart	glc  ice  lnd  ocn  rest"
 #direc="rest ocn"
 
 #CCA='/reserved1/p/peltier/aerler/CESM/archive/'
-CCA=$PWD # use current directory as archive root
+CCA="${PBS_O_WORKDIR}" # use current directory as archive root
 echo SRC $CCA
 cd $CCA
 

@@ -2,7 +2,7 @@
 
 # seaice
 CASES='seaice-5r-hf'
-YEARS=$(seq 2093 2100)
+YEARS=$(seq 2085 2100)
 #YEARS=$(seq 2055 2060)
 # ensemble 2100
 #CASES='habrcp85cn1x1d hbbrcp85cn1x1d hcbrcp85cn1x1d'
