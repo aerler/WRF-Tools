@@ -40,15 +40,27 @@ CHECK "${TCS_JOBS}" "${TCS_LIST}" 'TCS'
 P7_LIST=$( ssh p701 'llq -m | grep '\''Job Name'\''' )
 CHECK "${P7_JOBS}" "${P7_LIST}" 'P7'
 
+# count number of jobs
+N=$( echo $GPC_JOBS $TCS_JOBS $P7_JOBS | wc -w )
+# number of jobs unaccounted for
+ERR=$(( $N - $OK - $MIA ))
+
 # report summary
 echo 
-if [ ${MIA} == 0 ]
-  then
+if [ ${OK} == ${N} ]; then
     echo "   <<<   All ${OK} jobs are running!  >>>   "
-elif [ ${OK} == 0 ]
-  then
+elif [ ${MIA} == 0 ]; then
+    echo "   ===   ${OK} jobs are running. ${ERR} errors encountered!   ===   "
+elif [ ${OK} == 0 ] && [ ${ERR} == 0 ]; then
     echo "   ###   All ${MIA} jobs crashed!!!  ###   "
+elif [ ${OK} == 0 ]; then
+    echo "   ###   ${MIA} jobs crashed! ${ERR} errors encountered!   ###   "
+elif [ ${ERR} == 0 ]; then
+    echo "   ===   ${MIA} jobs crashed; ${OK} still running.   ===   "
 else
-    echo "   ===   ${MIA} jobs crashed, ${OK} running...  ===   "
+    echo "   ===   ${MIA} jobs crashed; ${OK} still running. ${ERR} errors encountered!   ===   "
 fi # summary
 echo
+
+# exit with number of crashed/missing jobs and errors
+exit $(( $N - $OK ))

@@ -6,11 +6,14 @@
 FORCE=0 # force restart, even if no paramter set was found
 SIMPLE=0 # simple restart without increasing stability 
 # parse arguments
-while getopts 'fs' OPTION; do
-  case ${OPTION} in
-    f) FORCE=1;;
-    s) SIMPLE=1;;
-  esac # case $OPTION
+#while getopts 'fs' OPTION; do # getopts version... supports only short options
+while true; do
+  case "$!" in
+    -f | --force ) FORCE=1; shift;;
+    -s | --simple ) SIMPLE=1; shift;;
+    -- ) shift; break;; # this terminates the argument list, if GNU getopt is used
+    * ) break;;
+  esac # case $@
 done # while getopts  
 
 ERR=0
