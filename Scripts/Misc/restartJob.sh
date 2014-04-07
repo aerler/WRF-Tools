@@ -8,7 +8,7 @@ SIMPLE=0 # simple restart without increasing stability
 # parse arguments
 #while getopts 'fs' OPTION; do # getopts version... supports only short options
 while true; do
-  case "$!" in
+  case "$1" in
     -f | --force ) FORCE=1; shift;;
     -s | --simple ) SIMPLE=1; shift;;
     -- ) shift; break;; # this terminates the argument list, if GNU getopt is used
