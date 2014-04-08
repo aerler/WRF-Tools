@@ -41,7 +41,7 @@ if [[ -f 'start_cycle_GPC.sh' ]]; then MAC='GPC'
 elif [[ -f 'start_cycle_TCS.sh' ]]; then MAC='TCS'
 elif [[ -f 'start_cycle_P7.sh' ]]; then MAC='P7'
 elif [[ -z "$MAC" ]]; then 
-    [ $QUIET == 1 ] && echo 'ERROR: unknown machine!'
+    [ $QUIET == 0 ] && echo 'ERROR: unknown machine!'
     exit 1 # abort
 fi # if $MAC
 
@@ -105,7 +105,7 @@ done # loop over domains
 ## resubmit job
 cd "${INIDIR}"
 # Feedback
-[ $QUIET == 1 ] && echo "Restarting Experiment ${EXP} on ${MAC}: NEXTSTEP=${CURRENTSTEP}; NOWPS=${NOWPS}; TIME_STEP=${NEW_DELT}; EPSSM=${NEW_EPSS}"
+[ $QUIET == 0 ] && echo "Restarting Experiment ${EXP} on ${MAC}: NEXTSTEP=${CURRENTSTEP}; NOWPS=${NOWPS}; TIME_STEP=${NEW_DELT}; EPSSM=${NEW_EPSS}"
 # launch restart
 rm -rf ${CURRENTSTEP}/rsl.* ${CURRENTSTEP}/wrf*.nc
 # restart job (this is a bit hackish and not as general as I would like it...)
@@ -121,7 +121,7 @@ elif [[ "$MAC" == 'P7' ]]; then
 fi # if MAC
 # report errors
 if [[ "${ERR}" != '0' ]]; then
-  [ $QUIET == 1 ] && echo "ERROR: $ERR Errors(s) occured!"
+  [ $QUIET == 0 ] && echo "ERROR: $ERR Errors(s) occured!"
   exit 1
 else
   exit 0

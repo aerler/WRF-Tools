@@ -35,9 +35,9 @@ while true; do
 done # while getopts  
 
 # external settings (any of these can be changed from the environment)
+export INIDIR=${INIDIR:-"${PWD}"} # current directory
 EXP="${INIDIR%/}"; EXP="${EXP##*/}" # guess name of experiment
 export JOBNAME=${JOBNAME:-"${EXP}_WRF"} # guess name of job
-export INIDIR=${INIDIR:-"${PWD}"} # current directory
 export STATICTGZ=${STATICTGZ:-'static.tgz'} # file for static data backup
 export SCRIPTDIR="${INIDIR}/scripts" # location of the setup-script
 export WRFOUT="${INIDIR}/wrfout/" # output directory
