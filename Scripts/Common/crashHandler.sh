@@ -10,6 +10,7 @@
 # maximum number of restarts
 AUTORST=${AUTORST:-'RESTART'} # restart once by default
 MAXRST=${MAXRST:-0} # this can be set externally, is ignored the first time...
+RSTCNT=${RSTCNT:-0} # need to initialize, incase it is not set
 # N.B.: the default settings and behavior is for backward compatibility... 
 # stability parameters
 DEL_DELT=${DEL_DELT:-'30'} # negative time-step increment

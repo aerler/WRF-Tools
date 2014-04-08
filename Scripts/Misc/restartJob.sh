@@ -4,7 +4,7 @@
 
 # pre-process arguments using getopt
 if [ -z $( getopt -T ) ]; then
-  TMP=$( getopt -o m:q --long machine:,quiet -n "$0" -- "$@" ) # pre-process arguments
+  TMP=$( getopt -o fsq --long force,simple,quiet -n "$0" -- "$@" ) # pre-process arguments
   [ $? != 0 ] && exit 1 # getopt already prints an error message
   eval set -- "$TMP" # reset positional parameters (arguments) to $TMP list
 fi # check if GNU getopt ("enhanced")
