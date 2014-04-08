@@ -55,8 +55,10 @@ function RENAME () {
     sed -i "/WRFSCRIPT/ s/WRFSCRIPT=.*$/WRFSCRIPT=\'run_${CASETYPE}_WRF.${WRFQ}\' # WRF run-scripts/" "${FILE}" # WPS run-script
     # WPS script
     sed -i "/WPSSCRIPT/ s/WPSSCRIPT=.*$/WPSSCRIPT=\'run_${CASETYPE}_WPS.${WPSQ}\' # WPS run-scripts/" "${FILE}" # WPS run-script
-    # script folder
+    # output folder
     sed -i '/WRFOUT/ s+WRFOUT=.*$+WRFOUT="${INIDIR}/wrfout/"  # WRF output folder+' "${FILE}"
+    # metdata folder
+    sed -i '/METDATA/ s+METDATA=.*$+METDATA=""  # WRF output folder+' "${FILE}"
     # WRF wallclock time limit
     sed -i "/WRFWCT/ s/WRFWCT=.*$/WRFWCT=\'${WRFWCT}\' # WRF wallclock time/" "${FILE}" # used for queue time estimate
     # number of WRF nodes on given system
@@ -87,6 +89,7 @@ function RENAME () {
 NAME='test'
 RUNDIR="${PWD}" # experiment root
 WRFOUT="${RUNDIR}/wrfout/" # folder to collect output data
+METDATA='' # folder to collect output data from metgrid
 # GHG emission scenario
 GHG='RCP8.5' # CAMtr_volume_mixing_ratio.* file to be used
 # time period and cycling interval
@@ -408,8 +411,11 @@ echo "  system: ${WRFSYS}, queue: ${WRFQ}"
 cd "${RUNDIR}"
 if [[ -n "${CYCLING}" ]]; then
     cp "${WRFTOOLS}/misc/stepfiles/stepfile.${CYCLING}" 'stepfile'
-    cp "${WRFTOOLS}/Scripts/${WRFSYS}/start_cycle_${WRFSYS}.sh" .
+    # concatenate start_cycle script
+    cat "${WRFTOOLS}/Scripts/Common/start_cycle_common.sh" > "start_cycle_${WRFSYS}.sh"
+    cat "${WRFTOOLS}/Scripts/${WRFSYS}/start_cycle_${WRFSYS}.sh" >> "start_cycle_${WRFSYS}.sh"
     RENAME "start_cycle_${WRFSYS}.sh"
+    chmod u+x "start_cycle_${WRFSYS}.sh" # this one needs to be executable!
 fi # if cycling
 if [[ "${WRFQ}" == "ll" ]]; then # because LL does not support dependencies
     cp "${WRFTOOLS}/Scripts/${WRFSYS}/sleepCycle.sh" .

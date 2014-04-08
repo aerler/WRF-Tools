@@ -56,8 +56,8 @@ if [[ "${NOGEO}" == 'NOGEO' ]]
   # clear files
   rm -f geo_em.d??.nc geogrid.log*
   # run with parallel processes
-  echo "   Running geogrid.exe"
-  eval "${GEOGRID}" # command specified in caller instance
+  echo "   Running geogrid.exe (suppressing output)"
+  eval "${RUNGEO}" &> /dev/null # command specified in caller instance
 fi
 echo
 

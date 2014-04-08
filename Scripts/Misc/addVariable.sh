@@ -23,7 +23,7 @@ elif [[ "${VARNM}" == 'ACSNOW' ]]; then
 	DSTPFX='wrfhydro'
 else
   echo
-  echo "No Settings found for Variable ${VARNM} - aborting!"
+  echo "No Settings found for Variable '${VARNM}' - aborting!"
   echo
   exit 1
 fi # if $VARNM

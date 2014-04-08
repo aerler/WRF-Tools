@@ -2,6 +2,8 @@
 # source script to load GPC-specific settings for pyWPS, WPS, and WRF
 # created 06/07/2012 by Andre R. Erler, GPL v3
 
+export MAC='GPC' # machine name
+
 # load modules
 echo
 module purge
@@ -64,6 +66,9 @@ export THREADS=${THREADS:-1} # number of OpenMP threads
 export I_MPI_DEBUG=1 # less output (currently no problems)
 # Intel hybrid (mpi/openmp) job launch command
 export HYBRIDRUN=${HYBRIDRUN:-'mpirun -ppn ${TASKS} -np $((NODES*TASKS))'} # evaluated by execWRF and execWPS
+
+# geogrid command (executed during machine-independent setup)
+export RUNGEO=${RUNGEO:-"mpirun -n 4 ${BINDIR}/geogrid.exe"}
 
 # WPS/preprocessing submission command (for next step)
 # export SUBMITWPS=${SUBMITWPS:-'ssh gpc01 "cd \"${INIDIR}\"; qsub ./${WPSSCRIPT} -v NEXTSTEP=${NEXTSTEP}"'} # evaluated by launchPreP

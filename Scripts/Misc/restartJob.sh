@@ -2,6 +2,12 @@
 # Andre R. Erler, 20/12/2013
 # script to restart a crashed experiment on SciNet
 
+# pre-process arguments using getopt
+if [ -z $( getopt -T ) ]; then
+  TMP=$( getopt -o m:q --long machine:,quiet -n "$0" -- "$@" ) # pre-process arguments
+  [ $? != 0 ] && exit 1 # getopt already prints an error message
+  eval set -- "$TMP" # reset positional parameters (arguments) to $TMP list
+fi # check if GNU getopt ("enhanced")
 # default parameters
 FORCE=0 # force restart, even if no paramter set was found
 SIMPLE=0 # simple restart without increasing stability

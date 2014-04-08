@@ -4,9 +4,9 @@
 
 # pre-process arguments using getopt
 if [ -z $( getopt -T ) ]; then
-  TMP=$( getopt -o m:q --long machine:,quiet -n 'checkJobs' -- "$@" ) # pre-process arguments
-  if [ $? != 0 ] ; then echo "ERROR: invalid option(s) - aborting!" >&2 ; exit 1 ; fi
-  eval set -- "$TMP" # I don't know what this step does...
+  TMP=$( getopt -o m:q --long machine:,quiet -n "$0" -- "$@" ) # pre-process arguments
+  [ $? != 0 ] && exit 1 # getopt already prints an error message
+  eval set -- "$TMP" # reset positional parameters (arguments) to $TMP list
 fi # check if GNU getopt ("enhanced")
 # set argument defaults
 LGPC=1; LTCS=1; LP7=1 # check these machines

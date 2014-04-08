@@ -6,6 +6,8 @@
 # export NCARG_ROOT='/usr/local/ncarg/'
 # export MODEL_ROOT="${HOME}/Models/"
 
+export MAC='i7' # machine name
+
 # RAM-disk settings: infer from queue
 if [[ ${RUNPYWPS} == 1 ]] && [[ ${RUNREAL} == 1 ]]
   then
@@ -15,9 +17,9 @@ if [[ ${RUNPYWPS} == 1 ]] && [[ ${RUNREAL} == 1 ]]
     export RAMIN=${RAMIN:-0}
     export RAMOUT=${RAMOUT:-0}
 fi # if WPS
-echo
-echo "Running on ${PBS_QUEUE} queue; RAMIN=${RAMIN} and RAMOUT=${RAMOUT}"
-echo
+#echo
+#echo "Running on shell queue; RAMIN=${RAMIN} and RAMOUT=${RAMOUT}"
+#echo
 
 # RAM disk folder (cleared and recreated if needed)
 export RAMDISK="/media/tmp/"
@@ -46,6 +48,9 @@ export THREADS=${THREADS:-1} # number of OpenMP threads
 #export OMP_NUM_THREADS=$THREADS
 # OpenMPI hybrid (mpi/openmp) job launch command
 export HYBRIDRUN=${HYBRIDRUN:-"mpirun -n $((TASKS*NODES))"} # OpenMPI, not Intel
+
+# geogrid command (executed during machine-independent setup)
+export RUNGEO=${RUNGEO:-"mpirun -n 4 ${BINDIR}/geogrid.exe"}
 
 # WPS/preprocessing submission command (for next step)
 # export SUBMITWPS=${SUBMITWPS:-'ssh localhost "cd \"${INIDIR}\"; export NEXTSTEP=${NEXTSTEP}; export WPSSCRIPT=${WPSSCRIPT}; python ${SCRIPTDIR}/selectWPSqueue.py"'} # evaluated by launchPreP
