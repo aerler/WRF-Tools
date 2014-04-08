@@ -7,7 +7,7 @@ set -e # abort if anything goes wrong
 
 # pre-process arguments using getopt
 if [ -z $( getopt -T ) ]; then
-  TMP=$( getopt -o r:cgsvqkmwnt: --long restart:,clean,nogeo,nostat,verbose,quiet,skipwps,nowait,nowps,norst,time: -n "$0" -- "$@" ) # pre-process arguments
+  TMP=$( getopt -o r:cgsvqklwmn:t: --long restart:,clean,nogeo,nostat,verbose,quiet,skipwps,nowait,nowps,norst,setrst:,time: -n "$0" -- "$@" ) # pre-process arguments
   [ $? != 0 ] && exit 1 # getopt already prints an error message
   eval set -- "$TMP" # reset positional parameters (arguments) to $TMP list
 fi # check if GNU getopt ("enhanced")
@@ -30,9 +30,10 @@ while true; do
     -v | --verbose ) VERBOSITY=2; shift;; # print more output
     -q | --quiet ) VERBOSITY=0; shift;; # don't print output
     -k | --skipwps ) SKIPWPS=1; shift;; # don't run WPS for *this* step
-    -m | --nowait ) QWAIT=0; shift;; # don't wait for WPS to finish
+    -l | --nowait ) QWAIT=0; shift;; # don't wait for WPS to finish
     -w | --nowps ) NOWPS=NOWPS; shift;; # don't run WPS for *next* step
-    -n | --norst ) RSTCNT=1000; shift;; # should be enough to prevent restarts...
+    -m | --norst ) RSTCNT=1000; shift;; # should be enough to prevent restarts...
+    -n | --setrst ) RSTCNT="$2"; shift 2 ;; # (re-)set restart counter
     -t | --time ) WAITTIME="$2"; shift 2 ;; # WRFWCT crashes for some reason...    
     # break loop
     -- ) shift; break;; # this terminates the argument list, if GNU getopt is used
@@ -46,6 +47,7 @@ EXP="${INIDIR%/}"; EXP="${EXP##*/}" # guess name of experiment
 export JOBNAME=${JOBNAME:-"${EXP}_WRF"} # guess name of job
 export STATICTGZ=${STATICTGZ:-'static.tgz'} # file for static data backup
 export SCRIPTDIR="${INIDIR}/scripts" # location of the setup-script
+export BINDIR="${INIDIR}/bin/"  # location of executables nd scripts (WPS and WRF)
 export WRFOUT="${INIDIR}/wrfout/" # output directory
 export METDATA='' # folder to collect output data from metgrid
 export WPSSCRIPT='run_cycling_WPS.pbs' # WPS run-scripts
@@ -87,7 +89,7 @@ else
   WRFWCT="$WAITTIME" # other variables are set above: INIDIR, NEXTSTEP, WPSSCRIPT
 	[ $VERBOSITY -gt 0 ] && echo "   Submitting WPS for experiment ${EXP}: NEXTSTEP=${NEXTSTEP}"
   # launch WPS; required vars: INIDIR, NEXTSTEP, WPSSCRIPT, WRFWCT
-  if [ -z $ALTSUBWPS ] || [[ "$MAC" == "$SYSTEM" ]]
+  if [ -z "$ALTSUBWPS" ] || [[ "$MAC" == "$SYSTEM" ]]
     then eval "${SUBMITWPS}" # on the same machine (default)
     else eval "${ALTSUBWPS}" # alternate/remote command
   fi # if there is an alternative...  
@@ -117,7 +119,7 @@ fi # if $SKIPWPS
 # submit WRF instance to queue
 [ $VERBOSITY -gt 0 ] && echo "   Submitting WRF ${EXP} on ${MAC}: NEXTSTEP=${NEXTSTEP}; NOWPS=${NOWPS}"
 # launch WRF; required vars: INIDIR, NEXTSTEP, WRFSCRIPT, NOWPS, RSTCNT
-if [ -z $ALTSUBJOB ] || [[ "$MAC" == "$SYSTEM" ]]
+if [ -z "$ALTSUBJOB" ] || [[ "$MAC" == "$SYSTEM" ]]
   then eval "${RESUBJOB}" # on the same machine (default)
   else eval "${ALTSUBJOB}" # alternate/remote command
 fi # if there is an alternative...

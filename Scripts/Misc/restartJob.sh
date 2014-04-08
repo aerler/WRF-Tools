@@ -37,9 +37,9 @@ else NOWPS='FALSE'; fi
 # N.B.: single brakets are essential, otherwise the globbing expression is not recognized
 # determine machine
 MAC=${MAC:-''}
-if [[ -f 'start_cycle_GPC.sh' ]]; then MAC='GPC'
-elif [[ -f 'start_cycle_TCS.sh' ]]; then MAC='TCS'
-elif [[ -f 'start_cycle_P7.sh' ]]; then MAC='P7'
+if [[ -f 'GPC' ]]; then MAC='GPC'
+elif [[ -f 'TCS' ]]; then MAC='TCS'
+elif [[ -f 'P7' ]]; then MAC='P7'
 elif [[ -z "$MAC" ]]; then 
     [ $QUIET == 0 ] && echo 'ERROR: unknown machine!'
     exit 1 # abort

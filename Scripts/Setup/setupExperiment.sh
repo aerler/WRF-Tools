@@ -273,6 +273,7 @@ if [[ -e 'backup/xconfig.sh' && -e 'backup/setupExperiment.sh' ]]
     eval $( rm -f *.sh *.pbs *.ll &> /dev/null ) # delete scripts
     eval $( rm -rf 'scripts' 'bin' 'meta' 'tables' &> /dev/null ) # delete script and table folders
     eval $( rm -f 'atm' 'lnd' 'ice' 'plev' 'srfc' 'uv' 'sc' 'sfc' &> /dev/null ) # delete input data folders
+    eval $( rm -f 'GPC' 'TCS' 'P7' 'i7' 'Bugaboo' 'Rocks' &> /dev/null ) # delete machine markers
     # N.B.: don't append '/' so that links to folders are also removed
     cp -P 'backup/setupExperiment.sh' 'backup/xconfig.sh' .
     rm -rf 'backup_backup/' # remove backup of backup, because we have a new backup
@@ -405,6 +406,7 @@ cd "${RUNDIR}"
 
 ## link in WRF stuff
 touch "${WRFSYS}" # just a marker
+chmod u+x "${WRFSYS}" # so it appears highlighted!
 # WRF scripts
 echo "Linking WRF scripts and executable (${WRFTOOLS})"
 echo "  system: ${WRFSYS}, queue: ${WRFQ}"

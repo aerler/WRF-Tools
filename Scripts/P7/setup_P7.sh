@@ -5,7 +5,7 @@
 export MAC='P7' # machine name
 export QSYS='LL' # queue system
 
-if [ -z $SYSTEM ] && [[ "$SYSTEM" == "$MAC" ]]; then 
+if [ -z $SYSTEM ] || [[ "$SYSTEM" == "$MAC" ]]; then 
 # N.B.: this script may be sourced from other systems, to set certain variables...
 #       basically, everything that would cause errors on another machine, goes here
 	
