@@ -4,6 +4,10 @@ set -e # abort if anything goes wrong
 # starts/submits first WPS and WRF runs, the latter dependent on the former
 # created 28/06/2012 by Andre R. Erler, GPL v3, adapted 07/04/2014
 
+# machine-specific defaults
+WAITTIME=${WAITTIME:-'00:15:00'} # wait time for queue selector
+QUEUE=${QUEUE:-'SELECTOR'} # queue mode: SELECTOR (default), SIMPLE
+
 ## launch jobs on GPC
 
 # submit first WPS instance

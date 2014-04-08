@@ -1,39 +1,29 @@
 #!/bin/bash
-# script to set up a cycling WPS/WRF run: reads first entry in stepfile and
-# starts/submits first WPS and WRF runs, the latter dependent on the former
-# created 28/06/2012 by Andre R. Erler, GPL v3
-# revised 02/03/2013 by Andre R. Erler, GPL v3
-
 set -e # abort if anything goes wrong
-# settings
-export STEPFILE=${STEPFILE:-'stepfile'} # file in $INIDIR
-export INIDIR=${INIDIR:-"${PWD}"} # current directory
-export SCRIPTDIR=${SCRIPTDIR:-"./scripts"} # location of the setup-script
-export BINDIR=${BINDIR:-"./bin/"} # location of geogrid.exe
-export METDATA=${METDATA:-''} # don't save metgrid output
-export WRFOUT=${WRFOUT:-"${INIDIR}/wrfout/"} # WRF output folder
-export WPSSCRIPT=${WPSSCRIPT:-'run_cycling_WPS.ll'} # WPS run-scripts
-export WRFSCRIPT=${WRFSCRIPT:-'run_cycling_WRF.ll'} # WRF run-scripts
-export STATICTGZ=${STATICTGZ:-'static.tgz'} # file for static data backup
-# geogrid command (executed during machine-independent setup)
-export GEOGRID=${GEOGRID:-"ssh gpc04 \"cd ${INIDIR}; source ${SCRIPTDIR}/setup_WPS.sh; mpirun -n 4 ${BINDIR}/geogrid.exe\" > /dev/null"} # hide stdout; run on GPC via ssh
-# export GEOGRID=${GEOGRID:-"mpiexec -n 8 ${BINDIR}/geogrid.exe > /dev/null"} # run locally
+# script to set up a cycling WPS/WRF run: machine-specific part (GPC)
+# starts/submits first WPS and WRF runs, the latter dependent on the former
+# created 28/06/2012 by Andre R. Erler, GPL v3, adapted 07/04/2014
 
-# translate arguments
-export MODE="${1}" # NOGEO*, RESTART, START
-export LASTSTEP="${2}" # previous step in stepfile (leave blank if this is the first step)
+# machine-specific defaults
+WAITTIME=${WAITTIME:-'00:15:00'} # wait time for queue selector
+QUEUE=${QUEUE:-'SELECTOR'} # queue mode: SELECTOR (default), SIMPLE
 
+## launch jobs on P7
 
-## start setup
-cd "${INIDIR}"
-
-# read first entry in stepfile
-NEXTSTEP=$( python "${SCRIPTDIR}/cycling.py" "${LASTSTEP}" )
-export NEXTSTEP
-
-# run (machine-independent) setup:
-eval "${SCRIPTDIR}/setup_cycle.sh" # requires geogrid command
-
+# submit first WPS instance
+if [ $SKIPWPS == 1 ]; then
+  echo 'Skipping WPS!'
+elif [[ "$QUEUE" == 'SIMPLE' ]]; then
+  qsub ./${WPSSCRIPT} -v NEXTSTEP="${NEXTSTEP}"
+elif [[ "$QUEUE" == 'SELECTOR' ]]; then
+  echo
+  # launch queue seletor; other variables are set above: NEXTSTEP, WPSSCRIPT
+  export WRFWCT="$WAITTIME"
+  python "${SCRIPTDIR}/selectWPSqueue.py"
+else
+  echo "ERROR: unknown WPS queue handler '${QUEUE}'" 
+  exit 1
+fi # if $SKIPWPS
 
 ## launch jobs
 

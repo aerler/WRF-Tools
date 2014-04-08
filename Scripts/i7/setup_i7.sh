@@ -7,6 +7,7 @@
 # export MODEL_ROOT="${HOME}/Models/"
 
 export MAC='i7' # machine name
+export QSYS='SH' # queue system
 
 # RAM-disk settings: infer from queue
 if [[ ${RUNPYWPS} == 1 ]] && [[ ${RUNREAL} == 1 ]]
@@ -17,9 +18,9 @@ if [[ ${RUNPYWPS} == 1 ]] && [[ ${RUNREAL} == 1 ]]
     export RAMIN=${RAMIN:-0}
     export RAMOUT=${RAMOUT:-0}
 fi # if WPS
-#echo
-#echo "Running on shell queue; RAMIN=${RAMIN} and RAMOUT=${RAMOUT}"
-#echo
+echo
+echo "Running on ${QSYS} queue; RAMIN=${RAMIN} and RAMOUT=${RAMOUT}"
+echo
 
 # RAM disk folder (cleared and recreated if needed)
 export RAMDISK="/media/tmp/"

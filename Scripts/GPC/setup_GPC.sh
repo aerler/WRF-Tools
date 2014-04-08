@@ -1,23 +1,33 @@
 #!/bin/bash
 # source script to load GPC-specific settings for pyWPS, WPS, and WRF
-# created 06/07/2012 by Andre R. Erler, GPL v3
+# created 06/07/2012 by Andre R. Erler, GPL v3, revised 08/04/2014
 
 export MAC='GPC' # machine name
+export QSYS='PBS' # queue system
 
-# load modules
-echo
-module purge
-module load intel/13.1.1 intelmpi/4.1.0.027 hdf5/187-v18-serial-intel netcdf/4.1.3_hdf5_serial-intel extras/64_6.4
-#module load intel/12.1.5 openmpi/1.4.4-intel-v12.1 hdf5/187-v18-serial-intel netcdf/4.1.3_hdf5_serial-intel extras/64_6.4
-#module load intel/12.1.3 intelmpi/4.0.3.008 hdf5/187-v18-serial-intel netcdf/4.1.3_hdf5_serial-intel
-# pyWPS.py specific modules
-if [[ ${RUNPYWPS} == 1 ]]; then
-    module load gcc/4.8.1 python/2.7.3 ncl/6.1.0 extras/64_6.4
-    # N.B.: extras/64 is necessary for Grib2 support (libjasper and libpng12)
-    #module load gcc/4.6.1 centos5-compat/lib64 ncl/6.0.0 python/2.7.2
-fi
-module list
-echo
+if [ -z $SYSTEM ] && [[ "$SYSTEM" == "$MAC" ]]; then 
+# N.B.: this script may be sourced from other systems, to set certain variables...
+#       basically, everything that would cause errors on another machine, goes here
+
+  # load modules
+	echo
+	module purge
+	module load intel/13.1.1 intelmpi/4.1.0.027 hdf5/187-v18-serial-intel netcdf/4.1.3_hdf5_serial-intel extras/64_6.4
+  #module load intel/12.1.5 openmpi/1.4.4-intel-v12.1 hdf5/187-v18-serial-intel netcdf/4.1.3_hdf5_serial-intel extras/64_6.4
+  #module load intel/12.1.3 intelmpi/4.0.3.008 hdf5/187-v18-serial-intel netcdf/4.1.3_hdf5_serial-intel
+  # pyWPS.py specific modules
+	if [[ ${RUNPYWPS} == 1 ]]; then
+	    module load gcc/4.8.1 python/2.7.3 ncl/6.1.0 extras/64_6.4
+	    # N.B.: extras/64 is necessary for Grib2 support (libjasper and libpng12)
+	    #module load gcc/4.6.1 centos5-compat/lib64 ncl/6.0.0 python/2.7.2
+	fi
+	module list
+	echo
+
+  # unlimit stack size (unfortunately necessary with WRF to prevent segmentation faults)
+  ulimit -s unlimited
+  
+fi # if on GPC
 
 # RAM-disk settings: infer from queue
 if [[ ${RUNPYWPS} == 1 ]] && [[ ${RUNREAL} == 1 ]]
@@ -50,10 +60,7 @@ if [[ ${RAMIN}==1 ]] || [[ ${RAMOUT}==1 ]]; then
       echo
     fi # no RAMDISK
 fi # RAMIN/OUT
-
-# unlimit stack size (unfortunately necessary with WRF to prevent segmentation faults)
-ulimit -s unlimited
-
+	
 # cp-flag to prevent overwriting existing content
 export NOCLOBBER='-n'
 
@@ -86,4 +93,4 @@ export SUBMITAVG=${SUBMITAVG:-'ssh gpc-f104n084 "cd \"${INIDIR}\"; qsub ./${AVGS
 # N.B.: requires $AVGTAG to be set in the launch script
 
 # job submission command (for next step)
-export RESUBJOB=${RESUBJOB-'ssh gpc01 "cd \"${INIDIR}\"; qsub ./${WRFSCRIPT} -v NOWPS=${NOWPS},NEXTSTEP=${NEXTSTEP},RSTCNT=${RSTCNT}"'} # evaluated by resubJob
+export RESUBJOB=${RESUBJOB-'ssh gpc-f104n084 "cd \"${INIDIR}\"; qsub ./${WRFSCRIPT} -v NOWPS=${NOWPS},NEXTSTEP=${NEXTSTEP},RSTCNT=${RSTCNT}"'} # evaluated by resubJob

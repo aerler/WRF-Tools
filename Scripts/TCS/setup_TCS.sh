@@ -2,24 +2,33 @@
 # source script to load TCS-specific settings for WRF
 # created 06/07/2012 by Andre R. Erler, GPL v3
 
-# generate list of nodes (without repetition)
-HOSTLIST=''; LH='';
-for H in ${LOADL_PROCESSOR_LIST};
-  do
-    if [[ "${H}" != "${LH}" ]];
-	then HOSTLIST="${HOSTLIST} ${H}"; fi;
-    LH="${H}";
-done # processor list
+export MAC='TCS' # machine name
+export QSYS='LL' # queue system
 
-echo
-echo "Host list: ${HOSTLIST}"
-echo
-# load modules
-module purge
-module load xlf/14.1 vacpp/12.1 hdf5/187-v18-serial-xlc netcdf/4.1.3_hdf5_serial-xlc python/2.3.4
-#module load xlf/13.1 vacpp/11.1 hdf5/187-v18-serial-xlc netcdf/4.1.3_hdf5_serial-xlc
-module list
-echo
+if [ -z $SYSTEM ] && [[ "$SYSTEM" == "$MAC" ]]; then 
+# N.B.: this script may be sourced from other systems, to set certain variables...
+#       basically, everything that would cause errors on another machine, goes here
+
+  # generate list of nodes (without repetition)
+	HOSTLIST=''; LH='';
+	for H in ${LOADL_PROCESSOR_LIST};
+	  do
+	    if [[ "${H}" != "${LH}" ]];
+		then HOSTLIST="${HOSTLIST} ${H}"; fi;
+	    LH="${H}";
+	done # processor list
+	
+	echo
+	echo "Host list: ${HOSTLIST}"
+	echo
+  # load modules
+	module purge
+	module load xlf/14.1 vacpp/12.1 hdf5/187-v18-serial-xlc netcdf/4.1.3_hdf5_serial-xlc python/2.3.4
+  #module load xlf/13.1 vacpp/11.1 hdf5/187-v18-serial-xlc netcdf/4.1.3_hdf5_serial-xlc
+	module list
+	echo
+
+fi # if on TCS
 
 # no RAM disk on TCS!
 export RAMIN=0
@@ -57,6 +66,10 @@ export HYBRIDRUN=${HYBRIDRUN:-'poe ccsm_launch'} # evaluated by execWRF and exec
 # tasks must match the task_geometry statement describing the process placement
 # on the nodes.
 
+# geogrid command (executed during machine-independent setup)
+#export RUNGEO=${RUNGEO:-"mpiexec -n 8 ${BINDIR}/geogrid.exe"} # hide stdout
+export RUNGEO=${RUNGEO:-"ssh gpc-f102n084 \"cd ${INIDIR}; source ${SCRIPTDIR}/setup_WPS.sh; mpirun -n 4 ${BINDIR}/geogrid.exe\""} # run on GPC via ssh
+
 # WPS/preprocessing submission command (for next step)
 # export SUBMITWPS=${SUBMITWPS:-'ssh gpc-f102n084 "cd \"${INIDIR}\"; qsub ./${WPSSCRIPT} -v NEXTSTEP=${NEXTSTEP}"'} # evaluated by launchPreP
 export SUBMITWPS=${SUBMITWPS:-'ssh gpc-f102n084 "cd \"${INIDIR}\"; export WRFWCT=${WRFWCT}; export WPSWCT=${WPSWCT}; export NEXTSTEP=${NEXTSTEP}; export WPSSCRIPT=${WPSSCRIPT}; python ${SCRIPTDIR}/selectWPSqueue.py"'} # use Python script to estimate queue time and choose queue
@@ -72,3 +85,4 @@ export SUBMITAVG=${SUBMITAVG:-'ssh gpc-f104n084 "cd \"${INIDIR}\"; qsub ./${AVGS
 
 # job submission command (for next step)
 export RESUBJOB=${RESUBJOB-'ssh tcs-f11n06 "cd \"${INIDIR}\"; export NEXTSTEP=${NEXTSTEP}; export NOWPS=${NOWPS}; export RSTCNT=${RSTCNT}; llsubmit ./${WRFSCRIPT}"'} # evaluated by resubJob
+export ALTSUBJOB=${ALTSUBJOB-'ssh tcs02 "cd \"${INIDIR}\"; export NEXTSTEP=${NEXTSTEP}; export NOWPS=${NOWPS}; export RSTCNT=${RSTCNT}; llsubmit ./${WRFSCRIPT}"'} # for start_cycle from different machines

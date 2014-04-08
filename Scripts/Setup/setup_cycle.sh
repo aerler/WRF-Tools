@@ -2,6 +2,8 @@
 # short script to setup a new experiment and/or re-link restart files
 # Andre R. Erler, 02/03/2013, GPL v3
 
+VERBOSITY=${VERBOSITY:-1} # output verbosity
+
 ## figure out what we are doing
 if [[ "${MODE}" == 'NOGEO'* ]]; then
   # cold start without geogrid
@@ -31,35 +33,39 @@ else
 fi
 
 # launch feedback
-echo
-if [[ "${RESTART}" == 'RESTART' ]]
- then
-  echo "   ***   Re-starting Cycle  ***   "
-  echo
-  echo "   Next Step: ${NEXTSTEP}"
- else
-  echo "   ***   Starting Cycle  ***   "
-  echo
-  echo "   First Step: ${NEXTSTEP}"
-fi
-echo
-# echo "   Stepfile: ${STEPFILE}"
-echo "   Root Dir: ${INIDIR}"
+if [ $VERBOSITY -gt 0 ]; then
+	echo
+	if [[ "${RESTART}" == 'RESTART' ]]
+	 then
+	  echo "   ***   Re-starting Cycle  ***   "
+	  echo
+	  echo "   Next Step: ${NEXTSTEP}"
+	 else
+	  echo "   ***   Starting Cycle  ***   "
+	  echo
+	  echo "   First Step: ${NEXTSTEP}"
+	fi
+	echo
+	echo "   Root Dir: ${INIDIR}"
+	echo
+fi # $VERBOSITY
 cd "${INIDIR}"
-echo
 
 ## run geogrid
 if [[ "${NOGEO}" == 'NOGEO' ]]
  then
-  echo "   Not running geogrid.exe"
+  [ $VERBOSITY -gt 0 ] && echo "   Not running geogrid.exe"
  else
   # clear files
   rm -f geo_em.d??.nc geogrid.log*
   # run with parallel processes
-  echo "   Running geogrid.exe (suppressing output)"
-  eval "${RUNGEO}" &> /dev/null # command specified in caller instance
+  [ $VERBOSITY -gt 0 ] && echo "   Running geogrid.exe (suppressing output)"
+  if [ $VERBOSITY -gt 1 ]
+    then eval "${RUNGEO}" # command specified in caller instance
+    else eval "${RUNGEO}" > /dev/null # swallow output
+  fi # $VERBOSITY
 fi
-echo
+[ $VERBOSITY -gt 0 ] && echo
 
 ## if not restarting, setup initial and run directories
 if [[ "${RESTART}" == 'RESTART' ]]
@@ -67,37 +73,37 @@ if [[ "${RESTART}" == 'RESTART' ]]
 
   ## restart previous cycle
   cd "${INIDIR}/${NEXTSTEP}"
-  echo "   Linking Restart Files:"
+  [ $VERBOSITY -gt 0 ] && echo "   Linking Restart Files:"
   for RST in ${WRFOUT}/wrfrst_d??_${NEXTSTEP}* # format of step is unknown
    do
-    echo  "${RST}"
+    [ $VERBOSITY -gt 0 ] && echo  "${RST}"
     ln -sf "${RST}"
   done
-  echo
+  [ $VERBOSITY -gt 0 ] && echo
 
  else # cold start
 
   ## start new cycle
   # clear some folders
-  echo "   Clearing Output Folders:"
+  [ $VERBOSITY -gt 0 ] && echo "   Clearing Output Folders:"
   if [[ -n ${METDATA} ]]; then
-    echo "${METDATA}"
+    [ $VERBOSITY -gt 0 ] && echo "${METDATA}"
     if [[ "${MODE}" == 'CLEAN' ]]; then rm -rf "${METDATA}"; fi
     mkdir -p "${METDATA}"
   fi
   if [[ -n ${WRFOUT} ]]; then
-    echo "${WRFOUT}"
+    [ $VERBOSITY -gt 0 ] && echo "${WRFOUT}"
     if [[ "${MODE}" == 'CLEAN' ]]; then rm -rf "${WRFOUT}"; fi
     mkdir -p "${WRFOUT}"
   fi
-  echo
+  [ $VERBOSITY -gt 0 ] && echo
 
   # prepare first working directory
   # set restart to False for first step
   sed -i '/restart\ / s/restart\ *=\ *\.true\..*$/restart = .false.,/' "${INIDIR}/${NEXTSTEP}/namelist.input"
   # and make sure the rest is on restart
   sed -i '/restart\ / s/restart\ *=\ *\.false\..*$/restart = .true.,/' "${INIDIR}/namelist.input"
-  echo "   Setting restart option and interval in namelist."
+  [ $VERBOSITY -gt 0 ] && echo "   Setting restart option and interval in namelist."
 
 
   # create backup of static files
@@ -110,9 +116,11 @@ if [[ "${RESTART}" == 'RESTART' ]]
     tar cf - 'static/' | gzip > "${STATICTGZ}"
     rm -r 'static/'
     mv "${STATICTGZ}" "${WRFOUT}"
-    echo "   Saved backup file for static data:"
-    echo "${WRFOUT}/${STATICTGZ}"
-    echo
+    if [ $VERBOSITY -gt 0 ]; then
+	    echo "   Saved backup file for static data:"
+	    echo "${WRFOUT}/${STATICTGZ}"
+	    echo
+    fi # $VERBOSITY
   fi # if not LASTSTEP==NOTAR
 
 fi # if restart

@@ -404,6 +404,7 @@ fi # $DATATYPE
 cd "${RUNDIR}"
 
 ## link in WRF stuff
+touch "${WRFSYS}" # just a marker
 # WRF scripts
 echo "Linking WRF scripts and executable (${WRFTOOLS})"
 echo "  system: ${WRFSYS}, queue: ${WRFQ}"
@@ -412,15 +413,13 @@ cd "${RUNDIR}"
 if [[ -n "${CYCLING}" ]]; then
     cp "${WRFTOOLS}/misc/stepfiles/stepfile.${CYCLING}" 'stepfile'
     # concatenate start_cycle script
-    cat "${WRFTOOLS}/Scripts/Common/start_cycle_common.sh" > "start_cycle_${WRFSYS}.sh"
-    cat "${WRFTOOLS}/Scripts/${WRFSYS}/start_cycle_${WRFSYS}.sh" >> "start_cycle_${WRFSYS}.sh"
-    RENAME "start_cycle_${WRFSYS}.sh"
-    chmod u+x "start_cycle_${WRFSYS}.sh" # this one needs to be executable!
+    cp "${WRFTOOLS}/Scripts/Common/startCycle.sh" .
+    RENAME "startCycle.sh"
 fi # if cycling
-if [[ "${WRFQ}" == "ll" ]]; then # because LL does not support dependencies
-    cp "${WRFTOOLS}/Scripts/${WRFSYS}/sleepCycle.sh" .
-    RENAME 'sleepCycle.sh'
-fi # if LL
+#if [[ "${WRFQ}" == "ll" ]]; then # because LL does not support dependencies
+#    cp "${WRFTOOLS}/Scripts/${WRFSYS}/sleepCycle.sh" .
+#    RENAME 'sleepCycle.sh'
+#fi # if LL
 # WRF run-script (concatenate machine specific and common components)
 cat "${WRFTOOLS}/Scripts/${WRFSYS}/run_${CASETYPE}_WRF.${WRFQ}" > "run_${CASETYPE}_WRF.${WRFQ}"
 cat "${WRFTOOLS}/Scripts/Common/run_${CASETYPE}.environment" >> "run_${CASETYPE}_WRF.${WRFQ}"
