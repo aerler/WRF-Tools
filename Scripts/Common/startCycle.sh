@@ -58,7 +58,8 @@ source "${SCRIPTDIR}/setup_WRF.sh" > /dev/null # suppress output (not errors, th
 
 # previous step in stepfile
 if [ -n $NEXTSTEP ]; then
-  LASTSTEP=$( grep -B 1 "^${NEXTSTEP}[[:space:]]" stepfile | head -n 1 | cut -d ' ' -f 1 )
+  LASTSTEP=$( grep -B 1 "^${NEXTSTEP}[[:space:]]" stepfile | head -n 1 | cut -d ' ' -f 1 | cut -f 1 )
+  # N.B.: use cut twice to catch both, space and tab delimiters
   if [[ "$LASTSTEP" == "$NEXTSTEP" ]]; then LASTSTEP=''; fi # i.e. first step!
 else
   LASTSTEP='' # first step
