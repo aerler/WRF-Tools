@@ -38,7 +38,7 @@ fi
 if [[ "${RTERR}" == 'RTERR' ]]
   then
 
-    if [ ${RSTCNT} -gt ${MAXRST} ]; then
+    if [ ${RSTCNT} -ge ${MAXRST} ]; then
     
 	    # this happens, if RSTCNT or MAXRST were set incorrectly or not set at all
       echo
