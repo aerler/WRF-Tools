@@ -33,7 +33,8 @@ DATASET=${DATASET:-'FULL'} # default dataset: everything
 # dataset options: FULL, DIAGS, MISC3D, DYN3D, LOGS 
 # N.B.: the datasets are defined in PROCESSDATASET below
 INTERVAL=${INTERVAL:-'YEARLY'} # default is yearly; used to be monthly
-PATTERN=${PATTERN:-''} # $TAGS inference from certain files
+PATTERN=${PATTERN:-'_wrf.tgz'} # $TAGS inference from certain files
+PATREGX=${PATREGX:-''} # matching regex for $TAGS: roughly TAGS=$(ls *$PATTERN | grep -o $PATREGX)
 TAGGLOB=${TAGGLOB:-''} # globbing extension for $TAGS (TAGSTR="${TAG}${TAGGLOB}")
 # data folder
 INIDIR=${INIDIR:-"${PBS_O_WORKDIR}"}
@@ -43,22 +44,19 @@ WRFOUT="${INIDIR}/wrfout/" # output folder
 SRC=${SRC:-"${WRFOUT}"} # where the data is (on disk)
 
 # configure archiving interval presets
-if [[ -n "${TAGGLOB}" ]]; then
-  INTERVAL='CUSTOM' # use custom interval determined by the complement of $TAGGLOB
-  PATTERN=${PATTERN:-'_wrf.tgz'} # assuming the step name is the start date
-elif [[ "${INTERVAL}" == 'YEARLY' ]]; then
-  # use this filename pattern to infer list of $TAGS
-  PATTERN=${PATTERN:-'-01_wrf.tgz'} # assuming step names are YYYY-MM
-  # N.B.: this option will usually only be relevant for bulk jobs; using '-01' makes sure incomplete years are not omitted
+#if [[ -n "${TAGGLOB}" ]]; then
+#  INTERVAL='CUSTOM' # use custom interval determined by the complement of $TAGGLOB
+#  PATTERN=${PATTERN:-'_wrf.tgz'} # assuming the step name is the start date
+if [[ "${INTERVAL}" == 'YEARLY' ]]; then
+  PATREGX='^[0-9][0-9][0-9][0-9]'
   TAGGLOB='-[01][0-9]-[0123][0-9]' # match all months (01-12) and days (1-31)
 elif [[ "${INTERVAL}" == 'MONTHLY' ]]; then
-  # use this filename pattern to infer list of $TAGS
-  PATTERN=${PATTERN:-'_wrf.tgz'} # assuming step names are YYYY-MM
+  PATREGX='^[0-9][0-9][0-9][0-9]-[01][0-9]'
   TAGGLOB='-[0123][0-9]' # match all days in a month
 elif [[ "${INTERVAL}" == 'DAILY' ]] || [[ "${INTERVAL}" == 'NONE' ]]; then
   # N.B.: This option identifies output files by start date (day), without use of
   #       globbing expressions; it doesn't have to archive every day.
-  PATTERN=${PATTERN:-'_wrf.tgz'} # assuming the step name is the start date
+  PATREGX='.*' # just use everything... except $PATTERN
   TAGGLOB='' # actually no globbing necessary
 fi # ${INTERVAL}
 
@@ -517,8 +515,15 @@ echo
 # if no TAGS are given, use file pattern to guess
 if [[ -z "${TAGS}" ]] && [[ -n "${PATTERN}" ]]; then
   echo "Inferring TAGS from pattern: PATTERN=${PATTERN}"
+  LST= # detect duplicates
   for T in $( ls *${PATTERN} ); do
-    TAGS="${TAGS} ${T%${PATTERN}}"; done # extract $TAG from filename
+    TMP=$( echo "${T%${PATTERN}}" | grep -o "${PATREGX}" )
+    # only add one occurence, no duplcates
+    if [[ "$TMP" != "$LST" ]]; then
+      TAGS="${TAGS} ${TMP}" 
+      LST="${TMP}"
+    fi # $TMP != $LST
+  done # extract $TAG from filename
   echo "TAGS=${TAGS}"
 else
   echo "TAGS provided by caller:"
