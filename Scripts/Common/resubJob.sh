@@ -11,16 +11,26 @@ if [[ -n "${NEXTSTEP}" ]]
   then
 
     # read date string for restart file
-    echo "${PATH}"
-    which sed
     RSTDATE=$(sed -n "/${NEXTSTEP}/ s/${NEXTSTEP}[[:space:]]\+.\(.*\).[[:space:]].*$/\1/p" stepfile)
     # N.B.: '[[:space:]]' also matches tabs; '\ ' only matches one space; '\+' means one or more
     # some code to catch sed errors on TCS
     if [[ -z "${RSTDATE}" ]]
       then 
         echo "   ###   ERROR: cannot read step file - aborting!   ###   "
+        # print some diagnostics
+        echo
+        echo 'Current PATH variable:'
+        echo "${PATH}"
+        echo
+        echo 'sed executable:'
+        which sed
+        echo
+        echo 'Stepfile line:'
         grep "${NEXTSTEP}" stepfile        
+        echo
+        echo 'stepfile stat:'
         stat stepfile
+        echo
         exit 1
     fi # RSTDATE
 #    while [[ -z "${RSTDATE}" ]] 
@@ -36,17 +46,17 @@ if [[ -n "${NEXTSTEP}" ]]
     echo "Linking restart files to next working directory:"
     echo "${NEXTDIR}"
     for RESTART in "${RSTDIR}"/wrfrst_d??_"${RSTDATE}"; do
-	ln -sf "${RESTART}"; done
+      ln -sf "${RESTART}"; done
 
     # check for WRF input files (in next working directory)
     if [[ "${WAITFORWPS}" == 'WAIT' ]] && [[ ! -e "${INIDIR}/${NEXTSTEP}/${WPSSCRIPT}" ]]
       then
-	echo
-	echo "   ***   Waiting for WPS to complete...   ***"
-	echo
-	while [[ ! -e "${INIDIR}/${NEXTSTEP}/${WPSSCRIPT}" ]]; do
-		sleep 5 # need faster turnover to submit next step
-	done
+        echo
+        echo "   ***   Waiting for WPS to complete...   ***"
+        echo
+        while [[ ! -e "${INIDIR}/${NEXTSTEP}/${WPSSCRIPT}" ]]; do
+           sleep 30 # need faster turnover to submit next step
+        done
     fi # $WAITFORWPS
 
     # submit next job (start next cycle)
