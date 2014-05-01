@@ -32,13 +32,13 @@ function RENAME () {
     if [[ "${FILE}" == *WRF* ]] && [[ "${WRFQ}" == "${Q}" ]]; then
       if [[ "${WRFQ}" == "pbs" ]]; then
         sed -i "/#PBS -N/ s/#PBS -N\ .*$/#PBS -N ${NAME}_WRF/" "run_${CASETYPE}_WRF.${WRFQ}" # experiment name
-        sed -i "/#PBS -W/ s/#PBS -W\ .*$/#PBS -W depend:afterok:${NAME}_WPS/" "${FILE}" # dependency on WPS
+        #sed -i "/#PBS -W/ s/#PBS -W\ .*$/#PBS -W depend=afterok:${NAME}_WPS/" "${FILE}" # dependency on WPS
         sed -i "/#PBS -l/ s/#PBS -l nodes=.*:\(.*\)$/#PBS -l nodes=${WRFNODES}:\1/" "${FILE}" # number of nodes
         sed -i "/#PBS -l/ s/#PBS -l walltime=.*$/#PBS -l walltime=${MAXWCT}/" "${FILE}" # wallclock time
         sed -i "/qsub/ s/qsub ${WRFSCRIPT} -v NEXTSTEP=*\ -W*$/qsub ${WRFSCRIPT} -v NEXTSTEP=*\ -W\ ${NAME}_WPS/" "${FILE}" # dependency
       elif [[ "${WRFQ}" == "sge" ]]; then
         sed -i "/#$ -N/ s/#$ -N\ .*$/#$ -N ${NAME}_WRF/" "run_${CASETYPE}_WRF.${WRFQ}" # experiment name
-         #sed -i "/#PBS -W/ s/#PBS -W\ .*$/#PBS -W depend:afterok:${NAME}_WPS/" "${FILE}" # dependency on WPS
+        #sed -i "/#PBS -W/ s/#PBS -W\ .*$/#PBS -W depend=afterok:${NAME}_WPS/" "${FILE}" # dependency on WPS
         sed -i "/#$ -pe/ s/#$ -pe .*$/#$ -pe mpich $((WRFNODES*16))/" "${FILE}" # number of MPI tasks
         sed -i "/#$ -l/ s/#$ -l h_rt=.*$/#$ -l h_rt=${MAXWCT}/" "${FILE}" # wallclock time
       elif [[ "${WRFQ}" == "ll" ]]; then
