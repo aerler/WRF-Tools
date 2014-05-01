@@ -13,7 +13,7 @@
 # job name
 #PBS -N cycling_WRF
 # job dependency
-#PBS -W depend=afterok:cycling_WPS
+###PBS -W depend=afterok:cycling_WPS
 # N.B.: this ${PBS_JOBNAME%_WRF}_WPS does not work
 ## submit to queue (NB: this has to be the last PBS line!)
 # batch (default), debug, largemem
