@@ -19,7 +19,8 @@ NEXTSTEP='' # next step to be processed (argument to --restart)
 SKIPWPS=0 # whether or not to run WPS before the first step
 NOWPS='FALSE' # passed to WRF
 RSTCNT=0 # restart counter
-WAITTIME='00:15:00' # wait time for queue selector (SciNet only)
+WAITTIME='' # manual override for queue selector (SciNet only; default: 15 min.)
+DEFWCT="00:15:00" # another variable is necessary to prevent the setup script from changing the value
 # parse arguments 
 while true; do
   case "$1" in
@@ -52,6 +53,7 @@ export WRFOUT="${INIDIR}/wrfout/" # output directory
 export METDATA='' # folder to collect output data from metgrid
 export WPSSCRIPT='run_cycling_WPS.pbs' # WPS run-scripts
 export WRFSCRIPT='run_cycling_WRF.pbs' # WRF run-scripts
+WRFWCT='00:15:00' # wait time for queue selector; only temporary; default set above ($DEFWCT)
 
 # source machine setup
 source "${SCRIPTDIR}/setup_WRF.sh" > /dev/null # suppress output (not errors, though)
@@ -86,8 +88,15 @@ if [ $SKIPWPS == 1 ]; then
   [ $VERBOSITY -gt 0 ] && echo 'Skipping WPS!'
 else
   
-  # run WPS and wait for it to finish, if necessary
-  WRFWCT="$WAITTIME" # other variables are set above: INIDIR, NEXTSTEP, WPSSCRIPT
+  # run WPS and wait for it to finish, if necessary  
+  # handle waittime for queue selector; $WRFWCT is set above
+  if [[ -n "${WAITTIME}" ]]; then 
+    WRFWCT="${WAITTIME}" # manual override
+  elif [[ "${WRFWCT}" != '00:00:00' ]] && [[ "${WRFWCT}" != '0' ]]; then
+    WRFWCT="${DEFWCT}" # default wait time
+    # if WRFWCT is 0, leave it: it means the primary queue will always be used
+  fi # if waittime should be changed
+  # other variables are set above: INIDIR, NEXTSTEP, WPSSCRIPT
 	[ $VERBOSITY -gt 0 ] && echo "   Submitting WPS for experiment ${EXP}: NEXTSTEP=${NEXTSTEP}"
   # launch WPS; required vars: INIDIR, NEXTSTEP, WPSSCRIPT, WRFWCT
   if [ -z "$ALTSUBWPS" ] || [[ "$MAC" == "$SYSTEM" ]]
@@ -98,7 +107,7 @@ else
   # figure out, if we have to wait until WPS job is completed
 	if [ -z $QWAIT ] && [ -n $QSYS ]; then
 	  if [[ "$QSYS" == 'LL' ]]; then QWAIT=1
-	  elif [[ "$QSYS" == 'PBS' ]]; then QWAIT=0
+    elif [[ "$QSYS" == 'PBS' ]]; then QWAIT=1 # currently, dependencies don't work...
 	  elif [[ "$QSYS" == 'SGE' ]]; then QWAIT=1
 	  else QWAIT=1 # assume the system does not support dependencies
   fi; fi # $QWAIT
