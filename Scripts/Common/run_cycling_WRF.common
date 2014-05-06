@@ -41,7 +41,7 @@ NEXTSTEP=$(python "${SCRIPTDIR}/cycling.py" "${CURRENTSTEP}")
 eval "${SCRIPTDIR}/launchPreP.sh" # primarily for WPS and real.exe
 ERR=$(( ${ERR} + $? )) # capture exit code
 # need to unset $NOWPS, so the next WRF step will submit a WPS job again
-export NOWPS=NO
+export NOWPS=''
 
 
 ## run WRF for this step
