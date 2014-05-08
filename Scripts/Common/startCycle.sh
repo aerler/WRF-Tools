@@ -7,7 +7,7 @@ set -e # abort if anything goes wrong
 
 # pre-process arguments using getopt
 if [ -z $( getopt -T ) ]; then
-  TMP=$( getopt -o r:gsvqklwmn:t: --long restart:,clean,nogeo,nostat,verbose,quiet,skipwps,nowait,nowps,norst,setrst:,time: -n "$0" -- "$@" ) # pre-process arguments
+  TMP=$( getopt -o r:gsvqklwmn:t:N: --long restart:,clean,nogeo,nostat,verbose,quiet,skipwps,nowait,nowps,norst,setrst:,time:,name: -n "$0" -- "$@" ) # pre-process arguments
   [ $? != 0 ] && exit 1 # getopt already prints an error message
   eval set -- "$TMP" # reset positional parameters (arguments) to $TMP list
 fi # check if GNU getopt ("enhanced")
@@ -36,6 +36,7 @@ while true; do
     -m | --norst ) RSTCNT=1000; shift;; # should be enough to prevent restarts...
     -n | --setrst ) RSTCNT="$2"; shift 2 ;; # (re-)set restart counter
     -t | --time ) WAITTIME="$2"; shift 2 ;; # WRFWCT crashes for some reason...    
+    -N | --name ) JOBNAME="$2"; shift 2 ;; # set WRF jobname - just for identification
     # break loop
     -- ) shift; break;; # this terminates the argument list, if GNU getopt is used
     * ) break;;

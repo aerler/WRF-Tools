@@ -16,7 +16,7 @@ if [[ -n "${NEXTSTEP}" ]]
     # some code to catch sed errors on TCS
     if [[ -z "${RSTDATE}" ]]
       then 
-        echo "   ###   ERROR: cannot read step file - aborting!   ###   "
+        echo '   ###   ERROR: cannot read step file - aborting!   ###   '
         # print some diagnostics
         echo
         echo 'Current PATH variable:'
@@ -46,28 +46,88 @@ if [[ -n "${NEXTSTEP}" ]]
     echo "Linking restart files to next working directory:"
     echo "${NEXTDIR}"
     for RESTART in "${RSTDIR}"/wrfrst_d??_"${RSTDATE}"; do
-      ln -sf "${RESTART}"; done
-
+      ln -sf "${RESTART}"; done  
+    
     # check for WRF input files (in next working directory)
-    if [[ "${WAITFORWPS}" == 'WAIT' ]] && [[ ! -e "${INIDIR}/${NEXTSTEP}/${WPSSCRIPT}" ]]
-      then
-        echo
-        echo "   ***   Waiting for WPS to complete...   ***"
-        echo
-        while [[ ! -e "${INIDIR}/${NEXTSTEP}/${WPSSCRIPT}" ]]; do
-           sleep 30 # need faster turnover to submit next step
-        done
-    fi # $WAITFORWPS
+    # N.B.: this option can potentially waste a lot of walltime and should be used with caution
+    if [[ "${WAITFORWPS}" == 'WAIT' ]] &&  [[ ! -f "${WPSSCRIPT}" ]]
+		  then
+		    echo
+		    echo "   ***   Waiting for WPS to complete...   ***"
+		    echo
+		    while [[ ! -f "${WPSSCRIPT}" ]]; do
+		       sleep 30 # need faster turnover to submit next step
+		    done
+		fi # $WAITFORWPS
 
-    # submit next job (start next cycle)
-    cd "${INIDIR}"
-    echo
-    echo "   ***   Launching WRF for next step: ${NEXTSTEP}   ***   "
-    echo
-    # execute submission command (set in setup-script; machine-specific)
-    #eval "echo ${RESUBJOB}" # print command; now done with set -x
-    set -x
-    eval "${RESUBJOB}" # execute command
-    set +x
+    
+    # go back to initial directory
+    cd "${INIDIR}"            
+                        
+    # now, decide what to do...
+    if [[ -f "${INIDIR}/${NEXTSTEP}/${WPSSCRIPT}" ]]
+      then
+        
+        if [ 0 -lt $(grep -c 'SUCCESS COMPLETE REAL_EM INIT' real/rsl.error.0000) ]
+          then
+            
+				    # submit next job (start next cycle)
+				    echo
+				    echo "   ***   Launching WRF for next step: ${NEXTSTEP}   ***   "
+				    echo
+				    # execute submission command (set in setup-script; machine-specific)
+				    #eval "echo ${RESUBJOB}" # print command; now done with set -x
+				    set -x
+				    eval "${RESUBJOB}" # execute command
+            ERR=$? # capture exit status
+				    set +x
+				    exit $? # exit with exit status from reSubJob
+				    
+		    else # WPS crashed
+
+            # do not continue 
+            echo
+            echo "   ###   WPS for next step (${NEXTSTEP}) failed --- aborting!   ###   "
+            echo
+			  	  exit 1
+		    
+	      fi # if WPS successful
+		
+    else # WPS not finished (yet)
+	    
+		    # start a sleeper job, if available
+        if [[ -n "{SLEEPERJOB}" ]]
+          then
+            
+		        # submit next job (start next cycle)
+            echo
+            echo "   ***   Launching WRF for next step: ${NEXTSTEP}   ***   "
+            echo
+            # submit sleeper script (set in setup-script; machine-specific)
+            set -x
+            eval "${SLEEPERJOB}" # execute command
+            ERR=$? # capture exit status
+            set +x
+            exit $? # exit with exit status from reSubJob
+		    
+        else # WPS did not run - abort
+
+            # do not continue 
+            echo
+            echo "   ###   WPS for next step (${NEXTSTEP}) failed --- aborting!   ###   "
+            echo
+            exit 1
+                        
+        fi # if sleeper job
+		    		  
+    fi # if WPS finished...
+    
+else
+  
+	  echo
+	  echo '   ===   No $NEXTSTEP --- cycle terminated.   ===   '
+	  echo '         (no more jobs have been submitted)   '
+	  echo
+	  exit 0 # most likely this is OK
 
 fi # $NEXTSTEP

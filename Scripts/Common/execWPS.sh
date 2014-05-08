@@ -185,8 +185,8 @@ if [[ ${RUNREAL} == 1 ]]
     echo
     # check REAL exit status
     if [[ -n $(grep 'SUCCESS COMPLETE REAL_EM INIT' rsl.error.0000) ]];
-	then REALERR=0
-	else REALERR=1
+	    then REALERR=0
+	    else REALERR=1
     fi
 
     # clean-up and move output to hard disk
