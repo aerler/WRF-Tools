@@ -1,6 +1,10 @@
 #!/bin/bash
 # source script to load Bugaboo-specific settings for pyWPS, WPS, and WRF
 # created 11/06/2013 by Andre R. Erler, GPL v3
+# revised 09/05/2014 by Andre R. Erler, GPL v3
+
+export MAC='Bugaboo' # machine name
+export QSYS='PBS' # queue system
 
 # load modules
 echo
@@ -63,3 +67,6 @@ export SUBMITAR=${SUBMITAR:-'echo "Automatic archiving is currently not availabl
 
 # job submission command (for next step)
 export RESUBJOB=${RESUBJOB-'cd ${INIDIR} && qsub ./${WRFSCRIPT} -v NOWPS=${NOWPS},NEXTSTEP=${NEXTSTEP}'} # evaluated by resubJob
+
+# sleeper job submission (for next step when WPS is delayed; should run on devel node)
+export SLEEPERJOB=${SLEEPERJOB-'ssh bugaboo "cd \"${INIDIR}\"; nohup ./${STARTSCRIPT} --skipwps --restart=${NEXTSTEP} --name=${JOBNAME} &> ${STARTSCRIPT%.sh}_${JOBNAME}_${NEXTSTEP}.log &"'} # evaluated by resubJob

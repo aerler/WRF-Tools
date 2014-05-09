@@ -1,11 +1,14 @@
 #!/bin/bash
 # source script to load Rocks devel node specific settings for pyWPS, WPS
 # created 24/05/2013 by Andre R. Erler, GPL v3
+# revised 09/05/2014 by Andre R. Erler, GPL v3
+
+export MAC='Rocks' # machine name
+export QSYS='SGE' # queue system
 
 # environment variables for "modules"
 # export NCARG_ROOT='/usr/local/ncarg/' only needed to interpolate CESM data
 export MODEL_ROOT="${HOME}/"
-
 export IBHOSTS="${HOME}/ibhosts"
 
 # Stuff we need for WRF
@@ -85,4 +88,7 @@ export SUBMITAR="echo \'No archive script available.\'"
 
 # job submission command (for next step)
 export RESUBJOB=${RESUBJOB-'ssh rocks-ib.ib "cd \"${INIDIR}\"; export NEXTSTEP=${NEXTSTEP}; qsub ${WRFSCRIPT}"'} # evaluated by resubJob
-#xport RESUBJOB=${RESUBJOB-'cd \"${INIDIR}\"; export NEXTSTEP=${NEXTSTEP}; export NOWPS=${NOWPS}; qsub ${WRFSCRIPT}'} # evaluated by resubJob
+#export RESUBJOB=${RESUBJOB-'cd \"${INIDIR}\"; export NEXTSTEP=${NEXTSTEP}; export NOWPS=${NOWPS}; qsub ${WRFSCRIPT}'} # evaluated by resubJob
+
+# sleeper job submission (for next step when WPS is delayed)
+export SLEEPERJOB=${SLEEPERJOB-'ssh rocks-ib.ib "cd \"${INIDIR}\"; nohup ./${STARTSCRIPT} --skipwps --restart=${NEXTSTEP} --name=${JOBNAME} &> ${STARTSCRIPT%.sh}_${JOBNAME}_${NEXTSTEP}.log &"'} # evaluated by resubJob
