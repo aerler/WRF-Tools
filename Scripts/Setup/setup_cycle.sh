@@ -68,20 +68,22 @@ fi
 [ $VERBOSITY -gt 0 ] && echo
 
 ## if not restarting, setup initial and run directories
-if [[ "${RESTART}" == 'RESTART' ]]
- then # restart
+if [[ "${RESTART}" == 'RESTART' ]]; then # restart
 
   ## restart previous cycle
-  cd "${INIDIR}/${NEXTSTEP}"
-  [ $VERBOSITY -gt 0 ] && echo "   Linking Restart Files:"
-  for RST in ${WRFOUT}/wrfrst_d??_${NEXTSTEP}* # format of step is unknown
-   do
+  # read date string for restart file
+  RSTDATE=$(sed -n "/${NEXTSTEP}/ s/${NEXTSTEP}[[:space:]]\+.\(.*\).[[:space:]].*$/\1/p" stepfile)
+  NEXTDIR="${INIDIR}/${NEXTSTEP}" # next $WORKDIR
+  cd "${NEXTDIR}"
+  # link restart files
+  [ $VERBOSITY -gt 0 ] && echo "Linking restart files to next working directory:"
+  [ $VERBOSITY -gt 0 ] && echo "${NEXTDIR}"
+  for RST in "${WRFOUT}"/wrfrst_d??_"${RSTDATE}"; do
+    ln -sf "${RST}" 
     [ $VERBOSITY -gt 0 ] && echo  "${RST}"
-    ln -sf "${RST}"
   done
-  [ $VERBOSITY -gt 0 ] && echo
 
- else # cold start
+else # cold start
 
   ## start new cycle
   # clear some folders
@@ -124,3 +126,4 @@ if [[ "${RESTART}" == 'RESTART' ]]
   fi # if not LASTSTEP==NOTAR
 
 fi # if restart
+[ $VERBOSITY -gt 0 ] && echo

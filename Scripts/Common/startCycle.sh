@@ -7,7 +7,7 @@ set -e # abort if anything goes wrong
 
 # pre-process arguments using getopt
 if [ -z $( getopt -T ) ]; then
-  TMP=$( getopt -o r:gsvqklwmn:t:N: --long restart:,clean,nogeo,nostat,verbose,quiet,skipwps,nowait,nowps,norst,setrst:,time:,name: -n "$0" -- "$@" ) # pre-process arguments
+  TMP=$( getopt -o r:gsvqklwmn:t:N:h --long restart:,clean,nogeo,nostat,verbose,quiet,skipwps,nowait,nowps,norst,setrst:,time:,name:,help -n "$0" -- "$@" ) # pre-process arguments
   [ $? != 0 ] && exit 1 # getopt already prints an error message
   eval set -- "$TMP" # reset positional parameters (arguments) to $TMP list
 fi # check if GNU getopt ("enhanced")
@@ -25,18 +25,35 @@ DEFWCT="00:15:00" # another variable is necessary to prevent the setup script fr
 while true; do
   case "$1" in
     -r | --restart ) MODE='RESTART'; NEXTSTEP="$2"; shift 2 ;; # second argument is restart step
-    --clean ) MODE='CLEAN'; shift;; # delete wrfout/ etc.; short option would be dangerous...
+         --clean ) MODE='CLEAN'; shift;; # delete wrfout/ etc.; short option would be dangerous...
     -g | --nogeo ) MODE='NOGEO'; shift;; # don't run geogrid
     -s | --nostat ) MODE='NOSTAT'; shift;; # don't run geogrid and don't archive static data
     -v | --verbose ) VERBOSITY=2; shift;; # print more output
     -q | --quiet ) VERBOSITY=0; shift;; # don't print output
     -k | --skipwps ) SKIPWPS=1; shift;; # don't run WPS for *this* step
-    -l | --nowait ) QWAIT=0; shift;; # don't wait for WPS to finish
     -w | --nowps ) NOWPS=NOWPS; shift;; # don't run WPS for *next* step
+    -l | --nowait ) QWAIT=0; shift;; # don't wait for WPS to finish
     -m | --norst ) RSTCNT=1000; shift;; # should be enough to prevent restarts...
     -n | --setrst ) RSTCNT="$2"; shift 2 ;; # (re-)set restart counter
     -t | --time ) WAITTIME="$2"; shift 2 ;; # WRFWCT crashes for some reason...    
     -N | --name ) JOBNAME="$2"; shift 2 ;; # set WRF jobname - just for identification
+    -h | --help ) echo -e " \
+                          \n\
+    -r | --restart     restart cycle at given step \n\
+         --clean       delete all WRF output (wrfout/) --- be careful! \n\
+    -g | --nogeo       don't run geogrid (has to be run before) \n\
+    -s | --nostat      don't run geogrid and don't archive static data \n\
+    -v | --verbose     print more output \n\
+    -q | --quiet       don't print output \n\
+    -k | --skipwps     don't run WPS for *this* step \n\
+    -w | --nowps       don't run WPS for *next* step \n\
+    -l | --nowait      don't wait for WPS to finish (and skip WPS completion check) \n\
+    -m | --norst       suppress restarts \n\
+    -n | --setrst      (re-)set restart counter \n\
+    -t | --time        maximum wait time for WPS \n\
+    -N | --name        set WRF jobname - just for identification \n\
+    -h | --help        print this help \n\
+                       "; exit 0;; # \n\ == 'line break, next line'; for syntax highlighting
     # break loop
     -- ) shift; break;; # this terminates the argument list, if GNU getopt is used
     * ) break;;
@@ -89,7 +106,7 @@ if [ $SKIPWPS == 1 ]; then
   [ $VERBOSITY -gt 0 ] && echo 'Skipping WPS!'
 else
   
-  # run WPS and wait for it to finish, if necessary  
+  # launch WPS; waiting for completion is handled below
   # handle waittime for queue selector; $WRFWCT is set above
   if [[ -n "${WAITTIME}" ]]; then 
     WRFWCT="${WAITTIME}" # manual override
@@ -105,27 +122,44 @@ else
     else eval "${ALTSUBWPS}" # alternate/remote command
   fi # if there is an alternative...  
 
-  # figure out, if we have to wait until WPS job is completed
-	if [ -z $QWAIT ] && [ -n $QSYS ]; then
-	  if [[ "$QSYS" == 'LL' ]]; then QWAIT=1
-    elif [[ "$QSYS" == 'PBS' ]]; then QWAIT=1 # currently, dependencies don't work...
-	  elif [[ "$QSYS" == 'SGE' ]]; then QWAIT=1
-	  else QWAIT=1 # assume the system does not support dependencies
-  fi; fi # $QWAIT
-  # wait until WPS job is completed: check presence of WPS script as signal of completion
-  # this is only necessary, if the queue system does not support job dependencies
-	if [ $QWAIT == 1 ]; then
-		[ $VERBOSITY -gt 0 ] && echo
-		[ $VERBOSITY -gt 0 ] && echo "   Waiting for WPS job on GPC to complete..."
-		while [[ ! -f "${INIDIR}/${NEXTSTEP}/${WPSSCRIPT}" ]]
-		  do sleep 30
-		done
-		[ $VERBOSITY -gt 0 ] && echo "   ... WPS completed."
-	fi # job dependency...
-
 fi # if $SKIPWPS
 [ $VERBOSITY -gt 0 ] && echo
 
+# figure out, if we have to wait until WPS job is completed
+if [ -z $QWAIT ] && [ -n $QSYS ]; then
+  if [[ "$QSYS" == 'LL' ]]; then QWAIT=1
+  elif [[ "$QSYS" == 'PBS' ]]; then QWAIT=1 # currently, dependencies don't work...
+  elif [[ "$QSYS" == 'SGE' ]]; then QWAIT=1
+  else QWAIT=1 # assume the system does not support dependencies
+fi; fi # $QWAIT
+
+if [ $QWAIT == 1 ]; then
+  # wait until WPS job is completed: check presence of WPS script as signal of completion
+  # this is only necessary, if the queue system does not support job dependencies
+  # N.B.: use option -l/--nowait to skip the WPS verification step
+
+  if [[ ! -f "${INIDIR}/${NEXTSTEP}/${WPSSCRIPT}" ]]; then
+    # start wait cycle
+  	[ $VERBOSITY -gt 0 ] && echo
+  	[ $VERBOSITY -gt 0 ] && echo "   Waiting for WPS job to complete..."
+  	while [[ ! -f "${INIDIR}/${NEXTSTEP}/${WPSSCRIPT}" ]]
+  	  do sleep 30
+  	done
+  	[ $VERBOSITY -gt 0 ] && echo "   ... WPS completed."
+  fi # WPS already done?
+
+  # check WPS exit status
+  if [ 1 -ne $(grep -c 'SUCCESS COMPLETE REAL_EM INIT' "${INIDIR}/${NEXTSTEP}/real/rsl.error.0000") ]; then
+    # do not continue 
+    echo
+    echo "   ###   WPS for step ${NEXTSTEP} failed --- aborting!   ###   "
+    echo
+		exit 1
+  fi # if WPS failed
+
+fi # job dependency...
+
+[ $VERBOSITY -gt 0 ] && echo
 
 # submit WRF instance to queue
 [ $VERBOSITY -gt 0 ] && echo "   Submitting WRF ${EXP} on ${MAC}: NEXTSTEP=${NEXTSTEP}; NOWPS=${NOWPS}"

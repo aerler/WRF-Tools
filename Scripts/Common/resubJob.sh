@@ -65,10 +65,10 @@ if [[ -n "${NEXTSTEP}" ]]
     cd "${INIDIR}"            
                         
     # now, decide what to do...
-    if [[ -f "${INIDIR}/${NEXTSTEP}/${WPSSCRIPT}" ]]
+    if [[ -f "${NEXTDIR}/${WPSSCRIPT}" ]]
       then
         
-        if [ 0 -lt $(grep -c 'SUCCESS COMPLETE REAL_EM INIT' real/rsl.error.0000) ]
+        if [ 0 -lt $(grep -c 'SUCCESS COMPLETE REAL_EM INIT' "${NEXTDIR}/real/rsl.error.0000") ]
           then
             
 				    # submit next job (start next cycle)

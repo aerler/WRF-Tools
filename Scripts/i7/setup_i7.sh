@@ -70,4 +70,4 @@ export SUBMITAVG=${SUBMITAVG:-'ssh localhost "cd \"${INIDIR}\"; ./${AVGSCRIPT} -
 export RESUBJOB=${RESUBJOB-'ssh localhost "cd \"${INIDIR}\"; export NEXTSTEP=${NEXTSTEP}; export NOWPS=${NOWPS}; ./${WRFSCRIPT}"'} # evaluated by resubJob
 
 # sleeper job submission (for next step when WPS is delayed)
-export SLEEPERJOB=${SLEEPERJOB-'ssh localhost "cd \"${INIDIR}\"; nohup ./${STARTSCRIPT} --skipwps --restart=${NEXTSTEP} --name=${JOBNAME} &> ${STARTSCRIPT%.sh}_${JOBNAME}_${NEXTSTEP}"'} # evaluated by resubJob
+export SLEEPERJOB=${SLEEPERJOB-'ssh localhost "cd \"${INIDIR}\"; nohup ./${STARTSCRIPT} --skipwps --restart=${NEXTSTEP} --name=${JOBNAME} &> ${STARTSCRIPT%.sh}_${JOBNAME}_${NEXTSTEP}.log &"'} # evaluated by resubJob
