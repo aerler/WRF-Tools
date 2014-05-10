@@ -4,21 +4,31 @@
 
 # pre-process arguments using getopt
 if [ -z $( getopt -T ) ]; then
-  TMP=$( getopt -o fsq --long force,simple,quiet -n "$0" -- "$@" ) # pre-process arguments
+  TMP=$( getopt -o fstq --long force,simple,test,quiet -n "$0" -- "$@" ) # pre-process arguments
   [ $? != 0 ] && exit 1 # getopt already prints an error message
   eval set -- "$TMP" # reset positional parameters (arguments) to $TMP list
 fi # check if GNU getopt ("enhanced")
 # default parameters
 FORCE=0 # force restart, even if no paramter set was found
 SIMPLE=0 # simple restart without increasing stability
+TEST=0 # do not actually restart, just print parameters
 QUIET=0 # suppress output 
 # parse arguments
 #while getopts 'fs' OPTION; do # getopts version... supports only short options
 while true; do
   case "$1" in
-    -f | --force ) FORCE=1; shift;;
+    -f | --force  ) FORCE=1;  shift;;
     -s | --simple ) SIMPLE=1; shift;;
-    -q | --quiet ) QUIET=1; shift;;
+    -t | --test   ) TEST=1;   shift;;
+    -q | --quiet  ) QUIET=1;  shift;;
+    -h | --help   ) echo -e " \
+                            \n\
+    -f | --force       ignore warnings and force restart \n\
+    -s | --simple      do not change stability parameters \n\
+    -t | --test        dry-run for tests; just print parameters \n\
+    -q | --quiet       do not print launch feedback \n\
+    -h | --help        print this help \n\ 
+                             "; exit 0;; # \n\ == 'line break, next line'; for syntax highlighting
     -- ) shift; break;; # this terminates the argument list, if GNU getopt is used
     * ) break;;
   esac # case $@
@@ -32,8 +42,11 @@ CURRENTSTEP=$( ls [0-9][0-9][0-9][0-9]-[0-9][0-9]* -d | head -n 1 ) # first step
 WORKDIR=${WORKDIR:-"$INIDIR/$CURRENTSTEP/"}
 NEXTSTEP=$( ls [0-9][0-9][0-9][0-9]-[0-9][0-9]* -d | head -n 2 | tail -n 1 ) # second step folder
 # determine if WPS has to be run for next step
-if [ -f "${INIDIR}/${NEXTSTEP}"/run_*_WPS.* ]; then NOWPS='NOWPS' 
-else NOWPS='FALSE'; fi
+if [ -f "${INIDIR}/${NEXTSTEP}"/run_*_WPS.* ] && [[ "${NEXTSTEP}" != "${CURRENTSTEP}" ]]
+# N.B. if there is only one folder, $NEXTSTEP will be equal to $CURRENTSTEP, but we need to run WPS
+  then NOWPS='NOWPS' 
+  else NOWPS='FALSE'
+fi
 # N.B.: single brakets are essential, otherwise the globbing expression is not recognized
 # determine machine
 MAC=${MAC:-''}
@@ -44,6 +57,7 @@ elif [[ -z "$MAC" ]]; then
     [ $QUIET == 0 ] && echo 'ERROR: unknown machine!'
     exit 1 # abort
 fi # if $MAC
+[ $TEST == 1 ] && MAC=TEST # suppress actual launch (for tests)
 
 # parse current namelist for stability parameters
 cd "${WORKDIR}"
@@ -105,18 +119,25 @@ done # loop over domains
 ## resubmit job
 cd "${INIDIR}"
 # Feedback
-[ $QUIET == 0 ] && echo "Restarting Experiment ${EXP} on ${MAC}: NEXTSTEP=${CURRENTSTEP}; NOWPS=${NOWPS}; TIME_STEP=${NEW_DELT}; EPSSM=${NEW_EPSS}"
+if [ $QUIET == 0 ]; then
+  if [ $TEST == 1 ]; 
+    then echo "Testing Restart of Experiment ${EXP}: NEXTSTEP=${CURRENTSTEP}; NOWPS=${NOWPS}; TIME_STEP=${NEW_DELT}; EPSSM=${NEW_EPSS}"
+    else echo "Restarting Experiment ${EXP} on ${MAC}: NEXTSTEP=${CURRENTSTEP}; NOWPS=${NOWPS}; TIME_STEP=${NEW_DELT}; EPSSM=${NEW_EPSS}"
+fi; fi # reporting level
 # launch restart
 rm -rf ${CURRENTSTEP}/rsl.* ${CURRENTSTEP}/wrf*.nc
 # restart job (this is a bit hackish and not as general as I would like it...)
 if [[ "$MAC" == 'GPC' ]]; then 
-  ssh gpc01 "cd \"${INIDIR}\"; qsub ./run_cycling_WRF.pbs -v NOWPS=${NOWPS},NEXTSTEP=${CURRENTSTEP}"
+  ssh gpc-f104n084-ib0 "cd \"${INIDIR}\"; qsub ./run_cycling_WRF.pbs -v NOWPS=${NOWPS},NEXTSTEP=${CURRENTSTEP}"
   ERR=$(( ${ERR} + $? )) # capture exit code
 elif [[ "$MAC" == 'TCS' ]]; then
-  ssh tcs02 "cd \"${INIDIR}\"; export NEXTSTEP=${CURRENTSTEP}; export NOWPS=${NOWPS}; llsubmit ./run_cycling_WRF.ll"
+  ssh tcs-f11n06-ib0 "cd \"${INIDIR}\"; export NEXTSTEP=${CURRENTSTEP}; export NOWPS=${NOWPS}; llsubmit ./run_cycling_WRF.ll"
   ERR=$(( ${ERR} + $? )) # capture exit code
 elif [[ "$MAC" == 'P7' ]]; then
-  ssh p701 "cd \"${INIDIR}\"; export NEXTSTEP=${CURRENTSTEP}; export NOWPS=${NOWPS}; llsubmit ./run_cycling_WRF.ll"
+  ssh p7n01-ib0 "cd \"${INIDIR}\"; export NEXTSTEP=${CURRENTSTEP}; export NOWPS=${NOWPS}; llsubmit ./run_cycling_WRF.ll"
+  ERR=$(( ${ERR} + $? )) # capture exit code
+elif [[ "$MAC" == 'TEST' ]]; then
+  echo Test launch: "cd \"${INIDIR}\"; export NEXTSTEP=${CURRENTSTEP}; export NOWPS=${NOWPS}; llsubmit ./run_cycling_WRF.ll"
   ERR=$(( ${ERR} + $? )) # capture exit code
 fi # if MAC
 # report errors

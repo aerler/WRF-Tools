@@ -53,7 +53,7 @@ while true; do
     -t | --time        maximum wait time for WPS \n\
     -N | --name        set WRF jobname - just for identification \n\
     -h | --help        print this help \n\
-                       "; exit 0;; # \n\ == 'line break, next line'; for syntax highlighting
+                           "; exit 0;; # \n\ == 'line break, next line'; for syntax highlighting
     # break loop
     -- ) shift; break;; # this terminates the argument list, if GNU getopt is used
     * ) break;;
