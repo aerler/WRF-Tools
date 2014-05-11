@@ -114,6 +114,7 @@ WPSSYS='' # WPS - define in xconfig.sh
 GEODATA="/project/p/peltier/WRF/geog/" # location of geogrid data
 ## WRF
 WRFSYS='' # WRF - define in xconfig.sh
+MAXWCT='48:00:00' # this is common on most clusters
 POLARWRF=0 # PolarWRF switch
 FLAKE=1 # use FLake
 # some settings depend on the number of domains
@@ -196,6 +197,8 @@ TMP=$( eval $( grep 'WPSWCT=' "${WRFTOOLS}/Scripts/${WPSSYS}/run_cycling_WPS.${W
 WPSWCT=${WPSWCT:-"${TMP}"}
 TMP=$( eval $( grep 'WRFWCT=' "${WRFTOOLS}/Scripts/${WRFSYS}/run_cycling_WRF.${WRFQ}" ); echo "$WRFWCT" )
 WRFWCT=${WRFWCT:-"${TMP}"}
+# read number of WRF nodes
+WRFNODES=$( eval $( grep 'WRFNODES=' "${WRFTOOLS}/Scripts/${WRFSYS}/run_cycling_WRF.${WRFQ}" ); echo "$WRFNODES" )
 
 # default WPS and real executables
 GEOEXE=${GEOEXE:-"${WPSSRC}/${WPSSYS}-MPI/${WPSBLD}/Default/geogrid.exe"} 
