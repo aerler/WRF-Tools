@@ -2,7 +2,7 @@
 # LoadLeveler submission script for SciNet TCS
 ##=====================================
 # @ job_name = test_4x64
-# @ wall_clock_limit = 06:00:00
+# @ wall_clock_limit = 48:00:00
 # @ node = 4
 # @ tasks_per_node = 64
 # @ notification = error
@@ -31,11 +31,14 @@
 
 
 ## machine specific job settings
-export NODES=4 # number of nodes (necessary for TCS threading setup)
-export WAITFORWPS='WAIT' # stay on compute node until WPS for next step finished, in order to submit next WRF job
 # get LoadLeveler names (needed for folder names)
 export JOBNAME="${LOADL_JOB_NAME}"
 export INIDIR="${LOADL_STEP_INITDIR}" # experiment root (launch directory)
 # important scripts
 export WRFSCRIPT="run_cycling_WRF.ll" # WRF suffix assumed
 export WPSSCRIPT="run_cycling_WPS.pbs" # WRF suffix assumed, WPS suffix substituted: ${JOBNAME%_WRF}_WPS
+# WRF and WPS wallclock  time limits (no way to query from queue system)
+export WRFWCT='10:00:00' # WRF wallclock time limit
+export WPSWCT='01:00:00' # WPS wallclock time limit
+# WRF resource requirements (read by setup scripts)
+export WRFNODES=4 # number of nodes used by WRF

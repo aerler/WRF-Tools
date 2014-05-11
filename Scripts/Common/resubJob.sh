@@ -101,7 +101,9 @@ if [[ -n "${NEXTSTEP}" ]]
             
 		        # submit next job (start next cycle)
             echo
-            echo "   ***   Launching WRF for next step: ${NEXTSTEP}   ***   "
+            echo "   ---      WPS for next step (${NEXTSTEP}) has not finished yet     ---   "
+            echo "   +++   Launching sleeper job to restart WRF when WPS finished   +++   "
+            echo "            (see log file below for details and job status)   "
             echo
             # submit sleeper script (set in setup-script; machine-specific)
             set -x

@@ -25,3 +25,6 @@ export INIDIR="${PBS_O_WORKDIR}" # experiment root (launch directory)
 export WPSSCRIPT="run_cycling_WPS.pbs" # WRF suffix assumed, WPS suffix substituted: ${JOBNAME%_WRF}_WPS
 export NODES=1 # this variable is effectively not used 
 export TASKS=6 # total number of MPI task
+# WRF and WPS wallclock  time limits (no way to query from queue system)
+export WRFWCT='22:00:00' # WRF wallclock time limit
+export WPSWCT='22:00:00' # WPS wallclock time limit

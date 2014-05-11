@@ -19,12 +19,10 @@ export ARINTERVAL="" # default: every time
 export AVGSCRIPT="" # averaging script to be executed after WRF finishes
 export AVGINTERVAL="" # default: every time
 export STARTSCRIPT='startCycle.sh' # startCycle, by default
-# WRF and WPS wallclock  time limits (no way to query from queue system)
-export WRFWCT='' # WRF wallclock  time limit; e.g. '06:00:00'
-export WPSWCT='' # WPS wallclock  time limit; e.g. '01:00:00'
 # input data source (needed for treatment of leap years)
 export DATATYPE='' # type of initial and boundary forcing data
 # misc settings
+export WAITFORWPS='NO' # stay on compute node until WPS for next step finished, in order to submit next WRF job
 export AUTORST='RESTART' # perform auto restart after numerical instability
 export MAXRST=3 # number of restarts to be performed
 

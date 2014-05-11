@@ -119,7 +119,14 @@ FLAKE=1 # use FLake
 # some settings depend on the number of domains
 MAXDOM=2 # number of domains in WRF and WPS
 
+# create run folder
+echo
+echo "   Setting up Experiment ${NAME}"
+echo
+mkdir -p "${RUNDIR}"
+mkdir -p "${WRFOUT}"
 ## load configuration file
+echo "Sourcing experimental setup file (xconfig.sh)" 
 source xconfig.sh
 
 ## fix default settings
@@ -159,107 +166,54 @@ else
 fi # $FLAKE
 
 # figure out WRF and WPS build
-WPSBLD=${WPSBLD:-"Clim-fineIOv3"} # there is basically only one build...
 # but there are many versions of WRF...
 if [[ -z "$WRFBLD" ]]; then
-  WRFBLD="${IO}v4" # current I/O version
-  # GCM or reanalysis
+  # GCM or reanalysis with current I/O version
   if [[ "${DATATYPE}" == 'CESM' ]] || [[ "${DATATYPE}" == 'CCSM' ]]; then
-    WRFBLD="Clim-${WRFBLD}" # variable GHG scenarios and no leap-years
+    WRFBLD="Clim-${IO}" # variable GHG scenarios and no leap-years
   elif [[ "${DATATYPE}" == 'ERA-I' ]] || [[ "${DATATYPE}" == 'CFSR' ]]; then
-    WRFBLD="ReA-${WRFBLD}" # variable GHG scenarios with leap-years
+    WRFBLD="ReA-${IO}" # variable GHG scenarios with leap-years
   else
-    WRFBLD="Default-${WRFBLD}" # standard WRF build
+    WRFBLD="Default-${IO}" # standard WRF build with current I/O version
   fi # $DATATYPE
-  # Standard or PolarWRF
-  if [ ${POLARWRF} == 1 ]; then
-  #   WPSBLD="Clim-fineIO" # not yet polar...
-    WRFBLD="Polar-${WRFBLD}"
-  fi # if PolarWRF
+  # Standard or PolarWRF (add Polar-prefix)
+  if [ ${POLARWRF} == 1 ]; then WRFBLD="Polar-${WRFBLD}"; fi
 fi # if $WRFBLD
+WPSBLD=${WPSBLD:-"${WRFBLD}"} # should be analogous...
 
 # source folders (depending on $WRFROOT; can be set in xconfig.sh)
 WPSSRC=${WPSSRC:-"${WRFROOT}/WPS/"}
 WRFSRC=${WRFSRC:-"${WRFROOT}/WRFV3/"}
 
+# figure out queue systems from machine setup scripts
+TMP=$( eval $( grep 'QSYS=' "${WRFTOOLS}/Scripts/${WPSSYS}/setup_${WPSSYS}.sh" ); echo "${QSYS}" )
+WPSQ=${WPSQ:-$( echo "${TMP}" | tr '[:upper:]' '[:lower:]' )} # "${QSYS,,}" is not POSIX compliant
+TMP=$( eval $( grep 'QSYS=' "${WRFTOOLS}/Scripts/${WRFSYS}/setup_${WRFSYS}.sh" ); echo "${QSYS}" )
+WRFQ=${WRFQ:-$( echo "${TMP}" | tr '[:upper:]' '[:lower:]' )}
+# N.B.: the queue names are also used as file name extension for the run scripts
+# then figure out default wallclock times
+TMP=$( eval $( grep 'WPSWCT=' "${WRFTOOLS}/Scripts/${WPSSYS}/run_cycling_WPS.${WPSQ}" ); echo "$WPSWCT" )
+WPSWCT=${WPSWCT:-"${TMP}"}
+TMP=$( eval $( grep 'WRFWCT=' "${WRFTOOLS}/Scripts/${WRFSYS}/run_cycling_WRF.${WRFQ}" ); echo "$WRFWCT" )
+WRFWCT=${WRFWCT:-"${TMP}"}
+
 # default WPS and real executables
-if [[ "${WPSSYS}" == "GPC" ]]; then
-    WPSQ='pbs' # queue system
-    WPSWCT=${WPSWCT:-'01:00:00'} # WPS wallclock time
-    METEXE=${METEXE:-"${WPSSRC}/GPC-MPI/${WPSBLD}/O3xSSSE3Grb2/metgrid.exe"}
-    REALEXE=${REALEXE:-"${WRFSRC}/GPC-MPI/${WRFBLD}/O3xSSSE3/real.exe"}
-    UNGRIBEXE=${UNGRIBEXE:-"${WPSSRC}/GPC-MPI/${WPSBLD}/O3xSSSE3Grb2/ungrib.exe"}
-elif [[ "${WPSSYS}" == "Rocks" ]]; then
-    WPSQ='sh' # no queue system
-    WPSWCT=${WPSWCT:-'01:00:00'} # WPS wallclock time
-    METEXE=${METEXE:-"${WPSSRC}/Rocks-MPI/${WPSBLD}/O3xSSE42NC4Grb2/metgrid.exe"}
-    REALEXE=${REALEXE:-"${WRFSRC}/Rocks-MPI/${WRFBLD}/O3xSSE42NC4/real.exe"}
-    UNGRIBEXE=${UNGRIBEXE:-"${WPSSRC}/Rocks-MPI/${WPSBLD}/O3xSSE42NC4Grb2/ungrib.exe"}
-elif [[ "${WPSSYS}" == "Bugaboo" ]]; then
-    WPSQ='pbs' # queue system
-    WPSWCT=${WPSWCT:-'02:00:00'} # WPS wallclock time
-    METEXE=${METEXE:-"${WPSSRC}/Bugaboo-MPI/${WPSBLD}/O3xSSE42Grb2/metgrid.exe"}
-    REALEXE=${REALEXE:-"${WRFSRC}/Bugaboo-MPI/${WRFBLD}/O3xSSE42NC4/real.exe"}
-    UNGRIBEXE=${UNGRIBEXE:-"${WPSSRC}/Bugaboo-MPI/${WPSBLD}/O3xSSE42Grb2/ungrib.exe"}
-elif [[ "${WPSSYS}" == "i7" ]]; then
-    WPSQ='sh' # no queue system
-    WPSWCT=${WPSWCT:-'0:00:00'} # WPS wallclock time
-    METEXE=${METEXE:-"${WPSSRC}/i7-MPI/${WPSBLD}/O3xSSE42/metgrid.exe"}
-    REALEXE=${REALEXE:-"${WRFSRC}/i7-MPI/${WRFBLD}/O3xSSE42NC4/real.exe"}
-    UNGRIBEXE=${UNGRIBEXE:-"${WPSSRC}/i7-MPI/${WPSBLD}/O3xSSE42/ungrib.exe"}
-fi
+GEOEXE=${GEOEXE:-"${WPSSRC}/${WPSSYS}-MPI/${WPSBLD}/Default/geogrid.exe"} 
+UNGRIBEXE=${UNGRIBEXE:-"${WPSSRC}/${WPSSYS}-MPI/${WPSBLD}/Default/ungrib.exe"}
+METEXE=${METEXE:-"${WPSSRC}/${WPSSYS}-MPI/${WPSBLD}/Default/metgrid.exe"}
+REALEXE=${REALEXE:-"${WRFSRC}/${WRFSYS}-MPI/${WRFBLD}/Default/real.exe"}
+WRFEXE=${WRFEXE:-"${WRFSRC}/${WRFSYS}-MPI/${WRFBLD}/Default/wrf.exe"}
+# N.B.: the folder 'Default' can be a symlink to the default directory for executables 
 
 # default archive script name (no $ARSCRIPT means no archiving)
-if [[ "${ARSCRIPT}" == 'DEFAULT' ]] && [[ -n "${IO}" ]]
-    then ARSCRIPT="ar_wrfout_${IO}.pbs"; fi
+if [[ "${ARSCRIPT}" == 'DEFAULT' ]] && [[ -n "${IO}" ]]; then ARSCRIPT="ar_wrfout_${IO}.pbs"; fi
 # default averaging script name (no $AVGSCRIPT means no averaging)
-if [[ "${AVGSCRIPT}" == 'DEFAULT' ]]
-    then AVGSCRIPT="run_wrf_avg.${WPSQ}"; fi
+if [[ "${AVGSCRIPT}" == 'DEFAULT' ]]; then AVGSCRIPT="run_wrf_avg.${WPSQ}"; fi
 
-# default WRF and geogrid executables
-MAXWCT=${MAXWCT:-'48:00:00'} # maximum walltime on system - used for WRF walltime
-if [[ "${WRFSYS}" == "GPC" ]]; then
-    WRFQ='pbs' # queue system
-    WRFWCT=${WRFWCT:-'06:00:00'}; WRFNODES=${WRFNODES:-16} # WRF resource config on GPC
-    GEOEXE=${GEOEXE:-"${WPSSRC}/GPC-MPI/${WPSBLD}/O3xSSSE3Grb2/geogrid.exe"}
-    WRFEXE=${WRFEXE:-"${WRFSRC}/GPC-MPI/${WRFBLD}/O3xSSE42NC4/wrf.exe"}
-elif [[ "${WRFSYS}" == "TCS" ]]; then
-    WRFQ='ll' # queue system
-    WRFWCT=${WRFWCT:-'06:00:00'}; WRFNODES=${WRFNODES:-4} # WRF resource config o TCS
-    GEOEXE=${GEOEXE:-"${WPSSRC}/GPC-MPI/${WPSBLD}/O3xSSSE3Grb2/geogrid.exe"}
-    WRFEXE=${WRFEXE:-"${WRFSRC}/TCS-MPI/${WRFBLD}/O2NC4/wrf.exe"}
-elif [[ "${WRFSYS}" == "P7" ]]; then
-    WRFQ='ll' # queue system
-    WRFWCT=${WRFWCT:-'15:00:00'}; WRFNODES=${WRFNODES:-1} # WRF resource config on P7
-    GEOEXE=${GEOEXE:-"${WPSSRC}/GPC-MPI/${WPSBLD}/O3xSSSE3Grb2/geogrid.exe"}
-    WRFEXE=${WRFEXE:-"${WRFSRC}/P7-MPI/${WRFBLD}/O3NC4/wrf.exe"}
-elif [[ "${WRFSYS}" == "Rocks" ]]; then
-    WRFQ='sge' # queue system
-    WRFWCT=${WRFWCT:-'4:00:00'}; WRFNODES=${WRFNODES:-1} # WRF resource config on Rocks
-    GEOEXE=${GEOEXE:-"${WPSSRC}/Rocks-MPI/${WPSBLD}/O3xSSE42NC4Grb2/geogrid.exe"}
-    WRFEXE=${WRFEXE:-"${WRFSRC}/Rocks-MPI/${WRFBLD}/O3xSSE42NC4/wrf.exe"}
-elif [[ "${WRFSYS}" == "Bugaboo" ]]; then
-    WRFQ='pbs' # queue system
-    WRFWCT=${WRFWCT:-'12:00:00'}; WRFNODES=${WRFNODES:-1} # Bugaboo allocates cores, not nodes!
-    GEOEXE=${GEOEXE:-"${WPSSRC}/Bugaboo-MPI/${WPSBLD}/O3xSSE42Grb2/geogrid.exe"}
-    WRFEXE=${WRFEXE:-"${WRFSRC}/Bugaboo-MPI/${WRFBLD}/O3xSSE42NC4/wrf.exe"}    
-elif [[ "${WRFSYS}" == "i7" ]]; then
-    WRFQ='sh' # queue system
-    WRFWCT=${WRFWCT:-'0:00:00'}; WRFNODES=${WRFNODES:-1} # WRF resource config on i7
-    GEOEXE=${GEOEXE:-"${WPSSRC}/i7-MPI/${WPSBLD}/O3xSSE42/geogrid.exe"}
-    WRFEXE=${WRFEXE:-"${WRFSRC}/i7-MPI/${WRFBLD}/O3xSSE42NC4/wrf.exe"}
-fi
 
 ## ***                                            ***
 ## ***   now we actually start doing something!   ***
 ## ***                                            ***
-
-# create run folder
-echo
-echo "   Creating Root Directory for Experiment ${NAME}"
-echo
-mkdir -p "${RUNDIR}"
-mkdir -p "${WRFOUT}"
 
 # backup existing files
 echo 'Backing-up existing files (moved to folder "backup/")'

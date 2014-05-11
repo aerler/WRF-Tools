@@ -51,7 +51,8 @@ export THREADS=${THREADS:-1} # number of OpenMP threads
 export HYBRIDRUN=${HYBRIDRUN:-"mpirun -n $((TASKS*NODES))"} # OpenMPI, not Intel
 
 # geogrid command (executed during machine-independent setup)
-export RUNGEO=${RUNGEO:-"mpirun -n 4 ${BINDIR}/geogrid.exe"}
+export RUNGEO=${RUNGEO:-"mpirun -n 1 ${BINDIR}/geogrid.exe"}
+# N.B.: currently geogrid only runs with one task...
 
 # WPS/preprocessing submission command (for next step)
 # export SUBMITWPS=${SUBMITWPS:-'ssh localhost "cd \"${INIDIR}\"; export NEXTSTEP=${NEXTSTEP}; export WPSSCRIPT=${WPSSCRIPT}; python ${SCRIPTDIR}/selectWPSqueue.py"'} # evaluated by launchPreP

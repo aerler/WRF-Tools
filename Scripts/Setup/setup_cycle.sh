@@ -86,25 +86,45 @@ if [[ "${RESTART}" == 'RESTART' ]]; then # restart
 else # cold start
 
   ## start new cycle
+  cd "${INIDIR}"
   # clear some folders
-  [ $VERBOSITY -gt 0 ] && echo "   Clearing Output Folders:"
+  [ $VERBOSITY -gt 0 ] && [[ "${MODE}" == 'CLEAN' ]] && echo "   Clearing Output Folders:"
   if [[ -n ${METDATA} ]]; then
-    [ $VERBOSITY -gt 0 ] && echo "${METDATA}"
-    if [[ "${MODE}" == 'CLEAN' ]]; then rm -rf "${METDATA}"; fi
+    if [[ "${MODE}" == 'CLEAN' ]]; then 
+      [ $VERBOSITY -gt 0 ] && echo "${METDATA}"
+      rm -rf "${METDATA}" 
+    fi
     mkdir -p "${METDATA}"
   fi
   if [[ -n ${WRFOUT} ]]; then
-    [ $VERBOSITY -gt 0 ] && echo "${WRFOUT}"
-    if [[ "${MODE}" == 'CLEAN' ]]; then rm -rf "${WRFOUT}"; fi
+    if [[ "${MODE}" == 'CLEAN' ]]; then 
+	    [ $VERBOSITY -gt 0 ] && echo "${WRFOUT}"
+      rm -rf "${WRFOUT}" 
+    fi
     mkdir -p "${WRFOUT}"
+  fi
+  if [[ "${MODE}" == 'CLEAN' ]] && [ -f stepfile ]; then
+    # remove all existing step folders
+    for STEP in $( awk '{print $1}' stepfile ); do
+      if [[ "${STEP}" == "${NEXTSTEP}" ]]; then
+        # special treatment for next step: need to preserve dates in namelists
+        mv "${NEXTSTEP}/namelist.input" 'zzz.input'; mv "${NEXTSTEP}/namelist.wps" 'zzz.wps'
+        [ $VERBOSITY -gt 0 ] && echo "${STEP}"
+        rm -r "${STEP}"; mkdir "${STEP}"
+        mv 'zzz.input' "${NEXTSTEP}/namelist.input"; mv 'zzz.wps' "${NEXTSTEP}/namelist.wps"
+      elif [ -e "${STEP}/" ]; then
+        [ $VERBOSITY -gt 0 ] && echo "${STEP}"
+        rm -r "${STEP}"
+      fi # if -e $STEP   
+    done # loop over all steps
   fi
   [ $VERBOSITY -gt 0 ] && echo
 
   # prepare first working directory
   # set restart to False for first step
-  sed -i '/restart\ / s/restart\ *=\ *\.true\..*$/restart = .false.,/' "${INIDIR}/${NEXTSTEP}/namelist.input"
+  sed -i '/restart\ / s/restart\ *=\ *\.true\..*$/restart = .false.,/' "${NEXTSTEP}/namelist.input"
   # and make sure the rest is on restart
-  sed -i '/restart\ / s/restart\ *=\ *\.false\..*$/restart = .true.,/' "${INIDIR}/namelist.input"
+  sed -i '/restart\ / s/restart\ *=\ *\.false\..*$/restart = .true.,/' "namelist.input"
   [ $VERBOSITY -gt 0 ] && echo "   Setting restart option and interval in namelist."
 
 
