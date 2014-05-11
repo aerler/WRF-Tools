@@ -1,0 +1,62 @@
+#!/bin/bash
+WRFTOOLS="${MODEL_ROOT}/WRF Tools/"
+## scenario definition section
+NAME='test'
+# GHG emission scenario
+GHG='RCP8.5' # CAMtr_volume_mixing_ratio.* file to be used
+# time period and cycling interval
+CYCLING="hourly.1981-test" # stepfile to be used (leave empty if not cycling)
+# I/O and archiving
+IO='fineIO' # this is used for namelist construction and archiving
+ARSCRIPT='DEFAULT' # set ARSCRIPT='DEFAULT' to let $IO control archiving
+ARINTERVAL='' # default is monthly (after every run), but yearly is preferable
+AVGINTERVAL=''
+
+## namelist definition section
+# list of namelist groups and used snippets
+MAXDOM=1 # number of domains in WRF and WPS
+DOM='arb1-120km'
+# WRF
+TIME_CONTROL="cycling,${IO}"
+DIAGS='hitop'
+PHYSICS='clim'
+PHYSICS_MOD=' ra_sw_physics   = 4,   4, ! RRTMG: ra_lw_physics   = 4,   4, ! RRTMG'
+NOAH_MP=''
+DOMAINS="erai-30km,${DOM}-grid"
+DOMAINS_MOD=' time_step = 300,: dx = 120000,: dy = 120000,: e_vert = 35, 35, ! need higher vertical resolution in V3.6'
+FDDA='spectral'
+DYNAMICS='default'
+BDY_CONTROL='clim'
+NAMELIST_QUILT=''
+# WPS
+# SHARE,GEOGRID, and METGRID usually don't have to be set manually
+GEOGRID="${DOM},${DOM}-grid"
+## namelist modifications by group
+# you can make modifications to namelist groups in the {NMLGRP}_MOD variables
+# the line in the *_MOD variable will replace the corresponding entry in the template
+# you can separate multiple modifications by colons ':'
+#PHYSICS_MOD=' cu_physics = 3, 3, 3,: shcu_physics = 0, 0, 0,: sf_surface_physics = 4, 4, 4,'
+
+## configure data sources
+RUNDIR="${PWD}" # must not contain spaces!
+# source data definition
+DATATYPE='ERA-I'
+DATADIR='/data/ERA-I/test/'
+# other WPS configuration files
+GEODATA='/data/WRF/geog_v3.6'
+
+## system settings
+#WPSWCT='00:03:00'
+#WRFWCT='00:15:00'
+#WRFNODES=4
+WRFROOT="$MODEL_ROOT/WRFV3.6/"
+# WPS executables
+#WPSBLD='Clim-fineIO'
+WPSSYS="i7" # also affects unccsm.exe
+# set path for metgrid.exe and real.exe explicitly using METEXE and REALEXE
+# WRF executable
+POLARWRF=0 # use PolarWRF
+FLAKE=0 # use FLake
+WRFSYS="i7"
+#WRFBLD='Clim-fineIO'
+# set path for geogrid.exe and wrf.exe eplicitly using GEOEXE and WRFEXE
