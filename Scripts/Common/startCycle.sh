@@ -31,7 +31,7 @@ while true; do
     -v | --verbose ) VERBOSITY=2; shift;; # print more output
     -q | --quiet ) VERBOSITY=0; shift;; # don't print output
     -k | --skipwps ) SKIPWPS=1; shift;; # don't run WPS for *this* step
-    -w | --nowps ) NOWPS=NOWPS; shift;; # don't run WPS for *next* step
+    -w | --nowps ) NOWPS='NOWPS'; shift;; # don't run WPS for *next* step
     -l | --nowait ) QWAIT=0; shift;; # don't wait for WPS to finish
     -m | --norst ) RSTCNT=1000; shift;; # should be enough to prevent restarts...
     -n | --setrst ) RSTCNT="$2"; shift 2 ;; # (re-)set restart counter

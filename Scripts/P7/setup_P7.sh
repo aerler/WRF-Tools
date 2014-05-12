@@ -75,7 +75,7 @@ export THREADS=${THREADS:-1} # number of OpenMP threads
 export HYBRIDRUN=${HYBRIDRUN:-'poe'} # evaluated by execWRF and execWPS
 
 # geogrid command (executed during machine-independent setup)
-export RUNGEO=${RUNGEO:-"ssh gpc-f102n084-ib0 \"cd ${INIDIR}; source ${SCRIPTDIR}/setup_WPS.sh; mpirun -n 4 ${BINDIR}/geogrid.exe\""} # run on GPC via ssh
+export RUNGEO=${RUNGEO:-"ssh gpc-f102n084-ib0 \"cd ${INIDIR}; source ${SCRIPTDIR}/setup_WPS.sh; mpirun -n 1 ${BINDIR}/geogrid.exe\""} # run on GPC via ssh
 # export RUNGEO=${RUNGEO:-"mpiexec -n 8 ${BINDIR}/geogrid.exe"} # run locally
 
 # WPS/preprocessing submission command (for next step)

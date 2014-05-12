@@ -20,11 +20,20 @@ from namelist import time
 
 # setup
 #if os.environ.has_key('STEP'):
-#  laststep = os.environ['STEP'] # name of current (i.e. last) step
+#  currentstep = os.environ['STEP'] # name of current (i.e. last) step
 # pass current/last step name as argument
-if len(sys.argv) > 1:
-  laststep = sys.argv[1]
-else: laststep = ''
+if len(sys.argv) == 1:
+  currentstep = '' # just return first step
+elif len(sys.argv) == 2:
+  currentstep = sys.argv[1]
+  lcurrent = False # assume input was the previous step
+elif len(sys.argv) == 3 : 
+  currentstep = sys.argv[2]
+  if sys.argv[1].lower() == 'last': lcurrent = False # process next step
+  elif sys.argv[1].lower() == 'next': lcurrent = True # process input step
+  else: raise ValueError, "First argument has to be 'last' or 'next'"
+else: raise ValueError, "Only two arguments are supported."
+# environment variables
 if os.environ.has_key('STEPFILE'):
   stepfile = os.environ['STEPFILE'] # name of file with step listing
 else: stepfile = 'stepfile' # default name
@@ -36,6 +45,7 @@ if os.environ.has_key('DATATYPE'):
   elif os.environ['DATATYPE'][:4] == 'CCSM': lly = False # CCSMx does not have leap-years
   else: lly = True # reanalysis have leap-years
 else: lly = False # GCMs like CESM/CCSM generally don't have leap-years
+# standard names for namelists
 nmlstwps = 'namelist.wps' # WPS namelist file
 nmlstwrf = 'namelist.input' # WRF namelist file
 
@@ -46,35 +56,35 @@ if __name__ == '__main__':
 
   # read step file
   filehandle = fileinput.FileInput([IniDir + '/' + stepfile]) # , mode='r' # AIX doesn't like this
-  nextline = -1 # flag for last step not found 
-  if laststep:
+  stepline = -1 # flag for last step not found 
+  if currentstep:
     # either loop over lines
     for line in filehandle:
-      if (nextline == -1) and (laststep in line.split()[0]):
-        # scan for current/last step (in first column)   
-        nextline = filehandle.filelineno() + 1
-      elif nextline == filehandle.filelineno():
-        # read next line
-        linesplit = line.split()
+      # scan for current/last step (in first column)   
+      if (stepline == -1) and (currentstep in line.split()[0]):
+        if lcurrent: stepline = filehandle.filelineno()
+        else: stepline = filehandle.filelineno() + 1
+      # read line with current step
+      if stepline == filehandle.filelineno(): linesplit = line.split()
     # check against end of file
-    if nextline > filehandle.filelineno():
-      nextline = 0 # flag for last step (end of file)
+    if stepline > filehandle.filelineno():
+      stepline = 0 # flag for last step (end of file)
   else:
     # or read first line
-    nextline = 1
+    stepline = 1
     linesplit = filehandle[0].split()
   fileinput.close()
         
   # set up next step    
-  if nextline <= 0:
+  if stepline <= 0:
     # no next step
-    if nextline == 0:
+    if stepline == 0:
       # reached end of file
       sys.stdout.write('')
       sys.exit(0)
-    elif nextline == -1:
+    elif stepline == -1:
       # last/current step not found
-      sys.exit(laststep+' not found in '+stepfile)
+      sys.exit(currentstep+' not found in '+stepfile)
     else:
       # unknown error
       sys.exit(127)
