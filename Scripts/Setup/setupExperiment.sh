@@ -204,7 +204,8 @@ WRFNODES=$( eval $( grep 'WRFNODES=' "${WRFTOOLS}/Scripts/${WRFSYS}/run_cycling_
 GEOEXE=${GEOEXE:-"${WPSSRC}/${WPSSYS}-MPI/${WPSBLD}/Default/geogrid.exe"} 
 UNGRIBEXE=${UNGRIBEXE:-"${WPSSRC}/${WPSSYS}-MPI/${WPSBLD}/Default/ungrib.exe"}
 METEXE=${METEXE:-"${WPSSRC}/${WPSSYS}-MPI/${WPSBLD}/Default/metgrid.exe"}
-REALEXE=${REALEXE:-"${WRFSRC}/${WRFSYS}-MPI/${WRFBLD}/Default/real.exe"}
+REALEXE=${REALEXE:-"${WRFSRC}/${WPSSYS}-MPI/${WPSBLD}/Default/real.exe"}
+# default WRF executable
 WRFEXE=${WRFEXE:-"${WRFSRC}/${WRFSYS}-MPI/${WRFBLD}/Default/wrf.exe"}
 # N.B.: the folder 'Default' can be a symlink to the default directory for executables 
 
