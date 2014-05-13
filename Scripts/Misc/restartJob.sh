@@ -47,7 +47,7 @@ ERR=0
 # load job/experiment parameters
 INIDIR=${INIDIR:-"${PWD}"}; cd "$INIDIR" # make sure that this is the current directory
 EXP="${INIDIR%/}"; EXP="${EXP##*/}" # name of experiment
-if [ -z CURRENTSTEP ]; then 
+if [ -z $CURRENTSTEP ]; then 
   CURRENTSTEP=$( ls [0-9][0-9][0-9][0-9]-[0-9][0-9]* -d | head -n 1 ) # first step folder
 elif [ ! -e "$INIDIR/$CURRENTSTEP/" ]; then
   echo 'Error: current step folder does not exist:'
