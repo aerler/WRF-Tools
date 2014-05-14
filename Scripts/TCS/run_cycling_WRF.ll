@@ -31,6 +31,8 @@
 
 
 ## machine specific job settings
+# WRF resource requirements (read by setup scripts)
+export WRFNODES=4 # number of nodes used by WRF
 # get LoadLeveler names (needed for folder names)
 export JOBNAME="${LOADL_JOB_NAME}"
 export INIDIR="${LOADL_STEP_INITDIR}" # experiment root (launch directory)
@@ -40,5 +42,5 @@ export WPSSCRIPT="run_cycling_WPS.pbs" # WRF suffix assumed, WPS suffix substitu
 # WRF and WPS wallclock  time limits (no way to query from queue system)
 export WRFWCT='10:00:00' # WRF wallclock time limit
 export WPSWCT='01:00:00' # WPS wallclock time limit
-# WRF resource requirements (read by setup scripts)
-export WRFNODES=4 # number of nodes used by WRF
+
+

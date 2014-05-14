@@ -29,6 +29,7 @@ CURRENTSTEP="${NEXTSTEP}" # $NEXTSTEP will be overwritten
 export CURRENTSTEP
 
 # more WPS settings (before machine setup)
+export NODES=${WPSNODES} # number of nodes or processes (depending on system)
 # optional arguments $RUNPYWPS, $RUNREAL, $RAMIN, $RAMOUT
 export RUNPYWPS=1
 export RUNREAL=1

@@ -51,8 +51,9 @@ ulimit -s hard
 export NOCLOBBER='-n'
 
 # set up hybrid envionment: OpenMP and MPI (Intel)
-export NODES=${NODES:-${PBS_NUM_NODES}} # set in PBS section
-export TASKS=${TASKS:-12} # number of MPI task per node (Hpyerthreading!)
+export NODES=${NODES:-${PBS_TASKNUM}} # set in PBS section (-l proc=N, but I am not sure if PBS_TASKNUM is correct...)
+export TASKS=${TASKS:-1} # number of MPI task per node (Hpyerthreading!)
+# N.B.: Bugaboo allocates processes and not nodes; $NODES is here used for the number of processes 
 export THREADS=${THREADS:-1} # number of OpenMP threads
 # OpenMPI job launch command
 export HYBRIDRUN=${HYBRIDRUN:-'mpiexec -n $((NODES*TASKS))'} # evaluated by execWRF and execWPS

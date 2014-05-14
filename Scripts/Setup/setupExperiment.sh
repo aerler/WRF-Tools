@@ -22,7 +22,8 @@ function RENAME () {
     if [[ "${FILE}" == *WPS* ]] && [[ "${WPSQ}" == "${Q}" ]]; then
       if [[ "${WPSQ}" == "pbs" ]]; then
         sed -i "/#PBS -N/ s/#PBS -N\ .*$/#PBS -N ${NAME}_WPS/" "${FILE}" # name
-        sed -i "/#PBS -l/ s/#PBS -l nodes=.*:\(.*\)$/#PBS -l nodes=1:\1/" "${FILE}" # nodes (WPS only runs on one node)
+        sed -i "/#PBS -l/ s/#PBS -l nodes=.*:\(.*\)$/#PBS -l nodes=${WPSNODES}:\1/" "${FILE}" # number of nodes (preserve task number)
+        sed -i "/#PBS -l/ s/#PBS -l procs=.*$/#PBS -l procs=${WPSNODES}/" "${FILE}" # processes (alternative to nodes)
         sed -i "/#PBS -l/ s/#PBS -l walltime=.*$/#PBS -l walltime=${WPSWCT}/" "${FILE}" # wallclock time      
       else
       sed -i "/export JOBNAME/ s+export\ JOBNAME=.*$+export JOBNAME=${NAME}_WPS  # job name (dummy variable, since there is no queue)+" "${FILE}" # name
@@ -33,7 +34,8 @@ function RENAME () {
       if [[ "${WRFQ}" == "pbs" ]]; then
         sed -i "/#PBS -N/ s/#PBS -N\ .*$/#PBS -N ${NAME}_WRF/" "run_${CASETYPE}_WRF.${WRFQ}" # experiment name
         #sed -i "/#PBS -W/ s/#PBS -W\ .*$/#PBS -W depend=afterok:${NAME}_WPS/" "${FILE}" # dependency on WPS
-        sed -i "/#PBS -l/ s/#PBS -l nodes=.*:\(.*\)$/#PBS -l nodes=${WRFNODES}:\1/" "${FILE}" # number of nodes
+        sed -i "/#PBS -l/ s/#PBS -l nodes=.*:\(.*\)$/#PBS -l nodes=${WRFNODES}:\1/" "${FILE}" # number of nodes (preserve task number)
+        sed -i "/#PBS -l/ s/#PBS -l procs=.*$/#PBS -l procs=${WRFNODES}/" "${FILE}" # processes (alternative to nodes)
         sed -i "/#PBS -l/ s/#PBS -l walltime=.*$/#PBS -l walltime=${MAXWCT}/" "${FILE}" # wallclock time
         sed -i "/qsub/ s/qsub ${WRFSCRIPT} -v NEXTSTEP=*\ -W*$/qsub ${WRFSCRIPT} -v NEXTSTEP=*\ -W\ ${NAME}_WPS/" "${FILE}" # dependency
       elif [[ "${WRFQ}" == "sge" ]]; then
@@ -62,8 +64,9 @@ function RENAME () {
     sed -i '/METDATA/ s+METDATA=[^$][^$].*$+METDATA=""  # WRF output folder+' "${FILE}"
     # WRF wallclock time limit
     sed -i "/WRFWCT/ s/WRFWCT=[^$][^$].*$/WRFWCT=\'${WRFWCT}\' # WRF wallclock time/" "${FILE}" # used for queue time estimate
-    # number of WRF nodes on given system
-    sed -i "/NODES/ s/NODES=[^$][^$].*$/NODES=${WRFNODES} # number of nodes/" "${FILE}" # use for TCS setup
+    # number of WPS & WRF nodes on given system
+    sed -i "/WPSNODES/ s/WPSNODES=[^$][^$].*$/WPSNODES=${WPSNODES} # number of WPS nodes/" "${FILE}" 
+    sed -i "/WRFNODES/ s/WRFNODES=[^$][^$].*$/WRFNODES=${WRFNODES} # number of WRF nodes/" "${FILE}"
     # WPS wallclock time limit
     sed -i "/WPSWCT/ s/WPSWCT=[^$][^$].*$/WPSWCT=\'${WPSWCT}\' # WPS wallclock time/" "${FILE}" # used for queue time estimate
     # script folder
@@ -156,6 +159,9 @@ elif [[ "${DATATYPE}" == 'CFSR' ]]; then
 elif [[ "${DATATYPE}" == 'ERA-I' ]]; then
   VTABLE=${VTABLE:-'Vtable.ERA-interim.pl'}
   METGRIDTBL=${METGRIDTBL:-'METGRID.TBL.ARW'}
+elif [[ "${DATATYPE}" == 'NARR' ]]; then
+  VTABLE=${VTABLE:-'Vtable.NARR'}
+  METGRIDTBL=${METGRIDTBL:-'METGRID.TBL.ARW'}
 else # WPS default
   METGRIDTBL=${METGRIDTBL:-'METGRID.TBL.ARW'}
 fi # $DATATYPE
@@ -172,7 +178,7 @@ if [[ -z "$WRFBLD" ]]; then
   # GCM or reanalysis with current I/O version
   if [[ "${DATATYPE}" == 'CESM' ]] || [[ "${DATATYPE}" == 'CCSM' ]]; then
     WRFBLD="Clim-${IO}" # variable GHG scenarios and no leap-years
-  elif [[ "${DATATYPE}" == 'ERA-I' ]] || [[ "${DATATYPE}" == 'CFSR' ]]; then
+  elif [[ "${DATATYPE}" == 'ERA-I' ]] || [[ "${DATATYPE}" == 'CFSR' ]] || [[ "${DATATYPE}" == 'NARR' ]]; then
     WRFBLD="ReA-${IO}" # variable GHG scenarios with leap-years
   else
     WRFBLD="Default-${IO}" # standard WRF build with current I/O version
@@ -197,8 +203,11 @@ TMP=$( eval $( grep 'WPSWCT=' "${WRFTOOLS}/Scripts/${WPSSYS}/run_cycling_WPS.${W
 WPSWCT=${WPSWCT:-"${TMP}"}
 TMP=$( eval $( grep 'WRFWCT=' "${WRFTOOLS}/Scripts/${WRFSYS}/run_cycling_WRF.${WRFQ}" ); echo "$WRFWCT" )
 WRFWCT=${WRFWCT:-"${TMP}"}
-# read number of WRF nodes
-WRFNODES=$( eval $( grep 'WRFNODES=' "${WRFTOOLS}/Scripts/${WRFSYS}/run_cycling_WRF.${WRFQ}" ); echo "$WRFNODES" )
+# read number of WPS & WRF nodes/processes (defaults to one)
+TMP=$( eval $( grep 'WPSNODES=' "${WRFTOOLS}/Scripts/${WRFSYS}/run_cycling_WPS.${WPSQ}" ); echo "${WPSNODES:-1}" )
+WPSNODES=${WPSNODES:-$TMP}
+WRFNODES=$( eval $( grep 'WRFNODES=' "${WRFTOOLS}/Scripts/${WRFSYS}/run_cycling_WRF.${WRFQ}" ); echo "${WRFNODES:-1}" )
+WRFNODES=${WRFNODES:-$TMP}
 
 # default WPS and real executables
 GEOEXE=${GEOEXE:-"${WPSSRC}/${WPSSYS}-MPI/${WPSBLD}/Default/geogrid.exe"} 

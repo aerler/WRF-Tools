@@ -26,6 +26,7 @@ export NEXTSTEP
 export CURRENTSTEP
 
 # more WRF settings (before machine setup!)
+export NODES=${WRFNODES} # number of nodes or processes (depending on system)
 export RUNWRF=1 # more options: $WRFIN, $WRFOUT, $TABLES
 export RUNREAL=0 # more options: $RUNREAL, $RAMIN, $RAMOUT, $REALIN, $REALOUT
 

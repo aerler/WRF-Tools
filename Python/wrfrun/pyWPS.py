@@ -212,6 +212,15 @@ class ERAI(Dataset):
   datestr = '{:04d}{:02d}{:02d}{:02d}' # year, month, day, hour (for printing)
   # all other variables have default values
 
+## NARR
+class NARR(Dataset):
+  # a class that holds meta data specific to ERA-Interim data
+  grbdirs = ['plev','flx','sfc']
+  grbstrs = ['merged_AWIP32.{:s}.3D','merged_AWIP32.{:s}.RS.flx','merged_AWIP32.{:s}.RS.sfc']
+  dateform = '\d\d\d\d\d\d\d\d\d\d' # YYYYMMDDHH (for matching regex)
+  datestr = '{:04d}{:02d}{:02d}{:02d}' # year, month, day, hour (for printing)
+  # all other variables have default values
+
 ## CFSR
 class CFSR(Dataset):
   # a class that holds meta data and implements operations specific to CFSR data
@@ -226,11 +235,11 @@ class CFSR(Dataset):
   # pressure levels (3D)
   plevdir = 'plev'
   plevvtable = 'Vtable.CFSR_plev'
-  plevstr = '.pgbh06.gdas.grb2' # including filename extension
+  plevstr = '00.pgbh06.gdas.grb2' # including filename extension
   # surface data
   srfcdir = 'srfc'
   srfcvtable = 'Vtable.CFSR_srfc'
-  srfcstr = '.flxf06.gdas.grb2' # including filename extension
+  srfcstr = '00.flxf06.gdas.grb2' # including filename extension
 
   def __init__(self, folder=None):
 
