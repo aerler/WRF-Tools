@@ -119,7 +119,7 @@ GEODATA="/project/p/peltier/WRF/geog/" # location of geogrid data
 WRFSYS='' # WRF - define in xconfig.sh
 MAXWCT='48:00:00' # this is common on most clusters
 POLARWRF=0 # PolarWRF switch
-FLAKE=1 # use FLake
+FLAKE=0 # FLake lake model (in-house; only V3.4 & V3.5)
 # some settings depend on the number of domains
 MAXDOM=2 # number of domains in WRF and WPS
 
@@ -204,9 +204,9 @@ WPSWCT=${WPSWCT:-"${TMP}"}
 TMP=$( eval $( grep 'WRFWCT=' "${WRFTOOLS}/Scripts/${WRFSYS}/run_cycling_WRF.${WRFQ}" ); echo "$WRFWCT" )
 WRFWCT=${WRFWCT:-"${TMP}"}
 # read number of WPS & WRF nodes/processes (defaults to one)
-TMP=$( eval $( grep 'WPSNODES=' "${WRFTOOLS}/Scripts/${WRFSYS}/run_cycling_WPS.${WPSQ}" ); echo "${WPSNODES:-1}" )
+TMP=$( eval $( grep 'WPSNODES=' "${WRFTOOLS}/Scripts/${WPSSYS}/run_cycling_WPS.${WPSQ}" ); echo "${WPSNODES:-1}" )
 WPSNODES=${WPSNODES:-$TMP}
-WRFNODES=$( eval $( grep 'WRFNODES=' "${WRFTOOLS}/Scripts/${WRFSYS}/run_cycling_WRF.${WRFQ}" ); echo "${WRFNODES:-1}" )
+TMP=$( eval $( grep 'WRFNODES=' "${WRFTOOLS}/Scripts/${WRFSYS}/run_cycling_WRF.${WRFQ}" ); echo "${WRFNODES:-1}" )
 WRFNODES=${WRFNODES:-$TMP}
 
 # default WPS and real executables
