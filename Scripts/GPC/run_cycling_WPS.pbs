@@ -20,9 +20,9 @@
 # N.B.: the queue setting may have been changed by the last submitting instance
 
 
-## job settings
+## machine specific job settings
 # WPS resource requirements (read by setup scripts)
-export WPSNODES=1 # number of nodes used by WRF
+export WPSNODES=1 # number of nodes used by WPS
 # get PBS names (needed for folder names)
 export JOBNAME="${PBS_JOBNAME}" # not the $RUNNAME
 export INIDIR="${PBS_O_WORKDIR}" # experiment root (launch directory)
