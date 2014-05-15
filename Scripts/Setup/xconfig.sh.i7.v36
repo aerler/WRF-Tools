@@ -19,13 +19,15 @@ DOM='arb1-120km'
 # WRF
 TIME_CONTROL="cycling,${IO}"
 DIAGS='hitop'
-PHYSICS='clim'
-PHYSICS_MOD=' ra_sw_physics   = 4,   4, ! RRTMG: ra_lw_physics   = 4,   4, ! RRTMG'
-NOAH_MP=''
+#PHYSICS='clim'
+PHYSICS='clim-new-v36'
+#PHYSICS_MOD=' sf_surface_physics   = 2,   2, ! Noah LSM'
+NOAH_MP='new-v36'
 DOMAINS="erai-30km,${DOM}-grid"
-DOMAINS_MOD=' time_step = 300,: dx = 120000,: dy = 120000,: e_vert = 35, 35, ! need higher vertical resolution in V3.6'
+DOMAINS_MOD=' time_step = 200, : dx = 120000, : dy = 120000, : e_vert = 25, 25, : p_top_requested = 20000 '
 FDDA='spectral'
 DYNAMICS='default'
+DYNAMICS_MOD=' epssm = 0.5, 0.5, 0.5, 0.5 ! for more stability; necessary with G3'
 BDY_CONTROL='clim'
 NAMELIST_QUILT=''
 # WPS
@@ -55,8 +57,6 @@ WRFROOT="$MODEL_ROOT/WRFV3.6/"
 WPSSYS="i7" # also affects unccsm.exe
 # set path for metgrid.exe and real.exe explicitly using METEXE and REALEXE
 # WRF executable
-POLARWRF=0 # use PolarWRF
-FLAKE=0 # use FLake
 WRFSYS="i7"
 #WRFBLD='Clim-fineIO'
 # set path for geogrid.exe and wrf.exe eplicitly using GEOEXE and WRFEXE

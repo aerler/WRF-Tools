@@ -44,7 +44,7 @@ export NOCLOBBER='-n'
 
 # set up hybrid envionment: OpenMP and OpenMPI
 export NODES=${NODES:-1} # there is only on node...
-export TASKS=${TASKS:-4} # number of MPI task per node (Hpyerthreading!)
+export TASKS=${TASKS:-1} # number of MPI task per node (Hpyerthreading!)
 export THREADS=${THREADS:-1} # number of OpenMP threads
 #export OMP_NUM_THREADS=$THREADS
 # OpenMPI hybrid (mpi/openmp) job launch command
