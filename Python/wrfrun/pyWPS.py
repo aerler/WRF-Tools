@@ -231,7 +231,7 @@ class CFSR(Dataset):
   gribname = 'GRIBFILE.AAA' # this is CFSR specific - only one file type is handled at a time  
   tmpfile = 'TMP{:02d}' # temporary files created during ungribbing (including an iterator)
   preimfile = 'FILEOUT'
-  datestr = '{:04d}{:02d}{:02d}{:02d}00' # year, month, day, hour (for printing)
+  datestr = '{:04d}{:02d}{:02d}{:02d}' # year, month, day, hour (for printing)
   # pressure levels (3D)
   plevdir = 'plev'
   plevvtable = 'Vtable.CFSR_plev'
