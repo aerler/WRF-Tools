@@ -65,7 +65,7 @@ if [[ ${RUNWRF} == 1 ]]
     	#RADTAB="${RADTAB} CAMtr_volume_mixing_ratio" # this is handled below
     elif [[ ${RAD} == 'RRTMG' ]] || [[ ${RAD} == 4 ]]; then
 	    echo "  Using RRTMG radiation scheme."
-		  RADTAB="RRTMG_LW_DATA RRTMG_LW_DATA_DBL RRTMG_SW_DATA RRTMG_SW_DATA_DBL"
+		  RADTAB="RRTMG_LW_DATA RRTMG_LW_DATA_DBL RRTMG_SW_DATA RRTMG_SW_DATA_DBL ozone.formatted"
     else
 	    echo 'WARNING: no radiation scheme selected!'
       # this will only happen if no defaults are set and inferring from namelist via 'sed' failed
