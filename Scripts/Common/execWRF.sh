@@ -68,10 +68,10 @@ if [[ ${RUNWRF} == 1 ]]
 		  RADTAB="RRTMG_LW_DATA RRTMG_LW_DATA_DBL RRTMG_SW_DATA RRTMG_SW_DATA_DBL"
 	    # check additional radiation options: aer_opt & o3input     
 	    SEDAER=$(sed -n '/aer_opt/ s/^\ *aer_opt\ *=\ *\(.\).*$/\1/p' namelist.input) # \  = space
-	    if [ -n $SEDAER ] && [ $SEDAER -eq 1 ]; then # add aerosol climatology of Tegen
+	    if [[ -n $SEDAER ]] && [ $SEDAER -eq 1 ]; then # add aerosol climatology of Tegen
 	      RADTAB="${RADTAB} aerosol.formatted aerosol_plev.formatted aerosol_lat.formatted aerosol_lon.formatted"; fi
 	    SEDO3=$(sed -n '/o3input/ s/^\ *o3input\ *=\ *\(.\).*$/\1/p' namelist.input) # \  = space
-	    if [ -n $SEDO3 ] && [ $SEDO3 -eq 2 ]; then # add ozone climatology from CAM
+	    if [[ -n $SEDO3 ]] && [ $SEDO3 -eq 2 ]; then # add ozone climatology from CAM
 	      RADTAB="${RADTAB} ozone.formatted ozone_plev.formatted ozone_lat.formatted"; fi
     else
 	    echo 'WARNING: no radiation scheme selected!'

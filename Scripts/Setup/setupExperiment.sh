@@ -158,7 +158,7 @@ elif [[ "${DATATYPE}" == 'CFSR' ]]; then
   METGRIDTBL=${METGRIDTBL:-'METGRID.TBL.ARW'}
 elif [[ "${DATATYPE}" == 'ERA-I' ]]; then
   VTABLE=${VTABLE:-'Vtable.ERA-interim.pl'}
-  METGRIDTBL=${METGRIDTBL:-'METGRID.TBL.ARW'}
+  METGRIDTBL=${METGRIDTBL:-'METGRID.TBL.ERAI'}
 elif [[ "${DATATYPE}" == 'NARR' ]]; then
   VTABLE=${VTABLE:-'Vtable.NARR'}
   METGRIDTBL=${METGRIDTBL:-'METGRID.TBL.ARW'}
@@ -471,10 +471,10 @@ elif [[ ${RAD} == 4 ]]; then
     RADTAB="RRTMG_LW_DATA RRTMG_LW_DATA_DBL RRTMG_SW_DATA RRTMG_SW_DATA_DBL"
     # check additional radiation options: aer_opt & o3input     
 		AER=$(sed -n '/aer_opt/ s/^\ *aer_opt\ *=\ *\(.\).*$/\1/p' namelist.input) # \  = space
-    if [ $AER -eq 1 ]; then # add aerosol climatology of Tegen
+    if [[ -n $AER ]] && [ $AER -eq 1 ]; then # add aerosol climatology of Tegen
       RADTAB="${RADTAB} aerosol.formatted aerosol_plev.formatted aerosol_lat.formatted aerosol_lon.formatted"; fi
     O3=$(sed -n '/o3input/ s/^\ *o3input\ *=\ *\(.\).*$/\1/p' namelist.input) # \  = space
-    if [ $O3 -eq 2 ]; then # add ozone climatology from CAM
+    if [[ -n $O3 ]] && [ $O3 -eq 2 ]; then # add ozone climatology from CAM
       RADTAB="${RADTAB} ozone.formatted ozone_plev.formatted ozone_lat.formatted"; fi
 else
     echo 'WARNING: no radiation scheme selected, or selection not supported!'

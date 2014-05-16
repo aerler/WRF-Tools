@@ -74,48 +74,18 @@ if os.environ.has_key('PYAVG_FILETYPES'):
 else: filetypes = None # defaults are set below
 # domains to process
 if os.environ.has_key('PYAVG_DOMAINS'): 
-  domains = os.environ['PYAVG_DOMAINS'].split(';') # semi-colon separated list
+  domains = [int(i) for i in os.environ['PYAVG_DOMAINS'].split(';')] # semi-colon separated list
 else: domains = None # defaults are set below
 # run script in debug mode
 if os.environ.has_key('PYAVG_DEBUG'): 
   ldebug =  os.environ['PYAVG_DEBUG'] == 'DEBUG' 
 else: ldebug = False # operational mode
 
-# some debugging settings
-if ldebug:
-  NP = 1
-  ldebug = True
-  loverwrite = True
-  filetypes = ['hydro']
-  domains = [2]
-  WRFroot = '/data/WRF/wrfout/'
-#   WRFroot = '/media/tmp/'
-  exp = 'max-ctrl'
-#   exp = 'columbia'   
-  infolder = WRFroot + exp + '/' # + '/wrfout/'
-  outfolder = infolder # + '/wrfavg/'
-else:
-  hostname = gethostname()
-  if hostname=='komputer':
-    #   WRFroot = '/home/me/Models/test/'
-    #   WRFroot = '/data/WRF/wrfout/'
-    WRFroot = '/media/tmp/'
-    exp = 'max-ctrl'
-    infolder = WRFroot + exp + '/' # + '/wrfout/'
-    outfolder = infolder # + '/wrfavg/'
-  elif hostname[0:3] == 'gpc': # i.e. on scinet...
-    #if os.environ.has_key('PBS_O_WORKDIR'): 
-    #  exproot = os.environ['PBS_O_WORKDIR']
-    exproot = os.getcwd()
-    exp = exproot.split('/')[-1] # root folder name
-    infolder = exproot + '/wrfout/' # input folder 
-    outfolder = exproot + '/wrfavg/' # output folder
-  else:
-    #raise NotImplementedError, 'No settings for this machine found.'
-    exproot = os.getcwd()
-    exp = exproot.split('/')[-1] # root folder name
-    infolder = exproot + '/wrfout/' # input folder 
-    outfolder = exproot + '/wrfavg/' # output folder
+# workign directories
+exproot = os.getcwd()
+exp = exproot.split('/')[-1] # root folder name
+infolder = exproot + '/wrfout/' # input folder 
+outfolder = exproot + '/wrfavg/' # output folder
 
 
 # figure out time period
@@ -420,7 +390,8 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
             tax = var.dimensions.index(wrftime) # index of time axis
             slices = [slice(None)]*len(var.shape) 
             # decide how to average
-            if varname in acclist: # accumulated variables
+            ## Accumulated Variables
+            if varname in acclist: 
               if missing_value is not None: 
                 raise NotImplementedError, "Can't handle accumulated variables with missing values yet."
               # compute mean as difference between end points; normalize by time difference
@@ -455,7 +426,8 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
                 else: raise NotImplementedError  
                 pqdata[varname] = outtmp
             elif varname[0:len(bktpfx)] == bktpfx: pass # do not process buckets
-            else: # normal variables
+            ## Normal Variables
+            else: 
               # compute mean via sum over all elements; normalize by number of time steps
               slices[tax] = slice(wrfstartidx,wrfendidx) # relevant time interval
               tmp = var.__getitem__(slices) # get array
@@ -481,14 +453,14 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
             # loop over time-step data
             for pqname,pqvar in pqdata.items():
               if pqname in acclist: pqvar /= delta # normalize
-	    # N.B.: if wrfendidx == wrfstartidx, just use previous values...
+	        # N.B.: if wrfendidx == wrfstartidx, just use previous values...
           # loop over derived variables
           logger.debug('\n{0:s} Available prerequisites: {1:s}'.format(pidstr, str(pqdata.keys())))
           for dename,devar in derived_vars.items():
             if not devar.linear: # only non-linear ones here, linear one at the end
               logger.debug('\n{0:s}{1:s}, {2:s}'.format(pidstr, dename, str(devar.prerequisites)))
-              tmp = devar.computeValues(pqdata) 
-              dedata[dename] = dedata[dename] + tmp.sum(axis=tax)
+              tmp = devar.computeValues(pqdata) # possibly needed as pre-requisite  
+              dedata[dename] = devar.aggregateValues(dedata[dename], tmp, aggax=tax)
               # N.B.: in-place operations with non-masked array destroy the mask, hence need to use this
               if dename in pqset: pqdata[dename] = tmp
               # N.B.: missing values should be handled implicitly, following missing values in pre-requisites            
