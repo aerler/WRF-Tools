@@ -69,7 +69,7 @@ export HYBRIDRUN=${HYBRIDRUN:-'poe ccsm_launch'} # evaluated by execWRF and exec
 
 # geogrid command (executed during machine-independent setup)
 #export RUNGEO=${RUNGEO:-"mpiexec -n 8 ${BINDIR}/geogrid.exe"} # hide stdout
-export RUNGEO=${RUNGEO:-"ssh gpc-f102n084-ib0 \"cd ${INIDIR}; source ${SCRIPTDIR}/setup_WPS.sh; mpirun -n 1 ${BINDIR}/geogrid.exe\""} # run on GPC via ssh
+export RUNGEO=${RUNGEO:-"ssh gpc-f102n084-ib0 \"cd ${INIDIR}; source ${SCRIPTDIR}/setup_WPS.sh; mpirun -n 4 ${BINDIR}/geogrid.exe\""} # run on GPC via ssh
 
 # WPS/preprocessing submission command (for next step)
 # export SUBMITWPS=${SUBMITWPS:-'ssh gpc-f102n084 "cd \"${INIDIR}\"; qsub ./${WPSSCRIPT} -v NEXTSTEP=${NEXTSTEP}"'} # evaluated by launchPreP

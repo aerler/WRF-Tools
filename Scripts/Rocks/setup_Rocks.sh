@@ -75,6 +75,9 @@ export THREADS=${THREADS:-1} # number of OpenMP threads
 export HYBRIDRUN=${HYBRIDRUN:-"/usr/mpi/gcc/mvapich2-1.7-qlc/bin/mpirun -np $((TASKS*NODES)) -machinefile ${IBHOSTS} "} # -machinefile ${MPIHOSTS}"} # OpenMPI, not Intel
 #export HYBRIDRUN=${HYBRIDRUN:-"/usr/mpi/gcc/mvapich2-1.7-qlc/bin/mpirun -n $((TASKS*NODES)) -ppn ${TASKS} "} #-machinefile ${IBHOSTS} "} # -machinefile ${MPIHOSTS}"} # OpenMPI, not Intel
 
+# geogrid command (executed during machine-independent setup)
+export RUNGEO=${RUNGEO:-"mpirun -n 4 ${BINDIR}/geogrid.exe"}
+
 # WPS/preprocessing submission command (for next step)
 # export SUBMITWPS=${SUBMITWPS:-'ssh localhost "cd \"${INIDIR}\"; export NEXTSTEP=${NEXTSTEP}; ./${WPSSCRIPT}"'} # evaluated by launchPreP; use for tests on devel node
 export SUBMITWPS=${SUBMITWPS:-'ssh rocks-ib.ib "cd \"${INIDIR}\"; export NEXTSTEP=${NEXTSTEP}; ./${WPSSCRIPT} >& ${JOB_NAME%_WRF}_WPS.${JOB_ID}.log" &'} # evaluated by launchPreP; use for production runs on compute nodes

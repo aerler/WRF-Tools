@@ -59,7 +59,7 @@ export THREADS=${THREADS:-1} # number of OpenMP threads
 export HYBRIDRUN=${HYBRIDRUN:-'mpiexec -n $((NODES*TASKS))'} # evaluated by execWRF and execWPS
 
 # geogrid command (executed during machine-independent setup)
-export RUNGEO=${RUNGEO:-"mpirun -n 1 ${BINDIR}/geogrid.exe"}
+export RUNGEO=${RUNGEO:-"mpirun -n 4 ${BINDIR}/geogrid.exe"}
 
 # WPS/preprocessing submission command (for next step)
 export SUBMITWPS=${SUBMITWPS:-'cd ${INIDIR} && qsub ./${WPSSCRIPT} -v NEXTSTEP=${NEXTSTEP}'} # use Python script to estimate queue time and choose queue
