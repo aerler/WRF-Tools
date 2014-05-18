@@ -1,8 +1,9 @@
 #!/bin/bash
-#MOAB/Torque submission script for SciNet GPC
+# MOAB/Torque submission script for Bugaboo (WestGrid)
 
 ## queue/PBS settings
-#PBS -l nodes=1:ppn=8
+#PBS -l procs=8
+#PBS -l pmem=1000MB
 #PBS -l walltime=01:00:00
 # merge standard error and output stream
 #PBS -j oe
@@ -12,9 +13,7 @@
 #PBS -m ae
 # job name
 #PBS -N wrf_avg_test
-## submit to queue (NB: this has to be the last PBS line!)
-# batch (default), debug, largemem
-#PBS -q batch
+## submit to queue (NB: on Bugaboo the queue is selected automatically)
 
 # load some modules
 echo
@@ -24,7 +23,7 @@ echo
 date
 echo
 module purge
-module load intel/13.1.1 gcc/4.8.1 python/2.7.3 hdf5/187-v18-serial-intel netcdf/4.1.3_hdf5_serial-intel
+module load python/2.7.4
 module list
 echo
 
@@ -44,20 +43,8 @@ cd "${INIDIR}"
 
 # launch script
 echo
-if [[ -n "${PERIOD}" ]]; then
-    time -p python "${SCRIPTDIR}/${PYAVG}" "${PERIOD}"
-    ERR=$? # capture exit code      
-else
-
-    # make sure, certain variables are there...
-    module load udunits/2.1.11 nco/4.0.8-intel-nocxx
-    ~/Scripts/addVariable.sh 'ACSNOW'
-    ~/Scripts/addVariable.sh 'SR'
-
-    # launch actual averaging script
-    time -p python "${SCRIPTDIR}/${PYAVG}"
-    ERR=$? # capture exit code
-fi
+time -p python "${SCRIPTDIR}/${PYAVG}" "${PERIOD}"
+ERR=$? # capture exit code      
 echo
 
 # exit with exit code from python script
