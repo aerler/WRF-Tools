@@ -13,7 +13,7 @@
 #PBS -M aerler@atmosp.physics.utoronto.ca
 #PBS -m a
 # job name
-#PBS -N build_WRF
+#PBS -N WRF_build
 ## submit to queue (NB: this has to be the last PBS line!)
 # batch (default), debug, largemem
 #PBS -q batch
@@ -26,21 +26,27 @@ WORKDIR=${WORKDIR:-"${PBS_O_WORKDIR}"} # root folder for output
 
 # WRF
 BLDWRF=${BLDWRF:-1}
-WRFCFG=${WRFCFG:-'configure.gpc-mpi-clim.o3xsse42nc4'} # configure script to be used
-#WRFCFG=${WRFCFG:-'configure.gpc-mpi-clim.o3xssse3'} # configure script to be used
 #WRFCFG=${WRFCFG:-'configure.gpc-mpi-clim.O3xSSE42NC4'} # configure script to be used
 #WRFCFG=${WRFCFG:-'configure.gpc-mpi-clim.O3xSSSE3'} # configure script to be used
+if [[ -z "$WRFCFG" ]]; then 
+  case ${BUILD} in # configure script to be used
+    Clim-O3xSSE42NC4 ) WRFCFG='configure.gpc-mpi-clim.o3xsse42nc4' ;;
+    Clim-O3xSSSE3NC4 ) WRFCFG='configure.gpc-mpi-clim.o3xssse3nc4' ;;
+    ReA-O3xSSE42NC4  ) WRFCFG='configure.gpc-mpi-rea.o3xsse42nc4' ;;
+    ReA-O3xSSSE3NC4  ) WRFCFG='configure.gpc-mpi-rea.o3xssse3nc4' ;;
+  esac # case jobname
 WRFHG=${WRFHG:-1} # 0=use source from tarball, 1=clone HG repository (see below)
-WRFCASE='em_real' # type of WRF build: em_real for real data
+WRFCASE=${WRFCASE:-'em_real'} # type of WRF build: em_real for real data
 WRFOUTDIR="${WORKDIR}/WRFV3" # folder for WRF build output
 WRFBINDIR="${WRFOUTDIR}/${BUILD}" # destination folder for executables (not tarred)
-WRFOUTTAR="${WRFOUTDIR}/wrfbld.tgz" # tarball of build directory
+WRFOUTTAR="${WRFOUTDIR}/${BUILD}/wrfbld.tgz" # tarball of build directory
 WRFINTAR="${WRFINTAR:-${WRFOUTTAR}}" # for optional source input via tarball
 # N.B.: Note that the tarball has to extract into the folder WRFV3/ (or $WRFOUTDIR needs to be set accordingly)
 
 # WPS
-BLDWPS=${BLDWPS:-0} # currently not implemented
-WPSCFG=${WPSCFG:-'configure.gpc-mpi-clim.o3xssse3grb2'} # configure script to be used
+BLDWPS=${BLDWPS:-1} # currently not implemented
+WPSCFG=${WPSCFG:-'configure.gpc-mpi.o3xssse3grb2nc4'} # configure script to be used
+#WPSCFG=${WPSCFG:-'configure.gpc-mpi-clim.o3xssse3grb2'} # configure script to be used
 WPSHG=${WPSHG:-1} # 0=use source from tarball, 1=clone HG repository (see below)
 WPSOUTDIR="${WORKDIR}/WPS" # folder for WPS build output
 WPSBINDIR="${WPSOUTDIR}/${BUILD}" # destination folder for executables (not tarred)
@@ -49,7 +55,7 @@ WPSINTAR="${WPSINTAR:-${WPSOUTTAR}}" # for optional source input via tarball
 # N.B.: Note that the tarball has to extract into the folder WPS/ (or $WRFOUTDIR needs to be set accordingly)
 
 # HG settings
-WRFROOT=${WRFROOT:-"${HOME}/WRFV3.5"}
+WRFROOT=${WRFROOT:-"${HOME}/WRFV3.6"}
 WPSSRC=${WPSSRC:-"${WRFROOT}/WPS"}
 WRFSRC=${WRFSRC:-"${WRFROOT}/WRFV3"}
 
