@@ -158,7 +158,7 @@ elif [[ "${DATATYPE}" == 'CFSR' ]]; then
   METGRIDTBL=${METGRIDTBL:-'METGRID.TBL.ARW'}
 elif [[ "${DATATYPE}" == 'ERA-I' ]]; then
   VTABLE=${VTABLE:-'Vtable.ERA-interim.pl'}
-  METGRIDTBL=${METGRIDTBL:-'METGRID.TBL.ARW'}
+  METGRIDTBL=${METGRIDTBL:-'METGRID.TBL.ERAI'}
 elif [[ "${DATATYPE}" == 'NARR' ]]; then
   VTABLE=${VTABLE:-'Vtable.NARR'}
   METGRIDTBL=${METGRIDTBL:-'METGRID.TBL.ARW'}
@@ -451,6 +451,10 @@ fi # $AVGSCRIPT
 ## copy data tables for selected physics options
 # radiation scheme
 RAD=$(sed -n '/ra_lw_physics/ s/^\ *ra_lw_physics\ *=\ *\(.\),.*$/\1/p' namelist.input) # \  = space
+if [[ "$RAD" != $(sed -n '/ra_sw_physics/ s/^\ *ra_sw_physics\ *=\ *\(.\),.*$/\1/p' namelist.input) ]]; then
+  echo 'Error: different schemes for SW and LW radiation are currently not supported.'
+  exit 1
+fi # check short wave 
 echo "Determining radiation scheme from namelist: RAD=${RAD}"
 # write default RAD into job script ('sed' sometimes fails on TCS...)
 sed -i "/export RAD/ s/export\ RAD=.*$/export RAD=\'${RAD}\' # radiation scheme set by setup script/" "run_${CASETYPE}_WRF.${WRFQ}"
@@ -464,9 +468,16 @@ elif [[ ${RAD} == 3 ]]; then
     #RADTAB="${RADTAB} CAMtr_volume_mixing_ratio" # this is handled below
 elif [[ ${RAD} == 4 ]]; then
     echo "  Using RRTMG radiation scheme."
-    RADTAB="RRTMG_LW_DATA RRTMG_LW_DATA_DBL RRTMG_SW_DATA RRTMG_SW_DATA_DBL ozone.formatted"
+    RADTAB="RRTMG_LW_DATA RRTMG_LW_DATA_DBL RRTMG_SW_DATA RRTMG_SW_DATA_DBL"
+    # check additional radiation options: aer_opt & o3input     
+		AER=$(sed -n '/aer_opt/ s/^\ *aer_opt\ *=\ *\(.\).*$/\1/p' namelist.input) # \  = space
+    if [[ -n $AER ]] && [ $AER -eq 1 ]; then # add aerosol climatology of Tegen
+      RADTAB="${RADTAB} aerosol.formatted aerosol_plev.formatted aerosol_lat.formatted aerosol_lon.formatted"; fi
+    O3=$(sed -n '/o3input/ s/^\ *o3input\ *=\ *\(.\).*$/\1/p' namelist.input) # \  = space
+    if [[ -n $O3 ]] && [ $O3 -eq 2 ]; then # add ozone climatology from CAM
+      RADTAB="${RADTAB} ozone.formatted ozone_plev.formatted ozone_lat.formatted"; fi
 else
-    echo 'WARNING: no radiation scheme selected!'
+    echo 'WARNING: no radiation scheme selected, or selection not supported!'
 fi
 # urban surface scheme
 URB=$(sed -n '/sf_urban_physics/ s/^\ *sf_urban_physics\ *=\ *\(.\),.*$/\1/p' namelist.input) # \  = space

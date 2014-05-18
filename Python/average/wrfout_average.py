@@ -74,48 +74,18 @@ if os.environ.has_key('PYAVG_FILETYPES'):
 else: filetypes = None # defaults are set below
 # domains to process
 if os.environ.has_key('PYAVG_DOMAINS'): 
-  domains = os.environ['PYAVG_DOMAINS'].split(';') # semi-colon separated list
+  domains = [int(i) for i in os.environ['PYAVG_DOMAINS'].split(';')] # semi-colon separated list
 else: domains = None # defaults are set below
 # run script in debug mode
 if os.environ.has_key('PYAVG_DEBUG'): 
   ldebug =  os.environ['PYAVG_DEBUG'] == 'DEBUG' 
 else: ldebug = False # operational mode
 
-# some debugging settings
-if ldebug:
-  NP = 1
-  ldebug = True
-  loverwrite = True
-  filetypes = ['hydro']
-  domains = [2]
-  WRFroot = '/data/WRF/wrfout/'
-#   WRFroot = '/media/tmp/'
-  exp = 'max-ctrl'
-#   exp = 'columbia'   
-  infolder = WRFroot + exp + '/' # + '/wrfout/'
-  outfolder = infolder # + '/wrfavg/'
-else:
-  hostname = gethostname()
-  if hostname=='komputer':
-    #   WRFroot = '/home/me/Models/test/'
-    #   WRFroot = '/data/WRF/wrfout/'
-    WRFroot = '/media/tmp/'
-    exp = 'max-ctrl'
-    infolder = WRFroot + exp + '/' # + '/wrfout/'
-    outfolder = infolder # + '/wrfavg/'
-  elif hostname[0:3] == 'gpc': # i.e. on scinet...
-    #if os.environ.has_key('PBS_O_WORKDIR'): 
-    #  exproot = os.environ['PBS_O_WORKDIR']
-    exproot = os.getcwd()
-    exp = exproot.split('/')[-1] # root folder name
-    infolder = exproot + '/wrfout/' # input folder 
-    outfolder = exproot + '/wrfavg/' # output folder
-  else:
-    #raise NotImplementedError, 'No settings for this machine found.'
-    exproot = os.getcwd()
-    exp = exproot.split('/')[-1] # root folder name
-    infolder = exproot + '/wrfout/' # input folder 
-    outfolder = exproot + '/wrfavg/' # output folder
+# workign directories
+exproot = os.getcwd()
+exp = exproot.split('/')[-1] # root folder name
+infolder = exproot + '/wrfout/' # input folder 
+outfolder = exproot + '/wrfavg/' # output folder
 
 
 # figure out time period
@@ -163,7 +133,7 @@ wrftimestamp = 'Times' # time-stamp variable in WRF
 time = 'time' # time dim in monthly mean files
 dimlist = ['x','y'] # dimensions we just copy
 dimmap = {time:wrftime} #{time:wrftime, 'x':'west_east','y':'south_north'}
-midmap = None #dict(zip(dimmap.values(),dimmap.keys())) # reverse dimmap
+midmap = dict(zip(dimmap.values(),dimmap.keys())) # reverse dimmap
 # accumulated variables (only total accumulation since simulation start, not, e.g., daily accumulated)
 acclist = dict(RAINNC=100,RAINC=100,RAINSH=None,SNOWNC=None,GRAUPELNC=None,SFCEVP=None,POTEVP=None, # srfc vars
                SFROFF=None,UDROFF=None,ACGRDFLX=None,ACSNOW=None,ACSNOM=None,ACHFX=None,ACLHF=None, # lsm vars
@@ -175,9 +145,12 @@ bktpfx = 'I_' # prefix for bucket variables; these are processed together with t
 # derived variables
 derived_variables = {filetype:[] for filetype in filetypes} # derived variable lists by file type
 derived_variables['hydro'] = [dv.Rain(), dv.LiquidPrecip(), dv.SolidPrecip(),                            
-                              dv.NetPrecip_Hydro(), dv.NetWaterFlux()]
+                              dv.NetPrecip_Hydro(), dv.NetWaterFlux(), ]
 derived_variables['srfc'] = [dv.Rain(), dv.LiquidPrecipSR(), dv.SolidPrecipSR(), dv.NetPrecip_Srfc(), dv.WaterVapor()]
 derived_variables['lsm'] = [dv.RunOff()]
+# Maxima (just list base variables; derived variables will be created later)
+maximum_variables = {filetype:[] for filetype in filetypes} # maxima variable lists by file type
+maximum_variables['hydro'] = ['T2MEAN', 'RAIN', 'NetWaterFlux'] # 
 # N.B.: it is important that the derived variables are listed in order of dependency! 
 # set of pre-requisites
 prereq_vars = {key:set() for key in derived_variables.keys()} # pre-requisite variable set by file type
@@ -191,15 +164,6 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
   
   ## setup files and folders
 
-  # derived variable list
-  derived_vars = OrderedDict() # it is important that the derived variables are computed in order:
-  # the reason is that derived variables can depend on other derived variables, and the order in 
-  # which they are listed, takes this into account
-  for devar in derived_variables[filetype]:
-    derived_vars[devar.name] = devar 
-  pqset = prereq_vars[filetype] # set of pre-requisites for derived variables
-  laccpq = any([accvar in pqset for accvar in acclist]) # if accumulated variables are among the prerequisites
-  
   # load first file to copy some meta data
   wrfout = nc.Dataset(infolder+filelist[0], 'r', format='NETCDF4')
   # timeless variables (should be empty, since all timeless variables should be in constant files!)        
@@ -208,8 +172,42 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
   # time-dependent variables            
   varlist = [varname for varname,var in wrfout.variables.iteritems() if 'Time' in var.dimensions \
              and np.issubdtype(var.dtype, np.number) and not varname[0:len(bktpfx)] == bktpfx]
+
+  ## derived variables, extrema, and dependencies
+  # derived variable list
+  derived_vars = OrderedDict() # it is important that the derived variables are computed in order:
+  # the reason is that derived variables can depend on other derived variables, and the order in 
+  # which they are listed, should take this into account
+  for devar in derived_variables[filetype]:
+    derived_vars[devar.name] = devar 
+  pqset = prereq_vars[filetype] # set of pre-requisites for derived variables
   
-  # announcement
+  # create derived variables for extrema
+  for maxvar in maximum_variables[filetype]:
+    # create derived variable instance
+    if maxvar in derived_vars: devar = dv.Maximum(derived_vars[maxvar])
+    else: devar = dv.Maximum(wrfout.variables[maxvar], dimmap=midmap)
+    # append to derived variables
+    derived_vars[devar.name] = devar
+    
+  # construct dependencies
+  # update linearity: dependencies of non-linear variables have to be treated as non-linear themselves
+  lagain = True
+  # parse through dependencies until nothing changes anymore
+  while lagain:
+    lagain = False
+    for devar in derived_vars.itervalues():
+      if not devar.linear:
+        # make sure all dependencies are also treated as non-linear
+        for pq in devar.prerequisites:
+          if pq in derived_vars and derived_vars[pq].linear:
+            lagain = True # indicate modification
+            derived_vars[pq].linear = False
+  # construct dependency set (should include extrema now)
+  pqset = set().union(*[devar.prerequisites for devar in derived_vars.itervalues() if not devar.linear])
+  laccpq = any([accvar in pqset for accvar in acclist]) # if accumulated variables are among the prerequisites
+  
+  # get some meta info and construct title string
   begindate = datergx.search(filelist[0]).group()
   beginyear, beginmonth, beginday = [int(tmp) for tmp in begindate.split('-')]
   assert beginday == 1, 'always have to begin on the first of a month'
@@ -220,12 +218,13 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
   for var in varlist: varstr += '%s, '%var
   for devar in derived_vars.values(): devarstr += '%s, '%devar.name
       
-  # print meta info (print everything in one chunk, so output from different processes does not get mangled)
+  # announcement: format title string and print
   titlestr = '\n\n{0:s}    ***   Processing wrf{1:s} files for domain {2:d}.   ***'.format(pidstr,filetype,ndom)
   titlestr += '\n          (monthly means from {0:s} to {1:s}, incl.)'.format(begindate,enddate)
   if varstr: titlestr += '\n Variable list: {0:s}'.format(str(varstr),)
   else: titlestr += '\n Variable list: None'
   if devarstr: titlestr += '\n Derived variables: {0:s}'.format(str(devarstr),)
+  # print meta info (print everything in one chunk, so output from different processes does not get mangled)
   logger.info(titlestr)
   
   # open/create monthly mean output file
@@ -250,7 +249,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
         raise (dv.DerivedVariableError, 
                "{0:s} Derived variable '{1:s}' not found in file '{2:s}'".format(pidstr,var.name,filename))
       var.checkPrerequisites(mean)
-  else:        
+  else:
     mean = nc.Dataset(meanfile, 'w', format='NETCDF4') # open to start a new file (mode='w')
     t0 = 1 # time index where we start: first month in 1979
     mean.createDimension(time, size=None) # make time dimension unlimited
@@ -420,7 +419,8 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
             tax = var.dimensions.index(wrftime) # index of time axis
             slices = [slice(None)]*len(var.shape) 
             # decide how to average
-            if varname in acclist: # accumulated variables
+            ## Accumulated Variables
+            if varname in acclist: 
               if missing_value is not None: 
                 raise NotImplementedError, "Can't handle accumulated variables with missing values yet."
               # compute mean as difference between end points; normalize by time difference
@@ -455,7 +455,8 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
                 else: raise NotImplementedError  
                 pqdata[varname] = outtmp
             elif varname[0:len(bktpfx)] == bktpfx: pass # do not process buckets
-            else: # normal variables
+            ## Normal Variables
+            else: 
               # compute mean via sum over all elements; normalize by number of time steps
               slices[tax] = slice(wrfstartidx,wrfendidx) # relevant time interval
               tmp = var.__getitem__(slices) # get array
@@ -481,14 +482,14 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
             # loop over time-step data
             for pqname,pqvar in pqdata.items():
               if pqname in acclist: pqvar /= delta # normalize
-	    # N.B.: if wrfendidx == wrfstartidx, just use previous values...
+	        # N.B.: if wrfendidx == wrfstartidx, just use previous values...
           # loop over derived variables
           logger.debug('\n{0:s} Available prerequisites: {1:s}'.format(pidstr, str(pqdata.keys())))
           for dename,devar in derived_vars.items():
             if not devar.linear: # only non-linear ones here, linear one at the end
-              logger.debug('\n{0:s}{1:s}, {2:s}'.format(pidstr, dename, str(devar.prerequisites)))
-              tmp = devar.computeValues(pqdata) 
-              dedata[dename] = dedata[dename] + tmp.sum(axis=tax)
+              logger.debug('\n{0:s} {1:s} {2:s}'.format(pidstr, dename, str(devar.prerequisites)))
+              tmp = devar.computeValues(pqdata, aggax=tax) # possibly needed as pre-requisite  
+              dedata[dename] = devar.aggregateValues(dedata[dename], tmp, aggax=tax)
               # N.B.: in-place operations with non-masked array destroy the mask, hence need to use this
               if dename in pqset: pqdata[dename] = tmp
               # N.B.: missing values should be handled implicitly, following missing values in pre-requisites            
@@ -571,8 +572,10 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
         for dename,devar in derived_vars.items():
           if devar.linear:           
             vardata = devar.computeValues(data) # compute derived variable now from averages
-          else:
+          elif devar.normalize: 
             vardata = dedata[dename] / ntime # no accumulated variables here!
+          else: vardata = dedata[dename] # just the data...
+          # not all variables are normalized (e.g. extrema)
           logger.debug('{0:s} {1:s}, {2:f}, {3:f}, {4:f}'.format(pidstr,dename,float(vardata.mean()),float(vardata.min()),float(vardata.max())))
           data[dename] = vardata # add to data array, so that it can be used to compute linear variables
           # save variable
