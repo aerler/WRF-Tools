@@ -86,12 +86,13 @@ class DerivedVariable(object):
     ncvar = add_var(target, name=self.name, dims=self.axes, data=None, atts=self.atts, dtype=self.dtype )
     return ncvar
     
-  def computeValues(self, indata, aggax=0, const=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None):
     ''' Compute values for new variable from existing stock; child classes have to overload this method. '''
     # N.B.: this method i called directly for linear and through aggregateValues() for non-linear variables
     if not isinstance(indata,dict): raise TypeError
     if not isinstance(aggax,(int,np.integer)): raise TypeError # the aggregation axis (needed for extrema) 
     if not (const is None or isinstance(const,dict)): raise TypeError # dictionary of constant(s)/fields
+    if not (delta is None or isinstance(delta,(float,np.inexact))): raise TypeError # output interval period 
     # N.B.: the const dictionary makes pre-loaded constant fields available for computations 
     if not self.checked: # check prerequisites
       raise DerivedVariableError, "Prerequisites for variable '%s' are not satisfied."%(self.name)
@@ -122,13 +123,32 @@ class Rain(DerivedVariable):
                               units='kg/m^2/s', # not accumulated anymore! 
                               prerequisites=['RAINNC', 'RAINC'], # it's the sum of these two 
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
-                              dtype='float', atts=None, linear=False) 
+                              dtype='float', atts=None, linear=True) 
     # N.B.: this computation is actually linear, but some non-linear computations depend on it
 
-  def computeValues(self, indata, aggax=0, const=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None):
     ''' Compute total precipitation as the sum of convective  and non-convective precipitation. '''
-    super(Rain,self).computeValues(indata, aggax=aggax, const=const) # perform some type checks    
+    super(Rain,self).computeValues(indata, aggax=aggax, delta=delta, const=const) # perform some type checks    
     outdata = indata['RAINNC'] + indata['RAINC'] # compute
+    return outdata
+
+
+class RainMean(DerivedVariable):
+  ''' DerivedVariable child implementing computation of total daily precipitation for WRF output. '''
+  
+  def __init__(self):
+    ''' Initialize with fixed values; constructor takes no arguments. '''
+    super(RainMean,self).__init__(name='RAINMEAN', # name of the variable
+                              units='kg/m^2/s', # not accumulated anymore! 
+                              prerequisites=['RAINNCVMEAN', 'RAINCVMEAN'], # it's the sum of these two 
+                              axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
+                              dtype='float', atts=None, linear=True) 
+    # N.B.: this computation is actually linear, but some non-linear computations depend on it
+
+  def computeValues(self, indata, aggax=0, delta=None, const=None):
+    ''' Compute total precipitation as the sum of convective  and non-convective precipitation. '''
+    super(RainMean,self).computeValues(indata, aggax=aggax, delta=delta, const=const) # perform some type checks    
+    outdata = indata['RAINNCVMEAN'] + indata['RAINCVMEAN'] # compute
     return outdata
 
     
@@ -139,13 +159,13 @@ class LiquidPrecip(DerivedVariable):
     ''' Initialize with fixed values; constructor takes no arguments. '''
     super(LiquidPrecip,self).__init__(name='LiquidPrecip', # name of the variable
                               units='kg/m^2/s', # not accumulated anymore! 
-                              prerequisites=['RAINNC', 'RAINC', 'ACSNOW'], # it's the sum of these two 
+                              prerequisites=['RAINNC', 'RAINC', 'ACSNOW'], # difference...
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype='float', atts=None, linear=True) # this computation is actually linear
 
-  def computeValues(self, indata, aggax=0, const=None):
-    ''' Compute total precipitation as the sum of convective  and non-convective precipitation. '''
-    super(LiquidPrecip,self).computeValues(indata, aggax=aggax, const=const) # perform some type checks
+  def computeValues(self, indata, aggax=0, delta=None, const=None):
+    ''' Compute liquid precipitation as the difference between total and solid precipitation. '''
+    super(LiquidPrecip,self).computeValues(indata, aggax=aggax, delta=delta, const=const) # perform some type checks
     outdata = indata['RAINNC'] + indata['RAINC'] - indata['ACSNOW'] # compute
     return outdata
 
@@ -157,13 +177,13 @@ class SolidPrecip(DerivedVariable):
     ''' Initialize with fixed values; constructor takes no arguments. '''
     super(SolidPrecip,self).__init__(name='SolidPrecip', # name of the variable
                               units='kg/m^2/s', # not accumulated anymore! 
-                              prerequisites=['ACSNOW'], # it's the sum of these two 
+                              prerequisites=['ACSNOW'], # it's identical to this field... 
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype='float', atts=None, linear=True) # this computation is actually linear
 
-  def computeValues(self, indata, aggax=0, const=None):
-    ''' Compute total precipitation as the sum of convective  and non-convective precipitation. '''
-    super(SolidPrecip,self).computeValues(indata, aggax=aggax, const=const) # perform some type checks
+  def computeValues(self, indata, aggax=0, delta=None, const=None):
+    ''' Just copy the snow accumulation as solid precipitation. '''
+    super(SolidPrecip,self).computeValues(indata, aggax=aggax, delta=delta, const=const) # perform some type checks
     outdata = indata['ACSNOW'].copy() # compute
     return outdata
 
@@ -175,13 +195,13 @@ class LiquidPrecipSR(DerivedVariable):
     ''' Initialize with fixed values; constructor takes no arguments. '''
     super(LiquidPrecipSR,self).__init__(name='LiquidPrecip_SR', # name of the variable
                               units='kg/m^2/s', # not accumulated anymore! 
-                              prerequisites=['RAIN', 'SR'], # it's the sum of these two 
+                              prerequisites=['RAIN', 'SR'], # 
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype='float', atts=None, linear=False) # this computation is actually linear
 
-  def computeValues(self, indata, aggax=0, const=None):
-    ''' Compute total precipitation as the sum of convective  and non-convective precipitation. '''
-    super(LiquidPrecipSR,self).computeValues(indata, aggax=aggax, const=const) # perform some type checks
+  def computeValues(self, indata, aggax=0, delta=None, const=None):
+    ''' Compute liquid precipitation from total precipitation and the solid fraction. '''
+    super(LiquidPrecipSR,self).computeValues(indata, aggax=aggax, delta=delta, const=const) # perform some type checks
     if np.max(indata['SR']) > 1:    
       outdata = indata['RAIN'] * ( 1 - indata['SR'] / 2. ) # compute
     else:
@@ -196,13 +216,13 @@ class SolidPrecipSR(DerivedVariable):
     ''' Initialize with fixed values; constructor takes no arguments. '''
     super(SolidPrecipSR,self).__init__(name='SolidPrecip_SR', # name of the variable
                               units='kg/m^2/s', # not accumulated anymore! 
-                              prerequisites=['RAIN', 'SR'], # it's the sum of these two 
+                              prerequisites=['RAIN', 'SR'], # 
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype='float', atts=None, linear=False) # this computation is actually linear
 
-  def computeValues(self, indata, aggax=0, const=None):
-    ''' Compute total precipitation as the sum of convective  and non-convective precipitation. '''
-    super(SolidPrecipSR,self).computeValues(indata, aggax=aggax, const=const) # perform some type checks
+  def computeValues(self, indata, aggax=0, delta=None, const=None):
+    ''' Compute solid precipitation from total precipitation and the solid fraction. '''
+    super(SolidPrecipSR,self).computeValues(indata, aggax=aggax, delta=delta, const=const) # perform some type checks
     if np.max(indata['SR']) > 1:
       outdata = indata['RAIN'] * indata['SR'] / 2. # compute (SR ranges from 0 - 2)
     else:
@@ -218,12 +238,12 @@ class NetPrecip_Hydro(DerivedVariable):
     ''' Initialize with fixed values; constructor takes no arguments. '''
     super(NetPrecip_Hydro,self).__init__(name='NetPrecip', # name of the variable
                               units='kg/m^2/s', # not accumulated anymore! 
-                              prerequisites=['RAIN', 'SFCEVP'], # it's the sum of these two 
+                              prerequisites=['RAIN', 'SFCEVP'], # it's the difference of these two 
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype='float', atts=None, linear=True) # this computation is actually linear
 
-  def computeValues(self, indata, aggax=0, const=None):
-    ''' Compute total precipitation as the sum of convective  and non-convective precipitation. '''
+  def computeValues(self, indata, aggax=0, delta=None, const=None):
+    ''' Compute net precipitation as the difference between total precipitation and evapo-transpiration. '''
     super(NetPrecip_Hydro,self).computeValues(indata, const=None) # perform some type checks    
     outdata = indata['RAIN'] - indata['SFCEVP'] # compute
     return outdata
@@ -236,12 +256,12 @@ class NetPrecip_Srfc(DerivedVariable):
     ''' Initialize with fixed values; constructor takes no arguments. '''
     super(NetPrecip_Srfc,self).__init__(name='NetPrecip', # name of the variable
                               units='kg/m^2/s', # not accumulated anymore! 
-                              prerequisites=['RAIN', 'QFX'], # it's the sum of these two 
+                              prerequisites=['RAIN', 'QFX'], # it's the difference of these two 
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype='float', atts=None, linear=True) # this computation is actually linear
 
-  def computeValues(self, indata, aggax=0, const=None):
-    ''' Compute total precipitation as the sum of convective  and non-convective precipitation. '''
+  def computeValues(self, indata, aggax=0, delta=None, const=None):
+    ''' Compute net precipitation as the difference between total precipitation and evapo-transpiration. '''
     super(NetPrecip_Srfc,self).computeValues(indata, const=None) # perform some type checks    
     outdata = indata['RAIN'] - indata['QFX'] # compute
     return outdata
@@ -254,12 +274,12 @@ class NetWaterFlux(DerivedVariable):
     ''' Initialize with fixed values; constructor takes no arguments. '''
     super(NetWaterFlux,self).__init__(name='NetWaterFlux', # name of the variable
                               units='kg/m^2/s', # not accumulated anymore! 
-                              prerequisites=['LiquidPrecip', 'SFCEVP', 'ACSNOM'], # it's the sum of these two 
+                              prerequisites=['LiquidPrecip', 'SFCEVP', 'ACSNOM'], #  
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype='float', atts=None, linear=True) # this computation is actually linear
 
-  def computeValues(self, indata, aggax=0, const=None):
-    ''' Compute total precipitation as the sum of convective  and non-convective precipitation. '''
+  def computeValues(self, indata, aggax=0, delta=None, const=None):
+    ''' Compute net water flux as the sum of liquid precipitation and snowmelt minus evapo-transpiration. '''
     super(NetWaterFlux,self).computeValues(indata, const=None) # perform some type checks    
     outdata = indata['LiquidPrecip'] - indata['SFCEVP']  + indata['ACSNOM'] # compute
     return outdata
@@ -276,9 +296,9 @@ class RunOff(DerivedVariable):
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype='float', atts=None, linear=True) 
 
-  def computeValues(self, indata, aggax=0, const=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None):
     ''' Compute total runoff as the sum of surface and underground runoff. '''
-    super(RunOff,self).computeValues(indata, aggax=aggax, const=const) # perform some type checks    
+    super(RunOff,self).computeValues(indata, aggax=aggax, delta=delta, const=const) # perform some type checks    
     outdata = indata['SFROFF'] + indata['UDROFF'] # compute
     return outdata
 
@@ -295,9 +315,9 @@ class WaterVapor(DerivedVariable):
                               dtype='float', atts=None, linear=False)
     self.Mratio = 28.96 / 18.02 # g/mol, Molecular mass ratio of dry air over water 
 
-  def computeValues(self, indata, aggax=0, const=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None):
     ''' Compute total runoff as the sum of surface and underground runoff. '''
-    super(WaterVapor,self).computeValues(indata, aggax=aggax, const=const) # perform some type checks    
+    super(WaterVapor,self).computeValues(indata, aggax=aggax, delta=delta, const=const) # perform some type checks    
     outdata = indata['Q2'] * indata['PSFC'] * self.Mratio # compute
     return outdata
 
@@ -305,29 +325,37 @@ class WaterVapor(DerivedVariable):
 ## extreme values
 
 # base class for extrema
-class Maximum(DerivedVariable):
-  ''' DerivedVariable child implementing computation of maxima in monthly WRF output. '''
+class Extrema(DerivedVariable):
+  ''' DerivedVariable child implementing computation of extrema in monthly WRF output. '''
   
-  def __init__(self, var, name=None, dimmap=None):
+  def __init__(self, var, mode, name=None, dimmap=None):
     ''' Constructor; takes variable object as argument and infers meta data. '''
-    # construct name with prefix 'Max' and camel-case
+    # construct name with prefix 'Max'/'Min' and camel-case
     if isinstance(var, DerivedVariable):
       varname = var.name; axes = var.axes; atts = var.atts or dict()
     elif isinstance(var, nc.Variable):
       varname = var._name; axes = var.dimensions; atts = dict()
-    else: raise TypeError     
-    atts['Aggregation'] = 'Monthly Maximum'
+    else: raise TypeError
+    # select mode
+    if mode.lower() == 'max':      
+      atts['Aggregation'] = 'Monthly Maximum'; prefix = 'Max'; exmode = 1
+    elif mode.lower() == 'min':      
+      atts['Aggregation'] = 'Monthly Minimum'; prefix = 'Min'; exmode = 0
     if isinstance(dimmap,dict): axes = [dimmap[dim] if dim in dimmap else dim for dim in axes]
-    if name is None: name = 'Max{:s}'.format(varname[0].upper() + varname[1:])
+    if name is None: name = '{0:s}{1:s}'.format(prefix,varname[0].upper() + varname[1:])
     # infer attributes of Maximum variable
-    super(Maximum,self).__init__(name=name, units=var.units, prerequisites=[varname], axes=axes, 
-                                 dtype=var.dtype, atts=atts, linear=False, normalize=False) 
+    super(Extrema,self).__init__(name=name, units=var.units, prerequisites=[varname], axes=axes, 
+                                 dtype=var.dtype, atts=atts, linear=False, normalize=False)
+    self.mode = exmode
 
-  def computeValues(self, indata, aggax=0, const=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None):
     ''' Compute field of maxima '''
-    super(Maximum,self).computeValues(indata, aggax=aggax, const=const) # perform some type checks
-    # figure out time dimension
-    outdata = np.amax(indata[self.prerequisites[0]], axis=aggax) # compute maximum
+    super(Extrema,self).computeValues(indata, aggax=aggax, delta=delta, const=const) # perform some type checks
+    # decide, what to do
+    if self.mode == 1:
+      outdata = np.amax(indata[self.prerequisites[0]], axis=aggax) # compute maximum
+    elif self.mode == 0:
+      outdata = np.amin(indata[self.prerequisites[0]], axis=aggax) # compute minimum
     # N.B.: already partially aggregating here, saves memory
     return outdata
   
@@ -338,7 +366,48 @@ class Maximum(DerivedVariable):
     if not isinstance(comdata,np.ndarray): raise TypeError # newly computed values
     if not isinstance(aggax,(int,np.integer)): raise TypeError # the aggregation axis (needed for extrema)
     # the default implementation is just a simple sum that will be normalized to an average
-    if self.normalize: raise DerivedVariableError, 'Aggregated extrema should not be normalized!' 
-    aggdata = np.maximum(aggdata,comdata)
+    if self.normalize: raise DerivedVariableError, 'Aggregated extrema should not be normalized!'
+    #print self.name, comdata.shape    
+    if self.mode == 1: 
+      aggdata = np.maximum(aggdata,comdata) # aggregat maxima
+    elif self.mode == 0:
+      aggdata = np.minimum(aggdata,comdata) # aggregat minima
     # return aggregated value for further treatment
     return aggdata 
+
+
+# base class for running-mean extrema
+class MeanExtrema(Extrema):
+  ''' Extrema child implementing extrema of interval-averaged values in monthly WRF output. '''
+  
+  def __init__(self, var, mode, interval=7, name=None, dimmap=None):
+    ''' Constructor; takes variable object as argument and infers meta data. '''
+    # infer attributes of Maximum variable
+    super(MeanExtrema,self).__init__(var, mode, name=name, dimmap=dimmap)
+    self.atts['name'] = self.name = '{0:s}_{1:d}d'.format(self.name,interval)
+    print self.name 
+    self.atts['Aggregation'] = 'Smoothed ' + self.atts['Aggregation']
+    self.atts['SmoothInterval'] = '{0:d} days'.format(interval) # interval in days
+    self.interval = interval * 24*60*60 # in seconds, sicne delta will be in seconds, too    
+
+  def computeValues(self, indata, aggax=0, delta=None, const=None):
+    ''' Compute field of maxima '''
+    if aggax != 0: raise NotImplementedError, 'Currently, smoothing only works on the innermost dimension.'
+    if delta == 0: raise ValueError, 'No interval to average over...'
+    # determine length of interval
+    data = indata[self.prerequisites[0]]
+    lt = data.shape[0] # available time steps
+    pape = data.shape[1:] # remaining shape (must be preserved)
+    ilen = np.round( self.interval / delta )
+    nint = np.trunc( lt / ilen ) # number of intervals
+    # truncate and reshape data
+    data = data[0:ilen*nint,:]
+    data = data.reshape((ilen,nint) + pape)
+    print self.name, data.shape
+    # average interval
+    meandata = data.mean(axis=0) # average over interval dimension
+    datadict = {self.prerequisites[0]:meandata} # next method expects a dictionary...
+    # find extrema as before 
+    outdata = super(MeanExtrema,self).computeValues(datadict, aggax=aggax, delta=delta, const=const) # perform some type checks
+    # N.B.: already partially aggregating here, saves memory
+    return outdata

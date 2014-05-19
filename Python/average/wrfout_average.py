@@ -144,13 +144,34 @@ bktpfx = 'I_' # prefix for bucket variables; these are processed together with t
 
 # derived variables
 derived_variables = {filetype:[] for filetype in filetypes} # derived variable lists by file type
+derived_variables['srfc']  = [dv.Rain(), dv.LiquidPrecipSR(), dv.SolidPrecipSR(), 
+                              dv.NetPrecip_Srfc(), dv.WaterVapor()]
+derived_variables['xtrm']   = [dv.RainMean()]
 derived_variables['hydro'] = [dv.Rain(), dv.LiquidPrecip(), dv.SolidPrecip(),                            
                               dv.NetPrecip_Hydro(), dv.NetWaterFlux(), ]
-derived_variables['srfc'] = [dv.Rain(), dv.LiquidPrecipSR(), dv.SolidPrecipSR(), dv.NetPrecip_Srfc(), dv.WaterVapor()]
-derived_variables['lsm'] = [dv.RunOff()]
+derived_variables['lsm']   = [dv.RunOff()]
 # Maxima (just list base variables; derived variables will be created later)
 maximum_variables = {filetype:[] for filetype in filetypes} # maxima variable lists by file type
-maximum_variables['hydro'] = ['T2MEAN', 'RAIN', 'NetWaterFlux'] # 
+maximum_variables['srfc']  = ['T2', 'U10', 'V10', 'RAIN', 'RAINC']
+maximum_variables['xtrm']  = ['T2MEAN', 'T2MAX', 'SPDUV10MEAN', 'SPDUV10MAX', 
+                              'RAINMEAN', 'RAINNCVMAX', 'RAINCVMAX']
+maximum_variables['hydro'] = ['T2MEAN', 'RAIN', 'RAINC', 'NetWaterFlux']
+maximum_variables['lsm']   = ['SFROFF']
+maximum_variables['plev3d']   = ['S_PL', 'GHT_PL']
+# weekly (smoothed) maxima
+weekmax_variables  = {filetype:[] for filetype in filetypes} # maxima variable lists by file type
+weekmax_variables['hydro'] = ['T2MEAN', 'RAIN', 'ACSNOM', 'NetPrecip', 'NetWaterFlux']
+weekmax_variables['lsm']   = ['SFROFF','UDROFF','Runoff']
+# Maxima (just list base variables; derived variables will be created later)
+minimum_variables = {filetype:[] for filetype in filetypes} # minima variable lists by file type
+minimum_variables['srfc']  = ['T2']
+minimum_variables['xtrm']  = ['T2MEAN', 'T2MIN']
+minimum_variables['hydro'] = ['T2MEAN']
+minimum_variables['plev3d']   = ['GHT_PL']
+# weekly (smoothed) minima
+weekmin_variables  = {filetype:[] for filetype in filetypes} # mininma variable lists by file type
+weekmin_variables['hydro'] = ['T2MEAN', 'RAIN', 'ACSNOM', 'NetPrecip', 'NetWaterFlux']
+weekmin_variables['lsm']   = ['SFROFF','UDROFF','Runoff']
 # N.B.: it is important that the derived variables are listed in order of dependency! 
 # set of pre-requisites
 prereq_vars = {key:set() for key in derived_variables.keys()} # pre-requisite variable set by file type
@@ -182,13 +203,25 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
     derived_vars[devar.name] = devar 
   pqset = prereq_vars[filetype] # set of pre-requisites for derived variables
   
-  # create derived variables for extrema
-  for maxvar in maximum_variables[filetype]:
-    # create derived variable instance
-    if maxvar in derived_vars: devar = dv.Maximum(derived_vars[maxvar])
-    else: devar = dv.Maximum(wrfout.variables[maxvar], dimmap=midmap)
-    # append to derived variables
-    derived_vars[devar.name] = devar
+  
+  
+  # method to create derived variables for extrema
+  def addExtrema(new_variables, mode, interval=0):
+    for exvar in new_variables[filetype]:
+      # create derived variable instance
+      if exvar in derived_vars: 
+        if interval == 0: devar = dv.Extrema(derived_vars[exvar],mode)
+        else: devar = dv.MeanExtrema(derived_vars[exvar],mode,interval=interval)
+      else: 
+        if interval == 0: devar = dv.Extrema(wrfout.variables[exvar],mode, dimmap=midmap)
+        else: devar = dv.MeanExtrema(wrfout.variables[exvar],mode, interval=interval, dimmap=midmap)
+      # append to derived variables
+      derived_vars[devar.name] = devar # derived_vars is from the parent scope, not local! 
+  # now add them
+  addExtrema(maximum_variables, 'max')
+  addExtrema(minimum_variables, 'min')
+  addExtrema(weekmax_variables, 'max', interval=7)
+  addExtrema(weekmin_variables, 'min', interval=7)
     
   # construct dependencies
   # update linearity: dependencies of non-linear variables have to be treated as non-linear themselves
@@ -469,26 +502,27 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
               # keep data in memory if used in computation of derived variables
               if varname in pqset: pqdata[varname] = tmp
           ## compute derived variables
-          # But first, normalize accumulated pqdata
-          if laccpq and ( wrfendidx > wrfstartidx ):
+          # But first, normalize accumulated pqdata with output interval time
+          if wrfendidx > wrfstartidx:
             if lxtime:
               delta = wrfout.variables[wrfxtime][wrfendidx] - wrfout.variables[wrfxtime][wrfstartidx]
               delta *=  60. # convert minutes to seconds   
             else: 
               dt1 = datetime.strptime(str().join(wrfout.variables[wrftimestamp][wrfstartidx,:]), '%Y-%m-%d_%H:%M:%S')
               dt2 = datetime.strptime(str().join(wrfout.variables[wrftimestamp][wrfendidx,:]), '%Y-%m-%d_%H:%M:%S')
-              delta = (dt2-dt1).total_seconds() # the difference creates a timedelta object
-            delta /=  (wrfendidx - wrfstartidx)
+              delta = float( (dt2-dt1).total_seconds() ) # the difference creates a timedelta object
+            delta /=  float(wrfendidx - wrfstartidx) # the average interval between output time steps
             # loop over time-step data
             for pqname,pqvar in pqdata.items():
               if pqname in acclist: pqvar /= delta # normalize
+          else: delta = 0
 	        # N.B.: if wrfendidx == wrfstartidx, just use previous values...
           # loop over derived variables
           logger.debug('\n{0:s} Available prerequisites: {1:s}'.format(pidstr, str(pqdata.keys())))
           for dename,devar in derived_vars.items():
             if not devar.linear: # only non-linear ones here, linear one at the end
               logger.debug('\n{0:s} {1:s} {2:s}'.format(pidstr, dename, str(devar.prerequisites)))
-              tmp = devar.computeValues(pqdata, aggax=tax) # possibly needed as pre-requisite  
+              tmp = devar.computeValues(pqdata, aggax=tax, delta=delta) # possibly needed as pre-requisite  
               dedata[dename] = devar.aggregateValues(dedata[dename], tmp, aggax=tax)
               # N.B.: in-place operations with non-masked array destroy the mask, hence need to use this
               if dename in pqset: pqdata[dename] = tmp
@@ -584,8 +618,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
             vardata = np.where(np.isnan(vardata), missing_value, vardata)
             ncvar.missing_value = missing_value # just to make sure
           if ncvar.ndim > 1: ncvar[meanidx,:] = vardata # here time is always the outermost index
-          else: ncvar[meanidx] = vardata
-            
+          else: ncvar[meanidx] = vardata            
           #raise dv.DerivedVariableError, "%s Derived variable '%s' is not linear."%(pidstr,devar.name) 
         # sync data
         mean.sync()
