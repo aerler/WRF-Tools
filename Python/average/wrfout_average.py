@@ -146,7 +146,7 @@ bktpfx = 'I_' # prefix for bucket variables; these are processed together with t
 derived_variables = {filetype:[] for filetype in filetypes} # derived variable lists by file type
 derived_variables['srfc']  = [dv.Rain(), dv.LiquidPrecipSR(), dv.SolidPrecipSR(), 
                               dv.NetPrecip_Srfc(), dv.WaterVapor()]
-derived_variables['xtrm']   = [dv.RainMean()]
+derived_variables['xtrm']   = [dv.RainMean(), dv.WetDays(), dv.FrostDays()]
 derived_variables['hydro'] = [dv.Rain(), dv.LiquidPrecip(), dv.SolidPrecip(),                            
                               dv.NetPrecip_Hydro(), dv.NetWaterFlux(), ]
 derived_variables['lsm']   = [dv.RunOff()]

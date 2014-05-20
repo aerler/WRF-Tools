@@ -320,6 +320,43 @@ class WaterVapor(DerivedVariable):
     super(WaterVapor,self).computeValues(indata, aggax=aggax, delta=delta, const=const) # perform some type checks    
     outdata = indata['Q2'] * indata['PSFC'] * self.Mratio # compute
     return outdata
+  
+
+class WetDays(DerivedVariable):
+  ''' DerivedVariable child for counting the fraction of rainy days for WRF output. '''
+  
+  def __init__(self):
+    ''' Initialize with fixed values; constructor takes no arguments. '''
+    super(WetDays,self).__init__(name='WetDays', # name of the variable
+                              units='', # fraction of days 
+                              prerequisites=['RAINMEAN'], # it's the sum of these two 
+                              axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
+                              dtype='float', atts=None, linear=False) 
+    # N.B.: this computation is actually linear, but some non-linear computations depend on it
+
+  def computeValues(self, indata, aggax=0, delta=None, const=None):
+    ''' Count the number of events above a threshold (0 for now) '''
+    super(WetDays,self).computeValues(indata, aggax=aggax, delta=delta, const=const) # perform some type checks    
+    outdata = indata['RAINMEAN'] > 2.3e-7 # event over threshold (0.02 mm/day, according to AMS Glossary)    
+    return outdata
+
+class FrostDays(DerivedVariable):
+  ''' DerivedVariable child for counting the fraction of frost days for WRF output. '''
+  
+  def __init__(self):
+    ''' Initialize with fixed values; constructor takes no arguments. '''
+    super(FrostDays,self).__init__(name='FrostDays', # name of the variable
+                              units='', # fraction of days 
+                              prerequisites=['T2MIN'], # it's the sum of these two 
+                              axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
+                              dtype='float', atts=None, linear=False) 
+    # N.B.: this computation is actually linear, but some non-linear computations depend on it
+
+  def computeValues(self, indata, aggax=0, delta=None, const=None):
+    ''' Count the number of events above a threshold (0 for now) '''
+    super(FrostDays,self).computeValues(indata, aggax=aggax, delta=delta, const=const) # perform some type checks    
+    outdata = indata['T2MIN'] < 273.15 # event below threshold (0 deg. C., according to AMS Glossary)    
+    return outdata
 
 
 ## extreme values
