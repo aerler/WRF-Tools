@@ -24,20 +24,20 @@ DEFWCT="00:15:00" # another variable is necessary to prevent the setup script fr
 # parse arguments 
 while true; do
   case "$1" in
-    -r | --restart ) MODE='RESTART'; NEXTSTEP="$2"; shift 2 ;; # second argument is restart step
-         --clean ) MODE='CLEAN'; shift;; # delete wrfout/ etc.; short option would be dangerous...
-    -g | --nogeo ) MODE='NOGEO'; shift;; # don't run geogrid
-    -s | --nostat ) MODE='NOSTAT'; shift;; # don't run geogrid and don't archive static data
-    -v | --verbose ) VERBOSITY=2; shift;; # print more output
-    -q | --quiet ) VERBOSITY=0; shift;; # don't print output
-    -k | --skipwps ) SKIPWPS=1; shift;; # don't run WPS for *this* step
-    -w | --nowps ) NOWPS='NOWPS'; shift;; # don't run WPS for *next* step
-    -l | --nowait ) QWAIT=0; shift;; # don't wait for WPS to finish
-    -m | --norst ) RSTCNT=1000; shift;; # should be enough to prevent restarts...
-    -n | --setrst ) RSTCNT="$2"; shift 2 ;; # (re-)set restart counter
-    -t | --time ) WAITTIME="$2"; shift 2 ;; # WRFWCT crashes for some reason...    
-    -N | --name ) JOBNAME="$2"; shift 2 ;; # set WRF jobname - just for identification
-    -h | --help ) echo -e " \
+    -r | --restart )   MODE='RESTART'; NEXTSTEP="$2"; shift 2 ;; # second argument is restart step
+         --clean   )   MODE='CLEAN'; shift;; # delete wrfout/ etc.; short option would be dangerous...
+    -g | --nogeo   )   MODE='NOGEO'; shift;; # don't run geogrid
+    -s | --nostat  )   MODE='NOSTAT'; shift;; # don't run geogrid and don't archive static data
+    -v | --verbose )   VERBOSITY=2; shift;; # print more output
+    -q | --quiet   )   VERBOSITY=0; shift;; # don't print output
+    -k | --skipwps )   SKIPWPS=1; shift;; # don't run WPS for *this* step
+    -w | --nowps   )   NOWPS='NOWPS'; shift;; # don't run WPS for *next* step
+    -l | --nowait  )   QWAIT=0; shift;; # don't wait for WPS to finish
+    -m | --norst   )   RSTCNT=1000; shift;; # should be enough to prevent restarts...
+    -n | --setrst  )   RSTCNT="$2"; shift 2 ;; # (re-)set restart counter
+    -t | --time    )   WAITTIME="$2"; shift 2 ;; # WRFWCT crashes for some reason...    
+    -N | --name    )   JOBNAME="$2"; shift 2 ;; # set WRF jobname - just for identification
+    -h | --help    )   echo -e " \
                           \n\
     -r | --restart     restart cycle at given step \n\
          --clean       delete all WRF output (wrfout/) --- be careful! \n\
