@@ -83,20 +83,28 @@ source "${SCRIPTDIR}/setup_WRF.sh" > /dev/null # suppress output (not errors, th
 cd "${WORKDIR}"
 
 
-## change stability parameters
-if [[ "$SIMPLE" == '0' ]]; then
+# parse current namelist for stability parameters
+# N.B.: the parameters here are also used for display, in any case
+CUR_DELT=$(sed -n '/time_step/ s/^\ *time_step\ *=\ *\([0-9]*\).*$/\1/p' namelist.input) # time step
+ERR=$(( ${ERR} + $? )) # capture exit code
+CUR_EPSS=$(sed -n '/epssm/ s/^\ *epssm\ *=\ *\([0-9]\?.[0-9]*\).*$/\1/p' namelist.input) # epssm parameter; one or zero times: [0-9]\?.5 -> .5 or 0.5
+ERR=$(( ${ERR} + $? )) # capture exit code
 
-  # parse current namelist for stability parameters
-  CUR_DELT=$(sed -n '/time_step/ s/^\ *time_step\ *=\ *\([0-9]*\).*$/\1/p' namelist.input) # time step
-  ERR=$(( ${ERR} + $? )) # capture exit code
-  CUR_EPSS=$(sed -n '/epssm/ s/^\ *epssm\ *=\ *\([0-9]\?.[0-9]*\).*$/\1/p' namelist.input) # epssm parameter; one or zero times: [0-9]\?.5 -> .5 or 0.5
-  ERR=$(( ${ERR} + $? )) # capture exit code
-  CUR_DAMP=$(sed -n '/dampcoef/ s/^\ *dampcoef\ *=\ *\([0-9]\?.[0-9]*\).*$/\1/p' namelist.input) # dampcoef parameter; one or zero times: [0-9]\?.5 -> .5 or 0.5
-  ERR=$(( ${ERR} + $? )) # capture exit code
-  CUR_DIFF=$(sed -n '/diff_6th_factor/ s/^\ *diff_6th_factor\ *=\ *\([0-9]\?.[0-9]*\).*$/\1/p' namelist.input) # diff_6th_factor parameter; one or zero times: [0-9]\?.5 -> .5 or 0.5
-  ERR=$(( ${ERR} + $? )) # capture exit code
-  CUR_SNDT=$(sed -n '/time_step_sound/ s/^\ *time_step_sound\ *=\ *\([0-9]*\).*$/\1/p' namelist.input) # time_step_sound parameter; integer
-  ERR=$(( ${ERR} + $? )) # capture exit code
+## change stability parameters
+if [[ "$SIMPLE" == '1' ]]; then
+  
+  # just read current values for display
+  NEW_DELT="${CUR_DELT}"; NEW_EPSS="${CUR_EPSS}"
+  
+else # $SIMPLE != 1, i.e. change stability parameters
+  
+  # read some more parameters that are not needed just for display
+	CUR_DAMP=$(sed -n '/dampcoef/ s/^\ *dampcoef\ *=\ *\([0-9]\?.[0-9]*\).*$/\1/p' namelist.input) # dampcoef parameter; one or zero times: [0-9]\?.5 -> .5 or 0.5
+	ERR=$(( ${ERR} + $? )) # capture exit code
+	CUR_DIFF=$(sed -n '/diff_6th_factor/ s/^\ *diff_6th_factor\ *=\ *\([0-9]\?.[0-9]*\).*$/\1/p' namelist.input) # diff_6th_factor parameter; one or zero times: [0-9]\?.5 -> .5 or 0.5
+	ERR=$(( ${ERR} + $? )) # capture exit code
+	CUR_SNDT=$(sed -n '/time_step_sound/ s/^\ *time_step_sound\ *=\ *\([0-9]*\).*$/\1/p' namelist.input) # time_step_sound parameter; integer
+	ERR=$(( ${ERR} + $? )) # capture exit code
 
   ## define new stability parameters
   if [[ "$CUR_DELT" == '150' ]]; then #  && [[ "$CUR_EPSS" == *'.55' ]]
