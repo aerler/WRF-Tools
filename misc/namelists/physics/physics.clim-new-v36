@@ -4,7 +4,7 @@
  ra_lw_physics                       = 4,   4,   4, ! RRTMG
  ra_sw_physics                       = 4,   4,   4, ! RRTMG
  radt                                = 15,  15,  15,! every 15 min.
- swint_opt                           = 1 ! interpolate solar zenit angle
+ swint_opt                           = 0 ! interpolate solar zenit angle (unstable)
  o3input                             = 2 ! CAM ozone data (2D) for RRTMG
  aer_opt                             = 1 ! Tegen climatology for RRTMG
  slope_rad                           = 1, 1, 1, ! slope effects in SW radiation
@@ -32,9 +32,9 @@
  ua_phys                             = .true. ! improved canopy snow (Noah LSM)
  sf_surface_mosaic                   = 1 ! use sub-grid land category mosaic (Noah LSM)
  mosaic_cat                          = 3 ! number of sub-grid land categories
- sf_urban_physics                    = 0,   0,   0, ! doesn't work with Noah-MP
+ sf_urban_physics                    = 0,   0,   0, ! does not work with Noah-MP
 ! CLM lake model
- sf_lake_physics                     = 1,   1,   1, ! use lake model
+ sf_lake_physics                     = 0,   0,   0, ! lake model does not seem to work
  use_lakedepth                       = 1 ! lake depth from geogrid
  lakedepth_default                   = 50 ! default depth if data is missin (50m)
 ! sea ice and SST

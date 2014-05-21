@@ -329,7 +329,7 @@ class WetDays(DerivedVariable):
     ''' Initialize with fixed values; constructor takes no arguments. '''
     super(WetDays,self).__init__(name='WetDays', # name of the variable
                               units='', # fraction of days 
-                              prerequisites=['RAINMEAN'], # it's the sum of these two 
+                              prerequisites=['RAINMEAN'], # above threshold 
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype='float', atts=None, linear=False) 
     # N.B.: this computation is actually linear, but some non-linear computations depend on it
@@ -347,7 +347,7 @@ class FrostDays(DerivedVariable):
     ''' Initialize with fixed values; constructor takes no arguments. '''
     super(FrostDays,self).__init__(name='FrostDays', # name of the variable
                               units='', # fraction of days 
-                              prerequisites=['T2MIN'], # it's the sum of these two 
+                              prerequisites=['T2MIN'], # below threshold
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype='float', atts=None, linear=False) 
     # N.B.: this computation is actually linear, but some non-linear computations depend on it
@@ -357,6 +357,66 @@ class FrostDays(DerivedVariable):
     super(FrostDays,self).computeValues(indata, aggax=aggax, delta=delta, const=const) # perform some type checks    
     outdata = indata['T2MIN'] < 273.15 # event below threshold (0 deg. C., according to AMS Glossary)    
     return outdata
+
+
+class OrographicIndex(DerivedVariable):
+  ''' DerivedVariable child for computing the correlation of (surface) winds with the topographic gradient. '''
+  
+  def __init__(self):
+    ''' Initialize with fixed values; constructor takes no arguments. '''
+    super(OrographicIndex,self).__init__(name='OrographicIndex', # name of the variable
+                              units='', # fraction of days 
+                              prerequisites=['U10','V10'], # it's the sum of these two
+                              constants=['HGT'], # constant topography field
+                              axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
+                              dtype='float', atts=None, linear=False) 
+    # N.B.: this computation is actually linear, but some non-linear computations depend on it
+
+  def computeValues(self, indata, aggax=0, delta=None, const=None):
+    ''' Count the number of events above a threshold (0 for now) '''
+    super(OrographicIndex,self).computeValues(indata, aggax=aggax, delta=delta, const=const) # perform some type checks
+    # compute topographic gradients and save in constants (for later use)
+    if 'hgtgrd_sn' not in const:
+      if 'HGT' not in const: raise ValueError
+      if 'YAX' not in const: raise ValueError
+      if 'DY' not in const: raise ValueError
+      const['hgtgrd_sn'] = ctrDiff(const['HGT'], axis=const['YAX'], delta=const['DY'])
+    if 'hgtgrd_we' not in const:
+      if 'HGT' not in const: raise ValueError
+      if 'XAX' not in const: raise ValueError
+      if 'DX' not in const: raise ValueError
+      const['hgtgrd_we'] = ctrDiff(const['HGT'], axis=const['XAX'], delta=const['DX'])
+    # compute correlation (projection, scalar product, etc.)    
+    outdata = indata['U10']*const['hgtgrd_we'] + indata['V10']*const['hgtgrd_sn'] 
+    return outdata
+
+
+## helper routine: central differences
+def ctrDiff(data, axis=0, delta=1):
+  if not isinstance(data,np.ndarray): raise TypeError
+  if not isinstance(delta,(float,np.inexact,int,np.integer)): raise TypeError
+  if not isinstance(axis,(int,np.integer)): raise TypeError
+  # if axis is not 0 (innermost), roll axis until it is
+  if axis != 0: data = np.rollaxis(data, axis=axis, start=0)
+  # prepare calculation
+  outdata = np.zeros_like(data) # allocate             
+  # compute centered differences, except at the edges, where forward/backward difference are used
+  outdata[1:,:] += np.diff(data, n=1, axis=0) # compute differences
+  outdata[0:-1,:] += outdata[1:,:] # add differences again, but shifted 
+  # N.B.: the order of these two assignments is very important: data must be added before it is modified:
+  #       data[i] = data[i] + data[i+1] works; data[i+1] = data[i+1] + data[i] grows cumulatively!   
+#   # simple implementation with temporary storage 
+#   diff = np.diff(data, n=1, axis=0) # differences             
+#   outdata[0:-1,:] += diff; outdata[1:,:] += diff # add differences 
+  if delta == 1:
+    outdata[1:-1,:] /= 2. # normalize, except boundaries
+  else:
+    outdata[1:-1,:] /= (2.*delta) # normalize (including "dx"), except boundaries
+    outdata[[0,-1],:] /= delta # but aplly the denominator, "dx"
+      
+  # roll axis back to original position and return
+  if axis != 0: outdata = np.rollaxis(outdata, axis=0, start=axis+1)
+  return outdata
 
 
 ## extreme values

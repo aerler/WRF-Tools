@@ -12,7 +12,6 @@ exactly one output file.
 ## imports
 import numpy as np
 from collections import OrderedDict
-from socket import gethostname
 #import numpy.ma as ma
 import os, re, sys
 import netCDF4 as nc
@@ -81,7 +80,7 @@ if os.environ.has_key('PYAVG_DEBUG'):
   ldebug =  os.environ['PYAVG_DEBUG'] == 'DEBUG' 
 else: ldebug = False # operational mode
 
-# workign directories
+# working directories
 exproot = os.getcwd()
 exp = exproot.split('/')[-1] # root folder name
 infolder = exproot + '/wrfout/' # input folder 
@@ -200,10 +199,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
   # the reason is that derived variables can depend on other derived variables, and the order in 
   # which they are listed, should take this into account
   for devar in derived_variables[filetype]:
-    derived_vars[devar.name] = devar 
-  pqset = prereq_vars[filetype] # set of pre-requisites for derived variables
-  
-  
+    derived_vars[devar.name] = devar  
   
   # method to create derived variables for extrema
   def addExtrema(new_variables, mode, interval=0):
@@ -217,7 +213,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
         else: devar = dv.MeanExtrema(wrfout.variables[exvar],mode, interval=interval, dimmap=midmap)
       # append to derived variables
       derived_vars[devar.name] = devar # derived_vars is from the parent scope, not local! 
-  # now add them
+  # and now add them
   addExtrema(maximum_variables, 'max')
   addExtrema(minimum_variables, 'min')
   addExtrema(weekmax_variables, 'max', interval=7)
@@ -238,7 +234,6 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
             derived_vars[pq].linear = False
   # construct dependency set (should include extrema now)
   pqset = set().union(*[devar.prerequisites for devar in derived_vars.itervalues() if not devar.linear])
-  laccpq = any([accvar in pqset for accvar in acclist]) # if accumulated variables are among the prerequisites
   
   # get some meta info and construct title string
   begindate = datergx.search(filelist[0]).group()
@@ -373,6 +368,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
     for n,t in enumerate(times):
      
       liniout = True # determines whether last timestep is the same as first time step in next file
+      lasttimestamp = None # carry over start time, when moving to the next file (defiend below)
       # N.B.: when moving to the next file, the script auto-detects and resets this property, no need to change here!
       #       However (!) it is necessary to reset this for every month, because it is not consistent!
 
@@ -476,17 +472,11 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
               if varname in pqset:
                 # compute mean via sum over all elements; normalize by number of time steps
                 slices[tax] = slice(wrfstartidx,wrfendidx) # relevant time interval
-                intmp = var.__getitem__(slices)
+                tmp = var.__getitem__(slices)
                 if acclist[varname] is not None: # add bucket level, if applicable
                   bkt = wrfout.variables[bktpfx+varname]
-                  intmp = intmp + bkt.__getitem__(slices) * acclist[varname]
-                outtmp = np.zeros_like(intmp)
-                diff = np.diff(intmp, n=1, axis=tax)
-                if tax == 0:
-                  # compute centered differences, except at the edges, where forward/backward difference are used
-                  outtmp[0:-1,:] += diff; outtmp[1:,:] += diff; outtmp[1:-1,:] /= 2
-                else: raise NotImplementedError  
-                pqdata[varname] = outtmp
+                  tmp = tmp + bkt.__getitem__(slices) * acclist[varname]
+                pqdata[varname] = dv.ctrDiff(tmp, axis=tax, delta=1) # normalization comes later                   
             elif varname[0:len(bktpfx)] == bktpfx: pass # do not process buckets
             ## Normal Variables
             else: 
@@ -516,7 +506,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
             for pqname,pqvar in pqdata.items():
               if pqname in acclist: pqvar /= delta # normalize
           else: delta = 0
-	        # N.B.: if wrfendidx == wrfstartidx, just use previous values...
+          # N.B.: if wrfendidx == wrfstartidx, just use previous values...
           # loop over derived variables
           logger.debug('\n{0:s} Available prerequisites: {1:s}'.format(pidstr, str(pqdata.keys())))
           for dename,devar in derived_vars.items():
@@ -544,7 +534,11 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
                 assert wrfendidx > 0
                 yyyy, mm, dd = str().join(wrfout.variables[wrftimestamp][wrfendidx-1,0:10]).split('-')
               else:
-                yyyy, mm, dd = lasttimestamp[0:10].split('-') # gets set below, when moving to the next file
+                if lasttimestamp is None: raise ValueError, 'First timestep has to be present in first file!'
+                else: yyyy, mm, dd = lasttimestamp[0:10].split('-')
+                # N.B.: the first timestep has to be present in the first file, or lasttimestamp will be 
+                #       required, before it is defined; for subsequent files it is carried over from the 
+                #       previous file
               # also a bit of sanity checking...
               assert yyyy == '{0:04d}'.format(currentyear) and mm == '{0:02d}'.format(currentmonth)
               if calendar.isleap(currentyear) and currentmonth==2:
@@ -559,19 +553,19 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
         # two possible ends: month is done or reached end of file
         # if we reached the end of the file, open a new one and go again
         if not lcomplete:            
-	  lasttimestamp = str().join(wrfout.variables[wrftimestamp][wrfendidx,:]) # needed to determine, if first timestep is the same as last
+          lasttimestamp = str().join(wrfout.variables[wrftimestamp][wrfendidx,:]) # needed to determine, if first timestep is the same as last
           wrfout.close() # close file...
           # N.B.: filecounter +1 < len(filelist) is already checked above 
           filecounter += 1 # move to next file
           wrfout = nc.Dataset(infolder+filelist[filecounter], 'r', format='NETCDF4') # ... and open new one
-	  firsttimestamp = str().join(wrfout.variables[wrftimestamp][0,:]) # check first timestep (compare to last of previous file)
+          firsttimestamp = str().join(wrfout.variables[wrftimestamp][0,:]) # check first timestep (compare to last of previous file)
           if missing_value is not None:
             assert missing_value == wrfout.P_LEV_MISSING
           # reset output record / time step counter
           if firsttimestamp == lasttimestamp: 
             wrfstartidx = 1 # skip the initialization step (same as last step in previous file)
             liniout = True # needed later to detect leapdays
-	  else: 
+          else: 
             wrfstartidx = 0 # no duplicates: first timestep in next file was not present in previous file
             liniout = False # needed later to detect leapdays
         else: # month complete
