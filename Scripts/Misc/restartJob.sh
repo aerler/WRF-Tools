@@ -124,7 +124,7 @@ else # $SIMPLE != 1, i.e. change stability parameters
     exit 1
   fi # current state
 
-  # change namelist
+  # change namelist (only if this is not a test!)
   if [ $TEST == 0 ]; then
 	  if [[ -n "${NEW_DELT}" ]]; then
 	    sed -i "/time_step/ s/^\ *time_step\ *=\ *[0-9]*.*$/ time_step = ${NEW_DELT}, ! edited by restart script; original value: ${CUR_DELT}/" namelist.input
@@ -141,7 +141,8 @@ else # $SIMPLE != 1, i.e. change stability parameters
 	  fi; if [[ -n "${NEW_SNDT}" ]]; then
 	    sed -i "/time_step_sound/ s/^\ *time_step_sound\ *=\ *[0-9]\?.[0-9]*.*$/ time_step_sound = ${NEW_SNDT}, ${NEW_SNDT}, ${NEW_SNDT}, ${NEW_SNDT}, ! edited by restart script; original value: ${CUR_SNDT}/" namelist.input    
 	    ERR=$(( ${ERR} + $? )) # capture exit code
-	fi; fi
+    fi 
+  fi # if $TEST
   
 fi # no simple restart
 
@@ -170,14 +171,16 @@ fi; fi # reporting level
 # launch restart
 rm -rf ${CURRENTSTEP}/rsl.* ${CURRENTSTEP}/wrf*.nc
 ## restart job (using the machine setup)
-# launch WRF; required vars: INIDIR, NEXTSTEP, WRFSCRIPT, NOWPS, RSTCNT
-if [ -z "$ALTSUBJOB" ] || [[ "$MAC" == "$SYSTEM" ]]; then 
-  eval "${RESUBJOB}" # on the same machine (default)
-  ERR=$(( ${ERR} + $? )) # capture exit code
-else 
-  eval "${ALTSUBJOB}" # alternate/remote command
-  ERR=$(( ${ERR} + $? )) # capture exit code
-fi # if there is an alternative...
+if [ $TEST == 0 ]; then
+  # launch WRF; required vars: INIDIR, NEXTSTEP, WRFSCRIPT, NOWPS, RSTCNT
+	if [ -z "$ALTSUBJOB" ] || [[ "$MAC" == "$SYSTEM" ]]; then 
+	  eval "${RESUBJOB}" # on the same machine (default)
+	  ERR=$(( ${ERR} + $? )) # capture exit code
+	else 
+	  eval "${ALTSUBJOB}" # alternate/remote command
+	  ERR=$(( ${ERR} + $? )) # capture exit code
+	fi # if there is an alternative...
+fi # if $TEST
 # report errors
 if [[ "${ERR}" != '0' ]]; then
   [ $QUIET == 0 ] && echo "ERROR: $ERR Errors(s) occured!"
