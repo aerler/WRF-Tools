@@ -77,7 +77,9 @@ fi
 
 # source machine setup
 source "${SCRIPTDIR}/setup_WRF.sh" > /dev/null # suppress output (not errors, though)
-# needed to define $MAC and $RESUBJOB
+# needed to define $MAC, $QSYS, and $RESUBJOB
+# guess run script name, bases on queue system
+WRFSCRIPT="run_cycling_WRF.$(echo $QSYS | tr '[:upper:]' '[:lower:]')" # lower case file name extension
 
 # move into working directory (step folder)
 cd "${WORKDIR}"
@@ -123,22 +125,23 @@ else # $SIMPLE != 1, i.e. change stability parameters
   fi # current state
 
   # change namelist
-  if [[ -n "${NEW_DELT}" ]]; then
-    sed -i "/time_step/ s/^\ *time_step\ *=\ *[0-9]*.*$/ time_step = ${NEW_DELT}, ! edited by restart script; original value: ${CUR_DELT}/" namelist.input
-    ERR=$(( ${ERR} + $? )) # capture exit code
-  fi; if [[ -n "${NEW_EPSS}" ]]; then
-    sed -i "/epssm/ s/^\ *epssm\ *=\ *[0-9]\?.[0-9]*.*$/ epssm = ${NEW_EPSS}, ${NEW_EPSS}, ${NEW_EPSS}, ${NEW_EPSS}, ! edited by restart script; original value: ${CUR_EPSS}/" namelist.input    
-    ERR=$(( ${ERR} + $? )) # capture exit code
-  fi; if [[ -n "${NEW_DAMP}" ]]; then
-    sed -i "/dampcoef/ s/^\ *dampcoef\ *=\ *[0-9]\?.[0-9]*.*$/ dampcoef = ${NEW_DAMP}, ${NEW_DAMP}, ${NEW_DAMP}, ${NEW_DAMP}, ! edited by restart script; original value: ${CUR_DAMP}/" namelist.input    
-    ERR=$(( ${ERR} + $? )) # capture exit code
-  fi; if [[ -n "${NEW_DIFF}" ]]; then
-    sed -i "/diff_6th_factor/ s/^\ *diff_6th_factor\ *=\ *[0-9]\?.[0-9]*.*$/ diff_6th_factor = ${NEW_DIFF}, ${NEW_DIFF}, ${NEW_DIFF}, ${NEW_DIFF}, ! edited by restart script; original value: ${CUR_DIFF}/" namelist.input    
-    ERR=$(( ${ERR} + $? )) # capture exit code
-  fi; if [[ -n "${NEW_SNDT}" ]]; then
-    sed -i "/time_step_sound/ s/^\ *time_step_sound\ *=\ *[0-9]\?.[0-9]*.*$/ time_step_sound = ${NEW_SNDT}, ${NEW_SNDT}, ${NEW_SNDT}, ${NEW_SNDT}, ! edited by restart script; original value: ${CUR_SNDT}/" namelist.input    
-    ERR=$(( ${ERR} + $? )) # capture exit code
-  fi
+  if [ $TEST == 0 ]; then
+	  if [[ -n "${NEW_DELT}" ]]; then
+	    sed -i "/time_step/ s/^\ *time_step\ *=\ *[0-9]*.*$/ time_step = ${NEW_DELT}, ! edited by restart script; original value: ${CUR_DELT}/" namelist.input
+	    ERR=$(( ${ERR} + $? )) # capture exit code
+	  fi; if [[ -n "${NEW_EPSS}" ]]; then
+	    sed -i "/epssm/ s/^\ *epssm\ *=\ *[0-9]\?.[0-9]*.*$/ epssm = ${NEW_EPSS}, ${NEW_EPSS}, ${NEW_EPSS}, ${NEW_EPSS}, ! edited by restart script; original value: ${CUR_EPSS}/" namelist.input    
+	    ERR=$(( ${ERR} + $? )) # capture exit code
+	  fi; if [[ -n "${NEW_DAMP}" ]]; then
+	    sed -i "/dampcoef/ s/^\ *dampcoef\ *=\ *[0-9]\?.[0-9]*.*$/ dampcoef = ${NEW_DAMP}, ${NEW_DAMP}, ${NEW_DAMP}, ${NEW_DAMP}, ! edited by restart script; original value: ${CUR_DAMP}/" namelist.input    
+	    ERR=$(( ${ERR} + $? )) # capture exit code
+	  fi; if [[ -n "${NEW_DIFF}" ]]; then
+	    sed -i "/diff_6th_factor/ s/^\ *diff_6th_factor\ *=\ *[0-9]\?.[0-9]*.*$/ diff_6th_factor = ${NEW_DIFF}, ${NEW_DIFF}, ${NEW_DIFF}, ${NEW_DIFF}, ! edited by restart script; original value: ${CUR_DIFF}/" namelist.input    
+	    ERR=$(( ${ERR} + $? )) # capture exit code
+	  fi; if [[ -n "${NEW_SNDT}" ]]; then
+	    sed -i "/time_step_sound/ s/^\ *time_step_sound\ *=\ *[0-9]\?.[0-9]*.*$/ time_step_sound = ${NEW_SNDT}, ${NEW_SNDT}, ${NEW_SNDT}, ${NEW_SNDT}, ! edited by restart script; original value: ${CUR_SNDT}/" namelist.input    
+	    ERR=$(( ${ERR} + $? )) # capture exit code
+	fi; fi
   
 fi # no simple restart
 
