@@ -159,6 +159,7 @@ cd "${INIDIR}"
 if [ $RESET -eq 1 ]; then
   # re-run folder setup for current step (hide output)
   python scripts/cycling.py next $CURRENTSTEP > /dev/null
+  ERR=$(( ${ERR} + $? )) # capture exit code
 fi # if $RESET
 
 ## resubmit job
