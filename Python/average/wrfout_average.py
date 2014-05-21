@@ -173,8 +173,8 @@ weekmin_variables['hydro'] = ['T2MEAN', 'RAIN', 'ACSNOM', 'NetPrecip', 'NetWater
 weekmin_variables['lsm']   = ['SFROFF','UDROFF','Runoff']
 # N.B.: it is important that the derived variables are listed in order of dependency! 
 # set of pre-requisites
-prereq_vars = {key:set() for key in derived_variables.keys()} # pre-requisite variable set by file type
-for key in prereq_vars.keys():
+prereq_vars = {key:set() for key in derived_variables.iterkeys()} # pre-requisite variable set by file type
+for key in prereq_vars.iterkeys():
   prereq_vars[key].update(*[devar.prerequisites for devar in derived_variables[key] if not devar.linear])    
 
 ## main work function
@@ -244,7 +244,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
   assert 1 <= endday <= 31 # this is kinda trivial...  
   varstr = ''; devarstr = '' # make variable list, also for derived variables
   for var in varlist: varstr += '%s, '%var
-  for devar in derived_vars.values(): devarstr += '%s, '%devar.name
+  for devar in derived_vars.itervalues(): devarstr += '%s, '%devar.name
       
   # announcement: format title string and print
   titlestr = '\n\n{0:s}    ***   Processing wrf{1:s} files for domain {2:d}.   ***'.format(pidstr,filetype,ndom)
@@ -272,7 +272,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
     else: assert t0 <= len(mean.dimensions[time]) + 1 # get time index where we start; in month beginning 1979  
     #if not loverwrite: raise DateError, "%s Begindate %s comes before enddate %s in file %s"%(pidstr,begindate,enddate,filename)
     # check derived variables
-    for var in derived_vars.values():
+    for var in derived_vars.itervalues():
       if var.name not in mean.variables: 
         raise (dv.DerivedVariableError, 
                "{0:s} Derived variable '{1:s}' not found in file '{2:s}'".format(pidstr,var.name,filename))
@@ -284,8 +284,8 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
     add_coord(mean, time, data=None, dtype='i4', atts=dict(units='month since '+begindate)) # unlimited time dimension
     # copy remaining dimensions to new datasets
     if midmap is not None:
-      dimlist = [midmap.get(dim,dim) for dim in wrfout.dimensions.keys() if dim != wrftime]
-    else: dimlist = [dim for dim in wrfout.dimensions.keys() if dim != wrftime]
+      dimlist = [midmap.get(dim,dim) for dim in wrfout.dimensions.iterkeys() if dim != wrftime]
+    else: dimlist = [dim for dim in wrfout.dimensions.iterkeys() if dim != wrftime]
     copy_dims(mean, wrfout, dimlist=dimlist, namemap=dimmap, copy_coords=False) # don't have coordinate variables
     # copy time-less variable to new datasets
     copy_vars(mean, wrfout, varlist=timeless, dimmap=dimmap, copy_data=True) # copy data
@@ -300,7 +300,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
     if wrftimestamp in wrfout.variables:
       copy_vars(mean, wrfout, varlist=[wrftimestamp], dimmap=dimmap, copy_data=False) # do nto copy data - need to average
     # create derived variables
-    for var in derived_vars.values(): 
+    for var in derived_vars.itervalues(): 
       var.checkPrerequisites(mean)
       var.createVariable(mean)            
     # copy global attributes
@@ -347,7 +347,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
   # N.B.: since data is only referenced from existing arrays, allocation is not necessary
   dedata = dict() # non-linear derived variables
   # N.B.: linear derived variables are computed directly from the monthly averages 
-  for dename,devar in derived_vars.items():
+  for dename,devar in derived_vars.iteritems():
     if not devar.linear:
       tmpshape = [len(wrfout.dimensions[ax]) for ax in devar.axes if ax != time] # infer shape
       assert len(tmpshape) ==  len(devar.axes) -1 # no time dimension
@@ -415,11 +415,11 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
       if lxtime: xtime = -1 * wrfout.variables[wrfxtime][wrfstartidx] # seconds
       else: xtime = str().join(wrfout.variables[wrftimestamp][wrfstartidx,:]) # datestring of format '%Y-%m-%d_%H:%M:%S'
       # clear temporary arrays
-      for varname,var in data.items(): # base variables
+      for varname,var in data.iteritems(): # base variables
         data[varname] = np.zeros(var.shape) # reset to zero
-      for dename,devar in dedata.items(): # derived variables
+      for dename,devar in dedata.iteritems(): # derived variables
         dedata[dename] = np.zeros(devar.shape) # reset to zero           
-      
+
       ## loop over files and average
       while not lcomplete:
         
@@ -503,13 +503,13 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
               delta = float( (dt2-dt1).total_seconds() ) # the difference creates a timedelta object
             delta /=  float(wrfendidx - wrfstartidx) # the average interval between output time steps
             # loop over time-step data
-            for pqname,pqvar in pqdata.items():
+            for pqname,pqvar in pqdata.iteritems():
               if pqname in acclist: pqvar /= delta # normalize
           else: delta = 0
           # N.B.: if wrfendidx == wrfstartidx, just use previous values...
           # loop over derived variables
           logger.debug('\n{0:s} Available prerequisites: {1:s}'.format(pidstr, str(pqdata.keys())))
-          for dename,devar in derived_vars.items():
+          for dename,devar in derived_vars.iteritems():
             if not devar.linear: # only non-linear ones here, linear one at the end
               logger.debug('\n{0:s} {1:s} {2:s}'.format(pidstr, dename, str(devar.prerequisites)))
               tmp = devar.computeValues(pqdata, aggax=tax, delta=delta) # possibly needed as pre-requisite  
@@ -597,7 +597,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
           else: ncvar[meanidx] = vardata
         # compute derived variables
         logger.debug('\n{0:s}   Derived Variable Stats: (mean/min/max)'.format(pidstr))
-        for dename,devar in derived_vars.items():
+        for dename,devar in derived_vars.iteritems():
           if devar.linear:           
             vardata = devar.computeValues(data) # compute derived variable now from averages
           elif devar.normalize: 

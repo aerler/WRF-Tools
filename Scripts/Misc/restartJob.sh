@@ -18,25 +18,25 @@ QUIET=0 # suppress output
 #while getopts 'fs' OPTION; do # getopts version... supports only short options
 while true; do
   case "$1" in
-    -f | --force  ) FORCE=1;  shift;;
-    -r | --reset  ) RESET=1; SIMPLE=1; shift;;
-    -s | --simple ) SIMPLE=1; shift;;
-         --step   ) CURRENTSTEP="$2"; shift 2;;
-    -n | --nowps  ) NOWPS='NOWPS'; shift;;
-    -w | --wps    ) NOWPS='FALSE'; shift;;
-    -t | --test   ) TEST=1;   shift;;
-    -q | --quiet  ) QUIET=1;  shift;;
-    -h | --help   ) echo -e " \
+    -f | --force    )   FORCE=1;  shift;;
+    -r | --reset    )   RESET=1; SIMPLE=1; shift;;
+    -s | --simple   )   SIMPLE=1; shift;;
+    -e | --step     )   CURRENTSTEP="$2"; shift 2;;
+    -n | --nowps    )   NOWPS='NOWPS'; shift;;
+    -w | --wps      )   NOWPS='FALSE'; shift;;
+    -t | --test     )   TEST=1;   shift;;
+    -q | --quiet    )   QUIET=1;  shift;;
+    -h | --help     )   echo -e " \
                             \n\
-    -f | --force       ignore warnings and force restart \n\
-    -r | --reset       reset all namelist parameters \n\
-    -s | --simple      do not change stability parameters \n\
-         --step        restart at this step \n\
-    -n | --nowps       don't run WPS for next step \n\
-    -w | --wps         (re-)run WPS for next step \n\
-    -t | --test        dry-run for tests; just print parameters \n\
-    -q | --quiet       do not print launch feedback \n\
-    -h | --help        print this help \n\
+    -f | --force        ignore warnings and force restart \n\
+    -r | --reset        reset all namelist parameters \n\
+    -s | --simple       do not change stability parameters \n\
+    -e | --step         restart at this step \n\
+    -n | --nowps        don't run WPS for next step \n\
+    -w | --wps          (re-)run WPS for next step \n\
+    -t | --test         dry-run for tests; just print parameters \n\
+    -q | --quiet        do not print launch feedback \n\
+    -h | --help         print this help \n\
                              "; exit 0;; # \n\ == 'line break, next line'; for syntax highlighting
     -- ) shift; break;; # this terminates the argument list, if GNU getopt is used
     * ) break;;
@@ -46,9 +46,14 @@ done # while getopts
 ERR=0
 # load job/experiment parameters
 INIDIR=${INIDIR:-"${PWD}"}; cd "$INIDIR" # make sure that this is the current directory
+SCRIPTDIR="${INIDIR}/scripts" # location of the setup-script
 EXP="${INIDIR%/}"; EXP="${EXP##*/}" # name of experiment
 if [ -z $CURRENTSTEP ]; then 
-  CURRENTSTEP=$( ls [0-9][0-9][0-9][0-9]-[0-9][0-9]* -d | head -n 1 ) # first step folder
+  CURRENTSTEP=$( for W in `awk '{print $1}' stepfile`; do [ -e $W/ ] && break; done; echo $W ) # first step folder
+  if [ ! -e "$INIDIR/$CURRENTSTEP/" ]; then 
+    echo 'Error: no active step folder found!'
+    exit 1
+  fi # check step folder
 elif [ ! -e "$INIDIR/$CURRENTSTEP/" ]; then
   echo 'Error: current step folder does not exist:'
   echo "$INIDIR/$CURRENTSTEP/" 
@@ -68,17 +73,11 @@ elif [ -f "${INIDIR}/${NEXTSTEP}"/run_*_WPS.* ] && [[ "${NEXTSTEP}" != "${CURREN
 else 
   NOWPS='FALSE'
 fi
-# N.B.: single brakets are essential, otherwise the globbing expression is not recognized
-# determine machine
-MAC=${MAC:-''}
-if [[ -f 'GPC' ]]; then MAC='GPC'
-elif [[ -f 'TCS' ]]; then MAC='TCS'
-elif [[ -f 'P7' ]]; then MAC='P7'
-elif [[ -z "$MAC" ]]; then 
-    [ $QUIET == 0 ] && echo 'ERROR: unknown machine!'
-    exit 1 # abort
-fi # if $MAC
-[ $TEST == 1 ] && MAC=TEST # suppress actual launch (for tests)
+# N.B.: single brackets are essential, otherwise the globbing expression is not recognized
+
+# source machine setup
+source "${SCRIPTDIR}/setup_WRF.sh" > /dev/null # suppress output (not errors, though)
+# needed to define $MAC and $RESUBJOB
 
 # move into working directory (step folder)
 cd "${WORKDIR}"
@@ -159,17 +158,15 @@ if [ $QUIET == 0 ]; then
 fi; fi # reporting level
 # launch restart
 rm -rf ${CURRENTSTEP}/rsl.* ${CURRENTSTEP}/wrf*.nc
-# restart job (this is a bit hackish and not as general as I would like it...)
-if [[ "$MAC" == 'GPC' ]]; then 
-  ssh gpc-f104n084-ib0 "cd \"${INIDIR}\"; qsub ./run_cycling_WRF.pbs -v NOWPS=${NOWPS},NEXTSTEP=${CURRENTSTEP}"
+## restart job (using the machine setup)
+# launch WRF; required vars: INIDIR, NEXTSTEP, WRFSCRIPT, NOWPS, RSTCNT
+if [ -z "$ALTSUBJOB" ] || [[ "$MAC" == "$SYSTEM" ]]; then 
+  eval "${RESUBJOB}" # on the same machine (default)
   ERR=$(( ${ERR} + $? )) # capture exit code
-elif [[ "$MAC" == 'TCS' ]]; then
-  ssh tcs-f11n06-ib0 "cd \"${INIDIR}\"; export NEXTSTEP=${CURRENTSTEP}; export NOWPS=${NOWPS}; llsubmit ./run_cycling_WRF.ll"
+else 
+  eval "${ALTSUBJOB}" # alternate/remote command
   ERR=$(( ${ERR} + $? )) # capture exit code
-elif [[ "$MAC" == 'P7' ]]; then
-  ssh p7n01-ib0 "cd \"${INIDIR}\"; export NEXTSTEP=${CURRENTSTEP}; export NOWPS=${NOWPS}; llsubmit ./run_cycling_WRF.ll"
-  ERR=$(( ${ERR} + $? )) # capture exit code
-fi # if MAC
+fi # if there is an alternative...
 # report errors
 if [[ "${ERR}" != '0' ]]; then
   [ $QUIET == 0 ] && echo "ERROR: $ERR Errors(s) occured!"
