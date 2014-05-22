@@ -1,5 +1,5 @@
 '''
-Created on 2013-09-28
+Created on 2013-09-28, revised 2014-05-21
 
 A script to average WRF output; the default settings are meant for my 'fineIO' output configuration and 
 process the smaller diagnostic files.
@@ -61,10 +61,18 @@ def getDateRegX(period):
 if os.environ.has_key('PYAVG_THREADS'): 
   NP = int(os.environ['PYAVG_THREADS'])
 else: NP = None
-# only compute whole years 
+# overwrite existing data 
 if os.environ.has_key('PYAVG_OVERWRITE'): 
   loverwrite =  os.environ['PYAVG_OVERWRITE'] == 'OVERWRITE' 
 else: loverwrite = False # i.e. append
+# only compute derived variables 
+if os.environ.has_key('PYAVG_DERIVEDONLY'): 
+  lderivedonly =  os.environ['PYAVG_DERIVEDONLY'] == 'DERIVEDONLY' 
+else: lderivedonly = False # i.e. all
+# just add new and leave old
+if os.environ.has_key('PYAVG_ADDNEW'): 
+  laddnew =  os.environ['PYAVG_ADDNEW'] == 'ADDNEW' 
+else: laddnew = False # i.e. recompute all
 # N.B.: when loverwrite is True and and prdarg is empty, the entire file is replaced,
 #       otherwise only the selected months are recomputed 
 # file types to process 
@@ -77,7 +85,8 @@ if os.environ.has_key('PYAVG_DOMAINS'):
 else: domains = None # defaults are set below
 # run script in debug mode
 if os.environ.has_key('PYAVG_DEBUG'): 
-  ldebug =  os.environ['PYAVG_DEBUG'] == 'DEBUG' 
+  ldebug =  os.environ['PYAVG_DEBUG'] == 'DEBUG'
+  lderivedonly = ldebug or lderivedonly # usually this is what we are debugging, anyway...
 else: ldebug = False # operational mode
 
 # working directories
@@ -123,11 +132,15 @@ if len(period) >= 3:
 filetypes = filetypes or ['srfc', 'plev3d', 'xtrm', 'hydro', 'lsm', 'rad']
 domains = domains or [1,2,3,4] 
 # filetypes and domains can also be set in an semi-colon-separated environment variable (see above)
-# inputpattern = 'wrf{0:s}_d{1:02d}_{2:s}-{3:s}-{4:s}_\d\d:\d\d:\d\d.nc' # expanded with format(type,domain,year,month) 
+# file pattern (WRF output and averaged files)
+# inputpattern = 'wrf{0:s}_d{1:02d}_{2:s}-{3:s}-{4:s}_\d\d:\d\d:\d\d.nc' # expanded with format(type,domain,year,month)
+inputpattern = 'wrf{0:s}_d{1:02d}_{2:s}_\d\d:\d\d:\d\d.nc' # expanded with format(type,domain,datestring)
+constpattern = 'wrfconst_d{0:02d}.nc' # expanded with format(domain), also WRF output
 outputpattern = 'wrf{0:s}_d{1:02d}_monthly.nc' # expanded with format(type,domain)
 # variable attributes
 wrftime = 'Time' # time dim in wrfout files
 wrfxtime = 'XTIME' # time in minutes since WRF simulation start
+wrfaxes = dict(Time='tax', west_east='xax', south_north='yax', num_press_levels_stag='pax')
 wrftimestamp = 'Times' # time-stamp variable in WRF
 time = 'time' # time dim in monthly mean files
 dimlist = ['x','y'] # dimensions we just copy
@@ -143,39 +156,41 @@ bktpfx = 'I_' # prefix for bucket variables; these are processed together with t
 
 # derived variables
 derived_variables = {filetype:[] for filetype in filetypes} # derived variable lists by file type
-derived_variables['srfc']  = [dv.Rain(), dv.LiquidPrecipSR(), dv.SolidPrecipSR(), 
-                              dv.NetPrecip_Srfc(), dv.WaterVapor()]
+derived_variables['srfc']   = [dv.Rain(), dv.LiquidPrecipSR(), dv.SolidPrecipSR(), 
+                               dv.NetPrecip_Srfc(), dv.WaterVapor(), dv.OrographicIndex()]
 derived_variables['xtrm']   = [dv.RainMean(), dv.WetDays(), dv.FrostDays()]
-derived_variables['hydro'] = [dv.Rain(), dv.LiquidPrecip(), dv.SolidPrecip(),                            
-                              dv.NetPrecip_Hydro(), dv.NetWaterFlux(), ]
-derived_variables['lsm']   = [dv.RunOff()]
+derived_variables['hydro']  = [dv.Rain(), dv.LiquidPrecip(), dv.SolidPrecip(),                            
+                               dv.NetPrecip_Hydro(), dv.NetWaterFlux(), ]
+derived_variables['lsm']    = [dv.RunOff()]
+# N.B.: derived variables need to be listed in order of computation
 # Maxima (just list base variables; derived variables will be created later)
 maximum_variables = {filetype:[] for filetype in filetypes} # maxima variable lists by file type
-maximum_variables['srfc']  = ['T2', 'U10', 'V10', 'RAIN', 'RAINC']
-maximum_variables['xtrm']  = ['T2MEAN', 'T2MAX', 'SPDUV10MEAN', 'SPDUV10MAX', 
-                              'RAINMEAN', 'RAINNCVMAX', 'RAINCVMAX']
-maximum_variables['hydro'] = ['T2MEAN', 'RAIN', 'RAINC', 'NetWaterFlux']
-maximum_variables['lsm']   = ['SFROFF']
-maximum_variables['plev3d']   = ['S_PL', 'GHT_PL']
+maximum_variables['srfc']   = ['T2', 'U10', 'V10', 'RAIN', 'RAINC']
+maximum_variables['xtrm']   = ['T2MEAN', 'T2MAX', 'SPDUV10MEAN', 'SPDUV10MAX', 
+                               'RAINMEAN', 'RAINNCVMAX', 'RAINCVMAX']
+maximum_variables['hydro']  = ['T2MEAN', 'RAIN', 'RAINC', 'NetWaterFlux']
+maximum_variables['lsm']    = ['SFROFF']
+maximum_variables['plev3d'] = ['S_PL', 'GHT_PL']
 # weekly (smoothed) maxima
 weekmax_variables  = {filetype:[] for filetype in filetypes} # maxima variable lists by file type
-weekmax_variables['hydro'] = ['T2MEAN', 'RAIN', 'ACSNOM', 'NetPrecip', 'NetWaterFlux']
-weekmax_variables['lsm']   = ['SFROFF','UDROFF','Runoff']
+weekmax_variables['hydro']  = ['T2MEAN', 'RAIN', 'ACSNOM', 'NetPrecip', 'NetWaterFlux']
+weekmax_variables['lsm']    = ['SFROFF','UDROFF','Runoff']
 # Maxima (just list base variables; derived variables will be created later)
 minimum_variables = {filetype:[] for filetype in filetypes} # minima variable lists by file type
-minimum_variables['srfc']  = ['T2']
-minimum_variables['xtrm']  = ['T2MEAN', 'T2MIN']
-minimum_variables['hydro'] = ['T2MEAN']
-minimum_variables['plev3d']   = ['GHT_PL']
+minimum_variables['srfc']   = ['T2']
+minimum_variables['xtrm']   = ['T2MEAN', 'T2MIN']
+minimum_variables['hydro']  = ['T2MEAN']
+minimum_variables['plev3d'] = ['GHT_PL']
 # weekly (smoothed) minima
 weekmin_variables  = {filetype:[] for filetype in filetypes} # mininma variable lists by file type
-weekmin_variables['hydro'] = ['T2MEAN', 'RAIN', 'ACSNOM', 'NetPrecip', 'NetWaterFlux']
-weekmin_variables['lsm']   = ['SFROFF','UDROFF','Runoff']
+weekmin_variables['hydro']  = ['T2MEAN', 'RAIN', 'ACSNOM', 'NetPrecip', 'NetWaterFlux']
+weekmin_variables['lsm']    = ['SFROFF','UDROFF','Runoff']
 # N.B.: it is important that the derived variables are listed in order of dependency! 
 # set of pre-requisites
 prereq_vars = {key:set() for key in derived_variables.iterkeys()} # pre-requisite variable set by file type
 for key in prereq_vars.iterkeys():
   prereq_vars[key].update(*[devar.prerequisites for devar in derived_variables[key] if not devar.linear])    
+
 
 ## main work function
 # N.B.: the loop iterations should be entirely independent, so that they can be run in parallel
@@ -185,13 +200,17 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
   ## setup files and folders
 
   # load first file to copy some meta data
-  wrfout = nc.Dataset(infolder+filelist[0], 'r', format='NETCDF4')
+  wrfoutfile = infolder+filelist[0]
+  wrfout = nc.Dataset(wrfoutfile, 'r', format='NETCDF4')
   # timeless variables (should be empty, since all timeless variables should be in constant files!)        
   timeless = [varname for varname,var in wrfout.variables.iteritems() if 'Time' not in var.dimensions]
-  assert len(timeless) == 0
+  assert len(timeless) == 0 # actually useless, since all WRF variables have a time dimension...
   # time-dependent variables            
-  varlist = [varname for varname,var in wrfout.variables.iteritems() if 'Time' in var.dimensions \
-             and np.issubdtype(var.dtype, np.number) and not varname[0:len(bktpfx)] == bktpfx]
+  varlist = [] # list of time-dependent variables to be processed
+  for varname,var in wrfout.variables.iteritems():
+    if ('Time' in var.dimensions) and np.issubdtype(var.dtype, np.number) and varname[0:len(bktpfx)] != bktpfx:
+      varlist.append(varname)
+  varlist.sort() # alphabetical order...
 
   ## derived variables, extrema, and dependencies
   # derived variable list
@@ -199,7 +218,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
   # the reason is that derived variables can depend on other derived variables, and the order in 
   # which they are listed, should take this into account
   for devar in derived_variables[filetype]:
-    derived_vars[devar.name] = devar  
+    derived_vars[devar.name] = devar
   
   # method to create derived variables for extrema
   def addExtrema(new_variables, mode, interval=0):
@@ -217,44 +236,21 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
   addExtrema(maximum_variables, 'max')
   addExtrema(minimum_variables, 'min')
   addExtrema(weekmax_variables, 'max', interval=7)
-  addExtrema(weekmin_variables, 'min', interval=7)
+  addExtrema(weekmin_variables, 'min', interval=7)  
+
+  # if we are only computing derived variables, remove all non-prerequisites
+  prepq = set().union(*[devar.prerequisites for devar in derived_vars.itervalues()])
+  if lderivedonly: varlist = [var for var in varlist if var in prepq]
+
     
-  # construct dependencies
-  # update linearity: dependencies of non-linear variables have to be treated as non-linear themselves
-  lagain = True
-  # parse through dependencies until nothing changes anymore
-  while lagain:
-    lagain = False
-    for devar in derived_vars.itervalues():
-      if not devar.linear:
-        # make sure all dependencies are also treated as non-linear
-        for pq in devar.prerequisites:
-          if pq in derived_vars and derived_vars[pq].linear:
-            lagain = True # indicate modification
-            derived_vars[pq].linear = False
-  # construct dependency set (should include extrema now)
-  pqset = set().union(*[devar.prerequisites for devar in derived_vars.itervalues() if not devar.linear])
-  
-  # get some meta info and construct title string
+  # get some meta info and construct title string (printed after file creation)
   begindate = datergx.search(filelist[0]).group()
   beginyear, beginmonth, beginday = [int(tmp) for tmp in begindate.split('-')]
   assert beginday == 1, 'always have to begin on the first of a month'
   enddate = datergx.search(filelist[-1]).group()
   endyear, endmonth, endday = [int(tmp) for tmp in enddate.split('-')]
   assert 1 <= endday <= 31 # this is kinda trivial...  
-  varstr = ''; devarstr = '' # make variable list, also for derived variables
-  for var in varlist: varstr += '%s, '%var
-  for devar in derived_vars.itervalues(): devarstr += '%s, '%devar.name
       
-  # announcement: format title string and print
-  titlestr = '\n\n{0:s}    ***   Processing wrf{1:s} files for domain {2:d}.   ***'.format(pidstr,filetype,ndom)
-  titlestr += '\n          (monthly means from {0:s} to {1:s}, incl.)'.format(begindate,enddate)
-  if varstr: titlestr += '\n Variable list: {0:s}'.format(str(varstr),)
-  else: titlestr += '\n Variable list: None'
-  if devarstr: titlestr += '\n Derived variables: {0:s}'.format(str(devarstr),)
-  # print meta info (print everything in one chunk, so output from different processes does not get mangled)
-  logger.info(titlestr)
-  
   # open/create monthly mean output file
   filename = outputpattern.format(filetype,ndom)   
   meanfile = outfolder+filename
@@ -266,17 +262,74 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
     # infer start index
     meanbeginyear, meanbeginmonth, meanbeginday = [int(tmp) for tmp in mean.begin_date.split('-')]
     assert meanbeginday == 1, 'always have to begin on the first of a month'
-    t0 = (beginyear-meanbeginyear)*12 + (beginmonth-meanbeginmonth) + 1        
+    t0 = (beginyear-meanbeginyear)*12 + (beginmonth-meanbeginmonth) + 1    
     # check time-stamps in old datasets
     if mean.end_date < begindate: assert t0 == len(mean.dimensions[time]) + 1 # another check
-    else: assert t0 <= len(mean.dimensions[time]) + 1 # get time index where we start; in month beginning 1979  
-    #if not loverwrite: raise DateError, "%s Begindate %s comes before enddate %s in file %s"%(pidstr,begindate,enddate,filename)
-    # check derived variables
-    for var in derived_vars.itervalues():
-      if var.name not in mean.variables: 
-        raise (dv.DerivedVariableError, 
-               "{0:s} Derived variable '{1:s}' not found in file '{2:s}'".format(pidstr,var.name,filename))
-      var.checkPrerequisites(mean)
+    else: assert t0 <= len(mean.dimensions[time]) + 1 # get time index where we start; in month beginning 1979
+    # checks for new variables
+    if laddnew: 
+      if t0 != 1: raise DateError, "Have to start at the beginning to add new variables!" # t0 starts with 1, not 0
+      meanendyear, meanendmonth, meanendday = [int(tmp) for tmp in mean.end_date.split('-')]
+      assert meanendday == 1
+      endyear, endmonth = meanendyear, meanendmonth # just adding new, not extending!
+      enddate = mean.end_date # for printing...
+    # check base variables
+    if laddnew: newvars = []
+    for var in varlist:
+      if var not in mean.variables:
+        if laddnew: newvars.append(var)
+        else: varlist.remove(var) 
+        #raise IOError, "{0:s} variable '{1:s}' not found in file '{2:s}'".format(pidstr,var.name,filename)
+    if laddnew:
+      # copy remaining dimensions to new datasets
+      if midmap is not None:
+        dimlist = [midmap.get(dim,dim) for dim in wrfout.dimensions.iterkeys() if dim != wrftime]
+      else: dimlist = [dim for dim in wrfout.dimensions.iterkeys() if dim != wrftime]
+      dimlist = [dim for dim in dimlist if dim not in mean.dimensions] # only the new ones!
+      copy_dims(mean, wrfout, dimlist=dimlist, namemap=dimmap, copy_coords=False) # don't have coordinate variables      
+      # create time-dependent variable in new datasets
+      copy_vars(mean, wrfout, varlist=newvars, dimmap=dimmap, copy_data=False) # do not copy data - need to average
+      # change units of accumulated variables (per second)
+      for varname in newvars: # only new vars
+        assert varname in mean.variables
+        if varname in acclist:
+          meanvar = mean.variables[varname]
+          meanvar.units = meanvar.units + '/s' # units per second!          
+    # check derived variables derived variables
+    if laddnew: newdevars = []
+    for varname,var in derived_vars.iteritems():
+      if varname in mean.variables:
+        var.checkPrerequisites(mean)
+        if not var.checked: raise ValueError, "Prerequisits for derived variable '{:s}' not found.".format(varname)
+      else:
+        if laddnew: 
+          var.checkPrerequisites(mean) # as long as they are sorted correctly...
+          var.createVariable(mean)
+          newdevars.append(varname)
+        else: del derived_vars[devar] # don't bother
+        # N.B.: it is not possible that a previously computed variable depends on a missing variable,
+        #       unless it was purposefully deleted, in which case this will crash!
+        #raise (dv.DerivedVariableError, "{0:s} Derived variable '{1:s}' not found in file '{2:s}'".format(pidstr,var.name,filename))
+    # now figure out effective variable list
+    if laddnew:
+      varset = set(newvars)
+      devarset = set(newdevars)
+      ndv = -1
+      # check prerequisites
+      while ndv != len(devarset):   
+        ndv = len(devarset)
+        for devar in list(devarset): # normal variables don't have prerequisites
+          for pq in derived_vars[devar].prerequisites:
+            if pq in derived_vars: devarset.add(pq)
+            else: varset.add(pq)
+      # N.B.: this algorithm for dependencies relies on the fact that derived_vars is already ordered correctly,
+      #       and unused variables can simply be removed (below), without changing the order;
+      #       a stand-alone dependency resolution would require soring the derived_vars in order of execution 
+      # consolidate lists
+      for devar in derived_vars.iterkeys():
+        if devar not in devarset: del derived_vars[devar] # don't bother with this one...
+      varlist = list(varset) # order doesnt really matter... but whatever...
+      varlist.sort() # ... alphabetical order...
   else:
     mean = nc.Dataset(meanfile, 'w', format='NETCDF4') # open to start a new file (mode='w')
     t0 = 1 # time index where we start: first month in 1979
@@ -301,8 +354,8 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
       copy_vars(mean, wrfout, varlist=[wrftimestamp], dimmap=dimmap, copy_data=False) # do nto copy data - need to average
     # create derived variables
     for var in derived_vars.itervalues(): 
-      var.checkPrerequisites(mean)
-      var.createVariable(mean)            
+      var.checkPrerequisites(mean) # as long as they are sorted correctly...
+      var.createVariable(mean) # derived variables need to be added in order of computation           
     # copy global attributes
     copy_ncatts(mean, wrfout, prefix='') # copy all attributes (no need for prefix; all upper case are original)
     # some new attributes
@@ -310,8 +363,68 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
     mean.begin_date = begindate
     mean.experiment = exp
     mean.creator = 'Andre R. Erler'
-    # write to file
-    mean.sync()        
+  # sync with file
+  mean.sync()        
+
+
+  ## construct dependencies
+  # update linearity: dependencies of non-linear variables have to be treated as non-linear themselves
+  lagain = True
+  # parse through dependencies until nothing changes anymore
+  while lagain:
+    lagain = False
+    for devar in derived_vars.itervalues():
+      if not devar.linear:
+        # make sure all dependencies are also treated as non-linear
+        for pq in devar.prerequisites:
+          if pq in derived_vars and derived_vars[pq].linear:
+            lagain = True # indicate modification
+            derived_vars[pq].linear = False
+  # construct dependency set (should include extrema now)
+  pqset = set().union(*[devar.prerequisites for devar in derived_vars.itervalues() if not devar.linear])
+  cset = set().union(*[devar.constants for devar in derived_vars.itervalues() if devar.constants is not None])
+  
+  # load constants, if necessary
+  const = dict()
+  lconst = len(cset) > 0
+  if lconst:
+    constfile = infolder+constpattern.format(ndom)
+    wrfconst = nc.Dataset(constfile, 'r', format='NETCDF4')
+    # constant variables
+    for cvar in cset:
+      if cvar in wrfconst.variables: const[cvar] = wrfconst.variables[cvar][:]
+      elif cvar in wrfconst.ncattrs(): const[cvar] = wrfconst.getncattr(cvar)
+      else: raise ValueError, "Constant variable/attribute '{:s}' not found in constants file '{:s}'.".format(cvar,constfile)             
+  else: const = None
+    
+  # check axes order of prerequisits and constants
+  for devar in derived_vars.itervalues():
+    for pq in devar.prerequisites:
+      # get dimensions of prerequisite
+      if pq in varlist: pqax = wrfout.variables[pq].dimensions
+      elif lconst and pq in wrfconst.variables: pqax = wrfconst.variables[pq].dimensions
+      elif lconst and pq in const: pqax = () # a scalar value, i.e. no axes
+      elif pq in derived_vars: pqax = derived_vars[pq].axes
+      else: raise ValueError, "Prerequisite '{:s} for variable '{:s}' not found!".format(pq,devar.name)
+      # check axes for consistent order
+      index = -1
+      for ax in devar.axes: 
+        if ax in pqax:
+          idx = pqax.index(ax) 
+          if idx > index: index = idx
+          else: raise IndexError, "The axis order of '{:s}' and '{:s}' is inconsistent - this can lead to unexpected results!".format(devar.name,pq)  
+      
+  # announcement: format title string and print
+  varstr = ''; devarstr = '' # make variable list, also for derived variables
+  for var in varlist: varstr += '%s, '%var
+  for devar in derived_vars.itervalues(): devarstr += '%s, '%devar.name
+  titlestr = '\n\n{0:s}    ***   Processing wrf{1:s} files for domain {2:d}.   ***'.format(pidstr,filetype,ndom)
+  titlestr += '\n          (monthly means from {0:s} to {1:s}, incl.)'.format(begindate,enddate)
+  if varstr: titlestr += '\n Variable list: {0:s}'.format(str(varstr),)
+  else: titlestr += '\n Variable list: None'
+  if devarstr: titlestr += '\n Derived variables: {0:s}'.format(str(devarstr),)
+  # print meta info (print everything in one chunk, so output from different processes does not get mangled)
+  logger.info(titlestr)
 
   # extend time dimension in monthly average
   if (endyear < beginyear) or (endyear == beginyear and endmonth < beginmonth):
@@ -375,7 +488,9 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
       # extend time array / month counter
       meanidx = i0 + n
       # check if we are overwriting existing data
-      if meanidx == len(mean.variables[time]): 
+      if laddnew:
+        lskip = False # add data point for new variables
+      elif meanidx == len(mean.variables[time]): 
         lskip = False # append next data point / time step
       elif loverwrite: 
         assert meanidx < len(mean.variables[time])
@@ -512,7 +627,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
           for dename,devar in derived_vars.iteritems():
             if not devar.linear: # only non-linear ones here, linear one at the end
               logger.debug('\n{0:s} {1:s} {2:s}'.format(pidstr, dename, str(devar.prerequisites)))
-              tmp = devar.computeValues(pqdata, aggax=tax, delta=delta) # possibly needed as pre-requisite  
+              tmp = devar.computeValues(pqdata, aggax=tax, delta=delta, const=const) # possibly needed as pre-requisite  
               dedata[dename] = devar.aggregateValues(dedata[dename], tmp, aggax=tax)
               # N.B.: in-place operations with non-masked array destroy the mask, hence need to use this
               if dename in pqset: pqdata[dename] = tmp
@@ -665,7 +780,7 @@ if __name__ == '__main__':
     # make list of files
     filelist = []
     for domain in domains:
-      typergx = re.compile('wrf{0:s}_d{1:02d}_{2:s}_\d\d:\d\d:\d\d.nc'.format(filetype, domain, datestr))
+      typergx = re.compile(inputpattern.format(filetype, domain, datestr))
       # regular expression to also match type and domain index
       filelist = [typergx.match(filename) for filename in masterlist] # list folder and match
       filelist = [match.group() for match in filelist if match is not None] # assemble valid file list

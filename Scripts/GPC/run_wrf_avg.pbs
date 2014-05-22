@@ -40,6 +40,7 @@ cd "${INIDIR}"
 # influential enviromentvariables for averaging script
 # export PYAVG_THREADS=1
 # export PYAVG_OVERWRITE=OVERWRITE
+# export PYAVG_ADDNEW=FALSE
 # export PYAVG_FILETYPES='srfc;xtrm;plev3d;hydro;lsm;rad'
 
 # launch script

@@ -1,5 +1,5 @@
 '''
-Created on 2013-10-01
+Created on 2013-10-01, revised 2014-05-20
 
 A module defining a base class and some instances, which provide a mechanism to add derived/secondary variables
 to WRF monthly means generated with the wrfout_average module.
@@ -88,7 +88,7 @@ class DerivedVariable(object):
     
   def computeValues(self, indata, aggax=0, delta=None, const=None):
     ''' Compute values for new variable from existing stock; child classes have to overload this method. '''
-    # N.B.: this method i called directly for linear and through aggregateValues() for non-linear variables
+    # N.B.: this method ii called directly for linear and through aggregateValues() for non-linear variables
     if not isinstance(indata,dict): raise TypeError
     if not isinstance(aggax,(int,np.integer)): raise TypeError # the aggregation axis (needed for extrema) 
     if not (const is None or isinstance(const,dict)): raise TypeError # dictionary of constant(s)/fields
@@ -96,6 +96,10 @@ class DerivedVariable(object):
     # N.B.: the const dictionary makes pre-loaded constant fields available for computations 
     if not self.checked: # check prerequisites
       raise DerivedVariableError, "Prerequisites for variable '%s' are not satisfied."%(self.name)
+    # if this variable requires constants, check that
+    if self.constants is not None and len(self.constants) > 0: 
+      if const is None or len(const) == 0: 
+        raise ValueError, 'The variable \'{:s}\' requires a constants dictionary!'.format(self.name)
     return NotImplemented
   
   def aggregateValues(self, aggdata, comdata, aggax=0):
@@ -367,7 +371,7 @@ class OrographicIndex(DerivedVariable):
     super(OrographicIndex,self).__init__(name='OrographicIndex', # name of the variable
                               units='', # fraction of days 
                               prerequisites=['U10','V10'], # it's the sum of these two
-                              constants=['HGT'], # constant topography field
+                              constants=['HGT','DY','DX'], # constant topography field
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype='float', atts=None, linear=False) 
     # N.B.: this computation is actually linear, but some non-linear computations depend on it
@@ -378,14 +382,12 @@ class OrographicIndex(DerivedVariable):
     # compute topographic gradients and save in constants (for later use)
     if 'hgtgrd_sn' not in const:
       if 'HGT' not in const: raise ValueError
-      if 'YAX' not in const: raise ValueError
       if 'DY' not in const: raise ValueError
-      const['hgtgrd_sn'] = ctrDiff(const['HGT'], axis=const['YAX'], delta=const['DY'])
+      const['hgtgrd_sn'] = ctrDiff(const['HGT'], axis=1, delta=const['DY'])
     if 'hgtgrd_we' not in const:
       if 'HGT' not in const: raise ValueError
-      if 'XAX' not in const: raise ValueError
       if 'DX' not in const: raise ValueError
-      const['hgtgrd_we'] = ctrDiff(const['HGT'], axis=const['XAX'], delta=const['DX'])
+      const['hgtgrd_we'] = ctrDiff(const['HGT'], axis=2, delta=const['DX'])
     # compute correlation (projection, scalar product, etc.)    
     outdata = indata['U10']*const['hgtgrd_we'] + indata['V10']*const['hgtgrd_sn'] 
     return outdata
