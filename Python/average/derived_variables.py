@@ -484,7 +484,6 @@ class MeanExtrema(Extrema):
     # infer attributes of Maximum variable
     super(MeanExtrema,self).__init__(var, mode, name=name, dimmap=dimmap)
     self.atts['name'] = self.name = '{0:s}_{1:d}d'.format(self.name,interval)
-    print self.name 
     self.atts['Aggregation'] = 'Smoothed ' + self.atts['Aggregation']
     self.atts['SmoothInterval'] = '{0:d} days'.format(interval) # interval in days
     self.interval = interval * 24*60*60 # in seconds, sicne delta will be in seconds, too    
@@ -502,7 +501,6 @@ class MeanExtrema(Extrema):
     # truncate and reshape data
     data = data[0:ilen*nint,:]
     data = data.reshape((ilen,nint) + pape)
-    print self.name, data.shape
     # average interval
     meandata = data.mean(axis=0) # average over interval dimension
     datadict = {self.prerequisites[0]:meandata} # next method expects a dictionary...
