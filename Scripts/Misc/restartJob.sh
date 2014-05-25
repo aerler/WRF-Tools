@@ -172,6 +172,8 @@ fi; fi # reporting level
 # launch restart
 rm -rf ${CURRENTSTEP}/rsl.* ${CURRENTSTEP}/wrf*.nc
 ## restart job (using the machine setup)
+export NEXTSTEP="${CURRENTSTEP}"
+export NOWPS
 if [ $TEST == 0 ]; then
   # launch WRF; required vars: INIDIR, NEXTSTEP, WRFSCRIPT, NOWPS, RSTCNT
 	if [ -z "$ALTSUBJOB" ] || [[ "$MAC" == "$SYSTEM" ]]; then 
