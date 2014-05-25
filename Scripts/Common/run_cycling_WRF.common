@@ -89,6 +89,11 @@ else # only if WRF completed successfully
   echo
 
 
+  # reload machine setup (might have changed in the meantime)
+  cd "${INIDIR}"
+  source "${SCRIPTDIR}/setup_WRF.sh" # load machine-specific stuff
+  # N.B.: this is basically to allow seamless machine switching between steps
+
   ## launch post-processing
   eval "${SCRIPTDIR}/launchPostP.sh" # mainly archiving, but may include actual post-processing
   ERR=$(( ${ERR} + $? )) # capture exit code
