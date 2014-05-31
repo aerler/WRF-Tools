@@ -22,7 +22,7 @@ DEN_SNDT=${DEN_SNDT:-4} # sound time step denominator
 ERR=0
 
 # skip if restart is not desired
-if [[ "${AUTORST}" == 'RESTART' ]] # && [ ${MAXRST} > 0 ] 
+if [[ "${AUTORST}" == 'RESTART' ]] # && [ ${MAXRST} -gt 0 ] 
   then
 
 ## start restart logic

@@ -544,15 +544,14 @@ done
 # copy data file for emission scenario, if applicable
 if [[ -n "${GHG}" ]]; then # only if $GHG is defined!
     echo
-    if [[ ${RAD} == 'RRTM' ]] || [[ ${RAD} == 1 ]] \
-       || [[ ${RAD} == 'CAM' ]] || [[ ${RAD} == 3 ]] \
-       || [[ ${RAD} == 'RRTMG' ]] || [[ ${RAD} == 4 ]]
+    if [[ ${RAD} == 'RRTM' ]] || [[ ${RAD} == 1 ]] || [[ ${RAD} == 'CAM' ]] || [[ ${RAD} == 3 ]] || [[ ${RAD} == 'RRTMG' ]] || [[ ${RAD} == 4 ]]
     then
         echo "GHG emission scenario: ${GHG}"
         ln -sf "${TABLES}/CAMtr_volume_mixing_ratio.${GHG}" # do not clip scenario extension (yet)
     else
         echo "WARNING: variable GHG emission scenarios not available with the selected ${RAD} scheme!"
-        unset GHG # for later use
+        unset GHG 
+        # unset GHG for later use
     fi
 fi
 cd "${RUNDIR}" # return to run directory
@@ -568,10 +567,11 @@ echo " * review meta data and namelists"
 echo " * edit run scripts, if necessary,"
 echo
 # count number of broken links
+CNT=0
 for FILE in * bin/* scripts/* meta/* tables/*; do # need to list meta/ and table/ extra, because */ includes data links (e.g. atm/)
   if [[ ! -e $FILE ]]; then
     CNT=$(( CNT + 1 ))
-    if (( CNT == 1 )); then
+    if  [ $CNT -eq 1 ]; then
       echo " * fix broken links"
       echo
       echo "  Broken links:"
@@ -580,7 +580,7 @@ for FILE in * bin/* scripts/* meta/* tables/*; do # need to list meta/ and table
     ls -l "${FILE}"
   fi
 done
-if (( CNT > 0 )); then
+if [ $CNT -gt 0 ]; then
   echo "   >>>   WARNING: there are ${CNT} broken links!!!   <<<   "
   echo
 fi
