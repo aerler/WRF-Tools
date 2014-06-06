@@ -30,18 +30,18 @@ gravitational settling
 ! land model  
  sf_surface_physics                  = 4,   4,   4, ! Noah-MP
  num_soil_layers                     = 4, ! for Noah(-MP) LSM
- ua_phys                             = .true. ! improved canopy snow (Noah LSM)
- sf_surface_mosaic                   = 1 ! use sub-grid land category mosaic (Noah LSM)
+ ua_phys                             = .true. ! improved canopy snow (Noah LSM only)
+ sf_surface_mosaic                   = 0 ! sub-grid land mosaic does not work (Noah LSM only)
  mosaic_cat                          = 3 ! number of sub-grid land categories
- sf_urban_physics                    = 0,   0,   0, ! does not work with Noah-MP
+ sf_urban_physics                    = 0,   0,   0, ! does not work with Noah(-MP)
 ! CLM lake model
  sf_lake_physics                     = 0,   0,   0, ! lake model does not seem to work
  use_lakedepth                       = 1 ! lake depth from geogrid
  lakedepth_default                   = 50 ! default depth if data is missin (50m)
 ! sea ice and SST
- fractional_seaice                   = 1, ! from CESM; XICE in Vtable
+ fractional_seaice                   = 1, ! from CESM; XICE in Vtable (does not work with Noah LSM)
  seaice_albedo_opt                   = 1, ! varies with temperature etc.
- !seaice_albedo_opt                  = 2, ! read seaice albedo from ALBSI (metgrid input) 
+ !seaice_albedo_opt                   = 2, ! read seaice albedo from ALBSI (metgrid input) 
  !seaice_snowdepth_opt                = 1, ! read snow on seaice from SNOWSI (metgrid input) 
  sst_update                          = 1, ! applies to all lower input variables
  sst_skin                            = 1, ! compute diurnal cycle for SST
