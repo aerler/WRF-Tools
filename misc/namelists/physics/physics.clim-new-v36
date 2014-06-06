@@ -18,13 +18,12 @@
  cugd_avedx                          = 1, ! G3 subsidence spreading
  ishallow                            = 1 ! shallow convection (G3)
  shcu_physics                        = 0, 0, 0 ! no independent shallow cumulus
-gravitational settling
  kfeta_trigger                       = 1 ! trigger scheme for KF scheme (default = 1)
 ! surface/boundary layer
  sf_sfclay_physics                   = 5,   5,   5, ! MYNN
  bl_pbl_physics                      = 6,   6,   6, ! MYNN 3. TKE
  bldt                                = 0,   0,   0, ! every time-step
- grav_settling                       = 2, 2, 2,! vegetation dependent 
+ grav_settling                       = 2, 2, 2,! vegetation dependent gravitational settling
  iz0tlnd                             = 1 ! vegetation dependent thermal roguhness length
  isfflx                              = 1 ! surface heat and moisture fluxes with PBL
 ! land model  

@@ -97,7 +97,7 @@ outfolder = exproot + '/wrfavg/' # output folder
 
 
 # figure out time period
-if len(sys.argv) == 1:
+if len(sys.argv) == 1 or not any(sys.argv[1:]): # treat empty arguments as no argument
   prdarg = ''
   period = [] # means recompute everything
 elif len(sys.argv) == 2:
