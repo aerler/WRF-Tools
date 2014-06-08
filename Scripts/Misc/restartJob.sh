@@ -176,13 +176,15 @@ export NEXTSTEP="${CURRENTSTEP}"
 export NOWPS
 if [ $TEST == 0 ]; then
   # launch WRF; required vars: INIDIR, NEXTSTEP, WRFSCRIPT, NOWPS, RSTCNT
-	if [ -z "$ALTSUBJOB" ] || [[ "$MAC" == "$SYSTEM" ]]; then 
-	  eval "${RESUBJOB}" # on the same machine (default)
-	  ERR=$(( ${ERR} + $? )) # capture exit code
-	else 
-	  eval "${ALTSUBJOB}" # alternate/remote command
-	  ERR=$(( ${ERR} + $? )) # capture exit code
-	fi # if there is an alternative...
+  export NEXTSTEP="${CURRENTSTEP}" # $CURRENTSTEP corresponds to $NEXTSTEP in RESUBJOB!
+  export NOWPS
+  if [ -z "$ALTSUBJOB" ] || [[ "$MAC" == "$SYSTEM" ]]; then 
+    eval "${RESUBJOB}" # on the same machine (default)
+    ERR=$(( ${ERR} + $? )) # capture exit code
+  else 
+    eval "${ALTSUBJOB}" # alternate/remote command
+    ERR=$(( ${ERR} + $? )) # capture exit code
+  fi # if there is an alternative...
 fi # if $TEST
 # report errors
 if [[ "${ERR}" != '0' ]]; then

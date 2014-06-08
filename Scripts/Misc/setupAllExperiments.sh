@@ -3,7 +3,8 @@
 # script to rerun setup script for all experiments (subfolders withxconfig.sh file)
 
 # shell options
-set -o pipefail # return highest exit status in pipe
+set -o pipefail 
+# return highest exit status in pipe
 
 # pre-process arguments using getopt
 if [ -z $( getopt -T ) ]; then
@@ -28,7 +29,7 @@ while true; do
     -h | --help     )   echo -e " \
                             \n\
          --wrftools     WRF Tools folder \n\
-         --errorlog     fileto write error log \n\
+         --errorlog     file to write error log (default: setup_errors.log) \n\
     -v | --verbose      print setup output \n\
     -q | --quiet        do not print any feedback \n\
     -t | --test         dry-run for tests; just print parameters \n\
@@ -74,9 +75,9 @@ for EE in */;do
       echo $E >> "$INIDIR/$ERRLOG"
     fi # if $EC
     
-    [ $VERBOSITY -gt 0 ] && echo
   fi # if xconfig
 done
+[ $VERBOSITY -gt 0 ] && echo
 
 cd "$INIDIR"
 

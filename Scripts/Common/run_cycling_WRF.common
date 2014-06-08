@@ -65,6 +65,16 @@ ERR=$(( ${ERR} + $? )) # capture exit code
 #	touch "${WORKDIR}/wrfrst_d01_${NEXTSTEP}_01"
 #fi
 
+
+## reload machine setup (might have changed in the meantime)
+cd "${INIDIR}"
+# reset variables that pertain to starting the next job
+# (do not change archive and averaging settings)
+unset WAITFORWPS RESUBJOB SLEEPERJOB
+source "${SCRIPTDIR}/setup_WRF.sh" # load machine-specific stuff
+# N.B.: this is basically to allow seamless machine switching between steps
+
+
 ## check exit code and abort if error occurred
 if [[ $ERR != 0 ]]; then
 
@@ -88,11 +98,6 @@ else # only if WRF completed successfully
   date
   echo
 
-
-  # reload machine setup (might have changed in the meantime)
-  cd "${INIDIR}"
-  source "${SCRIPTDIR}/setup_WRF.sh" # load machine-specific stuff
-  # N.B.: this is basically to allow seamless machine switching between steps
 
   ## launch post-processing
   eval "${SCRIPTDIR}/launchPostP.sh" # mainly archiving, but may include actual post-processing

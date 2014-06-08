@@ -52,7 +52,7 @@ function WRITENML () {
         NAME=$( echo ${TOKEN%%=*} | xargs ) # cut off everything after '=' and trim spaces
         MSG='this namelist entry has been edited by the setup script'
         #echo $TOKEN
-        if [[ -n $( echo $TOKEN | grep "[\^$%\&/()+~*|]" ) ]]; then
+        if [[ -n $( echo $TOKEN | grep "[\^$%\&/+~*|]" ) ]]; then
           echo "Invalid character  in Token: $TOKEN"
           exit 1
         fi
