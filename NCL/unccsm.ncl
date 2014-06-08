@@ -181,7 +181,10 @@ end if
 ;  Land Mask -  Snow
 ;---------------------------------------------------------------------------------------------------------------------
 
-  fncfout->landmask = lnd->landfrac
+  landfrac = lnd->landfrac
+  landfrac = where(ismissing(landfrac),0,landfrac)
+  ;landfrac(ind(ismissing(landfrac)))=0
+  fncfout->landmask = landfrac
 
   SNOWHLND = lnd->H2OSNO(ijouratm,:,:)
   poisson_grid_fill ( SNOWHLND, True , 1, 1500,  1e-2, 0.6, 0) ;fill missing values
