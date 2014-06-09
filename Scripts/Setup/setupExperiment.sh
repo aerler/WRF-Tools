@@ -90,7 +90,7 @@ function RENAME () {
 
 ## scenario definition section
 # defaults (may be set or overwritten in xconfig.sh)
-NAME='test'
+NAME='test' # should be overwritten in xconfig
 RUNDIR="${PWD}" # experiment root
 WRFOUT="${RUNDIR}/wrfout/" # folder to collect output data
 METDATA='' # folder to collect output data from metgrid
@@ -123,15 +123,15 @@ FLAKE=0 # FLake lake model (in-house; only V3.4 & V3.5)
 # some settings depend on the number of domains
 MAXDOM=2 # number of domains in WRF and WPS
 
+## load configuration file
+echo "Sourcing experimental setup file (xconfig.sh)" 
+source xconfig.sh
 # create run folder
 echo
 echo "   Setting up Experiment ${NAME}"
 echo
 mkdir -p "${RUNDIR}"
 mkdir -p "${WRFOUT}"
-## load configuration file
-echo "Sourcing experimental setup file (xconfig.sh)" 
-source xconfig.sh
 
 ## fix default settings
 
@@ -337,6 +337,7 @@ else echo "WARNING: no geogrid path selected!"; fi
 
 
 ## link in WPS stuff
+echo
 # WPS scripts
 echo "Linking WPS scripts and executable (${WRFTOOLS})"
 echo "  system: ${WPSSYS}, queue: ${WPSQ}"
@@ -373,6 +374,7 @@ fi # $DATATYPE
 cd "${RUNDIR}"
 
 ## link in WRF stuff
+echo
 touch "${WRFSYS}" # just a marker
 chmod u+x "${WRFSYS}" # so it appears highlighted!
 # WRF scripts
@@ -419,6 +421,7 @@ cd "${RUNDIR}"
 
 
 ## setup archiving and averaging
+echo
 # prepare archive script
 if [[ -n "${ARSCRIPT}" ]]; then
     # copy script and change job name
@@ -449,6 +452,7 @@ fi # $AVGSCRIPT
 
 
 ## copy data tables for selected physics options
+echo
 # radiation scheme
 RAD=$(sed -n '/ra_lw_physics/ s/^\ *ra_lw_physics\ *=\ *\(.\),.*$/\1/p' namelist.input) # \  = space
 if [[ "$RAD" != $(sed -n '/ra_sw_physics/ s/^\ *ra_sw_physics\ *=\ *\(.\),.*$/\1/p' namelist.input) ]]; then

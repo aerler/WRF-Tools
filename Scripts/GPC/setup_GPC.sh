@@ -3,6 +3,12 @@
 # created 06/07/2012 by Andre R. Erler, GPL v3
 # revised 09/05/2014 by Andre R. Erler, GPL v3
 
+# some code to make seamless machine transitions work on SciNet
+if [[ -n "$QSYS" ]] && [[ -n "$WRFSCRIPT" ]] && [[ "$QSYS" != 'PBS' ]]; then
+  # since the run-script defined before, is not for LL, we need to change the extension
+  export WRFSCRIPT="${WRFSCRIPT%.*}.pbs"
+fi # if previously not PBS
+# this machine
 export MAC='GPC' # machine name
 export QSYS='PBS' # queue system
 
