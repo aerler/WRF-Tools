@@ -13,7 +13,7 @@ MAXRST=${MAXRST:--1} # this can be set externally, is ignored the first time...
 RSTCNT=${RSTCNT:-0} # need to initialize, incase it is not set
 # N.B.: the default settings and behavior is for backward compatibility... 
 # stability parameters
-DEL_DELT=${DEL_DELT:-'30'} # negative time-step increment
+DEL_DELT=${DELT:-'30'} # negative time-step increment ($DELT is set in run-script)
 MUL_EPSS=${MUL_EPSS:-'0.50'} # epssm factor
 ENU_SNDT=${ENU_SNDT:-5} # sound time step enumerator
 DEN_SNDT=${DEN_SNDT:-4} # sound time step denominator

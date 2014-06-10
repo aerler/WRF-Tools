@@ -85,6 +85,8 @@ function RENAME () {
     sed -i "/DATATYPE/ s/DATATYPE=[^$][^$].*$/DATATYPE=\'${DATATYPE}\' # type of initial and boundary focing  data /" "${FILE}"
     # whether or not to restart job after a numerical instability (used by crashHandler.sh)
     sed -i "/AUTORST/ s/AUTORST=[^$][^$].*$/AUTORST=\'${AUTORST}\' # whether or not to restart job after a numerical instability /" "${FILE}"
+    # time decrement to use in case of instability (used by crashHandler.sh)
+    sed -i "/DELT/ s/DELT=[^$][^$].*$/DELT=\'${DELT}\' # time decrement for auto restart /" "${FILE}"
 } # fct. RENAME
 
 
@@ -99,6 +101,7 @@ GHG='RCP8.5' # CAMtr_volume_mixing_ratio.* file to be used
 # time period and cycling interval
 CYCLING="monthly.1979-2009" # stepfile to be used (leave empty if not cycling)
 AUTORST='RESTART' # whether or not to restart job after a numerical instability (used by crashHandler.sh)
+DELT='DEFAULT' # time decrement for auto restart (DEFAULT: select according to timestep) 
 # boundary data
 DATADIR='' # root directory for data
 DATATYPE='CESM' # boundary forcing type
@@ -293,6 +296,16 @@ if [[ "${FLAKE}" != 1 ]]; then
   sed -i "/tsk_flake/ s/^\ *tsk_flake\ *=\ *.*$/! tsk_flake was removed because FLake is not used/" namelist.input
   sed -i "/lake_depth_limit/ s/^\ *lake_depth_limit\ *=\ *.*$/! lake_depth_limit was removed because FLake is not used/" namelist.input
 fi # flake
+# determine time step and restart decrement
+if [[ "${DELT}" == 'DEFAULT' ]]; then 
+  DT=$(sed -n '/time_step/ s/^\ *time_step\ *=\ *\([0-9]\+\).*$/\1/p' namelist.input) # '\ ' = space
+  if [[ -z "$DT" ]]; then echo -e '\nERROR: No time step identified in namelist - aborting!\n'; exit 1;
+  elif [ $DT -gt 90 ]; then DELT='30'
+  elif [ $DT -gt 45 ]; then DELT='15'
+  elif [ $DT -gt 30 ]; then DELT='10'
+  else DELT='5'; fi
+fi # if $DELT=DEFAULT
+
 
 ## link data and meta data
 # link meta data
@@ -395,6 +408,12 @@ fi # if cycling
 # WRF run-script (concatenate machine specific and common components)
 cat "${WRFTOOLS}/Scripts/${WRFSYS}/run_${CASETYPE}_WRF.${WRFQ}" > "run_${CASETYPE}_WRF.${WRFQ}"
 cat "${WRFTOOLS}/Scripts/Common/run_${CASETYPE}.environment" >> "run_${CASETYPE}_WRF.${WRFQ}"
+if [ $( grep -c 'custom environment' xconfig.sh ) -gt 0 ]; then
+  echo 'Adding custom environment section from xconfig.sh to run-script'
+  echo '' >> "run_${CASETYPE}_WRF.${WRFQ}" # add line break
+  sed -n '/begin\ custom\ environment/,/end\ custom\ environment/p' xconfig.sh >>  "run_${CASETYPE}_WRF.${WRFQ}"
+  echo '' >> "run_${CASETYPE}_WRF.${WRFQ}" # add line break
+fi # if custom environment
 cat "${WRFTOOLS}/Scripts/Common/run_${CASETYPE}_WRF.common" >> "run_${CASETYPE}_WRF.${WRFQ}"
 RENAME "run_${CASETYPE}_WRF.${WRFQ}"
 if [[ "${WRFQ}" == "sh" ]]; then # make executable in shell

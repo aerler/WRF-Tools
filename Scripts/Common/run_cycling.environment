@@ -25,6 +25,7 @@ export DATATYPE='' # type of initial and boundary forcing data
 export WAITFORWPS='NO' # stay on compute node until WPS for next step finished, in order to submit next WRF job
 export AUTORST='RESTART' # perform auto restart after numerical instability
 export MAXRST=3 # number of restarts to be performed
+export DELT='30' # time decrement for auto restart
 
 ## WRF settings
 # N.B.: these settings serve as fallback options when inferring from namelist fails

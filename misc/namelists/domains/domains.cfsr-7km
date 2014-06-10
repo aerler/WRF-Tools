@@ -1,6 +1,6 @@
 &domains
  max_dom                             =     4,
- time_step                           =    35,
+ time_step                           =    40,
  parent_time_step_ratio              =     1,     7,     7,     7,
  grid_id                             =     1,     2,     3,     4,
  parent_id                           =     0,     1,     1,     1,
