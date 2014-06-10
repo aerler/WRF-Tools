@@ -47,10 +47,16 @@ DATADIR='/data/ERA-I/test/'
 # other WPS configuration files
 GEODATA='/data/WRF/geog_v3.6'
 
+## custom environment section (will be inserted in run script)
+# --- begin custom environment ---
+export TEST='this is a test variable' # just to test custom environment snippets
+# ---  end custom environment  ---
+
 ## system settings
 #WPSWCT='00:03:00'
 #WRFWCT='00:15:00'
 #WRFNODES=4
+#DELT='45'
 WRFROOT="$MODEL_ROOT/WRFV3.6/"
 # WPS executables
 #WPSBLD='Clim-fineIO'
