@@ -201,6 +201,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
 
   # load first file to copy some meta data
   wrfoutfile = infolder+filelist[0]
+  logger.debug("\n{0:s} Opening first input file '{1:s}'.".format(pidstr,wrfoutfile))
   wrfout = nc.Dataset(wrfoutfile, 'r', format='NETCDF4')
   # timeless variables (should be empty, since all timeless variables should be in constant files!)        
   timeless = [varname for varname,var in wrfout.variables.iteritems() if 'Time' not in var.dimensions]
@@ -244,12 +245,26 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
 
     
   # get some meta info and construct title string (printed after file creation)
-  begindate = datergx.search(filelist[0]).group()
+  begindate = str().join(wrfout.variables[wrftimestamp][0,:10]) # first timestamp in first file
   beginyear, beginmonth, beginday = [int(tmp) for tmp in begindate.split('-')]
-  assert beginday == 1, 'always have to begin on the first of a month'
-  enddate = datergx.search(filelist[-1]).group()
+  # always need to begin on the first of a month (discard incomplete data of first month)
+  if beginday != 1:
+    beginmonth += 1 # move on to next month
+    beginday = 1 # and start at the first (always...)
+    begindate = '{0:04d}-{1:02d}-{2:02d}'.format(beginyear, beginmonth, beginday) # rewrite begin date
+  # open last file and get last date
+  lastoutfile = infolder+filelist[-1]
+  logger.debug("{0:s} Opening last input file '{1:s}'.".format(pidstr,lastoutfile))
+  lastout = nc.Dataset(lastoutfile, 'r', format='NETCDF4')
+  enddate = str().join(lastout.variables[wrftimestamp][-1,:10]) # last timestamp in last file
   endyear, endmonth, endday = [int(tmp) for tmp in enddate.split('-')]
-  assert 1 <= endday <= 31 # this is kinda trivial...  
+  # the last timestamp should be the next month (i.e. that month is not included)
+  if endmonth == 1: 
+    endmonth = 12; endyear -= 1 # previous year 
+  else: endmonth -= 1 
+  endday = 1 # first day of last month (always 1st..)
+  assert 1 <= endday <= 31 and 1 <= endmonth <= 12 # this is kinda trivial...  
+  enddate = '{0:04d}-{1:02d}-{2:02d}'.format(endyear, endmonth, endday) # rewrite begin date
       
   # open/create monthly mean output file
   filename = outputpattern.format(filetype,ndom)   
@@ -258,6 +273,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
     if loverwrite or os.path.getsize(meanfile) < 1e6: os.remove(meanfile)
     # N.B.: NetCDF files smaller than 1MB are usually incomplete header fragments from a previous crashed
   if os.path.exists(meanfile):
+    logger.debug("{0:s} Creating new output file '{1:s}'.\n".format(pidstr,meanfile))
     mean = nc.Dataset(meanfile, mode='a', format='NETCDF4') # open to append data (mode='a')
     # infer start index
     meanbeginyear, meanbeginmonth, meanbeginday = [int(tmp) for tmp in mean.begin_date.split('-')]
@@ -331,8 +347,9 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
       varlist = list(varset) # order doesnt really matter... but whatever...
       varlist.sort() # ... alphabetical order...
   else:
+    logger.debug("{0:s} Opening existing output file '{1:s}'.\n".format(pidstr,meanfile))
     mean = nc.Dataset(meanfile, 'w', format='NETCDF4') # open to start a new file (mode='w')
-    t0 = 1 # time index where we start: first month in 1979
+    t0 = 1 # time index where we start (first month)
     mean.createDimension(time, size=None) # make time dimension unlimited
     add_coord(mean, time, data=None, dtype='i4', atts=dict(units='month since '+begindate)) # unlimited time dimension
     # copy remaining dimensions to new datasets
@@ -389,6 +406,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
   lconst = len(cset) > 0
   if lconst:
     constfile = infolder+constpattern.format(ndom)
+    logger.debug("\n{0:s} Opening constants file '{1:s}'.\n".format(pidstr,constfile))
     wrfconst = nc.Dataset(constfile, 'r', format='NETCDF4')
     # constant variables
     for cvar in cset:
@@ -430,8 +448,6 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
   if (endyear < beginyear) or (endyear == beginyear and endmonth < beginmonth):
     raise DateError, "End date is before begin date!"
   times = np.arange(t0,t0+(endyear-beginyear)*12+endmonth-beginmonth+1)
-  # update current end date
-  mean.end_date = enddate # the date-time-stamp of the last included output file
   # handling of time intervals for accumulated variables
   if wrfxtime in wrfout.variables: 
     lxtime = True # simply compute differences from XTIME (assuming minutes)
@@ -498,7 +514,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
       else: 
         assert meanidx < len(mean.variables[time])
         lskip = True # skip this step, but we still have to verify the timing
-      meantime = t # month since simulation start
+      meantime = t # (complete) month since simulation start
       # N.B.: writing records is delayed to avoid incomplete records in case of a crash
       # current date
       currentyear, currentmonth = divmod(n+beginmonth-1,12)
@@ -510,13 +526,14 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
       wrfstartidx = 0    
       while currentdate > str().join(wrfout.variables[wrftimestamp][wrfstartidx,0:7]):
         wrfstartidx += 1 # count forward
+      if wrfstartidx != 0: logger.debug('\n{0:s} {1:s}: Starting month at index {2:d}.'.format(pidstr, currentdate, wrfstartidx))
       # save WRF time-stamp for beginning of month for the new file, for record
       starttimestamp = wrfout.variables[wrftimestamp][wrfstartidx,:] # written to file later
       # print feedback (the current month)
       if not lskip: # but not if we are skipping this step...
         if lparallel: progressstr += '{0:s}, '.format(currentdate) # bundle output in parallel mode
         else: logger.info('{0:s},'.format(currentdate)) # serial mode
-      logger.debug('\n{0:s}{1:s}-01_00:00:00, {2:s}'.format(pidstr, currentdate, str().join(wrfout.variables[wrftimestamp][wrfstartidx,:])))
+      #logger.debug('\n{0:s}{1:s}-01_00:00:00, {2:s}'.format(pidstr, currentdate, str().join(wrfout.variables[wrftimestamp][wrfstartidx,:])))
       if '{0:s}-01_00:00:00'.format(currentdate,) == str().join(wrfout.variables[wrftimestamp][wrfstartidx,:]): pass # proper start of the month
       elif '{0:s}-01_06:00:00'.format(currentdate,) == str().join(wrfout.variables[wrftimestamp][wrfstartidx,:]): pass # for some reanalysis...
       else: raise DateError, ("{0:s} Did not find first day of month to compute monthly average.".format(pidstr) +
@@ -672,6 +689,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
           wrfout.close() # close file...
           # N.B.: filecounter +1 < len(filelist) is already checked above 
           filecounter += 1 # move to next file
+          logger.debug("\n{0:s} Opening input file '{1:s}'.\n".format(pidstr,filelist[filecounter]))
           wrfout = nc.Dataset(infolder+filelist[filecounter], 'r', format='NETCDF4') # ... and open new one
           firsttimestamp = str().join(wrfout.variables[wrftimestamp][0,:]) # check first timestep (compare to last of previous file)
           if missing_value is not None:
@@ -688,15 +706,18 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
             wrfout.close() # close file...
             filecounter += 1 # move to next file
             if filecounter < len(filelist):    
+              logger.debug("\n{0:s} Opening input file '{1:s}'.\n".format(pidstr,filelist[filecounter]))
               wrfout = nc.Dataset(infolder+filelist[filecounter], 'r', format='NETCDF4') # ... and open new one
               wrfstartidx = 0 # use initialization step (same as last step in previous file)
           
-      ## now the loop over files terminated and we need to normalize and save the results
+      ## now the the loop over files has terminated and we need to normalize and save the results
       
       if not lskip:
         # update time axis
         mean.variables[time][meanidx] = meantime
         mean.variables[wrftimestamp][meanidx,:] = starttimestamp 
+         # update current end date
+        mean.end_date = enddate # the date of the first day of the last included month
         # loop over variable names
         for varname in varlist:
           vardata = data[varname]
