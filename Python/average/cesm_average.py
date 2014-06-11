@@ -84,8 +84,8 @@ if len(sys.argv) > 2:
 else:
   srcdir = os.getcwd() + '/' + filetype + '/hist/'
 # set other variables
-dstdir = os.getcwd() + '/'
-cesmname = srcdir.split('/')[-4] # root folder name
+dstdir = os.getcwd() + '/cesmavg/'
+cesmname = os.getcwd().split('/')[-1] # root folder name
 
 #print period
 #print cesmname
