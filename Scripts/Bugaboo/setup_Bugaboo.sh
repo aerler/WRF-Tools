@@ -51,12 +51,17 @@ ulimit -s hard
 export NOCLOBBER='-n'
 
 # set up hybrid envionment: OpenMP and MPI (Intel)
-export NODES=${NODES:-${PBS_TASKNUM}} # set in PBS section (-l proc=N, but I am not sure if PBS_TASKNUM is correct...)
-export TASKS=${TASKS:-1} # number of MPI task per node (Hpyerthreading!)
-# N.B.: Bugaboo allocates processes and not nodes; $NODES is here used for the number of processes 
+export NODES=${NODES:-${PBS_NP}} # set in PBS section (-l proc=N, but I am not sure if PBS_NP is correct...)
+# N.B.: Bugaboo allocates processors and not nodes; $NODES is here used for the number of processors 
+export TASKS=${TASKS:-2} # number of MPI task per processor (Hpyerthreading!)
 export THREADS=${THREADS:-1} # number of OpenMP threads
+# create custom hostfile for hyper-threading
+HOSTFILE="${PBS_O_WORKDIR}/hostfile.${PBS_JOBID}"
+for HOST in $( cat "${PBS_NODEFILE}" ); do 
+  for I in $( seq ${TASKS} ); do echo $HOST; done
+done > "${HOSTFILE}"
 # OpenMPI job launch command
-export HYBRIDRUN=${HYBRIDRUN:-'mpiexec -n $((NODES*TASKS))'} # evaluated by execWRF and execWPS
+export HYBRIDRUN=${HYBRIDRUN:-'mpiexec -n $(( NODES*TASKS )) -hostfile ${HOSTFILE}'} # evaluated by execWRF and execWPS
 
 # geogrid command (executed during machine-independent setup)
 export RUNGEO=${RUNGEO:-"mpirun -n 4 ${BINDIR}/geogrid.exe"}
