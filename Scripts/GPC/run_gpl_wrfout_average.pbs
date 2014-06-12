@@ -70,12 +70,12 @@ for D in ${DATASRC}
         mkdir -p "${D}/wrfavg"
         cp -P "${PYAVG}" "${D}"
         # write command file entry
-        echo "cd ${D}; python ${PYAVG} ${PERIOD} > ${PYAVG}${AVGEXT}.log; echo \"$D:\"; ls wrfavg; echo" >> "${CMDFILE}"
+        echo "cd ${D}; python ${PYAVG} ${PERIOD} &> ${PYAVG}${AVGEXT}.log; echo \"$D:\"; ls wrfavg; echo" >> "${CMDFILE}"
     fi # file check
 done
 echo
 
-# execute commands
+# execute GNU Parallel commands
 parallel -j 8 < "${CMDFILE}"
 ERR=$? # capture exit code
 

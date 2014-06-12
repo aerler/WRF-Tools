@@ -14,7 +14,7 @@ PERIODS='5' # averaging periods
 #RUNS='@(h[abc]|t)b20trcn1x1/ h[abct]brcp85cn1x1/ h[abc]brcp85cn1x1d/ seaice-*-hf/'
 #PERIODS='5 10 15' # averaging periods
 # cesm_average settings
-RECALC='FALSE'
+OVERWRITE='FALSE'
 FILETYPES='atm lnd ice'
 
 # feedback
@@ -25,7 +25,7 @@ ls -d $RUNS
 echo ''
 echo "Averaging Periods: ${PERIODS}"
 echo "File Types: ${FILETYPES}"
-echo "Overwriting Files: ${RECALC}"
+echo "Overwriting Files: ${OVERWRITE}"
 
 # loop over runs
 ERRCNT=0
@@ -66,7 +66,7 @@ for RUN in $RUNS
 		    # NCO command
 		    NCOARGS="--netcdf4 --deflate 1" # use NetCDF4 compression
         NCOOUT="${AVGDIR}/cesm${FILETYPE}_monthly.nc"
-		    if [[ ! -e "${NCOOUT}" ]] || [[ "$RECALC" == 'RECALC' ]]; then
+		    if [[ ! -e "${NCOOUT}" ]] || [[ "$OVERWRITE" == 'OVERWRITE' ]]; then
           ncrcat $NCOARGS --output "${NCOOUT}" --overwrite "${FILES}"* > "${NCOOUT%.nc}.log"
 		      ERR=$?		      
 		    else
@@ -85,7 +85,7 @@ for RUN in $RUNS
             export PYAVG_FILETYPE=$FILETYPE # set above
             # launch python script, save output in log file
             PYAVGOUT="${AVGDIR}/cesm${FILETYPE}_clim_${PERIOD}.nc"
-            if [[ ! -e "$PYAVGOUT" ]] || [[ "$RECALC" == 'RECALC' ]]; then
+            if [[ ! -e "$PYAVGOUT" ]] || [[ "$OVERWRITE" == 'OVERWRITE' ]]; then
               python -u cesm_average.py "$PERIOD" > "${PYAVGOUT%.nc}.log"
               ERR=$?
             else
