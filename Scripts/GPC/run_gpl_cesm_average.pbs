@@ -43,7 +43,7 @@ DSTR=${DSTR:-"/reserved1/p/peltier/aerler//CESM/archive/"} # my CESM archive fol
 #RUNS='seaice-3r-hf/'
 #PERIODS='5' # averaging periods
 # historical runs and projections
-RUNS=${RUNS:-'@(h[abc]|t)b20trcn1x1/ h[abct]brcp85cn1x1/ h[abc]brcp85cn1x1d/ seaice-*-hf/'}
+RUNS=${RUNS:-'@(h[abc]|t)b20trcn1x1/ h[abct]brcp85cn1x1/ h[abct]brcp85cn1x1d/ seaice-*-hf/'}
 PERIODS=${PERIODS:-'5 10 15'} # averaging periods
 # cesm_average settings
 CONCAT=${CONCAT:-'CONCAT'} # concatenate monthly files

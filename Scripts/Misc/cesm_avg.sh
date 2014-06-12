@@ -8,13 +8,13 @@ DSTR="$CCA" # my CESM archive folder as destination (always)
 
 shopt -s extglob
 # for tests
-RUNS='seaice-3r-hf/'
-PERIODS='5' # averaging periods
+RUNS='htbrcp85cn1x1d'
+#PERIODS='5' # averaging periods
 # historical runs and projections
 #RUNS='@(h[abc]|t)b20trcn1x1/ h[abct]brcp85cn1x1/ h[abc]brcp85cn1x1d/ seaice-*-hf/'
-#PERIODS='5 10 15' # averaging periods
+PERIODS='5 10 15' # averaging periods
 # cesm_average settings
-OVERWRITE='FALSE'
+OVERWRITE='OVERWRITE'
 FILETYPES='atm lnd ice'
 
 # feedback
@@ -37,6 +37,8 @@ for RUN in $RUNS
     RUN=${RUN%/} # remove trailing slash, if any
     RUNDIR="${SRCR}/${RUN}/" # extract highest order folder name as run name
     AVGDIR="${DSTR}/${RUN}/cesmavg" # subfolder for averages
+    echo "   ***   Processing $RUN   ***   "
+    echo "   ($RUNDIR)"	
     mkdir -p "${AVGDIR}" # make sure destination folder exists
     cd "${RUNDIR}"
     ln -sf "${MODEL_ROOT}/WRF Tools/Python/average/cesm_average.py" # link archiving script
@@ -67,10 +69,11 @@ for RUN in $RUNS
 		    NCOARGS="--netcdf4 --deflate 1" # use NetCDF4 compression
         NCOOUT="${AVGDIR}/cesm${FILETYPE}_monthly.nc"
 		    if [[ ! -e "${NCOOUT}" ]] || [[ "$OVERWRITE" == 'OVERWRITE' ]]; then
+		      echo "   Concatenating: ${NCOOUT}"
           ncrcat $NCOARGS --output "${NCOOUT}" --overwrite "${FILES}"* > "${NCOOUT%.nc}.log"
 		      ERR=$?		      
 		    else
-		      echo "   Skipping: The file ${NCOOUT} already exits!"
+		      echo "   Skipping: ${NCOOUT}"
 		      ERR=0 # count as success
 		    fi # if already file exits
 		    if [[ $ERR != 0 ]]; then
@@ -81,16 +84,15 @@ for RUN in $RUNS
         for PERIOD in $PRDS
           do
             ## compute averaged climatologies
-            echo "   ***   Averaging $RUN ($PERIOD,$FILETYPE)   ***   "
-            echo "   ($RUNDIR)"	
             export PYAVG_FILETYPE=$FILETYPE # set above
             # launch python script, save output in log file
             PYAVGOUT="${AVGDIR}/cesm${FILETYPE}_clim_${PERIOD}.nc"
             if [[ ! -e "$PYAVGOUT" ]] || [[ "$OVERWRITE" == 'OVERWRITE' ]]; then
+              echo "   Averaging: ${PYAVGOUT}"
               python -u cesm_average.py "$PERIOD" > "${PYAVGOUT%.nc}.log"
               ERR=$?
             else
-              echo "   Skipping: The file ${PYAVGOUT} already exits!"
+              echo "   Skipping: ${PYAVGOUT}"
               ERR=0 # count as success
             fi # if already file exits
             # clean up
