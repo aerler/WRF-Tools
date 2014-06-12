@@ -33,8 +33,10 @@ DS='/scratch/p/peltier/aerler/Downscaling'
 PYAVG='wrfout_average.py' # averaging script
 # environment variables for the averaging script
 export PYAVG_THREADS=1 # serial execution
-export PYAVG_OVERWRITE=OVERWRITE # recompute
-export PYAVG_FILETYPES='plev3d'
+export PYAVG_OVERWRITE='FALSE' # recompute
+export PYAVG_ADDNEW='ADDNEW'
+export PYAVG_FILETYPES='' #  'srfc', 'plev3d', 'xtrm', 'hydro', 'lsm', 'rad'
+export PYAVG_DOMAINS='' # default: all
 
 # user settings
 #PERIOD='1979-1981' # extension to command and output files
