@@ -53,7 +53,7 @@ for RUN in $RUNS
       for PRD in $PERIODS; do
         PRDS="${PRDS} ${S}-$(( $S + $PRD ))"
     done; done # loop over start dates and periods
-    # loop over averaging periods
+    # loop over file types
     #echo $PERIODS
 		for FILETYPE in $FILETYPES
       do
@@ -77,6 +77,7 @@ for RUN in $RUNS
 		      echo "   WARNING: CESM Output concatenation failed!!! Exit code: $ERR"
 		      ERRCNT=$(( ERRCNT + 1 )) # increase error counter
 		    fi # if $ERR
+        # loop over averaging periods
         for PERIOD in $PRDS
           do
             ## compute averaged climatologies
@@ -100,8 +101,8 @@ for RUN in $RUNS
               ERRCNT=$(( ERRCNT + 1 )) # increase error counter
             fi # if $ERR
             echo
-        done # for FILETYPES
-    done # for $PERIODS
+        done # for $PERIODS
+    done # for $FILETYPES
     rm cesm_average.py # remove link to averaging script
 done # for $RUNS
 
