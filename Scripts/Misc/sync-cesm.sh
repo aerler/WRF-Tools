@@ -2,7 +2,7 @@
 # script to synchronize CESM data with SciNet
 
 # CESM directories / data sources
-REX='seaice-5r-hf h[abc]b20trcn1x1 tb20trcn1x1 h[abcz]brcp85cn1x1 htbrcp85cn1x1'
+REX='seaice-5r-hf h[abc]b20trcn1x1 tb20trcn1x1 h[abcz]brcp85cn1x1 htbrcp85cn1x1 h[abcz]brcp85cn1x1d htbrcp85cn1x1d'
 CESMDATA=${CESMDATA:-/data/CESM/} # can be supplied by caller
 CAVG="${CESMDATA}/cesmavg/"
 DIAG="${CESMDATA}/cesmdiag/"
