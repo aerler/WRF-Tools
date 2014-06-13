@@ -89,6 +89,11 @@ if os.environ.has_key('PYAVG_DEBUG'):
   lderivedonly = ldebug or lderivedonly # usually this is what we are debugging, anyway...
 else: ldebug = False # operational mode
 
+# wipe temporary storage after every month (no carry-over)
+if os.environ.has_key('PYAVG_CARRYOVER'): 
+  lcarryover =  os.environ['PYAVG_CARRYOVER'] == 'CARRYOVER'
+else: lcarryover = True # operational mode
+
 # working directories
 exproot = os.getcwd()
 exp = exproot.split('/')[-1] # root folder name
@@ -401,6 +406,9 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
   pqset = set().union(*[devar.prerequisites for devar in derived_vars.itervalues() if not devar.linear])
   cset = set().union(*[devar.constants for devar in derived_vars.itervalues() if devar.constants is not None])
   
+  # initialize dictionary for temporary storage
+  tmpdata = dict() # not allocated - use sparingly
+  
   # load constants, if necessary
   const = dict()
   lconst = len(cset) > 0
@@ -645,7 +653,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
             for dename,devar in derived_vars.iteritems():
               if not devar.linear: # only non-linear ones here, linear one at the end
                 logger.debug('\n{0:s} {1:s} {2:s}'.format(pidstr, dename, str(devar.prerequisites)))
-                tmp = devar.computeValues(pqdata, aggax=tax, delta=delta, const=const) # possibly needed as pre-requisite  
+                tmp = devar.computeValues(pqdata, aggax=tax, delta=delta, const=const, tmp=tmpdata) # possibly needed as pre-requisite  
                 dedata[dename] = devar.aggregateValues(dedata[dename], tmp, aggax=tax)
                 # N.B.: in-place operations with non-masked array destroy the mask, hence need to use this
                 if dename in pqset: pqdata[dename] = tmp
@@ -703,6 +711,13 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
             wrfstartidx = 0 # no duplicates: first timestep in next file was not present in previous file
             liniout = False # needed later to detect leapdays
         else: # month complete
+          # clear temporary storage
+          if lcarryover:
+            for devar in derived_vars.values():
+              if not (devar.tmpdata is None or devar.carryover):
+                if devar.tmpdata in tmpdata: del tmpdata[devar.tmpdata]
+          else: tmpdata = dict() # reset entire temporary storage                
+          # open next file (if end of month and file coincide)
           if wrfendidx == len(wrfout.dimensions[wrftime])-1: # at the end
             wrfout.close() # close file...
             filecounter += 1 # move to next file
