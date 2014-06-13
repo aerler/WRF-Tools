@@ -52,12 +52,13 @@ function WRITENML () {
         NAME=$( echo ${TOKEN%%=*} | xargs ) # cut off everything after '=' and trim spaces
         MSG='this namelist entry has been edited by the setup script'
         #echo $TOKEN
-        if [[ -n $( echo $TOKEN | grep "[\^$%\&/+~*|]" ) ]]; then
+        if [[ -n $( echo $TOKEN | grep "[\^$%\&/~*|]" ) ]]; then # can contain + if using / as delimiter
           echo "Invalid character  in Token: $TOKEN"
           exit 1
         fi
         if [[ -n $( grep "${NAME}" 'TEMPFILE' ) ]]
             then sed -i "/${NAME}/ s/^\ *${NAME}\ *=\ *.*$/${TOKEN} ! ${MSG}/" 'TEMPFILE'
+            # N.B.: have to use '/' as delimiter, because we need '+' in namelist
             else echo "${TOKEN} ! ${MSG}"  >> 'TEMPFILE' # just append, if not already present
         fi 
 #   echo "${TOKEN}"
