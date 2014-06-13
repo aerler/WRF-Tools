@@ -612,17 +612,19 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
             elif varname[0:len(bktpfx)] == bktpfx: pass # do not process buckets
             ## Normal Variables
             else: 
-              # compute mean via sum over all elements; normalize by number of time steps
-              slices[tax] = slice(wrfstartidx,wrfendidx) # relevant time interval
-              tmp = var.__getitem__(slices) # get array
-              if missing_value is not None:
-                # N.B.: missing value handling is really only necessary when missing values time-dependent
-                tmp = np.where(tmp == missing_value, np.NaN, tmp) # set missing values to NaN
-                #tmp = ma.masked_equal(tmp, missing_value, copy=False) # mask missing values
-              data[varname] = data[varname] + tmp.sum(axis=tax) # add to sum
-              # N.B.: in-place operations with non-masked array destroy the mask, hence need to use this
-              # keep data in memory if used in computation of derived variables
-              if varname in pqset: pqdata[varname] = tmp
+              # skip "empty" steps (only needed to difference accumulated variables)
+              if wrfendidx > wrfstartidx:
+                # compute mean via sum over all elements; normalize by number of time steps
+                slices[tax] = slice(wrfstartidx,wrfendidx) # relevant time interval
+                tmp = var.__getitem__(slices) # get array
+                if missing_value is not None:
+                  # N.B.: missing value handling is really only necessary when missing values time-dependent
+                  tmp = np.where(tmp == missing_value, np.NaN, tmp) # set missing values to NaN
+                  #tmp = ma.masked_equal(tmp, missing_value, copy=False) # mask missing values
+                data[varname] = data[varname] + tmp.sum(axis=tax) # add to sum
+                # N.B.: in-place operations with non-masked array destroy the mask, hence need to use this
+                # keep data in memory if used in computation of derived variables
+                if varname in pqset: pqdata[varname] = tmp
           ## compute derived variables
           # But first, normalize accumulated pqdata with output interval time
           if wrfendidx > wrfstartidx:
@@ -637,18 +639,17 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
             # loop over time-step data
             for pqname,pqvar in pqdata.iteritems():
               if pqname in acclist: pqvar /= delta # normalize
-          else: delta = 0
-          # N.B.: if wrfendidx == wrfstartidx, just use previous values...
-          # loop over derived variables
-          logger.debug('\n{0:s} Available prerequisites: {1:s}'.format(pidstr, str(pqdata.keys())))
-          for dename,devar in derived_vars.iteritems():
-            if not devar.linear: # only non-linear ones here, linear one at the end
-              logger.debug('\n{0:s} {1:s} {2:s}'.format(pidstr, dename, str(devar.prerequisites)))
-              tmp = devar.computeValues(pqdata, aggax=tax, delta=delta, const=const) # possibly needed as pre-requisite  
-              dedata[dename] = devar.aggregateValues(dedata[dename], tmp, aggax=tax)
-              # N.B.: in-place operations with non-masked array destroy the mask, hence need to use this
-              if dename in pqset: pqdata[dename] = tmp
-              # N.B.: missing values should be handled implicitly, following missing values in pre-requisites            
+            # N.B.: if wrfendidx == wrfstartidx, just use previous values...
+            # loop over derived variables
+            logger.debug('\n{0:s} Available prerequisites: {1:s}'.format(pidstr, str(pqdata.keys())))
+            for dename,devar in derived_vars.iteritems():
+              if not devar.linear: # only non-linear ones here, linear one at the end
+                logger.debug('\n{0:s} {1:s} {2:s}'.format(pidstr, dename, str(devar.prerequisites)))
+                tmp = devar.computeValues(pqdata, aggax=tax, delta=delta, const=const) # possibly needed as pre-requisite  
+                dedata[dename] = devar.aggregateValues(dedata[dename], tmp, aggax=tax)
+                # N.B.: in-place operations with non-masked array destroy the mask, hence need to use this
+                if dename in pqset: pqdata[dename] = tmp
+                # N.B.: missing values should be handled implicitly, following missing values in pre-requisites            
             
           # increment counters
           ntime += wrfendidx - wrfstartidx
