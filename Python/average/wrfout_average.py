@@ -182,8 +182,8 @@ consecutive_variables['hydro'] = {'CWD'  : ('RAIN', 'above', 2.3e-7, 'Consecutiv
                                   'CDD'  : ('RAIN', 'below', 2.3e-7, 'Consecutive Dry Days'),
                                   'CNWD' : ('NetPrecip', 'above', 0., 'Consecutive Net Wet Days'),
                                   'CNDD' : ('NetPrecip', 'below', 0., 'Consecutive Net Dry Days'),
-                                  'CFWD' : ('NetWaterFlux', 'above', 0., 'Consecutive Flux Wet Days'),
-                                  'CFDD' : ('NetWaterFlux', 'below', 0., 'Consecutive Flux Dry Days'),}
+                                  'CWGD' : ('NetWaterFlux', 'above', 0., 'Consecutive Water Gain Days'),
+                                  'CWLD' : ('NetWaterFlux', 'below', 0., 'Consecutive Water Loss Days'),}
 #consecutive_variables['hydro'] = {}
 # Maxima (just list base variables; derived variables will be created later)
 maximum_variables = {filetype:[] for filetype in filetypes} # maxima variable lists by file type

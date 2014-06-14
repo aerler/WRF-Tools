@@ -460,7 +460,7 @@ class Extrema(DerivedVariable):
     ''' Constructor; takes variable object as argument and infers meta data. '''
     # construct name with prefix 'Max'/'Min' and camel-case
     if isinstance(var, DerivedVariable):
-      varname = var.name; axes = var.axes; atts = var.atts or dict()
+      varname = var.name; axes = var.axes; atts = var.atts.copy() or dict()
     elif isinstance(var, nc.Variable):
       varname = var._name; axes = var.dimensions; atts = dict()
     else: raise TypeError
@@ -515,16 +515,20 @@ class ConsecutiveExtrema(Extrema):
     ''' Constructor; takes variable object as argument and infers meta data. '''
     # construct name with prefix 'Max'/'Min' and camel-case
     if isinstance(var, DerivedVariable):
-      varname = var.name; axes = var.axes; atts = var.atts or dict()
+      varname = var.name; axes = var.axes; atts = var.atts.copy() or dict()
     elif isinstance(var, nc.Variable):
       varname = var._name; axes = var.dimensions; atts = dict()
     else: raise TypeError
     # select mode
     if mode.lower() == 'above':      
-      atts['Aggregation'] = 'Monthly Maximum'; prefix = 'ConAb'; exmode = 1
+      atts['Aggregation'] = 'Maximum Monthly Consecutive Days Above Threshold'
+      name_prefix = 'ConAb'; exmode = 1; prefix = '>'
     elif mode.lower() == 'below':      
-      atts['Aggregation'] = 'Monthly Minimum'; prefix = 'ConBe'; exmode = 0
+      atts['Aggregation'] = 'Maximum Monthly Consecutive Days Below Threshold'
+      name_prefix = 'ConBe'; exmode = 0; prefix = '<'
     else: raise ValueError, "Only 'above' and 'below' are valid modes."
+    atts['Variable'] = '{0:s} {1:s} {2:s} {3:s}'.format(varname,prefix,str(threshold),var.units) 
+    atts['ThresholdValue'] = str(threshold); atts['ThresholdVariable'] = varname 
     if longname is not None: atts['long_name'] = longname 
     if isinstance(dimmap,dict): axes = [dimmap[dim] if dim in dimmap else dim for dim in axes]
     if name is None: name = '{0:s}{1:f}{2:s}'.format(prefix,threshold,varname[0].upper() + varname[1:])
