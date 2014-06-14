@@ -667,6 +667,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
           if wrfendidx > wrfstartidx:
             if lcomplete: tmpendidx = wrfendidx
             else: tmpendidx = wrfendidx -1 # end of file
+            assert tmpendidx > wrfstartidx, 'There should never be a single value in a file: wrfstartidx={:d}, wrfendidx={:d}, lcomplete={:s}'.format(wrfstartidx,wrfendidx,str(lcomplete))
             if lxtime:
               delta = wrfout.variables[wrfxtime][tmpendidx] - wrfout.variables[wrfxtime][wrfstartidx]
               delta *=  60. # convert minutes to seconds   
@@ -737,7 +738,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
             assert missing_value == wrfout.P_LEV_MISSING
           # reset output record / time step counter
           if firsttimestamp == lasttimestamp: 
-            wrfstartidx = 1 # skip the initialization step (same as last step in previous file)
+            wrfstartidx = 1 # skip the initialization step (was already processed in last step)
             liniout = True # needed later to detect leapdays
           else: 
             wrfstartidx = 0 # no duplicates: first timestep in next file was not present in previous file
@@ -750,7 +751,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
                 if devar.tmpdata in tmpdata: del tmpdata[devar.tmpdata]
           else: tmpdata = dict() # reset entire temporary storage                
           # open next file (if end of month and file coincide)
-          if wrfendidx == len(wrfout.dimensions[wrftime]): # at the end
+          if wrfendidx == len(wrfout.dimensions[wrftime])-1: # at the end
             wrfout.close() # close file...
             filecounter += 1 # move to next file
             if filecounter < len(filelist):    
