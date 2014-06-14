@@ -674,10 +674,43 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
             if lxtime:
               delta = wrfout.variables[wrfxtime][tmpendidx] - wrfout.variables[wrfxtime][wrfstartidx]
               delta *=  60. # convert minutes to seconds   
-            else: 
-              dt1 = datetime.strptime(str().join(wrfout.variables[wrftimestamp][wrfstartidx,:]), '%Y-%m-%d_%H:%M:%S')
-              dt2 = datetime.strptime(str().join(wrfout.variables[wrftimestamp][tmpendidx,:]), '%Y-%m-%d_%H:%M:%S')
-              delta = float( (dt2-dt1).total_seconds() ) # the difference creates a timedelta object
+            else:
+              
+              ## function to calculate time deltas and subtract leap-days, if necessary
+              def calcTimeDelta(timestamps, year=None, month=None):
+                # check dates
+                y1, m1, d1 = tuple( int(i) for i in str().join(timestamps[0,:10]).split('-') )
+                y2, m2, d2 = tuple( int(i) for i in str().join(timestamps[-1,:10]).split('-') )
+                if d1 == 29 or  d2 == 29: raise NotImplementedError, 'Intervals ending on leap days are currently not supported!'
+                # the first timestamp has to be of this year and month, last can be one ahead
+                if year is None: year = y1 
+                else: assert year == y1
+                assert ( year == y2 or year+1 == y2 )
+                if month is None: month = m1 
+                else: assert month == m1 
+                assert  ( month == m2 or np.mod(month,12)+1 == m2 )                
+                # determine interval                
+                dt1 = datetime.strptime(str().join(timestamps[0,:]), '%Y-%m-%d_%H:%M:%S')
+                dt2 = datetime.strptime(str().join(timestamps[-1,:]), '%Y-%m-%d_%H:%M:%S')
+                delta = float( (dt2-dt1).total_seconds() ) # the difference creates a timedelta object
+                n = timestamps.shape[0]
+                # check if leap-day is present
+                if month == 2 and calendar.isleap(year):
+                  ld = datetime(year, 2, 29) # datetime of leap day
+                  if dt1 < ld < dt2:
+                    ild = int( ( n - 1 ) * float( ( ld - dt1 ).total_seconds() ) / delta ) # index of leap-day
+                    leapday = False
+                    while not leapday and ild < n:
+                      yy, mm, dd = tuple( int(i) for i in str().join(timestamps[ild,:10]).split('-') )
+                      if mm == 3: break
+                      assert yy == year and mm == 2
+                      if dd == 29: leapday = True
+                      ild += 1 # increment leap day search
+                    if not leapday: delta -= 86400. # subtract leap day from period 
+                # return leap-day-checked period
+                return delta
+              
+              delta = calcTimeDelta(wrfout.variables[wrftimestamp][wrfstartidx:tmpendidx+1,:])
             delta /=  float(tmpendidx - wrfstartidx) # the average interval between output time steps
             # loop over time-step data
             for pqname,pqvar in pqdata.iteritems():
