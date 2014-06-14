@@ -161,13 +161,30 @@ bktpfx = 'I_' # prefix for bucket variables; these are processed together with t
 
 # derived variables
 derived_variables = {filetype:[] for filetype in filetypes} # derived variable lists by file type
-derived_variables['srfc']   = [dv.Rain(), dv.LiquidPrecipSR(), dv.SolidPrecipSR(), 
+derived_variables['srfc']   = [dv.Rain(), dv.LiquidPrecipSR(), dv.SolidPrecipSR(), dv.WetDays(), 
                                dv.NetPrecip_Srfc(), dv.WaterVapor(), dv.OrographicIndex()]
-derived_variables['xtrm']   = [dv.RainMean(), dv.WetDays(), dv.FrostDays()]
-derived_variables['hydro']  = [dv.Rain(), dv.LiquidPrecip(), dv.SolidPrecip(),                            
-                               dv.NetPrecip_Hydro(), dv.NetWaterFlux(), ]
+derived_variables['xtrm']   = [dv.RainMean(), dv.WetDaysMean(), dv.FrostDays()]
+derived_variables['hydro']  = [dv.Rain(), dv.LiquidPrecip(), dv.SolidPrecip(), dv.WetDays(),                            
+                               dv.NetPrecip_Hydro(), dv.NetWaterFlux()]
 derived_variables['lsm']    = [dv.RunOff()]
 # N.B.: derived variables need to be listed in order of computation
+consecutive_variables = {filetype:None for filetype in filetypes} # consecutive variable lists by file type
+# Consecutive exceedance variables
+consecutive_variables['srfc']  = {'CCFD' : ('T2', 'below', 273.14, 'Consecutive Frost Days'),
+                                  'CWD'  : ('RAIN', 'above', 2.3e-7, 'Consecutive Wet Days'),
+                                  'CDD'  : ('RAIN', 'below', 2.3e-7, 'Consecutive Dry Days'),
+                                  'CNWD' : ('NetPrecip', 'above', 0., 'Consecutive Net Wet Days'),
+                                  'CNDD' : ('NetPrecip', 'below', 0., 'Consecutive Net Dry Days'),}
+consecutive_variables['xtrm']  = {'CCFD' : ('T2MEAN', 'below', 273.14, 'Consecutive Frost Days'),
+                                  'CWD'  : ('RAINMEAN', 'above', 2.3e-7, 'Consecutive Wet Days'),
+                                  'CDD'  : ('RAINMEAN', 'below', 2.3e-7, 'Consecutive Dry Days'),}
+consecutive_variables['hydro'] = {'CWD'  : ('RAIN', 'above', 2.3e-7, 'Consecutive Wet Days'),
+                                  'CDD'  : ('RAIN', 'below', 2.3e-7, 'Consecutive Dry Days'),
+                                  'CNWD' : ('NetPrecip', 'above', 0., 'Consecutive Net Wet Days'),
+                                  'CNDD' : ('NetPrecip', 'below', 0., 'Consecutive Net Dry Days'),
+                                  'CFWD' : ('NetWaterFlux', 'above', 0., 'Consecutive Flux Wet Days'),
+                                  'CFDD' : ('NetWaterFlux', 'below', 0., 'Consecutive Flux Dry Days'),}
+#consecutive_variables['hydro'] = {}
 # Maxima (just list base variables; derived variables will be created later)
 maximum_variables = {filetype:[] for filetype in filetypes} # maxima variable lists by file type
 maximum_variables['srfc']   = ['T2', 'U10', 'V10', 'RAIN', 'RAINC']
@@ -225,6 +242,16 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
   # which they are listed, should take this into account
   for devar in derived_variables[filetype]:
     derived_vars[devar.name] = devar
+    
+  # create consecutive extrema variables
+  if consecutive_variables[filetype] is not None:
+    for key,value in consecutive_variables[filetype].iteritems():
+      if value[0] in derived_vars: 
+        derived_vars[key] = dv.ConsecutiveExtrema(derived_vars[value[0]], value[1], threshold=value[2], 
+                                                  name=key, longname=value[3])
+      else:
+        derived_vars[key] = dv.ConsecutiveExtrema(wrfout.variables[value[0]], value[1], threshold=value[2], 
+                                                  name=key, longname=value[3], dimmap=midmap)
   
   # method to create derived variables for extrema
   def addExtrema(new_variables, mode, interval=0):

@@ -328,6 +328,26 @@ class WaterVapor(DerivedVariable):
     return outdata
   
 
+class WetDaysMean(DerivedVariable):
+  ''' DerivedVariable child for counting the fraction of rainy days for WRF output. '''
+  
+  def __init__(self):
+    ''' Initialize with fixed values; constructor takes no arguments. '''
+    super(WetDaysMean,self).__init__(name='WetDays', # name of the variable
+                              units='', # fraction of days 
+                              prerequisites=['RAINMEAN'], # above threshold 
+                              axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
+                              dtype='float', atts=None, linear=False) 
+    
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+    ''' Count the number of events above a threshold (0 for now) '''
+    super(WetDaysMean,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
+    assert delta == 86400., 'WRF extreme values are suppposed to be daily!'
+    outdata = indata['RAINMEAN'] > 2.3e-7 # definition according to AMS Glossary: precip > 0.02 mm/day 
+    # N.B.: this is actually the fraction of wet days in a month (i.e. not really days)
+    return outdata
+
+
 class WetDays(DerivedVariable):
   ''' DerivedVariable child for counting the fraction of rainy days for WRF output. '''
   
@@ -335,16 +355,23 @@ class WetDays(DerivedVariable):
     ''' Initialize with fixed values; constructor takes no arguments. '''
     super(WetDays,self).__init__(name='WetDays', # name of the variable
                               units='', # fraction of days 
-                              prerequisites=['RAINMEAN'], # above threshold 
+                              prerequisites=['RAIN'], # above threshold 
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype='float', atts=None, linear=False) 
-    # N.B.: this computation is actually linear, but some non-linear computations depend on it
-
+    
   def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
     ''' Count the number of events above a threshold (0 for now) '''
-    super(WetDays,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks    
-    outdata = indata['RAINMEAN'] > 2.3e-7 # event over threshold (0.02 mm/day, according to AMS Glossary)    
+    super(WetDays,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
+    # check that delta does not change!
+    if 'WETDAYS_DELTA' in tmp: 
+      if delta != tmp['WETDAYS_DELTA']: 
+        raise NotImplementedError, 'Output interval is assumed to be constant for conversion to days.'
+    else: tmp['WETDAYS_DELTA'] = delta # save and check next time
+    # sampling does not have to be daily may not be daily     
+    outdata = indata['RAIN'] > 2.3e-7 # definition according to AMS Glossary: precip > 0.02 mm/day
+    # N.B.: this is actually the fraction of wet days in a month (i.e. not really days)      
     return outdata
+
 
 class FrostDays(DerivedVariable):
   ''' DerivedVariable child for counting the fraction of frost days for WRF output. '''
@@ -444,7 +471,7 @@ class Extrema(DerivedVariable):
       atts['Aggregation'] = 'Monthly Minimum'; prefix = 'Min'; exmode = 0
     if isinstance(dimmap,dict): axes = [dimmap[dim] if dim in dimmap else dim for dim in axes]
     if name is None: name = '{0:s}{1:s}'.format(prefix,varname[0].upper() + varname[1:])
-    # infer attributes of Maximum variable
+    # infer attributes of extreme variable
     super(Extrema,self).__init__(name=name, units=var.units, prerequisites=[varname], axes=axes, 
                                  dtype=var.dtype, atts=atts, linear=False, normalize=False)
     self.mode = exmode
@@ -478,9 +505,78 @@ class Extrema(DerivedVariable):
         aggdata = np.minimum(aggdata,comdata) # aggregat minima
     # return aggregated value for further treatment
     return aggdata 
+  
+  
+# base class for 'period over threshold'-type extrema 
+class ConsecutiveExtrema(Extrema):
+  ''' Class of variables that tracks the period of exceedance of a threshold. '''
 
+  def __init__(self, var, mode, threshold=0, name=None, longname=None, dimmap=None):
+    ''' Constructor; takes variable object as argument and infers meta data. '''
+    # construct name with prefix 'Max'/'Min' and camel-case
+    if isinstance(var, DerivedVariable):
+      varname = var.name; axes = var.axes; atts = var.atts or dict()
+    elif isinstance(var, nc.Variable):
+      varname = var._name; axes = var.dimensions; atts = dict()
+    else: raise TypeError
+    # select mode
+    if mode.lower() == 'above':      
+      atts['Aggregation'] = 'Monthly Maximum'; prefix = 'ConAb'; exmode = 1
+    elif mode.lower() == 'below':      
+      atts['Aggregation'] = 'Monthly Minimum'; prefix = 'ConBe'; exmode = 0
+    else: raise ValueError, "Only 'above' and 'below' are valid modes."
+    if longname is not None: atts['long_name'] = longname 
+    if isinstance(dimmap,dict): axes = [dimmap[dim] if dim in dimmap else dim for dim in axes]
+    if name is None: name = '{0:s}{1:f}{2:s}'.format(prefix,threshold,varname[0].upper() + varname[1:])
+    # infer attributes of consecutive extreme variable
+    super(Extrema,self).__init__(name=name, units='days', prerequisites=[varname], axes=axes, 
+                                 dtype=np.dtype('float'), atts=atts, linear=False, normalize=False)    
+    self.lengthofday = 86400. # delta's are in units of seconds (24 * 60 * 60)
+    self.thresmode = exmode # above (=1) or below (=0) 
+    self.threshold = threshold # threshold value
+    self.mode = 1 # aggregation method is always maximum (longest period)
+    self.tmpdata = 'COX_'+self.name # don't need temporary storage 
+    self.carryover = True # don't stop counting - this is vital    
+    
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+    ''' Count consecutive above/below threshold days '''
+    super(Extrema,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
+    # check that delta does not change!
+    if 'COX_DELTA' in tmp: 
+      if delta != tmp['COX_DELTA']: 
+        raise NotImplementedError, 'Consecutive extrema currently only work, if the output interval is constant.'
+    else: tmp['COX_DELTA'] = delta # save and check next time 
+    # get data
+    data = indata[self.prerequisites[0]]
+    # if axis is not 0 (innermost), roll axis until it is
+    if aggax != 0: data = np.rollaxis(data, axis=aggax, start=0)
+    tlen = data.shape[0] # aggregation axis
+    xshape = data.shape[1:] # rest of the map
+    # initialize counter of consecutive exceedances
+    if self.tmpdata in tmp: xcnt = tmp[self.tmpdata] # carry over from previous period 
+    else: xcnt = np.zeros(xshape, dtype='int')# initialize as zero
+    # initialize output array
+    maxdata = np.zeros(xshape, dtype='float') # record of maximum consecutive days in computation period 
+    # march along aggregation axis
+    for t in xrange(tlen):
+      # detect threshold changes
+      if self.thresmode == 1: xmask = ( data[t,:] > self.threshold ) # above
+      elif self.thresmode == 0: xmask = ( data[t,:] < self.threshold ) # below
+      #nxmask = not xmask # inverse mask
+      # update maxima of exceedances
+      xnew = np.where(xmask,0,xcnt) * delta / self.lengthofday # extract periods before reset
+      maxdata = np.maximum(maxdata,xnew) #       
+      # set counter for all non-exceedances to zero
+      xcnt[np.invert(xmask)] = 0
+      # increment exceedance counter
+      xcnt[xmask] += 1      
+    # carry over current counter to next period or month
+    tmp[self.tmpdata] = xcnt
+    # return output for further aggregation
+    return maxdata
+  
 
-# base class for running-mean extrema
+# base class for interval-averaged extrema (sort of similar to running mean)
 class MeanExtrema(Extrema):
   ''' Extrema child implementing extrema of interval-averaged values in monthly WRF output. '''
   
