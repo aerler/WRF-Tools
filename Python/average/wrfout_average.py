@@ -674,7 +674,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
               dt1 = datetime.strptime(str().join(wrfout.variables[wrftimestamp][wrfstartidx,:]), '%Y-%m-%d_%H:%M:%S')
               dt2 = datetime.strptime(str().join(wrfout.variables[wrftimestamp][tmpendidx,:]), '%Y-%m-%d_%H:%M:%S')
               delta = float( (dt2-dt1).total_seconds() ) # the difference creates a timedelta object
-            delta /=  float(idxendidx - wrfstartidx) # the average interval between output time steps
+            delta /=  float(tmpendidx - wrfstartidx) # the average interval between output time steps
             # loop over time-step data
             for pqname,pqvar in pqdata.iteritems():
               if pqname in acclist: pqvar /= delta # normalize
@@ -692,6 +692,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
           # increment counters
           ntime += wrfendidx - wrfstartidx
           if lcomplete: 
+            # N.B.: now wrfendidx should be a valid time step
             if lxtime:
               xtime += wrfout.variables[wrfxtime][wrfendidx] # get final time interval (in minutes)
               xtime *=  60. # convert minutes to seconds   
@@ -724,7 +725,8 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
         # two possible ends: month is done or reached end of file
         # if we reached the end of the file, open a new one and go again
         if not lcomplete:            
-          lasttimestamp = str().join(wrfout.variables[wrftimestamp][wrfendidx,:]) # needed to determine, if first timestep is the same as last
+          # N.B.: here wrfendidx is not a valid time step, but the length of the file, i.e. wrfendidx-1 is the last valid time step
+          lasttimestamp = str().join(wrfout.variables[wrftimestamp][wrfendidx-1,:]) # needed to determine, if first timestep is the same as last
           wrfout.close() # close file...
           # N.B.: filecounter +1 < len(filelist) is already checked above 
           filecounter += 1 # move to next file
@@ -748,7 +750,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
                 if devar.tmpdata in tmpdata: del tmpdata[devar.tmpdata]
           else: tmpdata = dict() # reset entire temporary storage                
           # open next file (if end of month and file coincide)
-          if wrfendidx == len(wrfout.dimensions[wrftime])-1: # at the end
+          if wrfendidx == len(wrfout.dimensions[wrftime]): # at the end
             wrfout.close() # close file...
             filecounter += 1 # move to next file
             if filecounter < len(filelist):    
