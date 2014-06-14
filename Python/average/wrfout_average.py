@@ -78,6 +78,7 @@ else: laddnew = False # i.e. recompute all
 # file types to process 
 if os.environ.has_key('PYAVG_FILETYPES'): 
   filetypes = os.environ['PYAVG_FILETYPES'].split(';') # semi-colon separated list
+  if len(filetypes) == 1 and len(filetypes[0]) == 0: filetypes = None # empty string, substitute default 
 else: filetypes = None # defaults are set below
 # domains to process
 if os.environ.has_key('PYAVG_DOMAINS'): 
@@ -88,7 +89,6 @@ if os.environ.has_key('PYAVG_DEBUG'):
   ldebug =  os.environ['PYAVG_DEBUG'] == 'DEBUG'
   lderivedonly = ldebug or lderivedonly # usually this is what we are debugging, anyway...
 else: ldebug = False # operational mode
-
 # wipe temporary storage after every month (no carry-over)
 if os.environ.has_key('PYAVG_CARRYOVER'): 
   lcarryover =  os.environ['PYAVG_CARRYOVER'] == 'CARRYOVER'
@@ -289,7 +289,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
   logger.debug("{0:s} Opening last input file '{1:s}'.".format(pidstr,lastoutfile))
   lastout = nc.Dataset(lastoutfile, 'r', format='NETCDF4')
   enddate = str().join(lastout.variables[wrftimestamp][-1,:10]) # last timestamp in last file
-  endyear, endmonth, endday = [int(tmp) for tmp in enddate.split('-')]
+  endyear, endmonth, endday = [int(tmp) for tmp in enddate.split('-')]; del endday # make warning go away...
   # the last timestamp should be the next month (i.e. that month is not included)
   if endmonth == 1: 
     endmonth = 12; endyear -= 1 # previous year 
@@ -531,8 +531,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
     # loop over month and progressively stepping through input files
     for n,t in enumerate(times):
      
-      liniout = True # determines whether last timestep is the same as first time step in next file
-      lasttimestamp = None # carry over start time, when moving to the next file (defiend below)
+      lasttimestamp = None # carry over start time, when moving to the next file (defined below)
       # N.B.: when moving to the next file, the script auto-detects and resets this property, no need to change here!
       #       However (!) it is necessary to reset this for every month, because it is not consistent!
 
@@ -570,7 +569,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
         else: logger.info('{0:s},'.format(currentdate)) # serial mode
       #logger.debug('\n{0:s}{1:s}-01_00:00:00, {2:s}'.format(pidstr, currentdate, str().join(wrfout.variables[wrftimestamp][wrfstartidx,:])))
       if '{0:s}-01_00:00:00'.format(currentdate,) == str().join(wrfout.variables[wrftimestamp][wrfstartidx,:]): pass # proper start of the month
-      elif '{0:s}-01_06:00:00'.format(currentdate,) == str().join(wrfout.variables[wrftimestamp][wrfstartidx,:]): pass # for some reanalysis...
+      elif meanidx == 0 and '{0:s}-01_06:00:00'.format(currentdate,) == str().join(wrfout.variables[wrftimestamp][wrfstartidx,:]): pass # for some reanalysis... but only at start of simulation 
       else: raise DateError, ("{0:s} Did not find first day of month to compute monthly average.".format(pidstr) +
                               "file: {0:s} date: {1:s}-01_00:00:00".format(filename,currentdate))
       
@@ -627,7 +626,11 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
                 tmp = var.__getitem__(slices)
                 if acclist[varname] is not None: # add bucket level, if applicable
                   bkt = wrfout.variables[bktpfx+varname]
-                  tmp += bkt.__getitem__(slices) * acclist[varname]   
+                  tmp += bkt.__getitem__(slices) * acclist[varname]
+                # check that accumulated fields at the beginning of the simulation are zero  
+                if meanidx == 0 and wrfstartidx == 0:
+                  # note  that if we are skipping the first step, there is no check
+                  assert np.max(tmp) == 0 and np.min(tmp) == 0, 'Accumulated fields were not initialized with zero!' 
                 data[varname] = -1 * tmp # so we can do an in-place operation later 
               # N.B.: both, begin and end, can be in the same file, hence elif is not appropriate! 
               if lcomplete: # last step
@@ -703,15 +706,17 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
               xtime = (dt2-dt1).total_seconds() # the difference creates a timedelta object
               # N.B.: the datetime module always includes leapdays; the code below is to remove leap days
               #       in order to correctly handle model calendars that don't have leap days
-              if liniout:
-                assert wrfendidx > 0
+              if wrfendidx > 0:
+                # extract last time step in this month (wrfendidx is already in next month, but same file)
                 yyyy, mm, dd = str().join(wrfout.variables[wrftimestamp][wrfendidx-1,0:10]).split('-')
+                # N.B.: we can not use lasttimestamp, if the last time step is in the current file, 
+                #       because lasttimestamp is the last in the previous the file, not the last of the month
               else:
-                if lasttimestamp is None: raise ValueError, 'First timestep has to be present in first file!'
-                else: yyyy, mm, dd = lasttimestamp[0:10].split('-')
-                # N.B.: the first timestep has to be present in the first file, or lasttimestamp will be 
-                #       required, before it is defined; for subsequent files it is carried over from the 
-                #       previous file
+                # N.B.: this only happens, if a new file was just opened, only to finalize this timestep; 
+                #       in this case, the lasttimestamp from the previous file is the last of the month
+                assert lasttimestamp is not None, 'lasttimestamp should not be None, if wrfendidx <= 0'
+                # N.B.: this would only fail, if there is only one timestep per file
+                yyyy, mm, dd = lasttimestamp[0:10].split('-')
               # also a bit of sanity checking...
               assert yyyy == '{0:04d}'.format(currentyear) and mm == '{0:02d}'.format(currentmonth)
               if calendar.isleap(currentyear) and currentmonth==2:
@@ -728,6 +733,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
         if not lcomplete:            
           # N.B.: here wrfendidx is not a valid time step, but the length of the file, i.e. wrfendidx-1 is the last valid time step
           lasttimestamp = str().join(wrfout.variables[wrftimestamp][wrfendidx-1,:]) # needed to determine, if first timestep is the same as last
+          # lasttimestep is also used for leap-year detection later on
           wrfout.close() # close file...
           # N.B.: filecounter +1 < len(filelist) is already checked above 
           filecounter += 1 # move to next file
@@ -737,27 +743,29 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
           if missing_value is not None:
             assert missing_value == wrfout.P_LEV_MISSING
           # reset output record / time step counter
-          if firsttimestamp == lasttimestamp: 
-            wrfstartidx = 1 # skip the initialization step (was already processed in last step)
-            liniout = True # needed later to detect leapdays
-          else: 
-            wrfstartidx = 0 # no duplicates: first timestep in next file was not present in previous file
-            liniout = False # needed later to detect leapdays
+          if firsttimestamp == lasttimestamp: wrfstartidx = 1 # skip the initialization step (was already processed in last step)
+          else: wrfstartidx = 0 # no duplicates: first timestep in next file was not present in previous file
         else: # month complete
           # clear temporary storage
           if lcarryover:
             for devar in derived_vars.values():
               if not (devar.tmpdata is None or devar.carryover):
                 if devar.tmpdata in tmpdata: del tmpdata[devar.tmpdata]
-          else: tmpdata = dict() # reset entire temporary storage                
+          else: tmpdata = dict() # reset entire temporary storage
+          # N.B.: now wrfendidx is a valid timestep, but indicates the first of the next month
+          lasttimestamp = str().join(wrfout.variables[wrftimestamp][wrfendidx,:]) # this should be the first timestep of the next month                
           # open next file (if end of month and file coincide)
-          if wrfendidx == len(wrfout.dimensions[wrftime])-1: # at the end
+          if wrfendidx == len(wrfout.dimensions[wrftime])-1: # reach end of file
             wrfout.close() # close file...
             filecounter += 1 # move to next file
             if filecounter < len(filelist):    
               logger.debug("\n{0:s} Opening input file '{1:s}'.\n".format(pidstr,filelist[filecounter]))
               wrfout = nc.Dataset(infolder+filelist[filecounter], 'r', format='NETCDF4') # ... and open new one
-              wrfstartidx = 0 # use initialization step (same as last step in previous file)
+              firsttimestamp = str().join(wrfout.variables[wrftimestamp][0,:]) # check first timestep (compare to last of previous file)
+              wrfstartidx = 0 # always use initialization step (but is reset above anyway)
+              if firsttimestamp != lasttimestamp:
+                raise NotImplementedError, "If the first timestep of the next month is the last timestep in the file, it has to be duplicated in the next file."
+                
           
       ## now the the loop over files has terminated and we need to normalize and save the results
       
@@ -765,7 +773,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
         # update time axis
         mean.variables[time][meanidx] = meantime
         mean.variables[wrftimestamp][meanidx,:] = starttimestamp 
-         # update current end date
+        # update current end date
         mean.end_date = enddate # the date of the first day of the last included month
         # loop over variable names
         for varname in varlist:
@@ -831,8 +839,12 @@ if __name__ == '__main__':
 
 
   # print settings
-  print('\nOVERWRITE: {0:s}\n'.format(str(loverwrite)))
-  
+  print('')
+  print('OVERWRITE: {:s}, ADDNEW: {:s}, DERIVEDONLY: {:s}, CARRYOVER: {:s}'.format(
+        str(loverwrite), str(laddnew),str(lderivedonly),str(lcarryover)))
+  print('FILETYPES: {:s}, DOMAINS: {:s}'.format(str(filetypes),str(domains)))
+  print('THREADS: {:s}, DEBUG: {:s}'.format(str(NP),str(ldebug)))
+  print('')
   # compile regular expression, used to infer start and end dates and month (later, during computation)
   datestr = '{0:s}-{1:s}-{2:s}'.format(yearstr,monthstr,daystr)
   datergx = re.compile(datestr)
@@ -859,6 +871,9 @@ if __name__ == '__main__':
       # now put everything into the lists
       if len(filelist) > 0:
         args.append( (filelist, filetype, domain) )
+      else:          
+        print("Can not process filetype '{:s}' (domain {:d}): no source files.".format(filetype,domain))
+  print('\n')
     
   # call parallel execution function
   kwargs = dict() # no keyword arguments

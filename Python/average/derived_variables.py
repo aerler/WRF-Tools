@@ -134,7 +134,8 @@ class Rain(DerivedVariable):
 
   def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
     ''' Compute total precipitation as the sum of convective  and non-convective precipitation. '''
-    super(Rain,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks    
+    super(Rain,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
+    if delta == 0: raise ValueError, 'RAIN depends on accumulated variables; differences can not be computed from single time steps. (delta=0)'    
     outdata = indata['RAINNC'] + indata['RAINC'] # compute
     return outdata
 
@@ -365,7 +366,7 @@ class WetDays(DerivedVariable):
     # check that delta does not change!
     if 'WETDAYS_DELTA' in tmp: 
       if delta != tmp['WETDAYS_DELTA']: 
-        raise NotImplementedError, 'Output interval is assumed to be constant for conversion to days.(delta={:f})'.format(delta)
+        raise NotImplementedError, 'Output interval is assumed to be constant for conversion to days. (delta={:f})'.format(delta)
     else: tmp['WETDAYS_DELTA'] = delta # save and check next time
     # sampling does not have to be daily may not be daily     
     outdata = indata['RAIN'] > 2.3e-7 # definition according to AMS Glossary: precip > 0.02 mm/day
