@@ -342,7 +342,7 @@ class WetDaysMean(DerivedVariable):
   def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
     ''' Count the number of events above a threshold (0 for now) '''
     super(WetDaysMean,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
-    assert delta == 86400., 'WRF extreme values are suppposed to be daily!'
+    assert delta == 86400., 'WRF extreme values are suppposed to be daily; encountered delta={:f}'.format(delta)
     outdata = indata['RAINMEAN'] > 2.3e-7 # definition according to AMS Glossary: precip > 0.02 mm/day 
     # N.B.: this is actually the fraction of wet days in a month (i.e. not really days)
     return outdata
@@ -365,7 +365,7 @@ class WetDays(DerivedVariable):
     # check that delta does not change!
     if 'WETDAYS_DELTA' in tmp: 
       if delta != tmp['WETDAYS_DELTA']: 
-        raise NotImplementedError, 'Output interval is assumed to be constant for conversion to days.'
+        raise NotImplementedError, 'Output interval is assumed to be constant for conversion to days.(delta={:f})'.format(delta)
     else: tmp['WETDAYS_DELTA'] = delta # save and check next time
     # sampling does not have to be daily may not be daily     
     outdata = indata['RAIN'] > 2.3e-7 # definition according to AMS Glossary: precip > 0.02 mm/day
@@ -388,6 +388,7 @@ class FrostDays(DerivedVariable):
   def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
     ''' Count the number of events above a threshold (0 for now) '''
     super(FrostDays,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks    
+    assert delta == 86400., 'WRF extreme values are suppposed to be daily; encountered delta={:f}'.format(delta)
     outdata = indata['T2MIN'] < 273.15 # event below threshold (0 deg. C., according to AMS Glossary)    
     return outdata
 

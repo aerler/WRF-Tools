@@ -597,11 +597,13 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
         while wrfendidx >= 0 and currentdate < str().join(wrfout.variables[wrftimestamp][wrfendidx,0:7]):
           if not lcomplete: lcomplete = True # break loop over file if next month is in this file (critical!)        
           wrfendidx -= 1 # count backwards
-        if wrfendidx < len(wrfout.dimensions[wrftime])-1: # check if count-down actually happened 
-          wrfendidx += 1 # reverse last step so that counter sits at fist step of next month       
-        # N.B.: if this is not the last file, there was no iteration and wrfendidx is the length of the the file;
-        # if the first date in the file is already the next month, wrfendidx will be 0 and this is the final step 
-        assert wrfendidx >= wrfstartidx
+        #if wrfendidx < len(wrfout.dimensions[wrftime])-1: # check if count-down actually happened 
+        wrfendidx += 1 # reverse last step so that counter sits at first step of next month               
+        # N.B.: if this is not the last file, there was no iteration and wrfendidx should be the length of the the file;
+        #       in this case, wrfendidx is only used to define Python ranges, which are exclusive to the upper boundary;
+        #       if the first date in the file is already the next month, wrfendidx will be 0 and this is the final step;
+        assert wrfendidx >= wrfstartidx # i.e. wrfendidx = wrfstartidx = 0 is an empty step to finalize accumulation
+        assert lcomplete or wrfendidx == len(wrfout.dimensions[wrftime])
         # if this is the last file and the month is not complete, we have to forcefully terminate
         if filecounter == len(filelist)-1 and not lcomplete: 
           lcomplete = True # end loop
@@ -663,18 +665,19 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
           ## compute derived variables
           # But first, normalize accumulated pqdata with output interval time
           if wrfendidx > wrfstartidx:
+            if lcomplete: tmpendidx = wrfendidx
+            else: tmpendidx = wrfendidx -1 # end of file
             if lxtime:
-              delta = wrfout.variables[wrfxtime][wrfendidx] - wrfout.variables[wrfxtime][wrfstartidx]
+              delta = wrfout.variables[wrfxtime][tmpendidx] - wrfout.variables[wrfxtime][wrfstartidx]
               delta *=  60. # convert minutes to seconds   
             else: 
               dt1 = datetime.strptime(str().join(wrfout.variables[wrftimestamp][wrfstartidx,:]), '%Y-%m-%d_%H:%M:%S')
-              dt2 = datetime.strptime(str().join(wrfout.variables[wrftimestamp][wrfendidx,:]), '%Y-%m-%d_%H:%M:%S')
+              dt2 = datetime.strptime(str().join(wrfout.variables[wrftimestamp][tmpendidx,:]), '%Y-%m-%d_%H:%M:%S')
               delta = float( (dt2-dt1).total_seconds() ) # the difference creates a timedelta object
-            delta /=  float(wrfendidx - wrfstartidx) # the average interval between output time steps
+            delta /=  float(idxendidx - wrfstartidx) # the average interval between output time steps
             # loop over time-step data
             for pqname,pqvar in pqdata.iteritems():
               if pqname in acclist: pqvar /= delta # normalize
-            # N.B.: if wrfendidx == wrfstartidx, just use previous values...
             # loop over derived variables
             logger.debug('\n{0:s} Available prerequisites: {1:s}'.format(pidstr, str(pqdata.keys())))
             for dename,devar in derived_vars.iteritems():
