@@ -162,11 +162,13 @@ bktpfx = 'I_' # prefix for bucket variables; these are processed together with t
 # derived variables
 derived_variables = {filetype:[] for filetype in filetypes} # derived variable lists by file type
 derived_variables['srfc']   = [dv.Rain(), dv.LiquidPrecipSR(), dv.SolidPrecipSR(), dv.WetDays(), 
-                               dv.NetPrecip_Srfc(), dv.WaterVapor(), dv.OrographicIndex()]
+                               dv.NetPrecip_Srfc(), dv.WaterVapor(), dv.OrographicIndex(), dv.CovOIP()]
 derived_variables['xtrm']   = [dv.RainMean(), dv.WetDaysMean(), dv.FrostDays()]
 derived_variables['hydro']  = [dv.Rain(), dv.LiquidPrecip(), dv.SolidPrecip(), dv.WetDays(),                            
                                dv.NetPrecip_Hydro(), dv.NetWaterFlux()]
 derived_variables['lsm']    = [dv.RunOff()]
+derived_variables['plev3d'] = [dv.OrographicIndexPlev(), dv.WaterDensity(), 
+                               dv.WaterFlux_U(), dv.WaterFlux_V()]
 # N.B.: derived variables need to be listed in order of computation
 consecutive_variables = {filetype:None for filetype in filetypes} # consecutive variable lists by file type
 # Consecutive exceedance variables
@@ -579,7 +581,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
       # time when accumulation starts (in minutes)        
       # N.B.: the first value is saved as negative, so that adding the last value yields a positive interval
       if lxtime: xtime = -1 * wrfout.variables[wrfxtime][wrfstartidx] # seconds
-      else: xtime = str().join(wrfout.variables[wrftimestamp][wrfstartidx,:]) # datestring of format '%Y-%m-%d_%H:%M:%S'
+      monthlytimestamps = [] # lsit of timestamps, also used for time period calculation  
       # clear temporary arrays
       for varname,var in data.iteritems(): # base variables
         data[varname] = np.zeros(var.shape) # reset to zero
@@ -671,46 +673,18 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
             if lcomplete: tmpendidx = wrfendidx
             else: tmpendidx = wrfendidx -1 # end of file
             assert tmpendidx > wrfstartidx, 'There should never be a single value in a file: wrfstartidx={:d}, wrfendidx={:d}, lcomplete={:s}'.format(wrfstartidx,wrfendidx,str(lcomplete))
+            # assemble list of time stamps                        
+            currenttimestamps = [] # relevant timestamps in this file            
+            for i in xrange(wrfstartidx,tmpendidx+1):
+              timestamp = str().join(wrfout.variables[wrftimestamp][i,:])  
+              currenttimestamps.append(timestamp)
+            monthlytimestamps.extend(currenttimestamps) # add to monthly collection
+            # compute time delta
+            delta = dv.calcTimeDelta(currenttimestamps)
             if lxtime:
-              delta = wrfout.variables[wrfxtime][tmpendidx] - wrfout.variables[wrfxtime][wrfstartidx]
-              delta *=  60. # convert minutes to seconds   
-            else:
-              
-              ## function to calculate time deltas and subtract leap-days, if necessary
-              def calcTimeDelta(timestamps, year=None, month=None):
-                # check dates
-                y1, m1, d1 = tuple( int(i) for i in str().join(timestamps[0,:10]).split('-') )
-                y2, m2, d2 = tuple( int(i) for i in str().join(timestamps[-1,:10]).split('-') )
-                if d1 == 29 or  d2 == 29: raise NotImplementedError, 'Intervals ending on leap days are currently not supported!'
-                # the first timestamp has to be of this year and month, last can be one ahead
-                if year is None: year = y1 
-                else: assert year == y1
-                assert ( year == y2 or year+1 == y2 )
-                if month is None: month = m1 
-                else: assert month == m1 
-                assert  ( month == m2 or np.mod(month,12)+1 == m2 )                
-                # determine interval                
-                dt1 = datetime.strptime(str().join(timestamps[0,:]), '%Y-%m-%d_%H:%M:%S')
-                dt2 = datetime.strptime(str().join(timestamps[-1,:]), '%Y-%m-%d_%H:%M:%S')
-                delta = float( (dt2-dt1).total_seconds() ) # the difference creates a timedelta object
-                n = timestamps.shape[0]
-                # check if leap-day is present
-                if month == 2 and calendar.isleap(year):
-                  ld = datetime(year, 2, 29) # datetime of leap day
-                  if dt1 < ld < dt2:
-                    ild = int( ( n - 1 ) * float( ( ld - dt1 ).total_seconds() ) / delta ) # index of leap-day
-                    leapday = False
-                    while not leapday and ild < n:
-                      yy, mm, dd = tuple( int(i) for i in str().join(timestamps[ild,:10]).split('-') )
-                      if mm == 3: break
-                      assert yy == year and mm == 2
-                      if dd == 29: leapday = True
-                      ild += 1 # increment leap day search
-                    if not leapday: delta -= 86400. # subtract leap day from period 
-                # return leap-day-checked period
-                return delta
-              
-              delta = calcTimeDelta(wrfout.variables[wrftimestamp][wrfstartidx:tmpendidx+1,:])
+              xdelta = wrfout.variables[wrfxtime][tmpendidx] - wrfout.variables[wrfxtime][wrfstartidx]
+              xdelta *=  60. # convert minutes to seconds
+              if delta != xdelta: raise ValueError, "Time calculation from time stamps and model time are inconsistent: {:f} != {:f}".format(delta,xdelta)                 
             delta /=  float(tmpendidx - wrfstartidx) # the average interval between output time steps
             # loop over time-step data
             for pqname,pqvar in pqdata.iteritems():
@@ -730,42 +704,24 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
           ntime += wrfendidx - wrfstartidx
           if lcomplete: 
             # N.B.: now wrfendidx should be a valid time step
+            # check time steps for this month
+            laststamp = monthlytimestamps[0]
+            for timestamp in monthlytimestamps[1:]:
+              if laststamp >= timestamp: 
+                raise DateError, 'Timestamps not in order, or repetition: {:s}'.format(timestamp) 
+              laststamp = timestamp
+            # calculate time period and check against model time (if available)
+            timeperiod = dv.calcTimeDelta(monthlytimestamps)
             if lxtime:
               xtime += wrfout.variables[wrfxtime][wrfendidx] # get final time interval (in minutes)
               xtime *=  60. # convert minutes to seconds   
-            else: 
-              dt1 = datetime.strptime(xtime, '%Y-%m-%d_%H:%M:%S')
-              dt2 = datetime.strptime(str().join(wrfout.variables[wrftimestamp][wrfendidx,:]), '%Y-%m-%d_%H:%M:%S')
-              xtime = (dt2-dt1).total_seconds() # the difference creates a timedelta object
-              # N.B.: the datetime module always includes leapdays; the code below is to remove leap days
-              #       in order to correctly handle model calendars that don't have leap days
-              if wrfendidx > 0:
-                # extract last time step in this month (wrfendidx is already in next month, but same file)
-                yyyy, mm, dd = str().join(wrfout.variables[wrftimestamp][wrfendidx-1,0:10]).split('-')
-                # N.B.: we can not use lasttimestamp, if the last time step is in the current file, 
-                #       because lasttimestamp is the last in the previous the file, not the last of the month
-              else:
-                # N.B.: this only happens, if a new file was just opened, only to finalize this timestep; 
-                #       in this case, the lasttimestamp from the previous file is the last of the month
-                assert lasttimestamp is not None, 'lasttimestamp should not be None, if wrfendidx <= 0'
-                # N.B.: this would only fail, if there is only one timestep per file
-                yyyy, mm, dd = lasttimestamp[0:10].split('-')
-              # also a bit of sanity checking...
-              assert yyyy == '{0:04d}'.format(currentyear) and mm == '{0:02d}'.format(currentmonth)
-              if calendar.isleap(currentyear) and currentmonth==2:
-                if dd == '28':
-                  xtime -= 86400. # subtract leap day for calendars without leap day
-                  logger.info('\n{0:s} Correcting time interval for {1:s}: current calendar does not have leap-days.'.format(pidstr,currentdate))
-                else: assert dd == '29' # if there is a leap day
-              else:
-                dpm = '{0:02d}'.format(days_per_month_365[currentmonth-1])
-                assert dd == dpm, '{0:s}-{1:s}-{2:s}: {2:s} != {3:s}'.format(yyyy,mm,dd,dpm)  # if there is no leap day
-             
+              if timeperiod != xtime: raise ValueError, "Time calculation from time stamps and model time are inconsistent: {:f} != {:f}".format(timeperiod,xtime)            
         # two possible ends: month is done or reached end of file
         # if we reached the end of the file, open a new one and go again
         if not lcomplete:            
           # N.B.: here wrfendidx is not a valid time step, but the length of the file, i.e. wrfendidx-1 is the last valid time step
           lasttimestamp = str().join(wrfout.variables[wrftimestamp][wrfendidx-1,:]) # needed to determine, if first timestep is the same as last
+          assert lasttimestamp == monthlytimestamps[-1]
           # lasttimestep is also used for leap-year detection later on
           wrfout.close() # close file...
           # N.B.: filecounter +1 < len(filelist) is already checked above 
@@ -773,8 +729,8 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
           logger.debug("\n{0:s} Opening input file '{1:s}'.\n".format(pidstr,filelist[filecounter]))
           wrfout = nc.Dataset(infolder+filelist[filecounter], 'r', format='NETCDF4') # ... and open new one
           firsttimestamp = str().join(wrfout.variables[wrftimestamp][0,:]) # check first timestep (compare to last of previous file)
-          if missing_value is not None:
-            assert missing_value == wrfout.P_LEV_MISSING
+          # check consistency of missing value flag
+          assert missing_value is None or missing_value == wrfout.P_LEV_MISSING
           # reset output record / time step counter
           if firsttimestamp == lasttimestamp: wrfstartidx = 1 # skip the initialization step (was already processed in last step)
           else: wrfstartidx = 0 # no duplicates: first timestep in next file was not present in previous file
@@ -786,7 +742,8 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
                 if devar.tmpdata in tmpdata: del tmpdata[devar.tmpdata]
           else: tmpdata = dict() # reset entire temporary storage
           # N.B.: now wrfendidx is a valid timestep, but indicates the first of the next month
-          lasttimestamp = str().join(wrfout.variables[wrftimestamp][wrfendidx,:]) # this should be the first timestep of the next month                
+          lasttimestamp = str().join(wrfout.variables[wrftimestamp][wrfendidx,:]) # this should be the first timestep of the next month
+          assert lasttimestamp == monthlytimestamps[-1]                
           # open next file (if end of month and file coincide)
           if wrfendidx == len(wrfout.dimensions[wrftime])-1: # reach end of file
             wrfout.close() # close file...
@@ -812,7 +769,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
         for varname in varlist:
           vardata = data[varname]
           # decide how to normalize
-          if varname in acclist: vardata /= xtime 
+          if varname in acclist: vardata /= timeperiod
           else: vardata /= ntime
           # save variable
           ncvar = mean.variables[varname] # this time the destination variable

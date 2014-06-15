@@ -12,9 +12,82 @@ points during the averaging process.
 ## imports
 import netCDF4 as nc
 import numpy as np
+import calendar
+from datetime import datetime
 # import numpy as np
 # my own netcdf stuff
 from geodata.nctools import add_var
+
+
+## function to calculate time deltas and subtract leap-days, if necessary
+def calcTimeDelta(timestamps, year=None, month=None):
+  # check dates
+  y1, m1, d1 = tuple( int(i) for i in timestamps[0][:10].split('-') )
+  y2, m2, d2 = tuple( int(i) for i in timestamps[-1][:10].split('-') )
+  # the first timestamp has to be of this year and month, last can be one ahead
+  if year is None: year = y1 
+  else: assert year == y1
+  assert ( year == y2 or year+1 == y2 )
+  if month is None: month = m1 
+  else: assert month == m1 
+  assert  ( month == m2 or np.mod(month,12)+1 == m2 )                
+  # determine interval                
+  dt1 = datetime.strptime(timestamps[0], '%Y-%m-%d_%H:%M:%S')
+  dt2 = datetime.strptime(timestamps[-1], '%Y-%m-%d_%H:%M:%S')
+  delta = float( (dt2-dt1).total_seconds() ) # the difference creates a timedelta object
+  n = len(timestamps)
+  # check if leap-day is present
+  if month == 2 and calendar.isleap(year):
+    ld = datetime(year, 2, 29) # datetime of leap day
+    # whether to subtract the leap day                  
+    if ( d1 == 29 or  d2 == 29 ): 
+      lsubld = False  # trivial case; will be handled correctly by datetime
+    elif dt1 < ld < dt2:
+      # a leap day should be there; if not, then subtract it
+      ild = int( ( n - 1 ) * float( ( ld - dt1 ).total_seconds() ) / delta ) # index of leap-day
+      lsubld = True # subtract, unless leap day is found, sicne it should be there
+      # search through timestamps for leap day
+      while lsubld and ild < n:
+        yy, mm, dd = tuple( int(i) for i in timestamps[ild][:10].split('-') )
+        if mm == 3: break
+        assert yy == year and mm == 2
+        # check if a leap day is present (if, then don't subtract)
+        if dd == 29: lsubld = False
+        ild += 1 # increment leap day search
+    else: 
+      lsubld = False # no leap day in itnerval, no need to correct period 
+    if lsubld: delta -= 86400. # subtract leap day from period 
+  # return leap-day-checked period
+  return delta
+              
+
+## helper routine: central differences
+def ctrDiff(data, axis=0, delta=1):
+  if not isinstance(data,np.ndarray): raise TypeError
+  if not isinstance(delta,(float,np.inexact,int,np.integer)): raise TypeError
+  if not isinstance(axis,(int,np.integer)): raise TypeError
+  # if axis is not 0 (innermost), roll axis until it is
+  if axis != 0: data = np.rollaxis(data, axis=axis, start=0)
+  # prepare calculation
+  outdata = np.zeros_like(data) # allocate             
+  # compute centered differences, except at the edges, where forward/backward difference are used
+  outdata[1:,:] += np.diff(data, n=1, axis=0) # compute differences
+  outdata[0:-1,:] += outdata[1:,:] # add differences again, but shifted 
+  # N.B.: the order of these two assignments is very important: data must be added before it is modified:
+  #       data[i] = data[i] + data[i+1] works; data[i+1] = data[i+1] + data[i] grows cumulatively!   
+#   # simple implementation with temporary storage 
+#   diff = np.diff(data, n=1, axis=0) # differences             
+#   outdata[0:-1,:] += diff; outdata[1:,:] += diff # add differences 
+  if delta == 1:
+    outdata[1:-1,:] /= 2. # normalize, except boundaries
+  else:
+    outdata[1:-1,:] /= (2.*delta) # normalize (including "dx"), except boundaries
+    outdata[[0,-1],:] /= delta # but aplly the denominator, "dx"
+      
+  # roll axis back to original position and return
+  if axis != 0: outdata = np.rollaxis(outdata, axis=0, start=axis+1)
+  return outdata
+
 
 # class for errors with derived variables
 class DerivedVariableError(Exception):
@@ -111,8 +184,9 @@ class DerivedVariable(object):
     if not isinstance(comdata,np.ndarray): raise TypeError # newly computed values
     if not isinstance(aggax,(int,np.integer)): raise TypeError # the aggregation axis (needed for extrema)
     # the default implementation is just a simple sum that will be normalized to an average
-    if not self.normalize: raise DerivedVariableError, 'The default aggregation requires normalization.' 
-    aggdata = aggdata + np.sum(comdata, axis=aggax)
+    if not self.normalize: raise DerivedVariableError, 'The default aggregation requires normalization.'
+    if comdata is not None and comdata.size > 0: 
+      aggdata = aggdata + np.sum(comdata, axis=aggax) # don't use in-place addition, because it destroys masks
     # return aggregated value for further treatment
     return aggdata 
 
@@ -361,7 +435,7 @@ class WetDays(DerivedVariable):
                               dtype='float', atts=None, linear=False) 
     
   def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
-    ''' Count the number of events above a threshold (0 for now) '''
+    ''' Count the number of events above a threshold. '''
     super(WetDays,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
     # check that delta does not change!
     if 'WETDAYS_DELTA' in tmp: 
@@ -384,10 +458,9 @@ class FrostDays(DerivedVariable):
                               prerequisites=['T2MIN'], # below threshold
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype='float', atts=None, linear=False) 
-    # N.B.: this computation is actually linear, but some non-linear computations depend on it
 
   def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
-    ''' Count the number of events above a threshold (0 for now) '''
+    ''' Count the number of events below a threshold (0 Celsius) '''
     super(FrostDays,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks    
     assert delta == 86400., 'WRF extreme values are suppposed to be daily; encountered delta={:f}'.format(delta)
     outdata = indata['T2MIN'] < 273.15 # event below threshold (0 deg. C., according to AMS Glossary)    
@@ -405,10 +478,9 @@ class OrographicIndex(DerivedVariable):
                               constants=['HGT','DY','DX'], # constant topography field
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype='float', atts=None, linear=False) 
-    # N.B.: this computation is actually linear, but some non-linear computations depend on it
 
   def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
-    ''' Count the number of events above a threshold (0 for now) '''
+    ''' Project surface winds onto topographic gradient. '''
     super(OrographicIndex,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
     # compute topographic gradients and save in constants (for later use)
     if 'hgtgrd_sn' not in const:
@@ -419,37 +491,121 @@ class OrographicIndex(DerivedVariable):
       if 'HGT' not in const: raise ValueError
       if 'DX' not in const: raise ValueError
       const['hgtgrd_we'] = ctrDiff(const['HGT'], axis=2, delta=const['DX'])
-    # compute correlation (projection, scalar product, etc.)    
-    outdata = indata['U10']*const['hgtgrd_we'] + indata['V10']*const['hgtgrd_sn'] 
+    # compute covariance (projection, scalar product, etc.)    
+    outdata = indata['U10']*const['hgtgrd_we'] + indata['V10']*const['hgtgrd_sn']
+    # N.B.: outer dimensions (i.e. the first) are broadcast automatically, which is what we want here 
     return outdata
 
 
-## helper routine: central differences
-def ctrDiff(data, axis=0, delta=1):
-  if not isinstance(data,np.ndarray): raise TypeError
-  if not isinstance(delta,(float,np.inexact,int,np.integer)): raise TypeError
-  if not isinstance(axis,(int,np.integer)): raise TypeError
-  # if axis is not 0 (innermost), roll axis until it is
-  if axis != 0: data = np.rollaxis(data, axis=axis, start=0)
-  # prepare calculation
-  outdata = np.zeros_like(data) # allocate             
-  # compute centered differences, except at the edges, where forward/backward difference are used
-  outdata[1:,:] += np.diff(data, n=1, axis=0) # compute differences
-  outdata[0:-1,:] += outdata[1:,:] # add differences again, but shifted 
-  # N.B.: the order of these two assignments is very important: data must be added before it is modified:
-  #       data[i] = data[i] + data[i+1] works; data[i+1] = data[i+1] + data[i] grows cumulatively!   
-#   # simple implementation with temporary storage 
-#   diff = np.diff(data, n=1, axis=0) # differences             
-#   outdata[0:-1,:] += diff; outdata[1:,:] += diff # add differences 
-  if delta == 1:
-    outdata[1:-1,:] /= 2. # normalize, except boundaries
-  else:
-    outdata[1:-1,:] /= (2.*delta) # normalize (including "dx"), except boundaries
-    outdata[[0,-1],:] /= delta # but aplly the denominator, "dx"
-      
-  # roll axis back to original position and return
-  if axis != 0: outdata = np.rollaxis(outdata, axis=0, start=axis+1)
-  return outdata
+class CovOIP(DerivedVariable):
+  ''' DerivedVariable child for computing the correlation of the orographic index with precipitation. '''
+  
+  def __init__(self):
+    ''' Initialize with fixed values; constructor takes no arguments. '''
+    super(CovOIP,self).__init__(name='OIPX', # name of the variable
+                              units='', # fraction of days 
+                              prerequisites=['OrographicIndex', 'RAIN'], # it's the sum of these two
+                              axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
+                              dtype='float', atts=None, linear=False) 
+
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+    ''' Covariance of Origraphic Index and Precipitation (needed to calculate correlation coefficient). '''
+    super(CovOIP,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
+    # compute covariance
+    outdata = indata['OrographicIndex'] * indata['RAIN'] 
+    return outdata
+
+
+class OrographicIndexPlev(DerivedVariable):
+  ''' DerivedVariable child for computing the correlation of (surface) winds with the topographic gradient. '''
+  
+  def __init__(self):
+    ''' Initialize with fixed values; constructor takes no arguments. '''
+    super(OrographicIndexPlev,self).__init__(name='OrographicIndex', # name of the variable
+                              units='', # fraction of days 
+                              prerequisites=['U_PL','V_PL'], # it's the sum of these two
+                              constants=['HGT','DY','DX'], # constant topography field
+                              axes=('time','num_press_levels_stag','south_north','west_east'), # dimensions of NetCDF variable 
+                              dtype='float', atts=None, linear=False) 
+    
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+    ''' Project atmospheric winds onto underlying topographic gradient. '''
+    super(OrographicIndexPlev,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
+    # compute topographic gradients and save in constants (for later use)
+    if 'hgtgrd_sn' not in const:
+      if 'HGT' not in const: raise ValueError
+      if 'DY' not in const: raise ValueError
+      const['hgtgrd_sn'] = ctrDiff(const['HGT'], axis=1, delta=const['DY'])
+    if 'hgtgrd_we' not in const:
+      if 'HGT' not in const: raise ValueError
+      if 'DX' not in const: raise ValueError
+      const['hgtgrd_we'] = ctrDiff(const['HGT'], axis=2, delta=const['DX'])    
+    # compute covariance (projection, scalar product, etc.)    
+    outdata = indata['U_PL']*const['hgtgrd_we'] + indata['V_PL']*const['hgtgrd_sn']
+    # N.B.: outer dimensions (i.e. the first and second) are broadcast automatically, which is what we want here 
+    return outdata
+
+
+class WaterDensity(DerivedVariable):
+  ''' DerivedVariable child for computing water vapor density at a pressure level. '''
+  
+  def __init__(self):
+    ''' Initialize with fixed values; constructor takes no arguments. '''
+    super(WaterDensity,self).__init__(name='WaterDensity', # name of the variable
+                              units='kg/m^3', # "density" 
+                              prerequisites=['TD_PL','T_PL'], # it's the sum of these two
+                              axes=('time','num_press_levels_stag','south_north','west_east'), # dimensions of NetCDF variable 
+                              dtype='float', atts=None, linear=False)
+    self.MR = 0.01802 / 8.3144621 # M / R; from AMS Glossary
+    
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+    ''' Compute mass denisty of water vapor using the Magnus formula. '''
+    super(WaterDensity,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
+    # compute water vapor content from dew point (using magnus formula)
+    Td = indata['TD_PL'] - 273.15 # convert to Celsius for Magnus formula 
+    es = 6.1094 * np.exp( 17.625 * Td / (Td + 243.04) ) # compute partial pressure using Magnus formula (Wikipedia)
+    outdata = self.MR * ( es / indata['T_PL'] ) # compute mass per volume "density"
+    # N.B.: outer dimensions (i.e. the first and second) are broadcast automatically, which is what we want here 
+    return outdata
+
+
+class WaterFlux_U(DerivedVariable):
+  ''' DerivedVariable child for computing the atmospheric transport of water vapor (West-East). '''
+  
+  def __init__(self):
+    ''' Initialize with fixed values; constructor takes no arguments. '''
+    super(WaterFlux_U,self).__init__(name='WaterFlux_U', # name of the variable
+                              units='kg/m^2/s', # flux 
+                              prerequisites=['U_PL','WaterDensity'], # west-east direction: U
+                              axes=('time','num_press_levels_stag','south_north','west_east'), # dimensions of NetCDF variable 
+                              dtype='float', atts=None, linear=False) 
+    
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+    ''' Compute West-East atmospheric water vapor transport. '''
+    super(WaterFlux_U,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
+    # compute covariance (projection, scalar product, etc.)    
+    outdata = indata['U_PL']*indata['WaterDensity']
+    # N.B.: outer dimensions (i.e. the first and second) are broadcast automatically, which is what we want here 
+    return outdata
+
+class WaterFlux_V(DerivedVariable):
+  ''' DerivedVariable child for computing the atmospheric transport of water vapor (South-North). '''
+  
+  def __init__(self):
+    ''' Initialize with fixed values; constructor takes no arguments. '''
+    super(WaterFlux_V,self).__init__(name='WaterFlux_V', # name of the variable
+                              units='kg/m^2/s', # flux 
+                              prerequisites=['V_PL','WaterDensity'], # south-north direction: V
+                              axes=('time','num_press_levels_stag','south_north','west_east'), # dimensions of NetCDF variable 
+                              dtype='float', atts=None, linear=False) 
+    
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+    ''' Compute South-North atmospheric water vapor transport. '''
+    super(WaterFlux_V,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
+    # compute covariance (projection, scalar product, etc.)    
+    outdata = indata['V_PL']*indata['WaterDensity']
+    # N.B.: outer dimensions (i.e. the first and second) are broadcast automatically, which is what we want here 
+    return outdata
 
 
 ## extreme values
@@ -499,7 +655,7 @@ class Extrema(DerivedVariable):
     # the default implementation is just a simple sum that will be normalized to an average
     if self.normalize: raise DerivedVariableError, 'Aggregated extrema should not be normalized!'
     #print self.name, comdata.shape
-    if comdata is not None:
+    if comdata is not None and comdata.size > 0:
       # N.B.: comdata can be None if the record was not long enough to compute this variable     
       if self.mode == 1: 
         aggdata = np.maximum(aggdata,comdata) # aggregat maxima
