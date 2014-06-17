@@ -721,7 +721,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
         if not lcomplete:            
           # N.B.: here wrfendidx is not a valid time step, but the length of the file, i.e. wrfendidx-1 is the last valid time step
           lasttimestamp = str().join(wrfout.variables[wrftimestamp][wrfendidx-1,:]) # needed to determine, if first timestep is the same as last
-          assert lasttimestamp == monthlytimestamps[-1]
+          assert lskip or lasttimestamp == monthlytimestamps[-1]
           # lasttimestep is also used for leap-year detection later on
           wrfout.close() # close file...
           # N.B.: filecounter +1 < len(filelist) is already checked above 
@@ -743,7 +743,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
           else: tmpdata = dict() # reset entire temporary storage
           # N.B.: now wrfendidx is a valid timestep, but indicates the first of the next month
           lasttimestamp = str().join(wrfout.variables[wrftimestamp][wrfendidx,:]) # this should be the first timestep of the next month
-          assert lasttimestamp == monthlytimestamps[-1]                
+          assert lskip or lasttimestamp == monthlytimestamps[-1]                
           # open next file (if end of month and file coincide)
           if wrfendidx == len(wrfout.dimensions[wrftime])-1: # reach end of file
             wrfout.close() # close file...
