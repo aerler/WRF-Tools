@@ -1,5 +1,5 @@
 '''
-Created on 2013-09-28, revised 2014-05-21
+Created on 2013-09-28, revised 2014-06-17
 
 A script to average WRF output; the default settings are meant for my 'fineIO' output configuration and 
 process the smaller diagnostic files.
@@ -8,6 +8,14 @@ exactly one output file.
 
 @author: Andre R. Erler, GPL v3
 '''
+
+#TODO: add recalc option for individual variables, based on laddnew option
+#TODO: add new plev variables: vorticity (curl) and horizontal water transport (vertical integral)
+#TODO: add time-dependent auxiliary files to file processing (use prerequisites from other files)
+#TODO: add option to discard prerequisit variables
+#TODO: add base variables for correlation and standard deviation (and (co-)variance).
+#TODO: more variables: tropopause height, baroclinicity, PV, water flux (require full 3D fields)
+
 
 ## imports
 import numpy as np
