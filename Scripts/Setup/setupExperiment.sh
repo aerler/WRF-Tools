@@ -81,6 +81,8 @@ function RENAME () {
     sed -i "/AVGSCRIPT/ s/AVGSCRIPT=[^$][^$].*$/AVGSCRIPT=\'${AVGSCRIPT}\' # averaging script to be executed in specified intervals/" "${FILE}"
     # averaging interval
     sed -i "/AVGINTERVAL/ s/AVGINTERVAL=[^$][^$].*$/AVGINTERVAL=\'${AVGINTERVAL}\' # interval in which the averaging script is to be executed/" "${FILE}"
+    # number of domains (string of single-digit index numbers)
+    sed -i "/DOMAINS/ s/DOMAINS=.*$/DOMAINS=\'${DOMS}\' # single-digit index numbers of all domains/" "${FILE}"
     # type of initial and boundary focing  data (mainly for WPS)
     sed -i "/DATATYPE/ s/DATATYPE=[^$][^$].*$/DATATYPE=\'${DATATYPE}\' # type of initial and boundary focing  data /" "${FILE}"
     # whether or not to restart job after a numerical instability (used by crashHandler.sh)
@@ -225,7 +227,9 @@ WRFEXE=${WRFEXE:-"${WRFSRC}/${WRFSYS}-MPI/${WRFBLD}/Default/wrf.exe"}
 if [[ "${ARSCRIPT}" == 'DEFAULT' ]] && [[ -n "${IO}" ]]; then ARSCRIPT="ar_wrfout_${IO}.pbs"; fi
 # default averaging script name (no $AVGSCRIPT means no averaging)
 if [[ "${AVGSCRIPT}" == 'DEFAULT' ]]; then AVGSCRIPT="run_wrf_avg.${WPSQ}"; fi
-
+# string of single-digit dimensions for archvie and averaging script
+DOMS=''; for I in $( seq 1 ${MAXDOM} ); do DOMS="${DOMS}${I}"; done
+    
 
 ## ***                                            ***
 ## ***   now we actually start doing something!   ***
@@ -451,9 +455,7 @@ if [[ -n "${ARSCRIPT}" ]]; then
     if [[ -n "${ARINTERVAL}" ]]; then
       sed -i "/INTERVAL/ s/^\ *INTERVAL=.*$/INTERVAL=\'${ARINTERVAL}\' # interval in which the archive script is to be executed/" "${ARSCRIPT}"
     fi
-    # set dataset variable for number of domains
-    ARDOM=''; for I in $( seq 1 ${MAXDOM} ); do ARDOM="${ARDOM}${I}"; done
-    sed -i "/DOMAINS/ s/^\ *DOMAINS=\${DOMAINS:-.*}\ .*$/DOMAINS=\${DOMAINS:-'${ARDOM}'} # default dataset: everything (one domain)/" "${ARSCRIPT}"    
+    # dataset variable for number of domains is now set universally        
     # update folder names
     RENAME "${ARSCRIPT}"
 fi # $ARSCRIPT

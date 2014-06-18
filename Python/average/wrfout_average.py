@@ -100,9 +100,11 @@ if os.environ.has_key('PYAVG_FILETYPES'):
   if len(filetypes) == 1 and len(filetypes[0]) == 0: filetypes = None # empty string, substitute default 
 else: filetypes = None # defaults are set below
 # domains to process
-if os.environ.has_key('PYAVG_DOMAINS'): 
-  domains = [int(i) for i in os.environ['PYAVG_DOMAINS'].split(';')] # semi-colon separated list
-else: domains = None # defaults are set below
+if os.environ.has_key('PYAVG_DOMAINS'):
+  domains = os.environ['PYAVG_DOMAINS'].split(';')
+  if len(domains) == 1: domains = [int(i) for i in domains[0]] # string of single-digit indices
+  else: domains = [int(i) for i in domains] # semi-colon separated list
+else: domains = None # defaults are set below 
 # run script in debug mode
 if os.environ.has_key('PYAVG_DEBUG'): 
   ldebug =  os.environ['PYAVG_DEBUG'] == 'DEBUG'
