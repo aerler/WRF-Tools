@@ -95,7 +95,7 @@ if os.environ.has_key('PYAVG_DERIVEDONLY'):
   lderivedonly =  os.environ['PYAVG_DERIVEDONLY'] == 'DERIVEDONLY' 
 else: lderivedonly = False # i.e. all
 # file types to process 
-if os.environ.has_key('PYAVG_FILETYPES'): 
+if os.environ.has_key('PYAVG_FILETYPES'):
   filetypes = os.environ['PYAVG_FILETYPES'].split(';') # semi-colon separated list
   if len(filetypes) == 1 and len(filetypes[0]) == 0: filetypes = None # empty string, substitute default 
 else: filetypes = None # defaults are set below

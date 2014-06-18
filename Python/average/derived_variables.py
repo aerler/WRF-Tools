@@ -66,18 +66,19 @@ def ctrDiff(data, axis=0, delta=1):
   if not isinstance(data,np.ndarray): raise TypeError
   if not isinstance(delta,(float,np.inexact,int,np.integer)): raise TypeError
   if not isinstance(axis,(int,np.integer)): raise TypeError
-  # if axis is not 0 (innermost), roll axis until it is
+  # if axis is not 0, roll axis until it is
+  # N.B.: eventhough '0' is the outermost axis, the index order does not seem to have any effect  
   if axis != 0: data = np.rollaxis(data, axis=axis, start=0)
   # prepare calculation
   outdata = np.zeros_like(data) # allocate             
   # compute centered differences, except at the edges, where forward/backward difference are used
-  outdata[1:,:] += np.diff(data, n=1, axis=0) # compute differences
+  outdata[1:,:] = np.diff(data, n=1, axis=0) # compute differences
   outdata[0:-1,:] += outdata[1:,:] # add differences again, but shifted 
   # N.B.: the order of these two assignments is very important: data must be added before it is modified:
   #       data[i] = data[i] + data[i+1] works; data[i+1] = data[i+1] + data[i] grows cumulatively!   
-#   # simple implementation with temporary storage 
-#   diff = np.diff(data, n=1, axis=0) # differences             
-#   outdata[0:-1,:] += diff; outdata[1:,:] += diff # add differences 
+  #   # simple implementation with temporary storage 
+  #   diff = np.diff(data, n=1, axis=0) # differences             
+  #   outdata[0:-1,:] += diff; outdata[1:,:] += diff # add differences 
   if delta == 1:
     outdata[1:-1,:] /= 2. # normalize, except boundaries
   else:
