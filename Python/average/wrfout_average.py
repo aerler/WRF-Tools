@@ -69,20 +69,31 @@ def getDateRegX(period):
 if os.environ.has_key('PYAVG_THREADS'): 
   NP = int(os.environ['PYAVG_THREADS'])
 else: NP = None
-# overwrite existing data 
-if os.environ.has_key('PYAVG_OVERWRITE'): 
-  loverwrite =  os.environ['PYAVG_OVERWRITE'] == 'OVERWRITE' 
-else: loverwrite = False # i.e. append
-# only compute derived variables 
-if os.environ.has_key('PYAVG_DERIVEDONLY'): 
-  lderivedonly =  os.environ['PYAVG_DERIVEDONLY'] == 'DERIVEDONLY' 
-else: lderivedonly = False # i.e. all
+# recompute last timestep and continue (usefule after a crash)  
+if os.environ.has_key('PYAVG_RECOVER'): 
+  lrecover =  os.environ['PYAVG_RECOVER'] == 'RECOVER' 
+else: lrecover = False # i.e. normal operation
 # just add new and leave old
 if os.environ.has_key('PYAVG_ADDNEW'): 
   laddnew =  os.environ['PYAVG_ADDNEW'] == 'ADDNEW' 
 else: laddnew = False # i.e. recompute all
+# recompute specified variables
+if os.environ.has_key('PYAVG_RECALC'): 
+  recalcvars = os.environ['PYAVG_RECALC'].split(';') # semi-colon separated list of variables to recompute
+  if len(recalcvars) > 0 and len(recalcvars[0]) > 0: lrecalc = True # if there is a variable to recompute
+  # lrecalc uses the same pathway, but they can operate independently
+else: lrecalc = False # i.e. recompute all
+# overwrite existing data 
+if os.environ.has_key('PYAVG_OVERWRITE'): 
+  loverwrite =  os.environ['PYAVG_OVERWRITE'] == 'OVERWRITE'
+  if loverwrite: laddnew = False; lrecalc = False 
+else: loverwrite = False # i.e. append
 # N.B.: when loverwrite is True and and prdarg is empty, the entire file is replaced,
 #       otherwise only the selected months are recomputed 
+# only compute derived variables 
+if os.environ.has_key('PYAVG_DERIVEDONLY'): 
+  lderivedonly =  os.environ['PYAVG_DERIVEDONLY'] == 'DERIVEDONLY' 
+else: lderivedonly = False # i.e. all
 # file types to process 
 if os.environ.has_key('PYAVG_FILETYPES'): 
   filetypes = os.environ['PYAVG_FILETYPES'].split(';') # semi-colon separated list
@@ -313,9 +324,9 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
   meanfile = outfolder+filename
   if os.path.exists(meanfile):
     if loverwrite or os.path.getsize(meanfile) < 1e6: os.remove(meanfile)
-    # N.B.: NetCDF files smaller than 1MB are usually incomplete header fragments from a previous crashed
+    # N.B.: NetCDF files smaller than 1MB are usually incomplete header fragments from a previous crashed job
   if os.path.exists(meanfile):
-    logger.debug("{0:s} Creating new output file '{1:s}'.\n".format(pidstr,meanfile))
+    logger.debug("{0:s} Opening existing output file '{1:s}'.\n".format(pidstr,meanfile))
     mean = nc.Dataset(meanfile, mode='a', format='NETCDF4') # open to append data (mode='a')
     # infer start index
     meanbeginyear, meanbeginmonth, meanbeginday = [int(tmp) for tmp in mean.begin_date.split('-')]
@@ -325,20 +336,21 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
     if mean.end_date < begindate: assert t0 == len(mean.dimensions[time]) + 1 # another check
     else: assert t0 <= len(mean.dimensions[time]) + 1 # get time index where we start; in month beginning 1979
     # checks for new variables
-    if laddnew: 
-      if t0 != 1: raise DateError, "Have to start at the beginning to add new variables!" # t0 starts with 1, not 0
+    if laddnew or lrecalc: 
+      if t0 != 1: raise DateError, "Have to start at the beginning to add new or recompute old variables!" # t0 starts with 1, not 0
       meanendyear, meanendmonth, meanendday = [int(tmp) for tmp in mean.end_date.split('-')]
       assert meanendday == 1
       endyear, endmonth = meanendyear, meanendmonth # just adding new, not extending!
       enddate = mean.end_date # for printing...
     # check base variables
-    if laddnew: newvars = []
+    if laddnew or lrecalc: newvars = []
     for var in varlist:
       if var not in mean.variables:
         if laddnew: newvars.append(var)
         else: varlist.remove(var) 
         #raise IOError, "{0:s} variable '{1:s}' not found in file '{2:s}'".format(pidstr,var.name,filename)
-    if laddnew:
+    # add new variables to netcdf file
+    if len(newvars) > 0:
       # copy remaining dimensions to new datasets
       if midmap is not None:
         dimlist = [midmap.get(dim,dim) for dim in wrfout.dimensions.iterkeys() if dim != wrftime]
@@ -352,13 +364,20 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
         assert varname in mean.variables
         if varname in acclist:
           meanvar = mean.variables[varname]
-          meanvar.units = meanvar.units + '/s' # units per second!          
-    # check derived variables derived variables
-    if laddnew: newdevars = []
+          meanvar.units = meanvar.units + '/s' # units per second!
+    # add variables that should be recalculated    
+    if lrecalc:
+      for var in recalcvars:
+        if var in mean.variables and var in wrfout.variables:
+          if var not in newvars: newvars.append(var)
+        #else: raise ArgumentError, "Variable '{:s}' scheduled for recalculation is not present in output file '{:s}'.".format(var,meanfile)
+    # check derived variables
+    if laddnew or lrecalc: newdevars = []
     for varname,var in derived_vars.iteritems():
       if varname in mean.variables:
         var.checkPrerequisites(mean)
         if not var.checked: raise ValueError, "Prerequisits for derived variable '{:s}' not found.".format(varname)
+        if lrecalc and varname in recalcvars: newdevars.append(varname)
       else:
         if laddnew: 
           var.checkPrerequisites(mean) # as long as they are sorted correctly...
@@ -369,7 +388,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
         #       unless it was purposefully deleted, in which case this will crash!
         #raise (dv.DerivedVariableError, "{0:s} Derived variable '{1:s}' not found in file '{2:s}'".format(pidstr,var.name,filename))
     # now figure out effective variable list
-    if laddnew:
+    if laddnew or lrecalc:
       varset = set(newvars)
       devarset = set(newdevars)
       ndv = -1
@@ -389,7 +408,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
       varlist = list(varset) # order doesnt really matter... but whatever...
       varlist.sort() # ... alphabetical order...
   else:
-    logger.debug("{0:s} Opening existing output file '{1:s}'.\n".format(pidstr,meanfile))
+    logger.debug("{0:s} Creating new output file '{1:s}'.\n".format(pidstr,meanfile))
     mean = nc.Dataset(meanfile, 'w', format='NETCDF4') # open to start a new file (mode='w')
     t0 = 1 # time index where we start (first month)
     mean.createDimension(time, size=None) # make time dimension unlimited
@@ -539,7 +558,8 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
   try:
     
     # loop over month and progressively stepping through input files
-    for n,t in enumerate(times):
+    for n,meantime in enumerate(times):
+      # meantime: (complete) month since simulation start
      
       lasttimestamp = None # carry over start time, when moving to the next file (defined below)
       # N.B.: when moving to the next file, the script auto-detects and resets this property, no need to change here!
@@ -547,18 +567,20 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
 
       # extend time array / month counter
       meanidx = i0 + n
-      # check if we are overwriting existing data
-      if laddnew:
-        lskip = False # add data point for new variables
-      elif meanidx == len(mean.variables[time]): 
+      if meanidx == len(mean.variables[time]): 
         lskip = False # append next data point / time step
-      elif loverwrite: 
-        assert meanidx < len(mean.variables[time])
-        lskip = False # overwrite this step
+      elif loverwrite or laddnew or lrecalc: 
+        lskip = False # overwrite this step or add data point for new variables
+      elif meanidx == len(mean.variables[time])-1:
+        if lrecover or mean.variables[time][meanidx] == -1:
+          lskip = False # recompute last step, because it may be incomplete
+        else: lskip = True
       else: 
-        assert meanidx < len(mean.variables[time])
         lskip = True # skip this step, but we still have to verify the timing
-      meantime = t # (complete) month since simulation start
+      # check if we are overwriting existing data
+      if meanidx != len(mean.variables[time]):
+        assert meanidx < len(mean.variables[time])
+        assert meantime == mean.variables[time][meanidx] or mean.variables[time][meanidx] == -1
       # N.B.: writing records is delayed to avoid incomplete records in case of a crash
       # current date
       currentyear, currentmonth = divmod(n+beginmonth-1,12)
@@ -768,11 +790,8 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
       ## now the the loop over files has terminated and we need to normalize and save the results
       
       if not lskip:
-        # update time axis
-        mean.variables[time][meanidx] = meantime
-        mean.variables[wrftimestamp][meanidx,:] = starttimestamp 
-        # update current end date
-        mean.end_date = enddate # the date of the first day of the last included month
+        # extend time axis
+        mean.variables[time][meanidx] = -1 # mark timestep in progress 
         # loop over variable names
         for varname in varlist:
           vardata = data[varname]
@@ -805,6 +824,10 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
           if ncvar.ndim > 1: ncvar[meanidx,:] = vardata # here time is always the outermost index
           else: ncvar[meanidx] = vardata            
           #raise dv.DerivedVariableError, "%s Derived variable '%s' is not linear."%(pidstr,devar.name) 
+        # update current end date        
+        mean.end_date = starttimestamp[:10] # the date of the first day of the last included month
+        mean.variables[wrftimestamp][meanidx,:] = starttimestamp 
+        mean.variables[time][meanidx] = meantime # update time axis (last action)
         # sync data
         mean.sync()
         
@@ -838,8 +861,9 @@ if __name__ == '__main__':
 
   # print settings
   print('')
-  print('OVERWRITE: {:s}, ADDNEW: {:s}, DERIVEDONLY: {:s}, CARRYOVER: {:s}'.format(
-        str(loverwrite), str(laddnew),str(lderivedonly),str(lcarryover)))
+  print('OVERWRITE: {:s}, RECOVER: {:s}, DERIVEDONLY: {:s}, CARRYOVER: {:s}'.format(
+        str(loverwrite), str(lrecover), str(lderivedonly), str(lcarryover)))
+  print('ADDNEW: {:s}, RECALC: {:s}'.format(str(laddnew), str(recalcvars) if lrecalc else str(lrecalc)))
   print('FILETYPES: {:s}, DOMAINS: {:s}'.format(str(filetypes),str(domains)))
   print('THREADS: {:s}, DEBUG: {:s}'.format(str(NP),str(ldebug)))
   print('')
