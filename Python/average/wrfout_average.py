@@ -9,7 +9,6 @@ exactly one output file.
 @author: Andre R. Erler, GPL v3
 '''
 
-#TODO: add recalc option for individual variables, based on laddnew option
 #TODO: add new plev variables: vorticity (curl) and horizontal water transport (vertical integral)
 #TODO: add time-dependent auxiliary files to file processing (use prerequisites from other files)
 #TODO: add option to discard prerequisit variables
@@ -352,7 +351,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
         else: varlist.remove(var) 
         #raise IOError, "{0:s} variable '{1:s}' not found in file '{2:s}'".format(pidstr,var.name,filename)
     # add new variables to netcdf file
-    if len(newvars) > 0:
+    if laddnew and len(newvars) > 0:
       # copy remaining dimensions to new datasets
       if midmap is not None:
         dimlist = [midmap.get(dim,dim) for dim in wrfout.dimensions.iterkeys() if dim != wrftime]
@@ -700,17 +699,18 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
                 # keep data in memory if used in computation of derived variables
                 if varname in pqset: pqdata[varname] = tmp
           ## compute derived variables
-          # But first, normalize accumulated pqdata with output interval time
+          # but first generate a list of timestamps
+          if lcomplete: tmpendidx = wrfendidx
+          else: tmpendidx = wrfendidx -1 # end of file
+          # assemble list of time stamps                        
+          currenttimestamps = [] # relevant timestamps in this file            
+          for i in xrange(wrfstartidx,tmpendidx+1):
+            timestamp = str().join(wrfout.variables[wrftimestamp][i,:])  
+            currenttimestamps.append(timestamp)
+          monthlytimestamps.extend(currenttimestamps) # add to monthly collection
+          # normalize accumulated pqdata with output interval time
           if wrfendidx > wrfstartidx:
-            if lcomplete: tmpendidx = wrfendidx
-            else: tmpendidx = wrfendidx -1 # end of file
             assert tmpendidx > wrfstartidx, 'There should never be a single value in a file: wrfstartidx={:d}, wrfendidx={:d}, lcomplete={:s}'.format(wrfstartidx,wrfendidx,str(lcomplete))
-            # assemble list of time stamps                        
-            currenttimestamps = [] # relevant timestamps in this file            
-            for i in xrange(wrfstartidx,tmpendidx+1):
-              timestamp = str().join(wrfout.variables[wrftimestamp][i,:])  
-              currenttimestamps.append(timestamp)
-            monthlytimestamps.extend(currenttimestamps) # add to monthly collection
             # compute time delta
             delta = dv.calcTimeDelta(currenttimestamps)
             if lxtime:
