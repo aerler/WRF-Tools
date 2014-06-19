@@ -28,7 +28,7 @@ RMSRC=${RMSRC:-'FALSE'} # set to 'RMSRC' to actually perform deletion
 # N.B. if retrieving files, RMSRC means files on disk are overwritten/clobbered
 VERIFY=${VERIFY:-'VERIFY'} # verify tarballs; can slow down operations significantly
 # N.B.: do not edit these variable; instead pass them as environment variables
-DOMAINS=${DOMAINS:-'12'} # string with relevant domain indices
+DOMAINS=${DOMAINS:-'1234'} # string with relevant domain indices
 DATASET=${DATASET:-'FULL'} # default dataset: everything
 # dataset options: FULL, DIAGS, MISC3D, DYN3D, LOGS 
 # N.B.: the datasets are defined in PROCESSDATASET below

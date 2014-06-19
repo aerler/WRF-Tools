@@ -55,40 +55,40 @@ function RENAME () {
     ## queue independent changes
     # N.B.: variables that depend on other variables are not overwritten!
     # WRF script
-    sed -i "/WRFSCRIPT/ s/WRFSCRIPT=[^$][^$].*$/WRFSCRIPT=\'run_${CASETYPE}_WRF.${WRFQ}\' # WRF run-scripts/" "${FILE}" # WPS run-script
+    sed -i "/WRFSCRIPT=/ s/WRFSCRIPT=[^$][^$].*$/WRFSCRIPT=\'run_${CASETYPE}_WRF.${WRFQ}\' # WRF run-scripts/" "${FILE}" # WPS run-script
     # WPS script
-    sed -i "/WPSSCRIPT/ s/WPSSCRIPT=[^$][^$].*$/WPSSCRIPT=\'run_${CASETYPE}_WPS.${WPSQ}\' # WPS run-scripts/" "${FILE}" # WPS run-script
+    sed -i "/WPSSCRIPT=/ s/WPSSCRIPT=[^$][^$].*$/WPSSCRIPT=\'run_${CASETYPE}_WPS.${WPSQ}\' # WPS run-scripts/" "${FILE}" # WPS run-script
     # output folder
-    sed -i '/WRFOUT/ s+WRFOUT=[^$][^$].*$+WRFOUT="${INIDIR}/wrfout/"  # WRF output folder+' "${FILE}"
+    sed -i '/WRFOUT=/ s+WRFOUT=[^$][^$].*$+WRFOUT="${INIDIR}/wrfout/"  # WRF output folder+' "${FILE}"
     # metdata folder
-    sed -i '/METDATA/ s+METDATA=[^$][^$].*$+METDATA=""  # WRF output folder+' "${FILE}"
+    sed -i '/METDATA=/ s+METDATA=[^$][^$].*$+METDATA=""  # WRF output folder+' "${FILE}"
     # WRF wallclock time limit
-    sed -i "/WRFWCT/ s/WRFWCT=[^$][^$].*$/WRFWCT=\'${WRFWCT}\' # WRF wallclock time/" "${FILE}" # used for queue time estimate
+    sed -i "/WRFWCT=/ s/WRFWCT=[^$][^$].*$/WRFWCT=\'${WRFWCT}\' # WRF wallclock time/" "${FILE}" # used for queue time estimate
     # number of WPS & WRF nodes on given system
-    sed -i "/WPSNODES/ s/WPSNODES=[^$][^$].*$/WPSNODES=${WPSNODES} # number of WPS nodes/" "${FILE}" 
-    sed -i "/WRFNODES/ s/WRFNODES=[^$][^$].*$/WRFNODES=${WRFNODES} # number of WRF nodes/" "${FILE}"
+    sed -i "/WPSNODES=/ s/WPSNODES=[^$][^$].*$/WPSNODES=${WPSNODES} # number of WPS nodes/" "${FILE}" 
+    sed -i "/WRFNODES=/ s/WRFNODES=[^$][^$].*$/WRFNODES=${WRFNODES} # number of WRF nodes/" "${FILE}"
     # WPS wallclock time limit
-    sed -i "/WPSWCT/ s/WPSWCT=[^$][^$].*$/WPSWCT=\'${WPSWCT}\' # WPS wallclock time/" "${FILE}" # used for queue time estimate
+    sed -i "/WPSWCT=/ s/WPSWCT=[^$][^$].*$/WPSWCT=\'${WPSWCT}\' # WPS wallclock time/" "${FILE}" # used for queue time estimate
     # script folder
-    sed -i '/SCRIPTDIR/ s+SCRIPTDIR=[^$][^$].*$+SCRIPTDIR="${INIDIR}/scripts/"  # location of component scripts (pre/post processing etc.)+' "${FILE}"
+    sed -i '/SCRIPTDIR=/ s+SCRIPTDIR=[^$][^$].*$+SCRIPTDIR="${INIDIR}/scripts/"  # location of component scripts (pre/post processing etc.)+' "${FILE}"
     # executable folder
-    sed -i '/BINDIR/ s+BINDIR=[^$][^$].*$+BINDIR="${INIDIR}/bin/"  # location of executables nd scripts (WPS and WRF)+' "${FILE}"
+    sed -i '/BINDIR=/ s+BINDIR=[^$][^$].*$+BINDIR="${INIDIR}/bin/"  # location of executables nd scripts (WPS and WRF)+' "${FILE}"
     # archive script
-    sed -i "/ARSCRIPT/ s/ARSCRIPT=[^$][^$].*$/ARSCRIPT=\'${ARSCRIPT}\' # archive script to be executed in specified intervals/" "${FILE}"
+    sed -i "/ARSCRIPT=/ s/ARSCRIPT=[^$][^$].*$/ARSCRIPT=\'${ARSCRIPT}\' # archive script to be executed in specified intervals/" "${FILE}"
     # archive interval
-    sed -i "/ARINTERVAL/ s/ARINTERVAL=[^$][^$].*$/ARINTERVAL=\'${ARINTERVAL}\' # interval in which the archive script is to be executed/" "${FILE}"
+    sed -i "/ARINTERVAL=/ s/ARINTERVAL=[^$][^$].*$/ARINTERVAL=\'${ARINTERVAL}\' # interval in which the archive script is to be executed/" "${FILE}"
     # averaging script
-    sed -i "/AVGSCRIPT/ s/AVGSCRIPT=[^$][^$].*$/AVGSCRIPT=\'${AVGSCRIPT}\' # averaging script to be executed in specified intervals/" "${FILE}"
+    sed -i "/AVGSCRIPT=/ s/AVGSCRIPT=[^$][^$].*$/AVGSCRIPT=\'${AVGSCRIPT}\' # averaging script to be executed in specified intervals/" "${FILE}"
     # averaging interval
-    sed -i "/AVGINTERVAL/ s/AVGINTERVAL=[^$][^$].*$/AVGINTERVAL=\'${AVGINTERVAL}\' # interval in which the averaging script is to be executed/" "${FILE}"
+    sed -i "/AVGINTERVAL=/ s/AVGINTERVAL=[^$][^$].*$/AVGINTERVAL=\'${AVGINTERVAL}\' # interval in which the averaging script is to be executed/" "${FILE}"
     # number of domains (string of single-digit index numbers)
-    sed -i "/DOMAINS/ s/DOMAINS=.*$/DOMAINS=\'${DOMS}\' # single-digit index numbers of all domains/" "${FILE}"
+    sed -i "/DOMAINS=/ s/'1234'/'${DOMS}'/" "${FILE}" # just replace the default value
     # type of initial and boundary focing  data (mainly for WPS)
-    sed -i "/DATATYPE/ s/DATATYPE=[^$][^$].*$/DATATYPE=\'${DATATYPE}\' # type of initial and boundary focing  data /" "${FILE}"
+    sed -i "/DATATYPE=/ s/DATATYPE=[^$][^$].*$/DATATYPE=\'${DATATYPE}\' # type of initial and boundary focing  data /" "${FILE}"
     # whether or not to restart job after a numerical instability (used by crashHandler.sh)
-    sed -i "/AUTORST/ s/AUTORST=[^$][^$].*$/AUTORST=\'${AUTORST}\' # whether or not to restart job after a numerical instability /" "${FILE}"
+    sed -i "/AUTORST=/ s/AUTORST=[^$][^$].*$/AUTORST=\'${AUTORST}\' # whether or not to restart job after a numerical instability /" "${FILE}"
     # time decrement to use in case of instability (used by crashHandler.sh)
-    sed -i "/DELT/ s/DELT=[^$][^$].*$/DELT=\'${DELT}\' # time decrement for auto restart /" "${FILE}"
+    sed -i "/DELT=/ s/DELT=[^$][^$].*$/DELT=\'${DELT}\' # time decrement for auto restart /" "${FILE}"
 } # fct. RENAME
 
 
