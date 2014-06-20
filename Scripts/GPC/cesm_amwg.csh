@@ -121,9 +121,9 @@ module load ncl
 #
 # Don t forget the trailing / when setting the paths
 
-set test_casename  = $CASE
+set test_casename  = $RUN
 
-set diag_dir = $CCA/$CASE
+set diag_dir = $CCA/$RUN
 
 set test_path_history =  ${diag_dir}/atm/hist/
 set test_path_climo   =  ${diag_dir}/climo/

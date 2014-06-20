@@ -1,11 +1,11 @@
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_code.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
 
-  outdir               = getenv("PWD")       ; location of output files   (must end in a "/")
+  outdir               = getenv("OUTDIR")    ; location of output files   (must end in a "/")
                                              ; It is recommended that a new or empty directory be pointed to here 
                                              ; as existing files in outdir can get removed.
 
-  namelists_only       = "False"             ; Set to True to only create the variable namelists. Useful
+  namelists_only       = getenv("TEST")      ; Set to True to only create the variable namelists. Useful
                                              ; upon running the package for the first time to verify that the correct
                                              ; files are being selected by the package. (See files in namelist_byvar/ directory)
                                              ; Set to False to run the entire package. 
@@ -31,7 +31,7 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
   png_scale         = 1.5                    ; Will be used if output_type = "png". Value between .1->5.
                                              ; Any value > 1 (< 1) increases (decreases) png page size. 
                                              ; Default = 1, which = 1500 (H) x 1500 (W) before automatic cropping of white space
-  webpage_title     = getenv("RUN")+" ("+getenv("PERIOD")+")"   ; Webpage title   
+  webpage_title     = getenv("TITLE")        ; Webpage title   
   
   tar_output        = "True"                 ; tar up all output in outdir and remove individual files?                                      
                                              ; Note: ALL files in outdir will be tarred up and then removed fromthe outdir directory. 

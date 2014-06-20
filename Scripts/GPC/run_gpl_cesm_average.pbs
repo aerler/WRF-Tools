@@ -80,19 +80,23 @@ for RUN in $RUNS
     cd "${RUNDIR}"
     mkdir -p "${AVGDIR}" # make sure destination folder exists
     ln -sf "${MODEL_ROOT}/WRF Tools/Python/average/cesm_average.py" # link archiving script
-    # determine period from name
-    if [[ "$RUN" == *20tr* ]]; then START='1979'
-    elif [[ "$RUN" == *rcp*d ]]; then START='2085'
-    elif [[ "$RUN" == *rcp* ]]; then START='2045'
-    elif [[ "$RUN" == seaice-5r-hf ]]; then START='2045 2085'
-    elif [[ "$RUN" == seaice-*-hf ]]; then START='2045'
+
+    # determine period and other meta data from name
+    if [[ "$RUN" == *20tr* ]]; then SPRD='1979'; EPRD='1993'; REF='OBS'
+    elif [[ "$RUN" == *rcp* ]]; then 
+      REF="${RUN%rcp*}tr20${RUN#*rcp??}" # guess name of historical simulation
+      if [[ "$RUN" == *d ]]; then SPRD='2085'; EPRD='2099'; REF=${REF%d}
+      else SPRD='2045'; EPRD='2059'; fi
+    elif [[ "$RUN" == seaice-5r-hfd ]]; then SPRD='2085'; EPRD='2099'; REF='tb20trcn1x1'
+    elif [[ "$RUN" == seaice-5r-hf ]]; then SPRD='2045'; EPRD='2059'; REF='tb20trcn1x1'
+    elif [[ "$RUN" == seaice-*-hf ]]; then SPRD='2045'; EPRD='2059'; REF='tb20trcn1x1'
     fi # if it doesn't match anything, it will be skipped
     # calculate periods
     PRDS='' # clear variable
-    for S in $START; do
-      for PRD in $PERIODS; do
-        PRDS="${PRDS} ${S}-$(( $S + $PRD ))"
+    for PRD in $PERIODS; do
+      if [ $PRD -le $EPRD ]; do PRDS="${PRDS} ${SPRD}-$(( $S + $PRD ))"; fi
     done; done # loop over start dates and periods
+
     # loop iver file types
 		for FILETYPE in $FILETYPES
       do
@@ -100,8 +104,18 @@ for RUN in $RUNS
         ## climate variability diagnostics (CVDP)
         if [[ "${CVDP}" == 'CVDP' ]]
           then
-        
+          echo "CVDP support is not yet implemented"
+          echo "export CCA=$CCA; cd $RUNDIR; echo run_cvdp.sh $RUN $SPRD $EPRD &> cvdp.log" >> "${CMDFILE}" 
+        fi # $CVDP
+
+
+        ## Climatology Diagnostics Package (AMWG)
+        if [[ "${AMWG}" == 'AMWG' ]]
+          then
+          echo "AMWG support is not yet implemented"
+          echo "export CCA=$CCA; export RUN=$RUN; export REF=$REF; export SPRD=$SPRD; export EPRD=$EPRD; cd $RUNDIR; cesm_amwg.sh &> amwg.log" >> "${CMDFILE}"
         fi # $CVDP 
+   
         
         ## concatenate history files
 		    if [[ "${CONCAT}" == 'CONCAT' ]]
