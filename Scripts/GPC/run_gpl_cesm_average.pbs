@@ -53,7 +53,7 @@ FILETYPES=${FILETYPES:-'atm lnd ice'} # file types to process
 
 # feedback
 echo ''
-echo 'Averaging CESM experiments:'
+echo 'Processing CESM experiments:'
 echo ''
 ls -d $RUNS
 echo ''
@@ -96,6 +96,14 @@ for RUN in $RUNS
     # loop iver file types
 		for FILETYPE in $FILETYPES
       do
+        
+        ## climate variability diagnostics (CVDP)
+        if [[ "${CVDP}" == 'CVDP' ]]
+          then
+        
+        fi # $CVDP 
+        
+        ## concatenate history files
 		    if [[ "${CONCAT}" == 'CONCAT' ]]
           then
 		        ## assemble time-series
@@ -114,6 +122,8 @@ for RUN in $RUNS
 				      echo "   Skipping: ${NCOOUT}"
 				    fi # if already file exits
         fi # $CONCAT
+
+        ## compute climatologies (from monthly averages)
         if [[ "${AVERAGE}" == 'AVERAGE' ]]
           then
 				    # loop over averaging periods
@@ -130,6 +140,7 @@ for RUN in $RUNS
 		            fi # if already file exits
 		        done # for $PERIODS
         fi # $AVERAGE
+
     done # for $FILETYPES
 done # for $RUNS
 echo 
