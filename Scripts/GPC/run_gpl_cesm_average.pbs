@@ -43,20 +43,26 @@ DSTR=${DSTR:-"/reserved1/p/peltier/aerler//CESM/archive/"} # my CESM archive fol
 #RUNS='seaice-3r-hf/'
 #PERIODS='5' # averaging periods
 # historical runs and projections
-RUNS=${RUNS:-'@(h[abc]|t)b20trcn1x1/ h[abct]brcp85cn1x1/ h[abct]brcp85cn1x1d/ seaice-*-hf/'}
+RUNS=${RUNS:-'@(h[abc]|t)b20trcn1x1/ h[abct]brcp85cn1x1/ h[abct]brcp85cn1x1d/ seaice-*-hf*/'}
 PERIODS=${PERIODS:-'5 10 15'} # averaging periods
 # cesm_average settings
+CVDP=${CVDP:-'CVDP'} # Climate Variability Diagnostics Package
+AMWG=${AMWG:-'AMWG'} # Climatology Diagnostics Package
 CONCAT=${CONCAT:-'CONCAT'} # concatenate monthly files
 AVERAGE=${AVERAGE:-'AVERAGE'} # compute climatologies
 OVERWRITE=${OVERWRITE:-'FALSE'} # recompute or not
 FILETYPES=${FILETYPES:-'atm lnd ice'} # file types to process
 
 # feedback
+cd "${WORKDIR}"
 echo ''
 echo 'Processing CESM experiments:'
 echo ''
 ls -d $RUNS
 echo ''
+echo "Computing CVDP: ${CVDP}"
+echo "Computing AMWG: ${AMWG}"
+echo "Concatenate Output: ${CONCAT}"
 echo "Concatenate Output: ${CONCAT}"
 echo "Average Output: ${AVERAGE}"
 [[ "${AVERAGE}" == 'AVERAGE' ]] && echo "Averaging Periods: ${PERIODS}"
@@ -94,8 +100,8 @@ for RUN in $RUNS
     # calculate periods
     PRDS='' # clear variable
     for PRD in $PERIODS; do
-      if [ $PRD -le $EPRD ]; do PRDS="${PRDS} ${SPRD}-$(( $S + $PRD ))"; fi
-    done; done # loop over start dates and periods
+      if [ $PRD -le $EPRD ]; then PRDS="${PRDS} ${SPRD}-$(( $S + $PRD ))"; fi
+    done # loop over start dates and periods
 
     # loop iver file types
 		for FILETYPE in $FILETYPES
@@ -113,8 +119,8 @@ for RUN in $RUNS
         if [[ "${AMWG}" == 'AMWG' ]]
           then
           echo "AMWG support is not yet implemented"
-          echo "export CCA=$CCA; export RUN=$RUN; export REF=$REF; export SPRD=$SPRD; export EPRD=$EPRD; cd $RUNDIR; cesm_amwg.sh &> amwg.log" >> "${CMDFILE}"
-        fi # $CVDP 
+          echo "export CCA=$CCA; export RUN=$RUN; export REF=$REF; export SPRD=$SPRD; export EPRD=$EPRD; cd $RUNDIR; echo cesm_amwg.sh &> amwg.log" >> "${CMDFILE}"
+        fi # $AMWG 
    
         
         ## concatenate history files
