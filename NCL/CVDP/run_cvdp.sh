@@ -14,6 +14,7 @@ DST="$CCA/$RUN/cvdp/" # results folder
 DMP="$CCA/$RUN/CVDP_DUMP/" # dump work dir here in case of error 
 # general settings
 TEST=${TEST:-'False'} # set to True to write namelists only
+if [[ "$TEST" == 'TEST' ]]; then TEST='True'; fi # translate to NCL-True; used in NCL driver script
 ROOTDIR='/dev/shm/aerler/cvdp/' # run on RAM disk
 WORKDIR="$ROOTDIR/$RUN/" # folder for current experiment
 DATADIR="$WORKDIR/input/" # where input data will reside
@@ -38,7 +39,8 @@ echo " $RUN | $DATADIR | $SPRD | $EPRD " > "$WORKDIR/namelist"
 
 # extract necessary variables
 for V in TS PSL TREFHT PRECT; do # loop over atmospheric variables
-ncks -v $V "$SRC/cesmatm_monthly.nc" "$DATADIR/${V}_${SPRD}01-${EPRD}12.nc"; fi
+  ncks -v $V "$SRC/cesmatm_monthly.nc" "$DATADIR/${V}_${SPRD}01-${EPRD}12.nc"
+done
 # snow is from land module
 ncks -v $V "$SRC/cesmlnd_monthly.nc" "$DATADIR/${V}_${SPRD}01-${EPRD}12.nc"
 
@@ -67,7 +69,7 @@ else
   echo "   The NCL driver script completed successfully!"
   echo "   (removing working directory: '$WORKDIR')"
 fi   
-rm -r "$WORKDIR"; fi # only clean, if this is not a test  
+rm -r "$WORKDIR" # only clean, if this is not a test  
 echo
 # exit
 exit $ERR

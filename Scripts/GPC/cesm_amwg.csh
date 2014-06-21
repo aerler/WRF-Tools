@@ -9,7 +9,7 @@ setenv DIAG_VERSION 121205  # version number YYMMDD
 #******************************************************************
 #  C-shell control script for AMWG Diagnostics Package.           *
 #  Written by Dr. Mark J. Stevens, 2001-2003.                     *
-#  Last Updated: Dec 5, 2012                                     *
+#  Last Updated: Dec 5, 2012                                      *
 #  e-mail: hannay@ucar.edu   phone: 303-497-1327                  *
 #                                                                 *                      
 #  - Please see the AMWG diagnostics package webpage at:          * 
@@ -108,6 +108,12 @@ module load netcdf/4.1.3_hdf5_serial-intel
 module load nco/4.3.2-intel
 module load ncl
 
+## assign arguments to variables
+set  RUN = $1 # run to be analyzed
+set SPRD = $2 # start of analysis period
+set NPRD = $3 # length of analysis period
+set  REF = $4 # reference run (or 'OBS')
+set RPRD = $5 # begin of reference period
 
 # *****************
 # *** Test case ***
@@ -121,14 +127,14 @@ module load ncl
 #
 # Don t forget the trailing / when setting the paths
 
-set test_casename  = $RUN
+set test_casename  = $RUN # first argument is the case
 
-set diag_dir = $CCA/$RUN
+set RUNDIR = $CCA/$RUN
 
-set test_path_history =  ${diag_dir}/atm/hist/
-set test_path_climo   =  ${diag_dir}/climo/
-set test_path_diag    =  ${diag_dir}/diag/
-set test_path_HPSS    =  ${diag_dir}/atm/hist/
+set test_path_history =  ${RUNDIR}/atm/hist/
+set test_path_climo   =  ${RUNDIR}/amwg/
+set test_path_diag    =  ${RUNDIR}/amwg/
+set test_path_HPSS    =  ${RUNDIR}/atm/hist/
 
 #******************************************************************
 
@@ -160,11 +166,11 @@ endif
 if ( $CNTL == USER ) then
   set cntl_casename  = $REF
   
-  set diag_dir = $CCA/$REF
+  set RUNDIR = $CCA/$REF
   
-  set cntl_path_history =  ${diag_dir}/atm/hist/
-  set cntl_path_climo   =  ${diag_dir}/climo/
-  set cntl_path_HPSS    =  ${diag_dir}/atm/hist/
+  set cntl_path_history =  ${RUNDIR}/atm/hist/
+  set cntl_path_climo   =  ${RUNDIR}/amwg/
+  set cntl_path_HPSS    =  ${RUNDIR}/atm/hist/
 endif
 
 #******************************************************************
@@ -197,8 +203,8 @@ set test_nyrs     = $NPRD           # number of yrs (must be >= 1)
 # First year of data is: $cntl_first_yr     (must be >= 1)
 # Number of years is: $cntl_nyrs         (must be >= 1)
 
-set cntl_first_yr = 1979        # first year (must be >= 1)
-set cntl_nyrs     = 15        # number of yrs (must be >= 1)
+set cntl_first_yr = $RPRD        # first year (must be >= 1)
+set cntl_nyrs     = $NPRD        # number of yrs (must be >= 1)
 
 #-----------------------------------------------------------------
 # Strip off all the variables that are not required by the AMWG package

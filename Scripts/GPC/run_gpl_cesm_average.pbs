@@ -36,8 +36,8 @@ rm -f "${CMDFILE}" # clean...
 
 #SRCR='/reserved1/p/peltier/marcdo/FromHpss' # Marc's folder on reserved (default)
 #SRCR='/scratch/p/peltier/marcdo/archive/' # Marc's folder on scratch
-SRCR=${SRCR:-"/reserved1/p/peltier/aerler//CESM/archive/"} # my CESM archive folder as source
-DSTR=${DSTR:-"/reserved1/p/peltier/aerler//CESM/archive/"} # my CESM archive folder as destination (always)
+CCA=${CAA:-"/reserved1/p/peltier/aerler//CESM/archive/"} # my CESM archive folder as source
+export CCA # used in several scripts
 
 # for tests
 #RUNS='seaice-3r-hf/'
@@ -81,11 +81,9 @@ for RUN in $RUNS
     RUN=${RUN%/} # remove trailing slash, if any
     RUNDIR="${WORKDIR}/${RUN}/" # extract highest order folder name as run name
     AVGDIR="${RUNDIR}/cesmavg/" # subfolder for averages
-    echo "   ***   Checking $RUN   ***   "
+    echo "   ***   Processing $RUN   ***   "
     echo "   ($RUNDIR)" 
     cd "${RUNDIR}"
-    mkdir -p "${AVGDIR}" # make sure destination folder exists
-    ln -sf "${MODEL_ROOT}/WRF Tools/Python/average/cesm_average.py" # link archiving script
 
     # determine period and other meta data from name
     if [[ "$RUN" == *20tr* ]]; then SPRD='1979'; EPRD='1993'; REF='OBS'
@@ -97,35 +95,43 @@ for RUN in $RUNS
     elif [[ "$RUN" == seaice-5r-hf ]]; then SPRD='2045'; EPRD='2059'; REF='tb20trcn1x1'
     elif [[ "$RUN" == seaice-*-hf ]]; then SPRD='2045'; EPRD='2059'; REF='tb20trcn1x1'
     fi # if it doesn't match anything, it will be skipped
+    NPRD=$(( 1 + $EPRD - $SPRD ))
+    RPRD='1979' # begin of reference period
     # calculate periods
     PRDS='' # clear variable
     for PRD in $PERIODS; do
-      if [ $PRD -le $EPRD ]; then PRDS="${PRDS} ${SPRD}-$(( $S + $PRD ))"; fi
+      if [ $PRD -le $NPRD ]; then PRDS="${PRDS} ${SPRD}-$(( $S + $PRD ))"; fi
     done # loop over start dates and periods
 
+
+    ## climate variability diagnostics (CVDP)
+		if [[ "${CVDP}" == 'CVDP' ]]
+		  then
+		    mkdir -p "$RUNDIR/cvdp/" # make sure destination folder exists
+        ln -sf "${MODEL_ROOT}/WRF Tools/NCL/CVDP/run_cvdp.sh" # link CVDP driver script
+		    echo "   Running CVDP"
+		    echo "cd $RUNDIR; run_cvdp.sh $RUN $SPRD $EPRD 1> cvdp.log 2> cvdp.err" >> "${CMDFILE}" 
+		fi # $CVDP
+		
+		
+    ## Climatology Diagnostics Package (AMWG)
+		if [[ "${AMWG}" == 'AMWG' ]]
+		  then
+		    mkdir -p "$RUNDIR/amwg/" # make sure destination folder exists
+        ln -sf "${MODEL_ROOT}/WRF Tools/Scripts/Misc/cesm_amwg.csh" # link CVDP driver script
+		    echo "   Running AMWG"
+		    echo "cd $RUNDIR; ./cesm_amwg.sh $RUN $SPRD $NPRD $REF $RPRD 1> amwg.log 2> amwg.err" >> "${CMDFILE}"
+		fi # $AMWG 
+		   
+		   
     # loop iver file types
 		for FILETYPE in $FILETYPES
-      do
-        
-        ## climate variability diagnostics (CVDP)
-        if [[ "${CVDP}" == 'CVDP' ]]
-          then
-          echo "CVDP support is not yet implemented"
-          echo "export CCA=$CCA; cd $RUNDIR; echo run_cvdp.sh $RUN $SPRD $EPRD &> cvdp.log" >> "${CMDFILE}" 
-        fi # $CVDP
-
-
-        ## Climatology Diagnostics Package (AMWG)
-        if [[ "${AMWG}" == 'AMWG' ]]
-          then
-          echo "AMWG support is not yet implemented"
-          echo "export CCA=$CCA; export RUN=$RUN; export REF=$REF; export SPRD=$SPRD; export EPRD=$EPRD; cd $RUNDIR; echo cesm_amwg.sh &> amwg.log" >> "${CMDFILE}"
-        fi # $AMWG 
-   
+      do        
         
         ## concatenate history files
 		    if [[ "${CONCAT}" == 'CONCAT' ]]
           then
+            mkdir -p "${AVGDIR}" # make sure destination folder exists
 		        ## assemble time-series
 				    case $FILETYPE in
 				      atm) FILES="${RUNDIR}/${FILETYPE}/hist/${RUN}.cam2.h0.";; 
@@ -137,7 +143,7 @@ for RUN in $RUNS
 		        NCOOUT="${AVGDIR}/cesm${FILETYPE}_monthly.nc"
 				    if [[ ! -e "${NCOOUT}" ]] || [[ "$OVERWRITE" == 'OVERWRITE' ]]; then
 				      echo "   Concatenating: ${NCOOUT}"
-		          echo "cd ${RUNDIR}; ncrcat $NCOARGS --output "${NCOOUT}" --overwrite ${FILES}* &> ${NCOOUT%.nc}.log" >> "${CMDFILE}"
+		          echo "cd ${RUNDIR}; ncrcat $NCOARGS --output "${NCOOUT}" --overwrite ${FILES}* 1> ${NCOOUT%.nc}.log 2> ${NCOOUT%.nc}.err" >> "${CMDFILE}"
 				    else
 				      echo "   Skipping: ${NCOOUT}"
 				    fi # if already file exits
@@ -146,6 +152,8 @@ for RUN in $RUNS
         ## compute climatologies (from monthly averages)
         if [[ "${AVERAGE}" == 'AVERAGE' ]]
           then
+            mkdir -p "${AVGDIR}" # make sure destination folder exists
+            ln -sf "${MODEL_ROOT}/WRF Tools/Python/average/cesm_average.py" # link averaging script
 				    # loop over averaging periods
 		        for PERIOD in $PRDS
 		          do
@@ -154,7 +162,7 @@ for RUN in $RUNS
 		            PYAVGOUT="${AVGDIR}/cesm${FILETYPE}_clim_${PERIOD}.nc"
 		            if [[ ! -e "$PYAVGOUT" ]] || [[ "$OVERWRITE" == 'OVERWRITE' ]]; then
 		              echo "   Averaging: ${PYAVGOUT}"
-			            echo "cd ${RUNDIR}; export PYAVG_FILETYPE=${FILETYPE}; python -u cesm_average.py ${PERIOD} &> ${PYAVGOUT%.nc}.log" >> "${CMDFILE}"
+			            echo "cd ${RUNDIR}; export PYAVG_FILETYPE=${FILETYPE}; python -u cesm_average.py ${PERIOD} 1> ${PYAVGOUT%.nc}.log 2> ${PYAVGOUT%.nc}.err" >> "${CMDFILE}"
 		            else
 		              echo "   Skipping: ${PYAVGOUT}"
 		            fi # if already file exits
