@@ -57,6 +57,7 @@ V=SNOWDP # last variable (snow depth) is in land file
 echo " $V"
 ncks -v $V "$SRC/cesmlnd_monthly.nc" "$DATADIR/${V}_${SPRD}01-${EPRD}12.nc"
 if [[ "$TEST" == 'True' ]]; then ls "$DATADIR"; echo ''; fi # check that data is present
+echo
 
 ## run CVDP
 # some influential environment variables
@@ -65,8 +66,10 @@ export OUTDIR
 export TITLE="$RUN ($SPRD-$EPRD)"
 # run NCL driver script
 cd "$WORKDIR"
+echo
 ncl driver.ncl
-ERR=$?
+ERR=$? # the exit code does not seem to be very informative, though...
+echo
 
 # copy results, clean up and exit
 echo

@@ -13,6 +13,7 @@
 #PBS -m ae
 # job name
 #PBS -N gpl_cesmavg_all
+###PBS -W depend=afterok:$PBS_JOBID
 ## submit to queue (NB: this has to be the last PBS line!)
 # batch (default), debug, largemem
 #PBS -q batch
@@ -60,12 +61,12 @@ echo 'Processing CESM experiments:'
 echo ''
 ls -d $RUNS
 echo ''
-echo "Computing CVDP: ${CVDP}"
 echo "Computing AMWG: ${AMWG}"
 echo "Concatenate Output: ${CONCAT}"
 if [[ "${CONCAT}" == 'CONCAT' ]] || [[ "${AVERAGE}" == 'AVERAGE' ]]; then echo "File Types: ${FILETYPES}"; fi
 echo "Average Output: ${AVERAGE}"
 if [[ "${AVERAGE}" == 'AVERAGE' ]]; then echo "Averaging Periods: ${PERIODS}"; fi
+echo "Computing CVDP: ${CVDP}"
 echo "Overwriting Files: ${OVERWRITE}"
 echo
 
@@ -73,7 +74,7 @@ echo
 ## generate command file for GNU Parallel
 # root directory
 cd "${WORKDIR}"
-touch "${CMDFILE}" 
+touch "${CMDFILE}.amwg" "${CMDFILE}.concat" "${CMDFILE}.average" "${CMDFILE}.cvdp" 
 # loop over runs
 for RUN in $RUNS
   do
@@ -101,32 +102,23 @@ for RUN in $RUNS
     # calculate periods
     PRDS='' # clear variable
     for PRD in $PERIODS; do
-      if [ $PRD -le $NPRD ]; then PRDS="${PRDS} ${SPRD}-$(( $S + $PRD ))"; fi
+      if [ $PRD -le $NPRD ]; then PRDS="${PRDS} ${SPRD}-$(( $SPRD + $PRD ))"; fi
     done # loop over start dates and periods
 
-
-    ## climate variability diagnostics (CVDP)
-		if [[ "${CVDP}" == 'CVDP' ]]
-		  then
-		    mkdir -p "$RUNDIR/cvdp/" # make sure destination folder exists
-        ln -sf "${MODEL_ROOT}/WRF Tools/NCL/CVDP/run_cvdp.sh" # link CVDP driver script
-				if [ $( grep -c 'The NCL driver script completed successfully' "$RUNDIR/cvdp.log" ) -eq 0 ] || [[ "$OVERWRITE" == 'OVERWRITE' ]]; then
-		      echo "   Running CVDP"
-          export TEST # TEST=True only generates namelists
-		      echo "cd $RUNDIR; ./run_cvdp.sh $RUN $SPRD $EPRD 1> cvdp.log 2> cvdp.err" >> "${CMDFILE}" 
-        else
-          echo "   Skipping CVDP"
-        fi # if actually running
-		fi # $CVDP
-		
 		
     ## Climatology Diagnostics Package (AMWG)
 		if [[ "${AMWG}" == 'AMWG' ]]
 		  then
 		    mkdir -p "$RUNDIR/amwg/" # make sure destination folder exists
-        ln -sf "${MODEL_ROOT}/WRF Tools/Scripts/Misc/cesm_amwg.csh" # link CVDP driver script
-		    echo "   Running AMWG"
-		    echo "cd $RUNDIR; ./cesm_amwg.sh $RUN $SPRD $NPRD $REF $RPRD 1> amwg.log 2> amwg.err" >> "${CMDFILE}"
+        ln -sf "${MODEL_ROOT}/WRF Tools/Scripts/Misc/cesm_amwg.csh" # link AMWG script (CSH)
+        if [[ "$REF" == 'OBS' ]]; then AMWGTAR="$RUNDIR/amwg/$RUN-obs.tar"
+        else AMWGTAR="$RUNDIR/amwg/$RUN-$REF.tar"; fi
+        if [ ! -f "$AMWGTAR" ] || [[ "$OVERWRITE" == 'OVERWRITE' ]]; then
+		      echo "   Running AMWG: $AMWGTAR"
+		      echo "cd $RUNDIR; ./cesm_amwg.sh $RUN $SPRD $NPRD $REF $RPRD 1> amwg.log 2> amwg.err" >> "${CMDFILE}.amwg"
+		    else
+          echo "   Skipping AMWG: $AMWGTAR"
+        fi # if actually running        	    
 		fi # $AMWG 
 		   
 		   
@@ -149,11 +141,12 @@ for RUN in $RUNS
 		        NCOOUT="${AVGDIR}/cesm${FILETYPE}_monthly.nc"
 				    if [[ ! -e "${NCOOUT}" ]] || [[ "$OVERWRITE" == 'OVERWRITE' ]]; then
 				      echo "   Concatenating: ${NCOOUT}"
-		          echo "cd ${RUNDIR}; ncrcat $NCOARGS --output "${NCOOUT}" --overwrite ${FILES}* 1> ${NCOOUT%.nc}.log 2> ${NCOOUT%.nc}.err" >> "${CMDFILE}"
+		          echo "cd ${RUNDIR}; ncrcat $NCOARGS --output "${NCOOUT}" --overwrite ${FILES}* 1> ${NCOOUT%.nc}.log 2> ${NCOOUT%.nc}.err" >> "${CMDFILE}.concat"
 				    else
 				      echo "   Skipping: ${NCOOUT}"
 				    fi # if already file exits
         fi # $CONCAT
+
 
         ## compute climatologies (from monthly averages)
         if [[ "${AVERAGE}" == 'AVERAGE' ]]
@@ -166,9 +159,9 @@ for RUN in $RUNS
 		            ## compute averaged climatologies
 		            # launch python script, save output in log file
 		            PYAVGOUT="${AVGDIR}/cesm${FILETYPE}_clim_${PERIOD}.nc"
-		            if [[ ! -e "$PYAVGOUT" ]] || [[ "$OVERWRITE" == 'OVERWRITE' ]]; then
+		            if [[ ! -f "$PYAVGOUT" ]] || [[ "$OVERWRITE" == 'OVERWRITE' ]]; then
 		              echo "   Averaging: ${PYAVGOUT}"
-			            echo "cd ${RUNDIR}; export PYAVG_FILETYPE=${FILETYPE}; python -u cesm_average.py ${PERIOD} 1> ${PYAVGOUT%.nc}.log 2> ${PYAVGOUT%.nc}.err" >> "${CMDFILE}"
+			            echo "cd ${RUNDIR}; export PYAVG_FILETYPE=${FILETYPE}; python -u cesm_average.py ${PERIOD} 1> ${PYAVGOUT%.nc}.log 2> ${PYAVGOUT%.nc}.err" >> "${CMDFILE}.average"
 		            else
 		              echo "   Skipping: ${PYAVGOUT}"
 		            fi # if already file exits
@@ -176,8 +169,30 @@ for RUN in $RUNS
         fi # $AVERAGE
 
     done # for $FILETYPES
+
+
+    ## climate variability diagnostics (CVDP)
+    if [[ "${CVDP}" == 'CVDP' ]]
+      then
+        mkdir -p "$RUNDIR/cvdp/" # make sure destination folder exists
+        ln -sf "${MODEL_ROOT}/WRF Tools/NCL/CVDP/run_cvdp.sh" # link CVDP driver script
+        CVDPOUT=$( grep -c 'The NCL driver script completed successfully' "$RUNDIR/cvdp.log" )
+        if [ $CVDPOUT -eq 0 ] || [[ "$OVERWRITE" == 'OVERWRITE' ]]; then
+          echo "   Running CVDP"
+          export TEST # TEST=True only generates namelists
+          echo "cd $RUNDIR; ./run_cvdp.sh $RUN $SPRD $EPRD 1> cvdp.log 2> cvdp.err" >> "${CMDFILE}.cvdp" 
+        else
+          echo "   Skipping CVDP"
+        fi # if actually running
+    fi # $CVDP
+    
+
 done # for $RUNS
 echo 
+
+# assemble command file (so that not all processes are accessing the same files at once)
+cat "${CMDFILE}.amwg" "${CMDFILE}.concat" "${CMDFILE}.average" "${CMDFILE}.cvdp" > "${CMDFILE}"
+rm "${CMDFILE}.amwg" "${CMDFILE}.concat" "${CMDFILE}.average" "${CMDFILE}.cvdp"
 
 ## execute GNU Parallel commands
 parallel -j 8 < "${CMDFILE}"
