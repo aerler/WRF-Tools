@@ -883,11 +883,13 @@ if ($CNTL == USER) then
   endif
 endif   
 
-if ($test_path_history == $cntl_path_history) then
-    echo ERROR: THE TEST PATH AND CNTL PATH ARE IDENTICAL
-    echo THEY MUST BE DIFFERENT TO RECEIVE HPSS DOWNLOADS!
-    exit  
-endif
+if ($CNTL == USER) then    
+  if ($test_path_history == $cntl_path_history) then
+      echo ERROR: THE TEST PATH AND CNTL PATH ARE IDENTICAL
+      echo THEY MUST BE DIFFERENT TO RECEIVE HPSS DOWNLOADS!
+      exit  
+  endif
+endif   
 
 #*****************************************************************
 # Determine attributes of history files

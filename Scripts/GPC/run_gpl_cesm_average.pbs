@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ## queue/PBS settings
-#PBS -l nodes=1:ppn=8
+#PBS -l nodes=1:m32g:ppn=8
 # batch queue: nodes=1:m32g:ppn=8
 # largemem queue: nodes=1:m128g:ppn=16
 #PBS -l walltime=48:00:00
@@ -31,9 +31,9 @@ shopt -s extglob
 # default settings
 JOBNAME=${PBS_JOBNAME:-'test'}
 WORKDIR=${PBS_O_WORKDIR:-"${PWD}"}
-PYAVG='cesm_average.py' # averaging script
 CMDFILE="${WORKDIR}/cmdfile.${JOBNAME}"
 rm -f "${CMDFILE}" # clean...
+THREADS=${THREADS:-8} # GNU Parallel threads
 
 #SRCR='/reserved1/p/peltier/marcdo/FromHpss' # Marc's folder on reserved (default)
 #SRCR='/scratch/p/peltier/marcdo/archive/' # Marc's folder on scratch
@@ -90,7 +90,7 @@ for RUN in $RUNS
     # determine period and other meta data from name
     if [[ "$RUN" == *20tr* ]]; then SPRD='1979'; EPRD='1993'; REF='OBS'
     elif [[ "$RUN" == *rcp* ]]; then 
-      REF="${RUN%rcp*}tr20${RUN#*rcp??}" # guess name of historical simulation
+      REF="${RUN%rcp*}20tr${RUN#*rcp??}" # guess name of historical simulation
       if [[ "$RUN" == *d ]]; then SPRD='2085'; EPRD='2099'; REF=${REF%d}
       else SPRD='2045'; EPRD='2059'; fi
     elif [[ "$RUN" == seaice-5r-hfd ]]; then SPRD='2085'; EPRD='2099'; REF='tb20trcn1x1'
@@ -110,12 +110,12 @@ for RUN in $RUNS
 		if [[ "${AMWG}" == 'AMWG' ]]
 		  then
 		    mkdir -p "$RUNDIR/amwg/" # make sure destination folder exists
-        ln -sf "${MODEL_ROOT}/WRF Tools/Scripts/Misc/cesm_amwg.csh" # link AMWG script (CSH)
+        ln -sf "${MODEL_ROOT}/WRF Tools/Scripts/GPC/cesm_amwg.csh" # link AMWG script (CSH)
         if [[ "$REF" == 'OBS' ]]; then AMWGTAR="$RUNDIR/amwg/$RUN-obs.tar"
         else AMWGTAR="$RUNDIR/amwg/$RUN-$REF.tar"; fi
         if [ ! -f "$AMWGTAR" ] || [[ "$OVERWRITE" == 'OVERWRITE' ]]; then
 		      echo "   Running AMWG: $AMWGTAR"
-		      echo "cd $RUNDIR; ./cesm_amwg.sh $RUN $SPRD $NPRD $REF $RPRD 1> amwg.log 2> amwg.err" >> "${CMDFILE}.amwg"
+		      echo "cd $RUNDIR; ./cesm_amwg.csh $RUN $SPRD $NPRD $REF $RPRD 1> amwg.log 2> amwg.err" >> "${CMDFILE}.amwg"
 		    else
           echo "   Skipping AMWG: $AMWGTAR"
         fi # if actually running        	    
@@ -132,16 +132,20 @@ for RUN in $RUNS
             mkdir -p "${AVGDIR}" # make sure destination folder exists
 		        ## assemble time-series
 				    case $FILETYPE in
-				      atm) FILES="${RUNDIR}/${FILETYPE}/hist/${RUN}.cam2.h0.";; 
-				      lnd) FILES="${RUNDIR}/${FILETYPE}/hist/${RUN}.clm2.h0.";; 
-				      ice) FILES="${RUNDIR}/${FILETYPE}/hist/${RUN}.cice.h.";; 
+				      atm) FILES="${RUNDIR}/${FILETYPE}/hist/${RUN}.cam2.h0";; 
+				      lnd) FILES="${RUNDIR}/${FILETYPE}/hist/${RUN}.clm2.h0";; 
+				      ice) FILES="${RUNDIR}/${FILETYPE}/hist/${RUN}.cice.h";; 
 				    esac
+            # list of proper years
+            FILELIST=''
+            for Y in $( seq $SPRD $EPRD ); do
+              FILELIST="${FILELIST} ${FILES}.${Y}-??.nc"; done
 				    # NCO command
 				    NCOARGS="--netcdf4 --deflate 1" # use NetCDF4 compression
 		        NCOOUT="${AVGDIR}/cesm${FILETYPE}_monthly.nc"
 				    if [[ ! -e "${NCOOUT}" ]] || [[ "$OVERWRITE" == 'OVERWRITE' ]]; then
 				      echo "   Concatenating: ${NCOOUT}"
-		          echo "cd ${RUNDIR}; ncrcat $NCOARGS --output "${NCOOUT}" --overwrite ${FILES}* 1> ${NCOOUT%.nc}.log 2> ${NCOOUT%.nc}.err" >> "${CMDFILE}.concat"
+		          echo "cd ${RUNDIR}; ncrcat $NCOARGS --output ${NCOOUT} --overwrite ${FILELIST} 1> ${NCOOUT%.nc}.log 2> ${NCOOUT%.nc}.err" >> "${CMDFILE}.concat"
 				    else
 				      echo "   Skipping: ${NCOOUT}"
 				    fi # if already file exits
@@ -195,7 +199,7 @@ cat "${CMDFILE}.amwg" "${CMDFILE}.concat" "${CMDFILE}.average" "${CMDFILE}.cvdp"
 rm "${CMDFILE}.amwg" "${CMDFILE}.concat" "${CMDFILE}.average" "${CMDFILE}.cvdp"
 
 ## execute GNU Parallel commands
-parallel -j 8 < "${CMDFILE}"
+parallel -j $THREADS < "${CMDFILE}"
 ERR=$? # capture exit code
 
 # clean up

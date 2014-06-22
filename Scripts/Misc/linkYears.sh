@@ -8,7 +8,7 @@ if [[ -z "$CASES" ]] || [[ -z "$YEARS" ]]
   then
 
     # seaice
-    CASES='seaice-5r-hf'
+    CASES='seaice-5r-hfd'
     #YEARS=$(seq 2055 2060)
     YEARS=$(seq 2085 2100)
     # ensemble 2100
@@ -50,15 +50,15 @@ for YEAR in $YEARS
         ti=${CCA}/${CASE}/atm/hist/${YEAR}
         if [ -e ${tt} ] && [ -e ${ti} ] ; then
           #echo linking ${CASE}.cam2.h1.${YEAR}-01-01-00000.nc to the previous year directory
-          ln -s ${til}/${CASE}.cam2.h1.${YEAR}-01-01-00000.nc ${tt}/
+          ln -sf ${til}/${CASE}.cam2.h1.${YEAR}-01-01-00000.nc ${tt}/
           ls -l ${tt}/*${YEAR}-01-01-00000.nc
         elif [ ! -e ${tt} ] && [ -e ${ti} ] ; then
           #echo linking ${CASE}.cam2.h1.${YEAR}-01-01-21600.nc to linking ${CASE}.cam2.h1.${YEAR}-01-01-00000.nc
-          ln -s ${CASE}.cam2.h1.${YEAR}-01-01-21600.nc ${ti}/${CASE}.cam2.h1.${YEAR}-01-01-00000.nc
+          ln -sf ${CASE}.cam2.h1.${YEAR}-01-01-21600.nc ${ti}/${CASE}.cam2.h1.${YEAR}-01-01-00000.nc
           ls -l ${ti}/*${YEAR}-01-01-00000.nc
         elif [ -e ${tt} ] && [ ! -e ${ti} ] ; then
           #echo linking ${CASE}.cam2.h1.${lstyr}-12-31-64800.nc to linking ${CASE}.cam2.h1.${YEAR}-01-01-00000.nc
-          ln -s ${CASE}.cam2.h1.${lstyr}-12-31-64800.nc ${tt}/${CASE}.cam2.h1.${YEAR}-01-01-00000.nc
+          ln -sf ${CASE}.cam2.h1.${lstyr}-12-31-64800.nc ${tt}/${CASE}.cam2.h1.${YEAR}-01-01-00000.nc
           ls -l ${tt}/*${YEAR}-01-01-00000.nc
         fi
         
@@ -68,15 +68,15 @@ for YEAR in $YEARS
         ti=${CCA}/${CASE}/lnd/hist/${YEAR}
         if [ -e ${tt} ] && [ -e ${ti} ] ; then
           #echo linking ${CASE}.clm2.h1.${YEAR}-01-01-00000.nc to the previous year directory
-          ln -s ${til}/${CASE}.clm2.h1.${YEAR}-01-01-00000.nc ${tt}/
+          ln -sf ${til}/${CASE}.clm2.h1.${YEAR}-01-01-00000.nc ${tt}/
           ls -l ${tt}/*${YEAR}-01-01-00000.nc
         elif [ ! -e ${tt} ] && [ -e ${ti} ] ; then
           #echo linking ${CASE}.clm2.h1.${YEAR}-01-01-21600.nc to linking ${CASE}.clm2.h1.${YEAR}-01-01-00000.nc
-          ln -s ${CASE}.clm2.h1.${YEAR}-01-01-21600.nc ${ti}/${CASE}.clm2.h1.${YEAR}-01-01-00000.nc
+          ln -sf ${CASE}.clm2.h1.${YEAR}-01-01-21600.nc ${ti}/${CASE}.clm2.h1.${YEAR}-01-01-00000.nc
           ls -l ${ti}/*${YEAR}-01-01-00000.nc
         elif [ -e ${tt} ] && [ ! -e ${ti} ] ; then
           #echo linking ${CASE}.clm2.h1.${lstyr}-12-31-64800.nc to linking ${CASE}.clm2.h1.${YEAR}-01-01-00000.nc
-          ln -s ${CASE}.clm2.h1.${lstyr}-12-31-64800.nc ${tt}/${CASE}.clm2.h1.${YEAR}-01-01-00000.nc
+          ln -sf ${CASE}.clm2.h1.${lstyr}-12-31-64800.nc ${tt}/${CASE}.clm2.h1.${YEAR}-01-01-00000.nc
           ls -l ${tt}/*${YEAR}-01-01-00000.nc
         fi
         
@@ -86,15 +86,15 @@ for YEAR in $YEARS
         ti=${CCA}/${CASE}/ice/hist/${YEAR}
         if [ -e ${tt} ] && [ -e ${ti} ] ; then
           #echo linking ${CASE}.cice.h1_inst.${YEAR}-01-01-00000.nc to the previous year directory
-          ln -s ${til}/${CASE}.cice.h1_inst.${YEAR}-01-01-00000.nc ${tt}/
+          ln -sf ${til}/${CASE}.cice.h1_inst.${YEAR}-01-01-00000.nc ${tt}/
           ls -l ${tt}/*${YEAR}-01-01-00000.nc
         elif [ ! -e ${tt} ] && [ -e ${ti} ] ; then
           #echo linking ${CASE}.cice.h1_inst.${YEAR}-01-01-21600.nc to linking ${CASE}.cice.h1_inst.${YEAR}-01-01-00000.nc
-          ln -s ${CASE}.cice.h1_inst.${YEAR}-01-01-21600.nc ${ti}/${CASE}.cice.h1_inst.${YEAR}-01-01-00000.nc
+          ln -sf ${CASE}.cice.h1_inst.${YEAR}-01-01-21600.nc ${ti}/${CASE}.cice.h1_inst.${YEAR}-01-01-00000.nc
           ls -l ${ti}/*${YEAR}-01-01-00000.nc
         elif [ -e ${tt} ] && [ ! -e ${ti} ] ; then
           #echo linking ${CASE}.cice.h1_inst.${lstyr}-12-31-64800.nc to linking ${CASE}.cice.h1_inst.${YEAR}-01-01-00000.nc
-          ln -s ${CASE}.cice.h1_inst.${lstyr}-12-31-64800.nc ${tt}/${CASE}.cice.h1_inst.${YEAR}-01-01-00000.nc
+          ln -sf ${CASE}.cice.h1_inst.${lstyr}-12-31-64800.nc ${tt}/${CASE}.cice.h1_inst.${YEAR}-01-01-00000.nc
           ls -l ${tt}/*${YEAR}-01-01-00000.nc
         fi
     
