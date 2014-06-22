@@ -1,4 +1,4 @@
-#/bin/bash
+#!/bin/bash
 
 ## queue/PBS settings
 #PBS -l nodes=1:ppn=8
@@ -63,16 +63,17 @@ echo ''
 echo "Computing CVDP: ${CVDP}"
 echo "Computing AMWG: ${AMWG}"
 echo "Concatenate Output: ${CONCAT}"
-echo "Concatenate Output: ${CONCAT}"
+if [[ "${CONCAT}" == 'CONCAT' ]] || [[ "${AVERAGE}" == 'AVERAGE' ]]; then echo "File Types: ${FILETYPES}"; fi
 echo "Average Output: ${AVERAGE}"
-[[ "${AVERAGE}" == 'AVERAGE' ]] && echo "Averaging Periods: ${PERIODS}"
-echo "File Types: ${FILETYPES}"
+if [[ "${AVERAGE}" == 'AVERAGE' ]]; then echo "Averaging Periods: ${PERIODS}"; fi
 echo "Overwriting Files: ${OVERWRITE}"
+echo
 
 
 ## generate command file for GNU Parallel
 # root directory
 cd "${WORKDIR}"
+touch "${CMDFILE}" 
 # loop over runs
 for RUN in $RUNS
   do
@@ -109,8 +110,13 @@ for RUN in $RUNS
 		  then
 		    mkdir -p "$RUNDIR/cvdp/" # make sure destination folder exists
         ln -sf "${MODEL_ROOT}/WRF Tools/NCL/CVDP/run_cvdp.sh" # link CVDP driver script
-		    echo "   Running CVDP"
-		    echo "cd $RUNDIR; run_cvdp.sh $RUN $SPRD $EPRD 1> cvdp.log 2> cvdp.err" >> "${CMDFILE}" 
+				if [ $( grep -c 'The NCL driver script completed successfully' "$RUNDIR/cvdp.log" ) -eq 0 ] || [[ "$OVERWRITE" == 'OVERWRITE' ]]; then
+		      echo "   Running CVDP"
+          export TEST # TEST=True only generates namelists
+		      echo "cd $RUNDIR; ./run_cvdp.sh $RUN $SPRD $EPRD 1> cvdp.log 2> cvdp.err" >> "${CMDFILE}" 
+        else
+          echo "   Skipping CVDP"
+        fi # if actually running
 		fi # $CVDP
 		
 		
@@ -185,7 +191,7 @@ if [[ 0 == ${ERR} ]]
     rm "${CMDFILE}"
   else
     echo "  >>>   ERRORS DETECTED - EXIT CODE ${ERR}   <<<   " 
-    echo "inspect command file ${PBS_O_WORKDIR}/cmdfile.tmp"
+    echo "     (inspect command file ${CMDFILE})"
 fi # if $ERR
 echo
 
