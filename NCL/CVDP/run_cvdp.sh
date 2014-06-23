@@ -3,7 +3,8 @@
 # 2014/06/20, Andre R. Erler
 
 # environment variables: MODEL_ROOT, CCA
-# run using loaded modules
+# run using loaded modules + ImageMagick
+module load Xlibraries/X11-64 ImageMagick/6.6.7
 
 # experiment settings
 RUN=$1 # name of experiment
@@ -63,7 +64,7 @@ echo
 # some influential environment variables
 export TEST
 export OUTDIR
-export TITLE="$RUN ($SPRD-$EPRD)"
+export TITLE="$RUN $SPRD-$EPRD"
 # run NCL driver script
 cd "$WORKDIR"
 echo
