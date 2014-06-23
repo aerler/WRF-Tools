@@ -3,8 +3,7 @@
 # 2014/06/20, Andre R. Erler
 
 # environment variables: MODEL_ROOT, CCA
-# run using loaded modules + ImageMagick
-module load Xlibraries/X11-64 ImageMagick/6.6.7
+# run using loaded modules
 
 # experiment settings
 RUN=$1 # name of experiment

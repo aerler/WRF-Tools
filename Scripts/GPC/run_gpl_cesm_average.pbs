@@ -23,6 +23,7 @@ echo
 module purge
 module load intel/13.1.1 gcc/4.8.1 hdf5/187-v18-serial-intel netcdf/4.1.3_hdf5_serial-intel gnu-parallel/20130422  
 module load python/2.7.3 gdal/1.9.2 extras/64_6.4 ncl/6.2.0 gsl/1.13-intel udunits/2.1.11 nco/4.3.2-intel
+module load Xlibraries/X11-64 ImageMagick/6.6.7
 module list
 echo
 
@@ -96,7 +97,11 @@ for RUN in $RUNS
     elif [[ "$RUN" == seaice-5r-hfd ]]; then SPRD='2085'; EPRD='2099'; REF='tb20trcn1x1'
     elif [[ "$RUN" == seaice-5r-hf ]]; then SPRD='2045'; EPRD='2059'; REF='tb20trcn1x1'
     elif [[ "$RUN" == seaice-*-hf ]]; then SPRD='2045'; EPRD='2059'; REF='tb20trcn1x1'
-    fi # if it doesn't match anything, it will be skipped
+    else echo "ERROR: No settings found for experiment '$RUN' - aborting!"; exit 1     
+    fi # $RUN settings
+    # N.B.: the experiment settings could be made more portable by adding a meta data/settings file to each 
+    #       experiment, where the above parameters are defined, and sourcing it at this point (instead of
+    #       guessing the values based on arbitrary filename conventions)
     NPRD=$(( 1 + $EPRD - $SPRD ))
     RPRD='1979' # begin of reference period
     # calculate periods

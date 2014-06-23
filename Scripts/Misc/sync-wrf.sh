@@ -6,9 +6,17 @@ WRFDATA="${WRFDATA:-/data/WRF/}" # should be supplied by caller
 WRFAVG="${WRFDATA}/wrfavg/"
 DR='/reserved1/p/peltier/aerler/Downscaling'
 DS='/scratch/p/peltier/aerler/Downscaling'
-# ssh settings: special identity/ssh key, batch mode, and connection sharing
-SSH="-i /home/me/.ssh/rsync -o BatchMode=yes -o ControlPath=${WRFDATA}/master-%l-%r@%h:%p -o ControlMaster=auto -o ControlPersist=1"
-HOST='aerler@login.scinet.utoronto.ca'
+# connection settings
+if [[ "${HISPD}" == 'HISPD' ]]
+  then
+    # high-speed transfer: special identity/ssh key, batch mode, and connection sharing
+    SSH="-o BatchMode=yes -o ControlPath=${WRFDATA}/hispd-master-%l-%r@%h:%p -o ControlMaster=auto -o ControlPersist=1"
+    HOST='datamover' # defined in .ssh/config
+  else
+    # ssh settings for unattended nightly update: special identity/ssh key, batch mode, and connection sharing
+    SSH="-i /home/me/.ssh/rsync -o BatchMode=yes -o ControlPath=${WRFDATA}/master-%l-%r@%h:%p -o ControlMaster=auto -o ControlPersist=1"
+    HOST='aerler@login.scinet.utoronto.ca'
+fi # if high-speed
 
 echo
 echo
