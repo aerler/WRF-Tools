@@ -72,7 +72,7 @@ if [[ "${RESTART}" == 'RESTART' ]]; then # restart
 
   ## restart previous cycle
   # read date string for restart file
-  RSTDATE=$(sed -n "/${NEXTSTEP}/ s/${NEXTSTEP}[[:space:]]\+.\(.*\).[[:space:]].*$/\1/p" stepfile)
+    RSTDATE=$(sed -n "/${NEXTSTEP}/ s/${NEXTSTEP}[[:space:]]\+'\([-_\:0-9]\{19\}\)'[[:space:]]\+'[-_\:0-9]\{19\}'$/\1/p" stepfile)
   NEXTDIR="${INIDIR}/${NEXTSTEP}" # next $WORKDIR
   cd "${NEXTDIR}"
   # link restart files

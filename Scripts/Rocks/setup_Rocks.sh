@@ -6,16 +6,25 @@
 export MAC='Rocks' # machine name
 export QSYS='SGE' # queue system
 
-# environment variables for "modules"
+## environment variables for "modules"
 # export NCARG_ROOT='/usr/local/ncarg/' only needed to interpolate CESM data
 export MODEL_ROOT="${HOME}/"
 export IBHOSTS="${HOME}/ibhosts"
 
-# Stuff we need for WRF
-# Intel
-source /opt/intel/composer_xe_2013/bin/compilervars.sh intel64 # compiler suite
+# folder that contains WRF Tools (is necessary for some scripts in non-interactive mode)
+export MODEL_ROOT=$HOME
+
+# Python path
+export PYTHONPATH=$HOME/WRF\ Tools/Python/:$HOME/PyGeoDat/src/:$PYTHONPATH
+# use Anaconda Python distribution
+export PATH=/pub/home_local/wrf/anaconda/bin:$PATH
+
+# Intel compiler suite
+source /opt/intel/composer_xe_2013/bin/compilervars.sh intel64
 source /opt/intel/mkl/bin/mklvars.sh intel64 # math kernel library
 ulimit -s unlimited
+
+# Stuff we need for WRF
 # MPI
 export PATH=/usr/mpi/intel/mvapich2-1.7-qlc/bin:$PATH
 export LD_LIBRARY_PATH=/usr/mpi/intel/mvapich2-1.7-qlc/lib:$LD_LIBRARY_PATH
@@ -28,21 +37,22 @@ export LD_LIBRARY_PATH=/pub/home_local/wrf/netcdf/lib:$LD_LIBRARY_PATH
 # for Jasper, PNG, and Zlib
 export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 
+
 # RAM-disk settings: infer from queue
 if [[ ${RUNPYWPS} == 1 ]] && [[ ${RUNREAL} == 1 ]]
   then
     export RAMIN=${RAMIN:-1}
     export RAMOUT=${RAMOUT:-0}
+    echo
+    echo "Running as local shell script; RAMIN=${RAMIN} and RAMOUT=${RAMOUT}"
+    echo
   else
     export RAMIN=${RAMIN:-0}
     export RAMOUT=${RAMOUT:-0}
 fi # if WPS
-echo
-echo "Running as local shell script; RAMIN=${RAMIN} and RAMOUT=${RAMOUT}"
-echo
 
 # RAM disk folder (cleared and recreated if needed)
-export RAMDISK= "/dev/shm/${USER}/"
+export RAMDISK="/dev/shm/${USER}/"
 # check if the RAM=disk is actually there
 if [[ ${RAMIN}==1 ]] || [[ ${RAMOUT}==1 ]]; then
     # create RAM-disk directory
@@ -63,7 +73,7 @@ ulimit -s unlimited
 export NOCLOBBER='-n'
 
 # set up hybrid envionment: OpenMP and OpenMPI
-export NODES=${NODES:-1} # there is only on node...
+export NODES=${WRFNODES:-10} # number of actual nodes
 export TASKS=${TASKS:-32} # number of MPI task per node (Hpyerthreading!)
 export THREADS=${THREADS:-1} # number of OpenMP threads
 #export OMP_NUM_THREADS=$THREADS
@@ -72,15 +82,17 @@ export THREADS=${THREADS:-1} # number of OpenMP threads
 #export MPIHOSTS='/pub/home_local/wrf/Runs/Columbia_brian/ibhosts'
 
 #export HYBRIDRUN=${HYBRIDRUN:-"/usr/mpi/gcc/openmpi-1.4.3-qlc/bin/mpirun -np $((TASKS*NODES)) -machinefile ${IBHOSTS} "} 
-export HYBRIDRUN=${HYBRIDRUN:-"/usr/mpi/gcc/mvapich2-1.7-qlc/bin/mpirun -np $((TASKS*NODES)) -machinefile ${IBHOSTS} "} # -machinefile ${MPIHOSTS}"} # OpenMPI, not Intel
-#export HYBRIDRUN=${HYBRIDRUN:-"/usr/mpi/gcc/mvapich2-1.7-qlc/bin/mpirun -n $((TASKS*NODES)) -ppn ${TASKS} "} #-machinefile ${IBHOSTS} "} # -machinefile ${MPIHOSTS}"} # OpenMPI, not Intel
+#export HYBRIDRUN=${HYBRIDRUN:-"/usr/mpi/gcc/mvapich2-1.7-qlc/bin/mpirun -np $((TASKS*NODES)) -machinefile ${IBHOSTS} "} # -machinefile ${MPIHOSTS}"} # OpenMPI, not Intel
+export HYBRIDRUN=${HYBRIDRUN:-"/usr/mpi/gcc/mvapich2-1.7-qlc/bin/mpirun -n $((TASKS*NODES)) -ppn ${TASKS} "} #-machinefile ${IBHOSTS} "} # -machinefile ${MPIHOSTS}"} # OpenMPI, not Intel
 
 # geogrid command (executed during machine-independent setup)
 export RUNGEO=${RUNGEO:-"mpirun -n 4 ${BINDIR}/geogrid.exe"}
 
 # WPS/preprocessing submission command (for next step)
 # export SUBMITWPS=${SUBMITWPS:-'ssh localhost "cd \"${INIDIR}\"; export NEXTSTEP=${NEXTSTEP}; ./${WPSSCRIPT}"'} # evaluated by launchPreP; use for tests on devel node
-export SUBMITWPS=${SUBMITWPS:-'ssh rocks-ib.ib "cd \"${INIDIR}\"; export NEXTSTEP=${NEXTSTEP}; ./${WPSSCRIPT} >& ${JOB_NAME%_WRF}_WPS.${JOB_ID}.log" &'} # evaluated by launchPreP; use for production runs on compute nodes
+export JOB_NAME=${JOB_NAME:-'cycling'} # defaults, if these variables are not set
+export JOB_ID=${JOB_ID:-0} # this is necessary for the first WPS job, launched by startCycle
+export SUBMITWPS=${SUBMITWPS:-'ssh rocks-ib.ib "cd \"${INIDIR}\"; export NEXTSTEP=${NEXTSTEP}; nohup ./${WPSSCRIPT} >& ${JOB_NAME%_WRF}_WPS.${JOB_ID}.log &"'} # evaluated by launchPreP; use for production runs on compute nodes
 #export SUBMITWPS=${SUBMITWPS:-'cd \"${INIDIR}\"; export NEXTSTEP=${NEXTSTEP}; ./${WPSSCRIPT} >& ${JOB_NAME%_WRF}_WPS.${JOB_ID}.log'} # evaluated by launchPreP; use for production runs on compute nodes
 # N.B.: use '&' to spin off, but only on compute nodes, otherwise the system overloads
 

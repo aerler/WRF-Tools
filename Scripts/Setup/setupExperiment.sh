@@ -202,6 +202,9 @@ TMP=$( eval $( grep 'QSYS=' "${WRFTOOLS}/Scripts/${WPSSYS}/setup_${WPSSYS}.sh" )
 WPSQ=${WPSQ:-$( echo "${TMP}" | tr '[:upper:]' '[:lower:]' )} # "${QSYS,,}" is not POSIX compliant
 TMP=$( eval $( grep 'QSYS=' "${WRFTOOLS}/Scripts/${WRFSYS}/setup_${WRFSYS}.sh" ); echo "${QSYS}" )
 WRFQ=${WRFQ:-$( echo "${TMP}" | tr '[:upper:]' '[:lower:]' )}
+# fallback queue: shell script
+if [ ! -f "${WRFTOOLS}/Scripts/${WPSSYS}/run_cycling_WPS.${WPSQ}" ]; then WPSQ='sh'; fi
+if [ ! -f "${WRFTOOLS}/Scripts/${WRFSYS}/run_cycling_WRF.${WRFQ}" ]; then WRFQ='sh'; fi
 # N.B.: the queue names are also used as file name extension for the run scripts
 # then figure out default wallclock times
 TMP=$( eval $( grep 'WPSWCT=' "${WRFTOOLS}/Scripts/${WPSSYS}/run_cycling_WPS.${WPSQ}" ); echo "$WPSWCT" )

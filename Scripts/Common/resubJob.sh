@@ -10,8 +10,8 @@
 if [[ -n "${NEXTSTEP}" ]]
   then
 
-    # read date string for restart file
-    RSTDATE=$(sed -n "/${NEXTSTEP}/ s/${NEXTSTEP}[[:space:]]\+.\(.*\).[[:space:]].*$/\1/p" stepfile)
+   # read date string for restart file
+    RSTDATE=$(sed -n "/${NEXTSTEP}/ s/${NEXTSTEP}[[:space:]]\+'\([-_\:0-9]\{19\}\)'[[:space:]]\+'[-_\:0-9]\{19\}'$/\1/p" stepfile)
     # N.B.: '[[:space:]]' also matches tabs; '\ ' only matches one space; '\+' means one or more
     # some code to catch sed errors on TCS
     if [[ -z "${RSTDATE}" ]]
