@@ -4,7 +4,7 @@
 
 # environment variables: MODEL_ROOT, CCA
 # run using loaded modules
-
+set -e # abort, if anything goes wrong
 # experiment settings
 RUN=$1 # name of experiment
 SPRD=$2 # start year of the analysis period

@@ -1,4 +1,4 @@
-#!/bin/csh -f
+#!/bin/csh -ef
 # file: diag121205.csh
 # Updated: 12/05/2012
 

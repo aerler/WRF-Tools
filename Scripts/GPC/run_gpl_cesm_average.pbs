@@ -32,8 +32,9 @@ shopt -s extglob
 # default settings
 JOBNAME=${PBS_JOBNAME:-'test'}
 WORKDIR=${PBS_O_WORKDIR:-"${PWD}"}
-CMDFILE="${WORKDIR}/cmdfile.${JOBNAME}"
-rm -f "${CMDFILE}" # clean...
+CMDFILE=${CMDFILE:-"${WORKDIR}/cmdfile.${JOBNAME}"}
+LOGFILE=${LOGFILE:-"${WORKDIR}/cmdfile.${JOBNAME}"}
+rm -f "${CMDFILE}" "${LOGFILE}" # clean...
 THREADS=${THREADS:-8} # GNU Parallel threads
 
 #SRCR='/reserved1/p/peltier/marcdo/FromHpss' # Marc's folder on reserved (default)
@@ -120,7 +121,7 @@ for RUN in $RUNS
         else AMWGTAR="$RUNDIR/amwg/$RUN-$REF.tar"; fi
         if [ ! -f "$AMWGTAR" ] || [[ "$OVERWRITE" == 'OVERWRITE' ]]; then
 		      echo "   Running AMWG: $AMWGTAR"
-		      echo "cd $RUNDIR; ./cesm_amwg.csh $RUN $SPRD $NPRD $REF $RPRD 1> amwg.log 2> amwg.err" >> "${CMDFILE}.amwg"
+		      echo "cd $RUNDIR; csh -e cesm_amwg.csh $RUN $SPRD $NPRD $REF $RPRD 1> amwg.log 2> amwg.err" >> "${CMDFILE}.amwg"
 		    else
           echo "   Skipping AMWG: $AMWGTAR"
         fi # if actually running        	    
@@ -190,7 +191,7 @@ for RUN in $RUNS
         if [ ! -f "$RUNDIR/cvdp/cvdp.tar" ] || [[ "$OVERWRITE" == 'OVERWRITE' ]]; then
           echo "   Running CVDP"
           export TEST # TEST=True only generates namelists
-          echo "cd $RUNDIR; ./run_cvdp.sh $RUN $SPRD $EPRD 1> cvdp.log 2> cvdp.err" >> "${CMDFILE}.cvdp" 
+          echo "cd $RUNDIR; bash -e run_cvdp.sh $RUN $SPRD $EPRD 1> cvdp.log 2> cvdp.err" >> "${CMDFILE}.cvdp" 
         else
           echo "   Skipping CVDP"
         fi # if actually running
@@ -205,7 +206,7 @@ cat "${CMDFILE}.amwg" "${CMDFILE}.concat" "${CMDFILE}.average" "${CMDFILE}.cvdp"
 rm "${CMDFILE}.amwg" "${CMDFILE}.concat" "${CMDFILE}.average" "${CMDFILE}.cvdp"
 
 ## execute GNU Parallel commands
-parallel -j $THREADS < "${CMDFILE}"
+parallel -j $THREADS --joblog "${LOGFILE}" < "${CMDFILE}"
 ERR=$? # capture exit code
 
 # clean up
@@ -213,10 +214,12 @@ echo
 if [[ 0 == ${ERR} ]]
   then
     echo '   ***   All Jobs Completed Successfully!!!   ***   '
-    rm "${CMDFILE}"
+    rm "${CMDFILE}" "${LOGFILE}"
   else
     echo "  >>>   ERRORS DETECTED - EXIT CODE ${ERR}   <<<   " 
-    echo "     (inspect command file ${CMDFILE})"
+    echo "Inspect command and log files:"
+    echo "   ${CMDFILE}"
+    echo "   ${LOGFILE}"
 fi # if $ERR
 echo
 
