@@ -73,7 +73,7 @@ ulimit -s unlimited
 export NOCLOBBER='-n'
 
 # set up hybrid envionment: OpenMP and OpenMPI
-export NODES=${WRFNODES:-10} # number of actual nodes
+export NODES=${NODES:-8} # number of actual nodes
 export TASKS=${TASKS:-32} # number of MPI task per node (Hpyerthreading!)
 export THREADS=${THREADS:-1} # number of OpenMP threads
 #export OMP_NUM_THREADS=$THREADS

@@ -4,8 +4,8 @@
 ## queue/SGE settings
 #$ -S /bin/bash
 ## resource requirements
-##$ -l h_rt=10:00:00
-#$ -pe mpich 32
+##$ -l h_rt=24:00:00
+#$ -pe mpich 256
 ## join stdout & stderr
 #$ -N test_WRF
 #$ -j y
@@ -22,7 +22,7 @@
 # N.B.: sourcing .bashrc is not necessary because the environment should be set in the setup script (setupRocks.sh)
 
 ## job settings
-export WRFNODES=10 # number of nodes used for WRF (set in setup scripts)
+export WRFNODES=8 # number of nodes used for WRF (set in setup scripts)
 # get PBS names (needed for folder names)
 export JOBNAME="${JOB_NAME}" # not the $RUNNAME
 export INIDIR="${SGE_O_WORKDIR}" # experiment root (launch directory)

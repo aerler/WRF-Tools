@@ -3,7 +3,7 @@
 # created 24/05/2013 by Andre R. Erler, GPL v3
 
 ## run configuration (otherwise set in queue settings)
-#export NODES=1 # there can be only one...
+export WPSNODES=1 # the devel node
 export TASKS=4 # number of MPI task per node (Hpyerthreading?)
 # N.B.: TASKS could be more, but since they run on the devel node, 
 #       we don't want to overload the system
