@@ -33,7 +33,7 @@ shopt -s extglob
 JOBNAME=${PBS_JOBNAME:-'test'}
 WORKDIR=${PBS_O_WORKDIR:-"${PWD}"}
 CMDFILE=${CMDFILE:-"${WORKDIR}/cmdfile.${JOBNAME}"}
-LOGFILE=${LOGFILE:-"${WORKDIR}/cmdfile.${JOBNAME}"}
+LOGFILE=${LOGFILE:-"${WORKDIR}/logfile.${JOBNAME}"}
 rm -f "${CMDFILE}" "${LOGFILE}" # clean...
 THREADS=${THREADS:-8} # GNU Parallel threads
 
@@ -50,7 +50,7 @@ RUNS=${RUNS:-'@(h[abc]|t)b20trcn1x1/ h[abct]brcp85cn1x1/ h[abct]brcp85cn1x1d/ se
 PERIODS=${PERIODS:-'5 10 15'} # averaging periods
 # cesm_average settings
 CVDP=${CVDP:-'CVDP'} # Climate Variability Diagnostics Package
-AMWG=${AMWG:-'AMWG'} # Climatology Diagnostics Package
+DIAG=${DIAG:-'DIAG'} # Climatology Diagnostics Package
 CONCAT=${CONCAT:-'CONCAT'} # concatenate monthly files
 AVERAGE=${AVERAGE:-'AVERAGE'} # compute climatologies
 OVERWRITE=${OVERWRITE:-'FALSE'} # recompute or not
@@ -63,7 +63,7 @@ echo 'Processing CESM experiments:'
 echo ''
 ls -d $RUNS
 echo ''
-echo "Computing AMWG: ${AMWG}"
+echo "Computing AMWG Diagnostics: ${DIAG}"
 echo "Concatenate Output: ${CONCAT}"
 if [[ "${CONCAT}" == 'CONCAT' ]] || [[ "${AVERAGE}" == 'AVERAGE' ]]; then echo "File Types: ${FILETYPES}"; fi
 echo "Average Output: ${AVERAGE}"
@@ -76,7 +76,7 @@ echo
 ## generate command file for GNU Parallel
 # root directory
 cd "${WORKDIR}"
-touch "${CMDFILE}.amwg" "${CMDFILE}.concat" "${CMDFILE}.average" "${CMDFILE}.cvdp" 
+touch "${CMDFILE}.diag" "${CMDFILE}.concat" "${CMDFILE}.average" "${CMDFILE}.cvdp" 
 # loop over runs
 for RUN in $RUNS
   do
@@ -92,7 +92,8 @@ for RUN in $RUNS
     # determine period and other meta data from name
     if [[ "$RUN" == *20tr* ]]; then SPRD='1979'; EPRD='1993'; REF='OBS'
     elif [[ "$RUN" == *rcp* ]]; then 
-      REF="${RUN%rcp*}20tr${RUN#*rcp??}" # guess name of historical simulation
+      if [[ "$RUN" == htbrcp* ]]; then REF="tb20tr${RUN#*rcp??}" # special case
+      else REF="${RUN%rcp*}20tr${RUN#*rcp??}"; fi # guess name of historical simulation
       if [[ "$RUN" == *d ]]; then SPRD='2085'; EPRD='2099'; REF=${REF%d}
       else SPRD='2045'; EPRD='2059'; fi
     elif [[ "$RUN" == seaice-5r-hfd ]]; then SPRD='2085'; EPRD='2099'; REF='tb20trcn1x1'
@@ -100,11 +101,13 @@ for RUN in $RUNS
     elif [[ "$RUN" == seaice-*-hf ]]; then SPRD='2045'; EPRD='2059'; REF='tb20trcn1x1'
     else echo "ERROR: No settings found for experiment '$RUN' - aborting!"; exit 1     
     fi # $RUN settings
+    NPRD=$(( 1 + $EPRD - $SPRD )) # length of period; end year is inclusive
+    RPRD='1979' # begin of reference period
+    # save meta info in script for later reference
+    echo "RUN='${RUN}'; SPRD='${SPRD}'; EPRD='${EPRD}'; REF='${REF}'; RPRD='${RPRD}'" > exp_info.sh     
     # N.B.: the experiment settings could be made more portable by adding a meta data/settings file to each 
     #       experiment, where the above parameters are defined, and sourcing it at this point (instead of
     #       guessing the values based on arbitrary filename conventions)
-    NPRD=$(( 1 + $EPRD - $SPRD ))
-    RPRD='1979' # begin of reference period
     # calculate periods
     PRDS='' # clear variable
     for PRD in $PERIODS; do
@@ -113,19 +116,20 @@ for RUN in $RUNS
 
 		
     ## Climatology Diagnostics Package (AMWG)
-		if [[ "${AMWG}" == 'AMWG' ]]
+		if [[ "${DIAG}" == 'DIAG' ]]
 		  then
-		    mkdir -p "$RUNDIR/amwg/" # make sure destination folder exists
-        ln -sf "${MODEL_ROOT}/WRF Tools/Scripts/GPC/cesm_amwg.csh" # link AMWG script (CSH)
-        if [[ "$REF" == 'OBS' ]]; then AMWGTAR="$RUNDIR/amwg/$RUN-obs.tar"
-        else AMWGTAR="$RUNDIR/amwg/$RUN-$REF.tar"; fi
-        if [ ! -f "$AMWGTAR" ] || [[ "$OVERWRITE" == 'OVERWRITE' ]]; then
-		      echo "   Running AMWG: $AMWGTAR"
-		      echo "cd $RUNDIR; csh -e cesm_amwg.csh $RUN $SPRD $NPRD $REF $RPRD 1> amwg.log 2> amwg.err" >> "${CMDFILE}.amwg"
+		    mkdir -p "$RUNDIR/diag/" # make sure destination folder exists
+        ln -sf "${MODEL_ROOT}/WRF Tools/Scripts/GPC/run_amwg_diag.csh" # link AMWG script (CSH)
+        if [[ "$REF" == 'OBS' ]]; then DIAGTAR="$RUNDIR/diag/$RUN-obs.tar"
+        else DIAGTAR="$RUNDIR/diag/$RUN-$REF.tar"; fi
+        if [ ! -f "$DIAGTAR" ] || [[ "$OVERWRITE" == 'OVERWRITE' ]]; then
+		      echo "   Running AMWG Diagnostics: $DIAGTAR"
+          rm -rf "$RUNDIR/diag/" 
+		      echo "cd $RUNDIR; csh -e run_amwg_diag.csh $RUN $SPRD $NPRD $REF $RPRD &> diag.log" >> "${CMDFILE}.diag"
 		    else
-          echo "   Skipping AMWG: $AMWGTAR"
+          echo "   Skipping AMWG Diagnostics: $DIAGTAR"
         fi # if actually running        	    
-		fi # $AMWG 
+		fi # $DIAG 
 		   
 		   
     # loop iver file types
@@ -190,6 +194,7 @@ for RUN in $RUNS
         #else CVDPOUT=0; fi # always run CVDP, if no logs are present
         if [ ! -f "$RUNDIR/cvdp/cvdp.tar" ] || [[ "$OVERWRITE" == 'OVERWRITE' ]]; then
           echo "   Running CVDP"
+          rm -rf "$RUNDIR/cvdp/" 
           export TEST # TEST=True only generates namelists
           echo "cd $RUNDIR; bash -e run_cvdp.sh $RUN $SPRD $EPRD 1> cvdp.log 2> cvdp.err" >> "${CMDFILE}.cvdp" 
         else
@@ -202,8 +207,8 @@ done # for $RUNS
 echo 
 
 # assemble command file (so that not all processes are accessing the same files at once)
-cat "${CMDFILE}.amwg" "${CMDFILE}.concat" "${CMDFILE}.average" "${CMDFILE}.cvdp" > "${CMDFILE}"
-rm "${CMDFILE}.amwg" "${CMDFILE}.concat" "${CMDFILE}.average" "${CMDFILE}.cvdp"
+cat "${CMDFILE}.diag" "${CMDFILE}.concat" "${CMDFILE}.average" "${CMDFILE}.cvdp" > "${CMDFILE}"
+rm "${CMDFILE}.diag" "${CMDFILE}.concat" "${CMDFILE}.average" "${CMDFILE}.cvdp"
 
 ## execute GNU Parallel commands
 parallel -j $THREADS --joblog "${LOGFILE}" < "${CMDFILE}"
