@@ -90,21 +90,23 @@ for RUN in $RUNS
     cd "${RUNDIR}"
 
     # determine period and other meta data from name
-    #if [[ "$RUN" == *20tr* ]]; then SPRD='1979'; EPRD='1993'; REF='OBS'
-    #elif [[ "$RUN" == *rcp* ]]; then 
-    #  if [[ "$RUN" == htbrcp* ]]; then REF="tb20tr${RUN#*rcp??}" # special case
-    #  else REF="${RUN%rcp*}20tr${RUN#*rcp??}"; fi # guess name of historical simulation
-    #  if [[ "$RUN" == *d ]]; then SPRD='2085'; EPRD='2099'; REF=${REF%d}
-    #  else SPRD='2045'; EPRD='2059'; fi
-    #elif [[ "$RUN" == seaice-5r-hfd ]]; then SPRD='2085'; EPRD='2099'; REF='tb20trcn1x1'
-    #elif [[ "$RUN" == seaice-5r-hf ]]; then SPRD='2045'; EPRD='2059'; REF='tb20trcn1x1'
-    #elif [[ "$RUN" == seaice-*-hf ]]; then SPRD='2045'; EPRD='2059'; REF='tb20trcn1x1'
-    #else echo "ERROR: No settings found for experiment '$RUN' - aborting!"; exit 1     
-    #fi # $RUN settings
-    #RPRD='1979' # begin of reference period
-    ## save meta info in script for later reference
-    #echo "RUN='${RUN}'; SPRD='${SPRD}'; EPRD='${EPRD}'; REF='${REF}'; RPRD='${RPRD}'" > exp_info.sh     
-    source exp_info.sh # defines RUN, SPRD, EPRD, REF, and RPRD for each run
+    if [[ "$RUN" == *20tr* ]]; then SPRD='1979'; EPRD='1993'; HREF='OBS'; 
+    elif [[ "$RUN" == *rcp* ]]; then 
+      if [[ "$RUN" == htbrcp* ]]; then HREF="tb20tr${RUN#*rcp??}" # special case
+    else HREF="${RUN%rcp*}20tr${RUN#*rcp??}"; fi # guess name of historical simulation
+      if [[ "$RUN" == *d ]]; then SPRD='2085'; EPRD='2099'; HREF=${REF%d}; 
+      else SPRD='2045'; EPRD='2059'; fi
+    elif [[ "$RUN" == seaice-5r-hfd ]]; then SPRD='2085'; EPRD='2099'; HREF='tb20trcn1x1'
+    elif [[ "$RUN" == seaice-5r-hf ]]; then SPRD='2045'; EPRD='2059'; HREF='tb20trcn1x1'
+    elif [[ "$RUN" == seaice-*-hf ]]; then SPRD='2045'; EPRD='2059'; HREF='tb20trcn1x1'
+    else echo "ERROR: No settings found for experiment '$RUN' - aborting!"; exit 1     
+    fi # $RUN settings
+    case $SPRD in # ensemble control
+        1979) CREF='tb20trcn1x1';; 2045) CREF='htbrcp85cn1x1';; 2085) CREF='htbrcp85cn1x1d';; esac
+    HPRD='1979'; CPRD=$SPRD # begin of reference periods: hsitorical and current/control
+    # save meta info in script for later reference
+    echo "RUN='${RUN}'; SPRD='${SPRD}'; EPRD='${EPRD}'; HREF='${HREF}'; HPRD='${RPRD}'; CREF='${CREF}'; CPRD='${CPRD}'" > exp_info.sh     
+    #source exp_info.sh # defines RUN, SPRD, EPRD, HREF, HPRD, CREF, and CPRD for each run
     # N.B.: To process any experiment, simply add a meta data/settings file named 'exp_info.sh' to to the
     #       experiment's root folder, where the above parameters are defined (as shell environment variables); 
     #       the script is then sourced at this point, and parameters are set.
@@ -121,15 +123,28 @@ for RUN in $RUNS
 		  then
 		    mkdir -p "$RUNDIR/diag/" # make sure destination folder exists
         ln -sf "${MODEL_ROOT}/WRF Tools/Scripts/GPC/run_amwg_diag.csh" # link AMWG script (CSH)
-        if [[ "$REF" == 'OBS' ]]; then DIAGTAR="$RUNDIR/diag/$RUN-obs.tar"
-        else DIAGTAR="$RUNDIR/diag/$RUN-$REF.tar"; fi
-        if [ ! -f "$DIAGTAR" ] || [[ "$OVERWRITE" == 'OVERWRITE' ]]; then
-		      echo "   Running AMWG Diagnostics: $DIAGTAR"
-          rm -rf "$RUNDIR/diag/" 
-		      echo "cd $RUNDIR; csh -e run_amwg_diag.csh $RUN $SPRD $NPRD $REF $RPRD &> diag.log" >> "${CMDFILE}.diag"
-		    else
-          echo "   Skipping AMWG Diagnostics: $DIAGTAR"
-        fi # if actually running        	    
+        # current/control reference
+        if [[ -n "$HREF" ]]; then 
+	        if [[ "$HREF" == 'OBS' ]]; then DIAGTAR="$RUNDIR/diag/$RUN-obs.tar"
+	        else DIAGTAR="$RUNDIR/diag/$RUN-$HREF.tar"; fi
+	        if [ ! -f "$DIAGTAR" ] || [[ "$OVERWRITE" == 'OVERWRITE' ]]; then
+			      echo "   Running AMWG Diagnostics: $DIAGTAR"
+	          echo "cd $RUNDIR; csh -e run_amwg_diag.csh $RUN $SPRD $NPRD $HREF $HPRD &> diag.log" >> "${CMDFILE}.diag"
+			    else
+	          echo "   Skipping AMWG Diagnostics: $DIAGTAR"
+	        fi # if actually running
+        fi # $HREF
+        # current/control reference
+        if [[ -n "$CREF" ]]; then 
+          if [[ "$CREF" == 'OBS' ]]; then DIAGTAR="$RUNDIR/diag/$RUN-obs.tar"
+          else DIAGTAR="$RUNDIR/diag/$RUN-$CREF.tar"; fi
+          if [ ! -f "$DIAGTAR" ] || [[ "$OVERWRITE" == 'OVERWRITE' ]]; then
+            echo "   Running AMWG Diagnostics: $DIAGTAR"
+            echo "cd $RUNDIR; csh -e run_amwg_diag.csh $RUN $SPRD $NPRD $CREF $CPRD &> diag.log" >> "${CMDFILE}.diag"
+          else
+            echo "   Skipping AMWG Diagnostics: $DIAGTAR"
+          fi # if actually running
+        fi # $CREF
 		fi # $DIAG 
 		   
 		   

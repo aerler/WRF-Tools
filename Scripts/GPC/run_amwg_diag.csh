@@ -114,6 +114,16 @@ set SPRD = $2 # start of analysis period
 set NPRD = $3 # length of analysis period
 set  REF = $4 # reference run (or 'OBS')
 set RPRD = $5 # begin of reference period
+# create RAM-disk
+set RAMDISK = /dev/shm/$USER/amwg/$RUN-$REF/
+set RAMRUN = $RAMDISK/$RUN 
+set RAMREF = $RAMDISK/$REF
+mkdir -p $RAMDISK $RAMRUN $RAMREF
+# source directory
+set RUNDIR = $CCA/$RUN
+set REFDIR = $CCA/$REF
+# destination directory
+set DIAGDIR = $RUNDIR/diag/
 
 # *****************
 # *** Test case ***
@@ -129,11 +139,9 @@ set RPRD = $5 # begin of reference period
 
 set test_casename  = $RUN # first argument is the case
 
-set RUNDIR = $CCA/$RUN
-
 set test_path_history =  ${RUNDIR}/atm/hist/
-set test_path_climo   =  ${RUNDIR}/diag/
-set test_path_diag    =  ${RUNDIR}/diag/
+set test_path_climo   =  $RAMRUN/diag/
+set test_path_diag    =  $RAMRUN/diag/
 set test_path_HPSS    =  ${RUNDIR}/atm/hist/
 
 #******************************************************************
@@ -165,12 +173,10 @@ endif
 # Not set for OBS
 if ( $CNTL == USER ) then
   set cntl_casename  = $REF
-  
-  set RUNDIR = $CCA/$REF
-  
-  set cntl_path_history =  ${RUNDIR}/atm/hist/
-  set cntl_path_climo   =  ${RUNDIR}/diag/
-  set cntl_path_HPSS    =  ${RUNDIR}/atm/hist/
+    
+  set cntl_path_history =  ${REFDIR}/atm/hist/
+  set cntl_path_climo   =  $RAMREF/diag/
+  set cntl_path_HPSS    =  ${REFDIR}/atm/hist/
 endif
 
 #******************************************************************
@@ -2787,8 +2793,6 @@ if ($web_pages == 0) then
   cd ${test_path_diag}
   tar -cf $tarfile  $tardir/
   \rm -fr $WEBDIR #/*
-  #rmdir $WEBDIR
-  cd $WKDIR
 endif
 # send email message
 if ($email == 0) then
@@ -2819,6 +2823,12 @@ endif
 echo ' '
 echo NORMAL EXIT FROM SCRIPT
 date
+echo "***   Moving tarball and netcdf-files to disk: $DIAGDIR   ***"
+cd ${test_path_diag}
+mv $tarfile $DIAGDIR
+mv ${test_casename}*.nc $DIAGDIR
+rm -rf $RAMDISK  
+ls $DIAGDIR
 #***************************************************************
 #***************************************************************
 # Known Bugs
