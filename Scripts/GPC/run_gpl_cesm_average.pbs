@@ -27,7 +27,7 @@ module load Xlibraries/X11-64 ImageMagick/6.6.7
 module list
 echo
 
-shopt -s extglob
+#shopt -s extglob
 
 # default settings
 JOBNAME=${PBS_JOBNAME:-'test'}
@@ -35,18 +35,18 @@ WORKDIR=${PBS_O_WORKDIR:-"${PWD}"}
 CMDFILE=${CMDFILE:-"${WORKDIR}/cmdfile.${JOBNAME}"}
 LOGFILE=${LOGFILE:-"${WORKDIR}/logfile.${JOBNAME}"}
 rm -f "${CMDFILE}" "${LOGFILE}" # clean...
-THREADS=${THREADS:-8} # GNU Parallel threads
+THREADS=${THREADS:-4} # GNU Parallel threads
+# N.B.: some operations require significant amounts of memory, so that 8 threads is too much
 
 #SRCR='/reserved1/p/peltier/marcdo/FromHpss' # Marc's folder on reserved (default)
 #SRCR='/scratch/p/peltier/marcdo/archive/' # Marc's folder on scratch
-CCA=${CAA:-"/reserved1/p/peltier/aerler//CESM/archive/"} # my CESM archive folder as source
-export CCA # used in several scripts
+export CCA=${CAA:-"/reserved1/p/peltier/aerler//CESM/archive/"} # my CESM archive folder as source; used in several scripts
 
-# for tests
+# just for tests
 #RUNS='seaice-3r-hf/'
 #PERIODS='5' # averaging periods
 # historical runs and projections
-RUNS=${RUNS:-'@(h[abc]|t)b20trcn1x1/ h[abct]brcp85cn1x1/ h[abct]brcp85cn1x1d/ seaice-*-hf*/'}
+RUNS=${RUNS:-'h[abc]b20trcn1x1/ tb20trcn1x1/ h[abct]brcp85cn1x1/ h[abct]brcp85cn1x1d/ seaice-[35]r-hf/ seaice-5r-hfd/'}
 PERIODS=${PERIODS:-'5 10 15'} # averaging periods
 # cesm_average settings
 CVDP=${CVDP:-'CVDP'} # Climate Variability Diagnostics Package
@@ -104,6 +104,7 @@ for RUN in $RUNS
     case $SPRD in # ensemble control
         1979) CREF='tb20trcn1x1';; 2045) CREF='htbrcp85cn1x1';; 2085) CREF='htbrcp85cn1x1d';; esac
     HPRD='1979'; CPRD=$SPRD # begin of reference periods: hsitorical and current/control
+    if [[ "$RUN" == "$CREF" ]]; then CREF=''; CPRD=''; fi # special case: can't compare to itself
     # save meta info in script for later reference
     echo "RUN='${RUN}'; SPRD='${SPRD}'; EPRD='${EPRD}'; HREF='${HREF}'; HPRD='${RPRD}'; CREF='${CREF}'; CPRD='${CPRD}'" > exp_info.sh     
     #source exp_info.sh # defines RUN, SPRD, EPRD, HREF, HPRD, CREF, and CPRD for each run
@@ -129,7 +130,7 @@ for RUN in $RUNS
 	        else DIAGTAR="$RUNDIR/diag/$RUN-$HREF.tar"; fi
 	        if [ ! -f "$DIAGTAR" ] || [[ "$OVERWRITE" == 'OVERWRITE' ]]; then
 			      echo "   Running AMWG Diagnostics: $DIAGTAR"
-	          echo "cd $RUNDIR; csh -e run_amwg_diag.csh $RUN $SPRD $NPRD $HREF $HPRD &> diag.log" >> "${CMDFILE}.diag"
+	          echo "cd $RUNDIR; csh -e run_amwg_diag.csh $RUN $SPRD $NPRD $HREF $HPRD &> diag_hist.log" >> "${CMDFILE}.diag"
 			    else
 	          echo "   Skipping AMWG Diagnostics: $DIAGTAR"
 	        fi # if actually running
@@ -140,7 +141,7 @@ for RUN in $RUNS
           else DIAGTAR="$RUNDIR/diag/$RUN-$CREF.tar"; fi
           if [ ! -f "$DIAGTAR" ] || [[ "$OVERWRITE" == 'OVERWRITE' ]]; then
             echo "   Running AMWG Diagnostics: $DIAGTAR"
-            echo "cd $RUNDIR; csh -e run_amwg_diag.csh $RUN $SPRD $NPRD $CREF $CPRD &> diag.log" >> "${CMDFILE}.diag"
+            echo "cd $RUNDIR; csh -e run_amwg_diag.csh $RUN $SPRD $NPRD $CREF $CPRD &> diag_ctrl.log" >> "${CMDFILE}.diag"
           else
             echo "   Skipping AMWG Diagnostics: $DIAGTAR"
           fi # if actually running
@@ -171,7 +172,7 @@ for RUN in $RUNS
 		        NCOOUT="${AVGDIR}/cesm${FILETYPE}_monthly.nc"
 				    if [[ ! -e "${NCOOUT}" ]] || [[ "$OVERWRITE" == 'OVERWRITE' ]]; then
 				      echo "   Concatenating: ${NCOOUT}"
-		          echo "cd ${RUNDIR}; ncrcat $NCOARGS --output ${NCOOUT} --overwrite ${FILELIST} 1> ${NCOOUT%.nc}.log 2> ${NCOOUT%.nc}.err" >> "${CMDFILE}.concat"
+		          echo "cd ${RUNDIR}; ncrcat $NCOARGS --output ${NCOOUT} --overwrite ${FILELIST} &> ${NCOOUT%.nc}.log" >> "${CMDFILE}.concat"
 				    else
 				      echo "   Skipping: ${NCOOUT}"
 				    fi # if already file exits
@@ -191,7 +192,7 @@ for RUN in $RUNS
 		            PYAVGOUT="${AVGDIR}/cesm${FILETYPE}_clim_${PERIOD}.nc"
 		            if [[ ! -f "$PYAVGOUT" ]] || [[ "$OVERWRITE" == 'OVERWRITE' ]]; then
 		              echo "   Averaging: ${PYAVGOUT}"
-			            echo "cd ${RUNDIR}; export PYAVG_FILETYPE=${FILETYPE}; python -u cesm_average.py ${PERIOD} 1> ${PYAVGOUT%.nc}.log 2> ${PYAVGOUT%.nc}.err" >> "${CMDFILE}.average"
+			            echo "cd ${RUNDIR}; export PYAVG_FILETYPE=${FILETYPE}; python -u cesm_average.py ${PERIOD} &> ${PYAVGOUT%.nc}.log" >> "${CMDFILE}.average"
 		            else
 		              echo "   Skipping: ${PYAVGOUT}"
 		            fi # if already file exits
@@ -212,7 +213,7 @@ for RUN in $RUNS
           echo "   Running CVDP"
           rm -rf "$RUNDIR/cvdp/" 
           export TEST # TEST=True only generates namelists
-          echo "cd $RUNDIR; bash -e run_cvdp.sh $RUN $SPRD $EPRD 1> cvdp.log 2> cvdp.err" >> "${CMDFILE}.cvdp" 
+          echo "cd $RUNDIR; bash -e run_cvdp.sh $RUN $SPRD $EPRD &> cvdp.log" >> "${CMDFILE}.cvdp" 
         else
           echo "   Skipping CVDP"
         fi # if actually running

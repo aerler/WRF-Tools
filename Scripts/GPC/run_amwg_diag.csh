@@ -124,6 +124,7 @@ set RUNDIR = $CCA/$RUN
 set REFDIR = $CCA/$REF
 # destination directory
 set DIAGDIR = $RUNDIR/diag/
+mkdir -p $DIAGDIR
 
 # *****************
 # *** Test case ***
