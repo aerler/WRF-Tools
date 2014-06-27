@@ -106,7 +106,7 @@ module load gsl/1.13-intel
 module load hdf5/187-v18-serial-intel
 module load netcdf/4.1.3_hdf5_serial-intel
 module load nco/4.3.2-intel
-module load ncl
+module load ncl/6.2.0
 
 ## assign arguments to variables
 set  RUN = $1 # run to be analyzed
@@ -2805,7 +2805,7 @@ if ($email == 0) then
 endif  
 # cleanup
 if ($weight_months == 0) then
-  \rm -f ${test_path_diag}*_unweighted.nc
+  \rm -f ${test_path_diag}/*unweighted.nc
 endif
 if ($save_ncdfs == 1) then
   echo CLEANING UP
