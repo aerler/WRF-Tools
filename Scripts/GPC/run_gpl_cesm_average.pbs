@@ -90,24 +90,25 @@ for RUN in $RUNS
     cd "${RUNDIR}"
 
     # determine period and other meta data from name
-    if [[ "$RUN" == *20tr* ]]; then SPRD='1979'; EPRD='1993'; REF='OBS'
-    elif [[ "$RUN" == *rcp* ]]; then 
-      if [[ "$RUN" == htbrcp* ]]; then REF="tb20tr${RUN#*rcp??}" # special case
-      else REF="${RUN%rcp*}20tr${RUN#*rcp??}"; fi # guess name of historical simulation
-      if [[ "$RUN" == *d ]]; then SPRD='2085'; EPRD='2099'; REF=${REF%d}
-      else SPRD='2045'; EPRD='2059'; fi
-    elif [[ "$RUN" == seaice-5r-hfd ]]; then SPRD='2085'; EPRD='2099'; REF='tb20trcn1x1'
-    elif [[ "$RUN" == seaice-5r-hf ]]; then SPRD='2045'; EPRD='2059'; REF='tb20trcn1x1'
-    elif [[ "$RUN" == seaice-*-hf ]]; then SPRD='2045'; EPRD='2059'; REF='tb20trcn1x1'
-    else echo "ERROR: No settings found for experiment '$RUN' - aborting!"; exit 1     
-    fi # $RUN settings
+    #if [[ "$RUN" == *20tr* ]]; then SPRD='1979'; EPRD='1993'; REF='OBS'
+    #elif [[ "$RUN" == *rcp* ]]; then 
+    #  if [[ "$RUN" == htbrcp* ]]; then REF="tb20tr${RUN#*rcp??}" # special case
+    #  else REF="${RUN%rcp*}20tr${RUN#*rcp??}"; fi # guess name of historical simulation
+    #  if [[ "$RUN" == *d ]]; then SPRD='2085'; EPRD='2099'; REF=${REF%d}
+    #  else SPRD='2045'; EPRD='2059'; fi
+    #elif [[ "$RUN" == seaice-5r-hfd ]]; then SPRD='2085'; EPRD='2099'; REF='tb20trcn1x1'
+    #elif [[ "$RUN" == seaice-5r-hf ]]; then SPRD='2045'; EPRD='2059'; REF='tb20trcn1x1'
+    #elif [[ "$RUN" == seaice-*-hf ]]; then SPRD='2045'; EPRD='2059'; REF='tb20trcn1x1'
+    #else echo "ERROR: No settings found for experiment '$RUN' - aborting!"; exit 1     
+    #fi # $RUN settings
+    #RPRD='1979' # begin of reference period
+    ## save meta info in script for later reference
+    #echo "RUN='${RUN}'; SPRD='${SPRD}'; EPRD='${EPRD}'; REF='${REF}'; RPRD='${RPRD}'" > exp_info.sh     
+    source exp_info.sh # defines RUN, SPRD, EPRD, REF, and RPRD for each run
+    # N.B.: To process any experiment, simply add a meta data/settings file named 'exp_info.sh' to to the
+    #       experiment's root folder, where the above parameters are defined (as shell environment variables); 
+    #       the script is then sourced at this point, and parameters are set.
     NPRD=$(( 1 + $EPRD - $SPRD )) # length of period; end year is inclusive
-    RPRD='1979' # begin of reference period
-    # save meta info in script for later reference
-    echo "RUN='${RUN}'; SPRD='${SPRD}'; EPRD='${EPRD}'; REF='${REF}'; RPRD='${RPRD}'" > exp_info.sh     
-    # N.B.: the experiment settings could be made more portable by adding a meta data/settings file to each 
-    #       experiment, where the above parameters are defined, and sourcing it at this point (instead of
-    #       guessing the values based on arbitrary filename conventions)
     # calculate periods
     PRDS='' # clear variable
     for PRD in $PERIODS; do
