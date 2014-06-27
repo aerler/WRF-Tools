@@ -1,4 +1,4 @@
-#!/bin/csh -f
+#!/bin/csh -ef
 # file: diag121205.csh
 # Updated: 12/05/2012
 
@@ -132,8 +132,8 @@ set test_casename  = $RUN # first argument is the case
 set RUNDIR = $CCA/$RUN
 
 set test_path_history =  ${RUNDIR}/atm/hist/
-set test_path_climo   =  ${RUNDIR}/amwg/
-set test_path_diag    =  ${RUNDIR}/amwg/
+set test_path_climo   =  ${RUNDIR}/diag/
+set test_path_diag    =  ${RUNDIR}/diag/
 set test_path_HPSS    =  ${RUNDIR}/atm/hist/
 
 #******************************************************************
@@ -169,7 +169,7 @@ if ( $CNTL == USER ) then
   set RUNDIR = $CCA/$REF
   
   set cntl_path_history =  ${RUNDIR}/atm/hist/
-  set cntl_path_climo   =  ${RUNDIR}/amwg/
+  set cntl_path_climo   =  ${RUNDIR}/diag/
   set cntl_path_HPSS    =  ${RUNDIR}/atm/hist/
 endif
 
@@ -186,7 +186,7 @@ endif
 # Turn on/off the computation of climatologies 
       
 set test_compute_climo = 0  # (0=ON,1=OFF) 
-set cntl_compute_climo = 1    # (0=ON,1=OFF) 
+set cntl_compute_climo = 0    # (0=ON,1=OFF) 
 
 #-----------------------------------------------------------------
 
@@ -1628,8 +1628,10 @@ if ($all_sets == 0 || $set_5 == 0) then
 	if ($significance == 0) then
 	    setenv TEST_MEANS    ${test_path_climo}/${test_casename}_${SEASON}_means.nc
 	    setenv TEST_VARIANCE ${test_path_diag}/${test_casename}_${SEASON}_variance.nc
-	    setenv CNTL_MEANS    ${cntl_path_climo}/${cntl_casename}_${SEASON}_means.nc
-	    setenv CNTL_VARIANCE ${test_path_diag}/${cntl_casename}_${SEASON}_variance.nc
+      if ($CNTL == USER) then
+	      setenv CNTL_MEANS    ${cntl_path_climo}/${cntl_casename}_${SEASON}_means.nc
+	      setenv CNTL_VARIANCE ${test_path_diag}/${cntl_casename}_${SEASON}_variance.nc
+      endif
 	    if (-e $TEST_VARIANCE) then
 		setenv VAR_MODE write
 	    else
@@ -1781,8 +1783,10 @@ foreach name ($plots)
   if ($significance == 0) then
     setenv TEST_MEANS    ${test_path_climo}/${test_casename}_${SEASON}_means.nc
     setenv TEST_VARIANCE ${test_path_diag}/${test_casename}_${SEASON}_variance.nc
-    setenv CNTL_MEANS    ${cntl_path_climo}/${cntl_casename}_${SEASON}_means.nc
-    setenv CNTL_VARIANCE ${test_path_diag}/${cntl_casename}_${SEASON}_variance.nc
+    if ($CNTL == USER) then
+      setenv CNTL_MEANS    ${cntl_path_climo}/${cntl_casename}_${SEASON}_means.nc
+      setenv CNTL_VARIANCE ${test_path_diag}/${cntl_casename}_${SEASON}_variance.nc
+    endif
     if (-e $TEST_VARIANCE) then
       setenv VAR_MODE write
     else
@@ -2205,7 +2209,7 @@ endif
 
 if ($all_sets == 0 || $set_14 == 0) then
 setenv TEST_INPUT ${test_path_climo}/${test_casename}
-if ($CNTL != OBS) then 
+if ($CNTL == USER) then 
     setenv CNTL_INPUT ${cntl_path_climo}/${cntl_casename}
 else
     setenv CNTL_INPUT $OBS_DATA
@@ -2780,9 +2784,11 @@ if ($web_pages == 0) then
   cd $WKDIR
   set tardir = $tarfile:r
   echo MAKING TAR FILE OF DIRECTORY $tardir
-  tar -cf ${test_path_diag}$tarfile $tardir
-  \rm -fr $WEBDIR/*
-  rmdir $WEBDIR
+  cd ${test_path_diag}
+  tar -cf $tarfile  $tardir/
+  \rm -fr $WEBDIR #/*
+  #rmdir $WEBDIR
+  cd $WKDIR
 endif
 # send email message
 if ($email == 0) then
@@ -2800,7 +2806,7 @@ endif
 if ($save_ncdfs == 1) then
   echo CLEANING UP
   \rm -f ${test_out}*_plotvars.nc
-  if ($CNTL != OBS) then
+  if ($CNTL == USER) then
     \rm -f ${test_path_diag}/${cntl_casename}*_plotvars.nc  
   endif
   if ($significance == 0) then
