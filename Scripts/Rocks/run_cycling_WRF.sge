@@ -17,6 +17,8 @@
 #$ -cwd
 #$ -v NEXTSTEP
 #$ -v NOWPS
+## special queue for WRF: 8 nodes
+#$ -q all.q
 
 # source "${HOME}/.bashrc"
 # N.B.: sourcing .bashrc is not necessary because the environment should be set in the setup script (setupRocks.sh)
