@@ -132,8 +132,8 @@ set test_casename  = $RUN # first argument is the case
 set RUNDIR = $CCA/$RUN
 
 set test_path_history =  ${RUNDIR}/atm/hist/
-set test_path_climo   =  ${RUNDIR}/amwg/
-set test_path_diag    =  ${RUNDIR}/amwg/
+set test_path_climo   =  ${RUNDIR}/diag/
+set test_path_diag    =  ${RUNDIR}/diag/
 set test_path_HPSS    =  ${RUNDIR}/atm/hist/
 
 #******************************************************************
@@ -169,7 +169,7 @@ if ( $CNTL == USER ) then
   set RUNDIR = $CCA/$REF
   
   set cntl_path_history =  ${RUNDIR}/atm/hist/
-  set cntl_path_climo   =  ${RUNDIR}/amwg/
+  set cntl_path_climo   =  ${RUNDIR}/diag/
   set cntl_path_HPSS    =  ${RUNDIR}/atm/hist/
 endif
 
@@ -2787,7 +2787,7 @@ if ($web_pages == 0) then
   cd ${test_path_diag}
   tar -cf $tarfile  $tardir/
   \rm -fr $WEBDIR #/*
-  rmdir $WEBDIR
+  #rmdir $WEBDIR
   cd $WKDIR
 endif
 # send email message
