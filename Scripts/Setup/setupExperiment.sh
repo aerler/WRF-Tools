@@ -41,7 +41,7 @@ function RENAME () {
       elif [[ "${WRFQ}" == "sge" ]]; then
         sed -i "/#$ -N/ s/#$ -N\ .*$/#$ -N ${NAME}_WRF/" "run_${CASETYPE}_WRF.${WRFQ}" # experiment name
         #sed -i "/#PBS -W/ s/#PBS -W\ .*$/#PBS -W depend=afterok:${NAME}_WPS/" "${FILE}" # dependency on WPS
-        sed -i "/#$ -pe/ s/#$ -pe .*$/#$ -pe mpich $((WRFNODES*16))/" "${FILE}" # number of MPI tasks
+        sed -i "/#$ -pe/ s/#$ -pe .*$/#$ -pe mpich $((WRFNODES*32))/" "${FILE}" # number of MPI tasks
         sed -i "/#$ -l/ s/#$ -l h_rt=.*$/#$ -l h_rt=${MAXWCT}/" "${FILE}" # wallclock time
       elif [[ "${WRFQ}" == "ll" ]]; then
         sed -i "/#\ *@\ *job_name/ s/#\ *@\ *job_name\ *=.*$/# @ job_name = ${NAME}_WRF/" "${FILE}" # experiment name
