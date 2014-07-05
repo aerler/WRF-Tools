@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ## queue/PBS settings
-#PBS -l nodes=1:m32g:ppn=8
+#PBS -l nodes=1:m128g:ppn=16
 # batch queue: nodes=1:m32g:ppn=8
 # largemem queue: nodes=1:m128g:ppn=16
 #PBS -l walltime=48:00:00
@@ -16,7 +16,7 @@
 ###PBS -W depend=afterok:$PBS_JOBID
 ## submit to queue (NB: this has to be the last PBS line!)
 # batch (default), debug, largemem
-#PBS -q batch
+#PBS -q largemem
 
 # load modules (we need to load the netcdf module in order to use it in Python)
 echo
@@ -93,8 +93,8 @@ for RUN in $RUNS
     if [[ "$RUN" == *20tr* ]]; then SPRD='1979'; EPRD='1993'; HREF='OBS'; 
     elif [[ "$RUN" == *rcp* ]]; then 
       if [[ "$RUN" == htbrcp* ]]; then HREF="tb20tr${RUN#*rcp??}" # special case
-    else HREF="${RUN%rcp*}20tr${RUN#*rcp??}"; fi # guess name of historical simulation
-      if [[ "$RUN" == *d ]]; then SPRD='2085'; EPRD='2099'; HREF=${REF%d}; 
+      else HREF="${RUN%rcp*}20tr${RUN#*rcp??}"; fi # guess name of historical simulation
+      if [[ "$RUN" == *d ]]; then SPRD='2085'; EPRD='2099'; HREF=${HREF%d}; 
       else SPRD='2045'; EPRD='2059'; fi
     elif [[ "$RUN" == seaice-5r-hfd ]]; then SPRD='2085'; EPRD='2099'; HREF='tb20trcn1x1'
     elif [[ "$RUN" == seaice-5r-hf ]]; then SPRD='2045'; EPRD='2059'; HREF='tb20trcn1x1'
@@ -130,7 +130,7 @@ for RUN in $RUNS
 	        else DIAGTAR="$RUNDIR/diag/$RUN-$HREF.tar"; fi
 	        if [ ! -f "$DIAGTAR" ] || [[ "$OVERWRITE" == 'OVERWRITE' ]]; then
 			      echo "   Running AMWG Diagnostics: $DIAGTAR"
-	          echo "cd $RUNDIR; csh -e run_amwg_diag.csh $RUN $SPRD $NPRD $HREF $HPRD &> diag_hist.log" >> "${CMDFILE}.diag"
+	          echo "cd $RUNDIR; csh -ef run_amwg_diag.csh $RUN $SPRD $NPRD $HREF $HPRD &> $RUNDIR/diag_hist.log" >> "${CMDFILE}.diag"
 			    else
 	          echo "   Skipping AMWG Diagnostics: $DIAGTAR"
 	        fi # if actually running
@@ -141,7 +141,7 @@ for RUN in $RUNS
           else DIAGTAR="$RUNDIR/diag/$RUN-$CREF.tar"; fi
           if [ ! -f "$DIAGTAR" ] || [[ "$OVERWRITE" == 'OVERWRITE' ]]; then
             echo "   Running AMWG Diagnostics: $DIAGTAR"
-            echo "cd $RUNDIR; csh -e run_amwg_diag.csh $RUN $SPRD $NPRD $CREF $CPRD &> diag_ctrl.log" >> "${CMDFILE}.diag"
+            echo "cd $RUNDIR; csh -ef run_amwg_diag.csh $RUN $SPRD $NPRD $CREF $CPRD &> $RUNDIR/diag_ctrl.log" >> "${CMDFILE}.diag"
           else
             echo "   Skipping AMWG Diagnostics: $DIAGTAR"
           fi # if actually running
@@ -213,7 +213,7 @@ for RUN in $RUNS
           echo "   Running CVDP"
           rm -rf "$RUNDIR/cvdp/" 
           export TEST # TEST=True only generates namelists
-          echo "cd $RUNDIR; bash -e run_cvdp.sh $RUN $SPRD $EPRD &> cvdp.log" >> "${CMDFILE}.cvdp" 
+          echo "cd $RUNDIR; bash -e run_cvdp.sh $RUN $SPRD $EPRD &> $RUNDIR/cvdp.log" >> "${CMDFILE}.cvdp" 
         else
           echo "   Skipping CVDP"
         fi # if actually running

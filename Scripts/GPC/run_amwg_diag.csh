@@ -1,4 +1,4 @@
-#!/bin/csh -ef
+#!/bin/csh -ef 
 # file: diag121205.csh
 # Updated: 12/05/2012
 
@@ -2824,12 +2824,23 @@ endif
 echo ' '
 echo NORMAL EXIT FROM SCRIPT
 date
-echo "***   Moving tarball and netcdf-files to disk: $DIAGDIR   ***"
+echo
+echo "   ***   Moving tarball and netcdf-files to disk   ***"
+echo "   (currently on RAM-disk: $RAMDISK )"
 cd ${test_path_diag}
 mv $tarfile $DIAGDIR
-mv ${test_casename}*.nc $DIAGDIR
-rm -rf $RAMDISK  
-ls $DIAGDIR
+echo
+mv ${test_casename}_*_climo.nc $DIAGDIR
+mv ${test_casename}_*_plotvars.nc $DIAGDIR
+echo
+ls $DIAGDIR/$tarfile
+ls $DIAGDIR/${test_casename}_*_climo.nc
+ls $DIAGDIR/${test_casename}_*_plotvars.nc
+echo
+echo Files moved successfully to: $DIAGDIR
+rm -rf $RAMDISK 
+echo
+
 #***************************************************************
 #***************************************************************
 # Known Bugs
@@ -2848,3 +2859,6 @@ ls $DIAGDIR
 #    /set5_6/set5_[MAM,SON]_MEANTAU_c.png		! Plot not created
 #    /set5_6/set5_[MAM,SON]_TCLDAREA_c.png		! Plot not created
 #***************************************************************
+
+# we are aborting on first error, so, if we got here, there was no error
+exit 0
