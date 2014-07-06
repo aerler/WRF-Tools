@@ -4,7 +4,6 @@
 # CESM directories / data sources
 REX='h[abc]b20trcn1x1 tb20trcn1x1 h[abcz]brcp85cn1x1 htbrcp85cn1x1 seaice-5r-hf h[abcz]brcp85cn1x1d htbrcp85cn1x1d seaice-5r-hfd'
 CESMDATA=${CESMDATA:-/data/CESM/} # can be supplied by caller
-CAVG="${CESMDATA}/cesmavg/"
 CCA='/reserved1/p/peltier/aerler/CESM/archive/' # archives with my own cesmavg files
 # connection settings
 if [[ "${HISPD}" == 'HISPD' ]]
@@ -51,7 +50,7 @@ for E in $( ssh ${SSH} ${HOST} "ls -d ${D}" ) # get folder listing from scinet
     if [ $? == 0 ] # check exit code 
       then
         N=${E##*/} # isolate folder name (local folder name)
-        M="${CAVG}/${N}" # absolute path
+        M="${CESMDATA}/cesmavg/${N}" # absolute path
         mkdir -p "${M}" # make sure directory is there
         echo "${N}" # feedback
         # use rsync for the transfer; verbose, archive, update (gzip is probably not necessary)
@@ -63,7 +62,7 @@ for E in $( ssh ${SSH} ${HOST} "ls -d ${D}" ) # get folder listing from scinet
 
     ## synchronize AMWG & CVDP dignostic files
 	  # loop over all relevant experiments (same list of source folders)
-		for ANA in amwg cvdp
+		for ANA in diag cvdp
 		  do 
 		    #echo $ANA
 		    E=${E%/} # necessary for subsequent step (see below)
@@ -82,7 +81,8 @@ for E in $( ssh ${SSH} ${HOST} "ls -d ${D}" ) # get folder listing from scinet
 		        ERR=$(( ${ERR} + $? )) # capture exit code, and repeat, if unsuccessful
 		        # N.B.: with connection sharing, repeating connection attempts is not really necessary
 		        # extract tarball, if file was updated
-		        if [ -e "${M}"/*.tar ] # single brackets (otherwise *.tar is not expanded?)
+            ls "${M}"/*.tar &> /dev/null # make sure tarball is there
+		        if [ $? -eq 0 ] # puttign the globex into the bracket fails if there is no tarball!
 		          then
 		            cd "${M}" # tar extracts into the current directory
 		            for TB in "${M}"/*.tar; do
