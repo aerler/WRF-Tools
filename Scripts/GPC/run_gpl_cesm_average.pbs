@@ -242,6 +242,8 @@ if [[ 0 == ${ERR} ]]
     echo "Inspect command and log files:"
     echo "   ${CMDFILE}"
     echo "   ${LOGFILE}"
+    echo
+    cat "${LOGFILE}"
 fi # if $ERR
 echo
 

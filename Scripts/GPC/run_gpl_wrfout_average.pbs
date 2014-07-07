@@ -1,4 +1,4 @@
-#/bin/bash
+#!/bin/bash
 
 ## queue/PBS settings
 #PBS -l nodes=1:ppn=8
@@ -21,17 +21,18 @@
 echo
 module purge
 module load intel/13.1.1 gcc/4.8.1 hdf5/187-v18-serial-intel netcdf/4.1.3_hdf5_serial-intel gnu-parallel/20130422  
-module load python/2.7.5 gdal/1.9.2 extras/64_6.4 ncl/6.2.0 gsl/1.13-intel udunits/2.1.11 nco/4.3.2-intel
+module load python/2.7.3 gdal/1.9.2 extras/64_6.4 ncl/6.2.0 gsl/1.13-intel udunits/2.1.11 nco/4.3.2-intel
 module list
 echo
 
 # default settings
 JOBNAME=${PBS_JOBNAME:-'test'}
 WORKDIR=${PBS_O_WORKDIR:-"${PWD}"}
-DR='/reserved1/p/peltier/aerler/Downscaling'
-DS='/scratch/p/peltier/aerler/Downscaling'
-PYAVG='wrfout_average.py' # averaging script
-
+CMDFILE=${CMDFILE:-"${WORKDIR}/cmdfile.${JOBNAME}"}
+LOGFILE=${LOGFILE:-"${WORKDIR}/logfile.${JOBNAME}"}
+DR=${DR:-'/reserved1/p/peltier/aerler/Downscaling'}
+DS=${DS:-'/scratch/p/peltier/aerler/Downscaling'}
+export PYTHON_EGG_CACHE="${WORKDIR}" # not sure why this is necessary
 
 # environment variables for the averaging script
 export PYAVG_THREADS=${PYAVG_THREADS:-1} # serial execution
@@ -47,10 +48,10 @@ export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
 # user settings
 #PERIOD='1979-1981' # extension to command and output files
 #DATASRC=${DATASRC:-"$DR/max-*/ $DR/new-*/"}
-DATASRC=${DATASRC:-"$DR/*-*/ $DS/*-*/"}
+#DATASRC=${DATASRC:-"$DR/*-*/ $DS/*-*/"}
+DATASRC=${DATASRC:-"$DR/*-*/"}
 
 # more settings
-CMDFILE="cmdfile.${JOBNAME}"
 if [[ -n "${PERIOD}" ]]
   then 
     AVGEXT="_${PERIOD}"
@@ -66,7 +67,7 @@ fi # if $PERIOD
 cd "${WORKDIR}"
 
 # generate command file
-rm -f "${CMDFILE}"
+rm -f "${CMDFILE}" "${LOGFILE}"
 echo
 echo 'Generating command file; working folders:'
 for D in ${DATASRC}
@@ -76,16 +77,20 @@ for D in ${DATASRC}
       then
         echo "$D"
         # make sure folder is set up
-        mkdir -p "${D}/wrfavg"
-        cp -P "${PYAVG}" "${D}"
+        mkdir -p "${D}/wrfavg/"
+        # remove degenerate files (i.e. less than about 1MB; will be recomputed)
+        ls ${D}/wrfavg/wrf*.nc &> /dev/null
+        if [ $? -eq 0 ]; then
+          for FILE in ${D}/wrfavg/wrf*.nc; do [ $( ls -la ${FILE} | awk '{ print $5}' ) -lt 1000000 ] && rm ${FILE}; done
+        fi # if there are any files
         # write command file entry
-        echo "cd ${D}; python ${PYAVG} ${PERIOD} &> ${PYAVG}${AVGEXT}.log; echo \"$D:\"; ls wrfavg; echo" >> "${CMDFILE}"
+        echo "cd ${D}; python scripts/wrfout_average.py ${PERIOD} &> ${D}/wrfavg/wrfout_average${AVGEXT}.log; EC=\$?; echo \"${D}:\"; ls -lh wrfavg/wrf*.nc; echo; exit \$EC" >> "${CMDFILE}"
     fi # file check
 done
 echo
 
 # execute GNU Parallel commands
-parallel -j 8 < "${CMDFILE}"
+parallel -j 8 --joblog "${LOGFILE}" < "${CMDFILE}"
 ERR=$? # capture exit code
 
 # clean up
@@ -93,10 +98,14 @@ echo
 if [[ 0 == ${ERR} ]]
   then
     echo '   ***   All Jobs Completed Successfully!!!   ***   '
-    rm "${CMDFILE}"
+    rm "${CMDFILE}" "${LOGFILE}"
   else
     echo "  >>>   ERRORS DETECTED - EXIT CODE ${ERR}   <<<   " 
-    echo "inspect command file ${PBS_O_WORKDIR}/cmdfile.tmp"
+    echo "Inspect command and log files:"
+    echo "   ${CMDFILE}"
+    echo "   ${LOGFILE}"
+    echo 
+    cat "${LOGFILE}"
 fi # if $ERR
 echo
 

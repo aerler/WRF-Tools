@@ -80,6 +80,7 @@ else: laddnew = False # i.e. recompute all
 if os.environ.has_key('PYAVG_RECALC'): 
   recalcvars = os.environ['PYAVG_RECALC'].split(';') # semi-colon separated list of variables to recompute
   if len(recalcvars) > 0 and len(recalcvars[0]) > 0: lrecalc = True # if there is a variable to recompute
+  else: lrecalc = False
   # lrecalc uses the same pathway, but they can operate independently
 else: lrecalc = False # i.e. recompute all
 # overwrite existing data 
