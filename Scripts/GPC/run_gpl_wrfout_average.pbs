@@ -113,7 +113,7 @@ for D in ${DATASRC}
 done
 echo
 # execute GNU Parallel commands
-parallel --sshloginfile "$PBS_NODEFILE" --workdir "$PWD" --env  \
+parallel --sshloginfile "$PBS_NODEFILE" --workdir "$PWD" \
 					--env PYTHON_EGG_CACHE \
 					--env PYAVG_THREADS \
 					--env PYAVG_RECALC \

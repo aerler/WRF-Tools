@@ -30,7 +30,7 @@ VERIFY=${VERIFY:-'VERIFY'} # verify tarballs; can slow down operations significa
 # N.B.: do not edit these variable; instead pass them as environment variables
 DOMAINS=${DOMAINS:-'1234'} # string with relevant domain indices
 DATASET=${DATASET:-'FULL'} # default dataset: everything
-# dataset options: FULL, DIAGS, MISC3D, DYN3D, LOGS 
+# dataset options: FULL, DIAGS, MISC3D, DYN3D, LOGS, FINAL, DEL3D, HYDRO, MISCDIAG
 # N.B.: the datasets are defined in PROCESSDATASET below
 INTERVAL=${INTERVAL:-'YEARLY'} # default is yearly; used to be monthly
 PATTERN=${PATTERN:-'_wrf.tgz'} # $TAGS inference from certain files
