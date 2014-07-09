@@ -32,9 +32,14 @@ CMDFILE=${CMDFILE:-"${WORKDIR}/cmdfile.${JOBNAME}"}
 LOGFILE=${LOGFILE:-"${WORKDIR}/logfile.${JOBNAME}"}
 DR=${DR:-'/reserved1/p/peltier/aerler/Downscaling'}
 DS=${DS:-'/scratch/p/peltier/aerler/Downscaling'}
-export PYTHON_EGG_CACHE="${WORKDIR}" # not sure why this is necessary
+NCOADD=${NCOADD:-'~/Scripts/addVariable.sh'} # NCO script to add variables (usually not in run folder)
+
+# options
+ADDVAR=${ADDVAR:-'ACSNOW SR'} # add potentially missing variables from other files
+AVERAGE=${AVERAGE:-'AVERAGE'} # run python averaging script
 
 # environment variables for the averaging script
+export PYTHON_EGG_CACHE="${WORKDIR}" # not sure why this is necessary
 export PYAVG_THREADS=${PYAVG_THREADS:-1} # serial execution
 export PYAVG_RECALC=${PYAVG_RECALC:-''} # ;-separated list of variables to recompute  
 export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'}
@@ -54,11 +59,11 @@ DATASRC=${DATASRC:-"$DR/*-*/"}
 # more settings
 if [[ -n "${PERIOD}" ]]
   then 
-    AVGEXT="_${PERIOD}"
+    AVGPRD="_${PERIOD}"
     FIRST="wrfout/wrfrst_d01_${PERIOD%%-*}-02-01_00:00:00" # use first restart file as indicator
     LAST="wrfout/wrfrst_d01_${PERIOD##*-}-12-01_00:00:00" # use last restart file as indicator
   else 
-    AVGEXT=""
+    AVGPRD=""
     FIRST=""
     LAST=""
 fi # if $PERIOD
@@ -73,24 +78,52 @@ echo 'Generating command file; working folders:'
 for D in ${DATASRC}
   do
     # check if files are available (otherwise skip!)
-    if [[ -z "$PERIOD"  ]] || [[ -e "${D}/${FIRST}" && -e "${D}/${LAST}" ]]
-      then
-        echo "$D"
+    if [[ -z "$PERIOD"  ]] || [[ -e "${D}/${FIRST}" && -e "${D}/${LAST}" ]]; then
+
+			echo "$D"
+	    COMMAND="cd ${D}" # full command is printed below
+
+	    # add potentially missing variables (this has to come first!)
+	    if [[ -n "$ADDVAR"]]; then
+				for VAR in $ADDVAR; do
+				  # write command file entry
+				  COMMAND="${COMMAND}; ${NCOADD} ${VAR} &> ${D}/wrfavg/addVariable_${VAR}.log"
+				done # for $VAR  
+	    fi # if $ADDVAR
+    
+	    # run Python averaging script
+	    if [[ "$AVERAGE" == 'AVERAGE' ]]; then
         # make sure folder is set up
         mkdir -p "${D}/wrfavg/"
         # remove degenerate files (i.e. less than about 1MB; will be recomputed)
         ls ${D}/wrfavg/wrf*.nc &> /dev/null
         if [ $? -eq 0 ]; then
-          for FILE in ${D}/wrfavg/wrf*.nc; do [ $( ls -la ${FILE} | awk '{ print $5}' ) -lt 1000000 ] && rm ${FILE}; done
+          for FILE in ${D}/wrfavg/wrf*.nc; do 
+            [ $( ls -la ${FILE} | awk '{ print $5}' ) -lt 1000000 ] && rm ${FILE} 
+          done
         fi # if there are any files
-        # write command file entry
-        echo "cd ${D}; python scripts/wrfout_average.py ${PERIOD} &> ${D}/wrfavg/wrfout_average${AVGEXT}.log; EC=\$?; echo \"${D}:\"; ls -lh wrfavg/wrf*.nc; echo; exit \$EC" >> "${CMDFILE}"
-    fi # file check
+        # append to command
+        COMMAND="${COMMAND}; python scripts/wrfout_average.py ${PERIOD} &> ${D}/wrfavg/wrfout_average${AVGPRD}.log; EC=\$?; echo \"${D}:\"; ls -lh wrfavg/wrf*.nc; echo; exit \$EC"
+	    fi # if $AVERAGE
+
+    # print full command
+    echo "$COMMAND" >> "${CMDFILE}"
+    
+    fi # file check    
 done
 echo
-
 # execute GNU Parallel commands
-parallel -j 8 --joblog "${LOGFILE}" < "${CMDFILE}"
+parallel --sshloginfile "$PBS_NODEFILE" --workdir "$PWD" --env  \
+					--env PYTHON_EGG_CACHE \
+					--env PYAVG_THREADS \
+					--env PYAVG_RECALC \
+					--env PYAVG_OVERWRITE \
+					--env PYAVG_ADDNEW \
+					--env PYAVG_RECOVER \
+					--env PYAVG_FILETYPES \
+					--env PYAVG_DOMAINS \
+					--env PYAVG_DEBUG \
+         -j 8 --joblog "${LOGFILE}" < "${CMDFILE}"
 ERR=$? # capture exit code
 
 # clean up
