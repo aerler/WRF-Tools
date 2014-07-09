@@ -84,7 +84,7 @@ for D in ${DATASRC}
 	    COMMAND="cd ${D}" # full command is printed below
 
 	    # add potentially missing variables (this has to come first!)
-	    if [[ -n "$ADDVAR"]]; then
+	    if [[ -n "$ADDVAR" ]]; then
 				for VAR in $ADDVAR; do
 				  # write command file entry
 				  COMMAND="${COMMAND}; ${NCOADD} ${VAR} &> ${D}/wrfavg/addVariable_${VAR}.log"

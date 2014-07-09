@@ -87,4 +87,4 @@ echo
 echo
 
 # exit with error code
-exit $ERR
+exit ${ERR}

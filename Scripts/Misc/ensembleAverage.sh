@@ -76,6 +76,7 @@ for FILE in $FILELIST
       fi # if $MISS           
 done # loop over $FILELIST
 echo
+
 # report summary
 echo 
 if [ ${ERR} == 0 ]; then
@@ -86,3 +87,6 @@ else
     echo "   ===   ${OK} files were successfully averaged, ${ERR} errors occurred  ===   "
 fi # summary
 echo
+
+# exit with error code
+exit ${ERR} 

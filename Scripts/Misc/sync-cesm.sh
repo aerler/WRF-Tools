@@ -3,6 +3,7 @@
 
 # CESM directories / data sources
 REX='h[abc]b20trcn1x1 tb20trcn1x1 h[abcz]brcp85cn1x1 htbrcp85cn1x1 seaice-5r-hf h[abcz]brcp85cn1x1d htbrcp85cn1x1d seaice-5r-hfd'
+ENS='ens*/'
 CESMDATA=${CESMDATA:-/data/CESM/} # can be supplied by caller
 CCA='/reserved1/p/peltier/aerler/CESM/archive/' # archives with my own cesmavg files
 # connection settings
@@ -108,14 +109,15 @@ for E in $( ssh ${SSH} ${HOST} "ls -d ${D}" ) # get folder listing from scinet
     done # for amwg & cvdp
 done # for experiments
 
+
 # report
 echo
 echo
 if [ $ERR -eq 0 ]
   then
-    echo "   <<<   All Transfers Completed Successfully!   >>>   "
+    echo "   <<<   All Transfers/Post-Processing Completed Successfully!   >>>   "
   else
-    echo "   ###   Transfers Completed - there were ${ERR} Errors!   ###   "
+    echo "   ###   Transfers/Post-Processing Completed - there were ${ERR} Errors!   ###   "
 fi
 echo
 date
@@ -123,4 +125,4 @@ echo
 echo
 
 # exit with error code
-exit $ERR
+exit ${ERR}

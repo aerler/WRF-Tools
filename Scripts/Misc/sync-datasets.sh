@@ -44,4 +44,4 @@ fi
 echo
 
 # exit
-exit $ERR
+exit ${ERR}
