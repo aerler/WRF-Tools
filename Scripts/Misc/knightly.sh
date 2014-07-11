@@ -54,6 +54,7 @@ REPORT $? 'Dataset/Obs Synchronization'
 # WRF
 export PYAVG_THREADS=4
 export PYAVG_DEBUG=FALSE
+export PYAVG_INTERACT=FALSE
 export PYAVG_OVERWRITE=FALSE
 #"${PYTHON}/bin/python" -c "print 'OK'" 1> ${WRFDATA}/wrfavg.log 2> ${WRFDATA}/wrfavg.err # for debugging
 "${PYTHON}/bin/python" "${CODE}/PyGeoDat/src/processing/wrfavg.py" 1> ${WRFDATA}/wrfavg.log 2> ${WRFDATA}/wrfavg.err
@@ -72,6 +73,15 @@ for E in ens*/; do
    "${SCRIPTS}/ensembleAverage.sh" ${E} 1> ${E}/ensembleAverage.log 2> ${E}/ensembleAverage.err
    REPORT $? "CESM Ensemble Average '${E}'"
 done
+
+## run regridding (WRF and CESM)
+# same settings as wrfavg...
+export PYAVG_THREADS=4
+export PYAVG_DEBUG=FALSE
+export PYAVG_INTERACT=FALSE
+export PYAVG_OVERWRITE=OVERWRITE #FALSE
+"${PYTHON}/bin/python" "${CODE}/PyGeoDat/src/processing/regrid.py" 1> ${ROOT}/regrid.log 2> ${ROOT}/regrid.err
+REPORT $? 'CESM & WRF regridding'
 
 # report
 echo
