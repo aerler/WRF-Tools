@@ -79,7 +79,7 @@ done
 export PYAVG_THREADS=4
 export PYAVG_DEBUG=FALSE
 export PYAVG_INTERACT=FALSE
-export PYAVG_OVERWRITE=OVERWRITE #FALSE
+export PYAVG_OVERWRITE=FALSE
 "${PYTHON}/bin/python" "${CODE}/PyGeoDat/src/processing/regrid.py" 1> ${ROOT}/regrid.log 2> ${ROOT}/regrid.err
 REPORT $? 'CESM & WRF regridding'
 
