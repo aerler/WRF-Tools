@@ -5,7 +5,7 @@
 # this script runs as a cron job at 7am every morning
 
 # environment
-export GDAL_DATA=/usr/local/share/gdal # for GDAL API
+export GDAL_DATA='/usr/local/share/gdal' # for GDAL API
 CODE="${CODE:-/home/data/Code/}" # code root
 export PYTHONPATH="${CODE}/PyGeoDat/src/:${CODE}/WRF Tools/Python/" # my own modules...
 # scripts/executables
@@ -52,7 +52,7 @@ REPORT $? 'Dataset/Obs Synchronization'
 
 ## run post-processing (update climatologies)
 # WRF
-export PYAVG_THREADS=4
+export PYAVG_THREADS=3
 export PYAVG_DEBUG=FALSE
 export PYAVG_BATCH=BATCH
 export PYAVG_OVERWRITE=FALSE
@@ -76,7 +76,7 @@ done
 
 ## run regridding (WRF and CESM)
 # same settings as wrfavg...
-export PYAVG_THREADS=4
+export PYAVG_THREADS=3
 export PYAVG_DEBUG=FALSE
 export PYAVG_BATCH=BATCH
 export PYAVG_OVERWRITE=FALSE
