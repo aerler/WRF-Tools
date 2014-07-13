@@ -58,7 +58,7 @@ MIA=0 # counter for crashed jobs
 # GPC
 if [ $LGPC == 1 ]; then
   # query queue for my jobs
-	GPC_QUEUE=$( ssh gpc01 'showq -n -u ${USER} | grep ${USER}' )
+	GPC_QUEUE=$( ssh gpc01 'qstat -u ${USER} | grep ${USER}' )
   # check showq output against "registered" jobs
 	CHECK "${GPC_JOBS}" "${GPC_QUEUE}" 'GPC'
   # count entries in job list
