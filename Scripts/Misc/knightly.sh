@@ -5,7 +5,7 @@
 # this script runs as a cron job at 7am every morning
 
 # environment
-export GDAL_DATA=/usr/local/share/gdal # for GDAL API
+export GDAL_DATA='/usr/local/share/gdal' # for GDAL API
 CODE="${CODE:-/home/data/Code/}" # code root
 export PYTHONPATH="${CODE}/PyGeoDat/src/:${CODE}/WRF Tools/Python/" # my own modules...
 # scripts/executables
