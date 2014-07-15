@@ -17,7 +17,11 @@ from datetime import datetime
 # import numpy as np
 # my own netcdf stuff
 from geodata.nctools import add_var
-
+# days per month without leap days (duplicate from datasets.common) 
+days_per_month_365 = np.array([31,28,31,30,31,30,31,31,30,31,30,31])
+# N.B.: importing from datasets.common causes problems with GDAL, if it is not installed
+dv_float = np.dtype('float32') # final precision used for derived floating point variables 
+dtype_float = dv_float # general floating point precision used for temporary arrays
 
 ## function to calculate time deltas and subtract leap-days, if necessary
 def calcTimeDelta(timestamps, year=None, month=None):
@@ -70,7 +74,7 @@ def ctrDiff(data, axis=0, delta=1):
   # N.B.: eventhough '0' is the outermost axis, the index order does not seem to have any effect  
   if axis != 0: data = np.rollaxis(data, axis=axis, start=0)
   # prepare calculation
-  outdata = np.zeros_like(data) # allocate             
+  outdata = np.zeros_like(data, dtype=dtype_float) # allocate             
   # compute centered differences, except at the edges, where forward/backward difference are used
   outdata[1:,:] = np.diff(data, n=1, axis=0) # compute differences
   outdata[0:-1,:] += outdata[1:,:] # add differences again, but shifted 
@@ -204,7 +208,7 @@ class Rain(DerivedVariable):
                               units='kg/m^2/s', # not accumulated anymore! 
                               prerequisites=['RAINNC', 'RAINC'], # it's the sum of these two 
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
-                              dtype='float', atts=None, linear=True) 
+                              dtype=dv_float, atts=None, linear=True) 
     # N.B.: this computation is actually linear, but some non-linear computations depend on it
 
   def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
@@ -224,7 +228,7 @@ class RainMean(DerivedVariable):
                               units='kg/m^2/s', # not accumulated anymore! 
                               prerequisites=['RAINNCVMEAN', 'RAINCVMEAN'], # it's the sum of these two 
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
-                              dtype='float', atts=None, linear=True) 
+                              dtype=dv_float, atts=None, linear=True) 
     # N.B.: this computation is actually linear, but some non-linear computations depend on it
 
   def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
@@ -243,7 +247,7 @@ class LiquidPrecip(DerivedVariable):
                               units='kg/m^2/s', # not accumulated anymore! 
                               prerequisites=['RAINNC', 'RAINC', 'ACSNOW'], # difference...
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
-                              dtype='float', atts=None, linear=True) # this computation is actually linear
+                              dtype=dv_float, atts=None, linear=True) # this computation is actually linear
 
   def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
     ''' Compute liquid precipitation as the difference between total and solid precipitation. '''
@@ -261,7 +265,7 @@ class SolidPrecip(DerivedVariable):
                               units='kg/m^2/s', # not accumulated anymore! 
                               prerequisites=['ACSNOW'], # it's identical to this field... 
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
-                              dtype='float', atts=None, linear=True) # this computation is actually linear
+                              dtype=dv_float, atts=None, linear=True) # this computation is actually linear
 
   def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
     ''' Just copy the snow accumulation as solid precipitation. '''
@@ -279,7 +283,7 @@ class LiquidPrecipSR(DerivedVariable):
                               units='kg/m^2/s', # not accumulated anymore! 
                               prerequisites=['RAIN', 'SR'], # 
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
-                              dtype='float', atts=None, linear=False) # this computation is actually linear
+                              dtype=dv_float, atts=None, linear=False) # this computation is actually linear
 
   def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
     ''' Compute liquid precipitation from total precipitation and the solid fraction. '''
@@ -300,7 +304,7 @@ class SolidPrecipSR(DerivedVariable):
                               units='kg/m^2/s', # not accumulated anymore! 
                               prerequisites=['RAIN', 'SR'], # 
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
-                              dtype='float', atts=None, linear=False) # this computation is actually linear
+                              dtype=dv_float, atts=None, linear=False) # this computation is actually linear
 
   def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
     ''' Compute solid precipitation from total precipitation and the solid fraction. '''
@@ -322,7 +326,7 @@ class NetPrecip_Hydro(DerivedVariable):
                               units='kg/m^2/s', # not accumulated anymore! 
                               prerequisites=['RAIN', 'SFCEVP'], # it's the difference of these two 
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
-                              dtype='float', atts=None, linear=True) # this computation is actually linear
+                              dtype=dv_float, atts=None, linear=True) # this computation is actually linear
 
   def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
     ''' Compute net precipitation as the difference between total precipitation and evapo-transpiration. '''
@@ -340,7 +344,7 @@ class NetPrecip_Srfc(DerivedVariable):
                               units='kg/m^2/s', # not accumulated anymore! 
                               prerequisites=['RAIN', 'QFX'], # it's the difference of these two 
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
-                              dtype='float', atts=None, linear=True) # this computation is actually linear
+                              dtype=dv_float, atts=None, linear=True) # this computation is actually linear
 
   def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
     ''' Compute net precipitation as the difference between total precipitation and evapo-transpiration. '''
@@ -358,7 +362,7 @@ class NetWaterFlux(DerivedVariable):
                               units='kg/m^2/s', # not accumulated anymore! 
                               prerequisites=['LiquidPrecip', 'SFCEVP', 'ACSNOM'], #  
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
-                              dtype='float', atts=None, linear=True) # this computation is actually linear
+                              dtype=dv_float, atts=None, linear=True) # this computation is actually linear
 
   def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
     ''' Compute net water flux as the sum of liquid precipitation and snowmelt minus evapo-transpiration. '''
@@ -376,7 +380,7 @@ class RunOff(DerivedVariable):
                               units='kg/m^2/s', # not accumulated anymore! 
                               prerequisites=['SFROFF', 'UDROFF'], # it's the sum of these two 
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
-                              dtype='float', atts=None, linear=True) 
+                              dtype=dv_float, atts=None, linear=True) 
 
   def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
     ''' Compute total runoff as the sum of surface and underground runoff. '''
@@ -394,7 +398,7 @@ class WaterVapor(DerivedVariable):
                               units='Pa', # not accumulated anymore! 
                               prerequisites=['Q2', 'PSFC'], # it's the sum of these two 
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
-                              dtype='float', atts=None, linear=False)
+                              dtype=dv_float, atts=None, linear=False)
     self.Mratio = 28.96 / 18.02 # g/mol, Molecular mass ratio of dry air over water 
 
   def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
@@ -413,7 +417,7 @@ class WetDaysMean(DerivedVariable):
                               units='', # fraction of days 
                               prerequisites=['RAINMEAN'], # above threshold 
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
-                              dtype='float', atts=None, linear=False) 
+                              dtype=dv_float, atts=None, linear=False) 
     
   def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
     ''' Count the number of events above a threshold (0 for now) '''
@@ -433,7 +437,7 @@ class WetDays(DerivedVariable):
                               units='', # fraction of days 
                               prerequisites=['RAIN'], # above threshold 
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
-                              dtype='float', atts=None, linear=False) 
+                              dtype=dv_float, atts=None, linear=False) 
     
   def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
     ''' Count the number of events above a threshold. '''
@@ -458,7 +462,7 @@ class FrostDays(DerivedVariable):
                               units='', # fraction of days 
                               prerequisites=['T2MIN'], # below threshold
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
-                              dtype='float', atts=None, linear=False) 
+                              dtype=dv_float, atts=None, linear=False) 
 
   def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
     ''' Count the number of events below a threshold (0 Celsius) '''
@@ -478,7 +482,7 @@ class OrographicIndex(DerivedVariable):
                               prerequisites=['U10','V10'], # it's the sum of these two
                               constants=['HGT','DY','DX'], # constant topography field
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
-                              dtype='float', atts=None, linear=False) 
+                              dtype=dv_float, atts=None, linear=False) 
 
   def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
     ''' Project surface winds onto topographic gradient. '''
@@ -507,7 +511,7 @@ class CovOIP(DerivedVariable):
                               units='', # fraction of days 
                               prerequisites=['OrographicIndex', 'RAIN'], # it's the sum of these two
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
-                              dtype='float', atts=None, linear=False) 
+                              dtype=dv_float, atts=None, linear=False) 
 
   def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
     ''' Covariance of Origraphic Index and Precipitation (needed to calculate correlation coefficient). '''
@@ -527,7 +531,7 @@ class OrographicIndexPlev(DerivedVariable):
                               prerequisites=['U_PL','V_PL'], # it's the sum of these two
                               constants=['HGT','DY','DX'], # constant topography field
                               axes=('time','num_press_levels_stag','south_north','west_east'), # dimensions of NetCDF variable 
-                              dtype='float', atts=None, linear=False) 
+                              dtype=dv_float, atts=None, linear=False) 
     
   def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
     ''' Project atmospheric winds onto underlying topographic gradient. '''
@@ -556,7 +560,7 @@ class WaterDensity(DerivedVariable):
                               units='kg/m^3', # "density" 
                               prerequisites=['TD_PL','T_PL'], # it's the sum of these two
                               axes=('time','num_press_levels_stag','south_north','west_east'), # dimensions of NetCDF variable 
-                              dtype='float', atts=None, linear=False)
+                              dtype=dv_float, atts=None, linear=False)
     self.MR = 0.01802 / 8.3144621 # M / R; from AMS Glossary
     
   def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
@@ -579,7 +583,7 @@ class WaterFlux_U(DerivedVariable):
                               units='kg/m^2/s', # flux 
                               prerequisites=['U_PL','WaterDensity'], # west-east direction: U
                               axes=('time','num_press_levels_stag','south_north','west_east'), # dimensions of NetCDF variable 
-                              dtype='float', atts=None, linear=False) 
+                              dtype=dv_float, atts=None, linear=False) 
     
   def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
     ''' Compute West-East atmospheric water vapor transport. '''
@@ -598,7 +602,7 @@ class WaterFlux_V(DerivedVariable):
                               units='kg/m^2/s', # flux 
                               prerequisites=['V_PL','WaterDensity'], # south-north direction: V
                               axes=('time','num_press_levels_stag','south_north','west_east'), # dimensions of NetCDF variable 
-                              dtype='float', atts=None, linear=False) 
+                              dtype=dv_float, atts=None, linear=False) 
     
   def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
     ''' Compute South-North atmospheric water vapor transport. '''
@@ -693,7 +697,7 @@ class ConsecutiveExtrema(Extrema):
     if name is None: name = '{0:s}{1:f}{2:s}'.format(prefix,threshold,varname[0].upper() + varname[1:])
     # infer attributes of consecutive extreme variable
     super(Extrema,self).__init__(name=name, units='days', prerequisites=[varname], axes=axes, 
-                                 dtype=np.dtype('float'), atts=atts, linear=False, normalize=False)    
+                                 dtype=dv_float, atts=atts, linear=False, normalize=False)    
     self.lengthofday = 86400. # delta's are in units of seconds (24 * 60 * 60)
     self.thresmode = exmode # above (=1) or below (=0) 
     self.threshold = threshold # threshold value
@@ -717,9 +721,9 @@ class ConsecutiveExtrema(Extrema):
     xshape = data.shape[1:] # rest of the map
     # initialize counter of consecutive exceedances
     if self.tmpdata in tmp: xcnt = tmp[self.tmpdata] # carry over from previous period 
-    else: xcnt = np.zeros(xshape, dtype='int')# initialize as zero
+    else: xcnt = np.zeros(xshape, dtype='int16')# initialize as zero
     # initialize output array
-    maxdata = np.zeros(xshape, dtype='float') # record of maximum consecutive days in computation period 
+    maxdata = np.zeros(xshape, dtype=dtype_float) # record of maximum consecutive days in computation period 
     # march along aggregation axis
     for t in xrange(tlen):
       # detect threshold changes

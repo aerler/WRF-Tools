@@ -22,16 +22,14 @@ from collections import OrderedDict
 #import numpy.ma as ma
 import os, re, sys
 import netCDF4 as nc
-from datetime import datetime
-import calendar
 # my own netcdf stuff
 from geodata.nctools import add_coord, copy_dims, copy_ncatts, copy_vars
 from processing.multiprocess import asyncPoolEC
-# N.B.: importing from datasets.common causes problems with GDAL, if it is not installed
-# days per month without leap days (duplicate from datasets.common) 
-days_per_month_365 = np.array([31,28,31,30,31,30,31,31,30,31,30,31])
 # import module providing derived variable classes
 import average.derived_variables as dv
+# aliases 
+days_per_month_365 = dv.days_per_month_365
+dtype_float = dv.dtype_float 
 
 # date error class
 class DateError(Exception):
@@ -193,12 +191,12 @@ derived_variables['plev3d'] = [dv.OrographicIndexPlev(), dv.WaterDensity(),
 # N.B.: derived variables need to be listed in order of computation
 consecutive_variables = {filetype:None for filetype in filetypes} # consecutive variable lists by file type
 # Consecutive exceedance variables
-consecutive_variables['srfc']  = {'CCFD' : ('T2', 'below', 273.14, 'Consecutive Frost Days'),
+consecutive_variables['srfc']  = {'CFD' : ('T2', 'below', 273.14, 'Consecutive Frost Days'),
                                   'CWD'  : ('RAIN', 'above', 2.3e-7, 'Consecutive Wet Days'),
                                   'CDD'  : ('RAIN', 'below', 2.3e-7, 'Consecutive Dry Days'),
                                   'CNWD' : ('NetPrecip', 'above', 0., 'Consecutive Net Wet Days'),
                                   'CNDD' : ('NetPrecip', 'below', 0., 'Consecutive Net Dry Days'),}
-consecutive_variables['xtrm']  = {'CCFD' : ('T2MEAN', 'below', 273.14, 'Consecutive Frost Days'),
+consecutive_variables['xtrm']  = {'CFD' : ('T2MEAN', 'below', 273.14, 'Consecutive Frost Days'),
                                   'CWD'  : ('RAINMEAN', 'above', 2.3e-7, 'Consecutive Wet Days'),
                                   'CDD'  : ('RAINMEAN', 'below', 2.3e-7, 'Consecutive Dry Days'),}
 consecutive_variables['hydro'] = {'CWD'  : ('RAIN', 'above', 2.3e-7, 'Consecutive Wet Days'),
@@ -239,7 +237,7 @@ for key in prereq_vars.iterkeys():
 
 ## main work function
 # N.B.: the loop iterations should be entirely independent, so that they can be run in parallel
-def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger=None):
+def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger=None, ldebug=False):
   ''' This function is doing the main work, and is supposed to be run in a multiprocessing environment. '''  
   
   ## setup files and folders
@@ -534,7 +532,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
     tmpshape = list(wrfout.variables[var].shape)
     del tmpshape[wrfout.variables[var].dimensions.index(wrftime)] # allocated arrays have no time dimension
     assert len(tmpshape) ==  len(wrfout.variables[var].shape) -1
-    data[var] = np.zeros(tmpshape) # allocate
+    data[var] = np.zeros(tmpshape, dtype=dtype_float) # allocate
     #if missing_value is not None:
     #  data[var] += missing_value # initialize with missing value
   # allocate derived data arrays (for non-linear variables)   
@@ -546,7 +544,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
     if not devar.linear:
       tmpshape = [len(wrfout.dimensions[ax]) for ax in devar.axes if ax != time] # infer shape
       assert len(tmpshape) ==  len(devar.axes) -1 # no time dimension
-      dedata[dename] = np.zeros(tmpshape) # allocate     
+      dedata[dename] = np.zeros(tmpshape, dtype=dtype_float) # allocate     
   
       
   # prepare computation of monthly means  
@@ -613,12 +611,12 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
       # time when accumulation starts (in minutes)        
       # N.B.: the first value is saved as negative, so that adding the last value yields a positive interval
       if lxtime: xtime = -1 * wrfout.variables[wrfxtime][wrfstartidx] # seconds
-      monthlytimestamps = [] # lsit of timestamps, also used for time period calculation  
+      monthlytimestamps = [] # list of timestamps, also used for time period calculation  
       # clear temporary arrays
       for varname,var in data.iteritems(): # base variables
-        data[varname] = np.zeros(var.shape) # reset to zero
+        data[varname] = np.zeros(var.shape, dtype=dtype_float) # reset to zero
       for dename,devar in dedata.iteritems(): # derived variables
-        dedata[dename] = np.zeros(devar.shape) # reset to zero           
+        dedata[dename] = np.zeros(devar.shape, dtype=dtype_float) # reset to zero           
 
       ## loop over files and average
       while not lcomplete:
