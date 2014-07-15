@@ -122,8 +122,8 @@ statlist = ['LANDFRAC','PHIS'] # static fields (only copied once)
 # time constants
 months = ['January  ', 'February ', 'March    ', 'April    ', 'May      ', 'June     ',
           'July     ', 'August   ', 'September', 'October  ', 'November ', 'December ']
-days = array([31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]) # no leap year
-mons = arange(1,13); nmons = len(mons)
+days = array([31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31], dtype='int16') # no leap year
+mons = arange(1,13, dtype='int16'); nmons = len(mons)
 
 if __name__ == '__main__':
     
@@ -185,9 +185,10 @@ if __name__ == '__main__':
   # monthly means
   climdata = dict()
   for var in varlist:
-    climdata[var] = zeros((nmons,) + cesmout.variables[var].shape[1:]) # replace time dimension, keep rest
-  xtime = zeros((nfiles,)) # number of month
-  xmon = zeros((nmons,)) # counter for number of contributions
+    ncvar = cesmout.variables[var]
+    climdata[var] = zeros((nmons,) + ncvar.shape[1:], dtype=ncvar.dtype) # replace time dimension, keep rest
+  xtime = zeros((nfiles,), dtype='int16') # number of month
+  xmon = zeros((nmons,), dtype='int16') # counter for number of contributions
   
   # close sample input file
   cesmout.close()
