@@ -66,6 +66,10 @@ def getDateRegX(period):
 if os.environ.has_key('PYAVG_THREADS'): 
   NP = int(os.environ['PYAVG_THREADS'])
 else: NP = None
+# only compute derived variables 
+if os.environ.has_key('PYAVG_DERIVEDONLY'): 
+  lderivedonly =  os.environ['PYAVG_DERIVEDONLY'] == 'DERIVEDONLY' 
+else: lderivedonly = False # i.e. all
 # recompute last timestep and continue (usefule after a crash)  
 if os.environ.has_key('PYAVG_RECOVER'): 
   lrecover =  os.environ['PYAVG_RECOVER'] == 'RECOVER' 
@@ -75,10 +79,14 @@ if os.environ.has_key('PYAVG_ADDNEW'):
   laddnew =  os.environ['PYAVG_ADDNEW'] == 'ADDNEW' 
 else: laddnew = False # i.e. recompute all
 # recompute specified variables
-if os.environ.has_key('PYAVG_RECALC'): 
-  recalcvars = os.environ['PYAVG_RECALC'].split(';') # semi-colon separated list of variables to recompute
-  if len(recalcvars) > 0 and len(recalcvars[0]) > 0: lrecalc = True # if there is a variable to recompute
-  else: lrecalc = False
+if os.environ.has_key('PYAVG_RECALC'):
+  if os.environ['PYAVG_RECALC'] == 'DERIVEDONLY':
+    # recalculate all derived variables and leave others in place
+    lrecalc = True; lderivedonly = True; recalcvars = []
+  else:
+    recalcvars = os.environ['PYAVG_RECALC'].split(';') # semi-colon separated list of variables to recompute
+    if len(recalcvars) > 0 and len(recalcvars[0]) > 0: lrecalc = True # if there is a variable to recompute
+    else: lrecalc = False
   # lrecalc uses the same pathway, but they can operate independently
 else: lrecalc = False # i.e. recompute all
 # overwrite existing data 
@@ -88,10 +96,6 @@ if os.environ.has_key('PYAVG_OVERWRITE'):
 else: loverwrite = False # i.e. append
 # N.B.: when loverwrite is True and and prdarg is empty, the entire file is replaced,
 #       otherwise only the selected months are recomputed 
-# only compute derived variables 
-if os.environ.has_key('PYAVG_DERIVEDONLY'): 
-  lderivedonly =  os.environ['PYAVG_DERIVEDONLY'] == 'DERIVEDONLY' 
-else: lderivedonly = False # i.e. all
 # file types to process 
 if os.environ.has_key('PYAVG_FILETYPES'):
   filetypes = os.environ['PYAVG_FILETYPES'].split(';') # semi-colon separated list
@@ -377,7 +381,9 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
       if varname in mean.variables:
         var.checkPrerequisites(mean)
         if not var.checked: raise ValueError, "Prerequisits for derived variable '{:s}' not found.".format(varname)
-        if lrecalc and varname in recalcvars: newdevars.append(varname)
+        if lrecalc:
+          if lderivedonly and len(recalcvars) == 0: newdevars.append(varname)
+          elif varname in recalcvars: newdevars.append(varname)
       else:
         if laddnew: 
           var.checkPrerequisites(mean) # as long as they are sorted correctly...
