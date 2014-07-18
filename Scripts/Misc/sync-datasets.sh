@@ -6,8 +6,17 @@ REM=/reserved1/p/peltier/aerler/Datasets/ # datasets root on SciNet
 DATASETS='Unity GPCC NARR CFSR CRU PRISM PCIC' # list of datasets/folders
 # DATASETS='PRISM' # for tests
 # ssh settings: special identity/ssh key, batch mode, and connection sharing
-SSH="-i /home/me/.ssh/rsync -o BatchMode=yes -o ControlPath=${LOC}/master-%l-%r@%h:%p -o ControlMaster=auto -o ControlPersist=1"
-HOST='aerler@login.scinet.utoronto.ca'
+# connection settings
+if [[ "${HISPD}" == 'HISPD' ]]
+  then
+    # high-speed transfer: special identity/ssh key, batch mode, and connection sharing
+    SSH="-o BatchMode=yes -o ControlPath=${WRFDATA}/hispd-master-%l-%r@%h:%p -o ControlMaster=auto -o ControlPersist=1"
+    HOST='datamover' # defined in .ssh/config
+  else
+    # ssh settings for unattended nightly update: special identity/ssh key, batch mode, and connection sharing
+    SSH="-i /home/me/.ssh/rsync -o BatchMode=yes -o ControlPath=${WRFDATA}/master-%l-%r@%h:%p -o ControlMaster=auto -o ControlPersist=1"
+    HOST='aerler@login.scinet.utoronto.ca'
+fi # if high-speed
 
 echo
 hostname
@@ -17,6 +26,7 @@ echo "   >>>   Synchronizing Local Datasets with SciNet   <<<   "
 echo
 echo "      Local:  ${LOC}"
 echo "      Remote: ${REM}"
+echo
 echo
 
 # loop over datasets
@@ -41,6 +51,9 @@ if [ $ERR == 0 ]
   else
     echo "   ###   Transfers Completed - there were ${ERR} Errors!   ###   "
 fi
+echo
+date
+echo
 echo
 
 # exit

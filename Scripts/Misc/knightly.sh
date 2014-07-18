@@ -1,8 +1,38 @@
 #!/bin/bash
 # script to run nightly updates on komputer:
 # - download/update monthly means from SciNet
-# - compute/update climatologies
-# this script runs as a cron job at 7am every morning
+# - compute/update and regrid climatologies
+# this script runs as a cron job every night
+# Andre R. Erler, July 2013, GPL v3
+
+# pre-process arguments using getopt
+if [ -z $( getopt -T ) ]; then
+  TMP=$( getopt -o p:tsdh --long processes:,test,highspeed,debug,overwrite,help -n "$0" -- "$@" ) # pre-process arguments
+  [ $? != 0 ] && exit 1 # getopt already prints an error message
+  eval set -- "$TMP" # reset positional parameters (arguments) to $TMP list
+fi # check if GNU getopt ("enhanced")
+# parse arguments
+#while getopts 'fs' OPTION; do # getopts version... supports only short options
+while true; do
+  case "$1" in
+    -p | --processes )   PYAVG_THREADS=$2; shift 2;;
+    -t | --test      ) \ PYAVG_BATCH='FALSE'; shift;;    
+    -s | --highspeed )   HISPD=${HISPD:-'HISPD'};  shift;;
+    -d | --debug     )   PYAVG_DEBUG=DEBUG; shift;;
+         --overwrite )   PYAVG_OVERWRITE='OVERWRITE';  shift;;
+    -h | --help     )   echo -e " \
+                            \n\
+    -p | --processes    number of processes to use by Python multi-processing \n\
+    -s | --highspeed    whether or not to use the high-speed datamover connection \n\
+    -d | --debug        print dataset information in Python modules and prefix results with 'test_' \n\
+         --overwrite    recompute all averages and regridding \n\
+    -t | --test         do not run Python modules in batch mode mode \n\
+    -h | --help         print this help \n\
+                             "; exit 0;; # \n\ == 'line break, next line'; for syntax highlighting
+    -- ) shift; break;; # this terminates the argument list, if GNU getopt is used
+    * ) break;;
+  esac # case $@
+done # while getopts  
 
 # environment
 export GDAL_DATA='/usr/local/share/gdal' # for GDAL API
@@ -40,6 +70,8 @@ date
 echo
 
 ## synchronize data with SciNet
+export HISPD=${HISPD:-'FALSE'} # whether or not to use the high-speed datamover connection
+# N.B.: the datamover connection needs to be established manually beforehand
 # WRF
 "${SCRIPTS}/sync-wrf.sh" 1> ${WRFDATA}/sync-wrf.log 2> ${WRFDATA}/sync-wrf.err # 2>&1
 REPORT $? 'WRF Synchronization'  
@@ -52,10 +84,10 @@ REPORT $? 'Dataset/Obs Synchronization'
 
 ## run post-processing (update climatologies)
 # WRF
-export PYAVG_THREADS=4
-export PYAVG_DEBUG=FALSE
-export PYAVG_BATCH=BATCH
-export PYAVG_OVERWRITE=FALSE
+export PYAVG_BATCH=${PYAVG_BATCH:-'BATCH'} # run in batch mode - this should not be changed
+export PYAVG_THREADS=${PYAVG_THREADS:-4} # parallel execution
+export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
+export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
 #"${PYTHON}/bin/python" -c "print 'OK'" 1> ${WRFDATA}/wrfavg.log 2> ${WRFDATA}/wrfavg.err # for debugging
 "${PYTHON}/bin/python" "${CODE}/PyGeoDat/src/processing/wrfavg.py" 1> ${WRFDATA}/wrfavg.log 2> ${WRFDATA}/wrfavg.err
 REPORT $? 'WRF Post-processing'
@@ -76,10 +108,10 @@ done
 
 ## run regridding (WRF and CESM)
 # same settings as wrfavg...
-export PYAVG_THREADS=4
-export PYAVG_DEBUG=FALSE
-export PYAVG_BATCH=BATCH
-export PYAVG_OVERWRITE=FALSE
+export PYAVG_BATCH=${PYAVG_BATCH:-'BATCH'} # run in batch mode - this should not be changed
+export PYAVG_THREADS=${PYAVG_THREADS:-4} # parallel execution
+export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
+export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
 "${PYTHON}/bin/python" "${CODE}/PyGeoDat/src/processing/regrid.py" 1> ${ROOT}/regrid.log 2> ${ROOT}/regrid.err
 REPORT $? 'CESM & WRF regridding'
 

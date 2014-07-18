@@ -2,7 +2,7 @@
 
 ## queue/PBS settings
 #PBS -l nodes=1:ppn=8
-# batch queue: nodes=1:m32g:ppn=8
+# batch queue: nodes=4:m32g:ppn=8
 # largemem queue: nodes=1:m128g:ppn=16
 #PBS -l walltime=48:00:00
 # merge standard error and output stream
@@ -24,6 +24,8 @@ module load intel/13.1.1 gcc/4.8.1 hdf5/187-v18-serial-intel netcdf/4.1.3_hdf5_s
 module load python/2.7.3 gdal/1.9.2 extras/64_6.4 ncl/6.2.0 gsl/1.13-intel udunits/2.1.11 nco/4.3.2-intel
 module list
 echo
+
+#shopt -s extglob
 
 # default settings
 JOBNAME=${PBS_JOBNAME:-'test'}

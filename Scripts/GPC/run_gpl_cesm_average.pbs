@@ -2,7 +2,7 @@
 
 ## queue/PBS settings
 #PBS -l nodes=1:m128g:ppn=16
-# batch queue: nodes=1:m32g:ppn=8
+# batch queue: nodes=4:m32g:ppn=8
 # largemem queue: nodes=1:m128g:ppn=16
 #PBS -l walltime=48:00:00
 # merge standard error and output stream
@@ -228,7 +228,11 @@ cat "${CMDFILE}.diag" "${CMDFILE}.concat" "${CMDFILE}.average" "${CMDFILE}.cvdp"
 rm "${CMDFILE}.diag" "${CMDFILE}.concat" "${CMDFILE}.average" "${CMDFILE}.cvdp"
 
 ## execute GNU Parallel commands
-parallel -j $THREADS --joblog "${LOGFILE}" < "${CMDFILE}"
+#parallel -j $THREADS --joblog "${LOGFILE}" < "${CMDFILE}" # only for single-node execution
+parallel --sshloginfile "$PBS_NODEFILE" --workdir "$PWD" \
+          --env PYTHON_EGG_CACHE \
+          #--env PYAVG_FILETYPE \ # probably not necessary, since explicitly set in command
+         -j 8 --joblog "${LOGFILE}" < "${CMDFILE}"
 ERR=$? # capture exit code
 
 # clean up
