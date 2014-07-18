@@ -20,7 +20,7 @@ exactly one output file.
 import numpy as np
 from collections import OrderedDict
 #import numpy.ma as ma
-import os, re, sys
+import os, re, sys, shutil
 import netCDF4 as nc
 # my own netcdf stuff
 from geodata.nctools import add_coord, copy_dims, copy_ncatts, copy_vars
@@ -190,8 +190,8 @@ derived_variables['xtrm']   = [dv.RainMean(), dv.WetDaysMean(), dv.FrostDays()]
 derived_variables['hydro']  = [dv.Rain(), dv.LiquidPrecip(), dv.SolidPrecip(), dv.WetDays(),                            
                                dv.NetPrecip_Hydro(), dv.NetWaterFlux()]
 derived_variables['lsm']    = [dv.RunOff()]
-derived_variables['plev3d'] = [dv.OrographicIndexPlev(), dv.WaterDensity(), 
-                               dv.WaterFlux_U(), dv.WaterFlux_V()]
+derived_variables['plev3d'] = [dv.OrographicIndexPlev(), dv.WaterDensity(), dv.WaterFlux_U(),  
+                               dv.WaterFlux_V(), dv.WaterTransport_U(), dv.WaterTransport_V(),]
 # N.B.: derived variables need to be listed in order of computation
 consecutive_variables = {filetype:None for filetype in filetypes} # consecutive variable lists by file type
 # Consecutive exceedance variables
@@ -324,14 +324,22 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
   enddate = '{0:04d}-{1:02d}-{2:02d}'.format(endyear, endmonth, endday) # rewrite begin date
       
   # open/create monthly mean output file
-  filename = outputpattern.format(filetype,ndom)   
+  filename = outputpattern.format(filetype,ndom)  
+  if lparallel: tmppfx = 'tmp_wrfavg_{:s}_'.format(pidstr[1:-1])
+  else: tmppfx = 'tmp_wrfavg_'.format(pidstr[1:-1])
+  tmpfilename = tmppfx + filename 
   meanfile = outfolder+filename
+  tmpmeanfile = outfolder+tmpfilename
   if os.path.exists(meanfile):
     if loverwrite or os.path.getsize(meanfile) < 1e6: os.remove(meanfile)
     # N.B.: NetCDF files smaller than 1MB are usually incomplete header fragments from a previous crashed job
+  if os.path.exists(tmpmeanfile) and not lrecover: os.remove(tmpmeanfile) # remove old temp files
   if os.path.exists(meanfile):
-    logger.debug("{0:s} Opening existing output file '{1:s}'.\n".format(pidstr,meanfile))
-    mean = nc.Dataset(meanfile, mode='a', format='NETCDF4') # open to append data (mode='a')
+    # make a temporary copy of the file to work on (except, if we are recovering a broken temp file)
+    if not ( lrecover and os.path.exists(tmpmeanfile) ): shutil.copy(meanfile,tmpmeanfile)
+    # open (temporary) file
+    logger.debug("{0:s} Opening existing output file '{1:s}'.\n".format(pidstr,meanfile))    
+    mean = nc.Dataset(tmpmeanfile, mode='a', format='NETCDF4') # open to append data (mode='a')
     # infer start index
     meanbeginyear, meanbeginmonth, meanbeginday = [int(tmp) for tmp in mean.begin_date.split('-')]
     assert meanbeginday == 1, 'always have to begin on the first of a month'
@@ -382,8 +390,11 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
         var.checkPrerequisites(mean)
         if not var.checked: raise ValueError, "Prerequisits for derived variable '{:s}' not found.".format(varname)
         if lrecalc:
-          if lderivedonly and len(recalcvars) == 0: newdevars.append(varname)
-          elif varname in recalcvars: newdevars.append(varname)
+          if ( lderivedonly and len(recalcvars) == 0 ) or ( varname in recalcvars ): 
+            newdevars.append(varname)
+            var.checkPrerequisites(mean) # as long as they are sorted correctly...
+            #del mean.variables[varname]; mean.sync()
+            #var.createVariable(mean) # this does not seem to work...
       else:
         if laddnew: 
           var.checkPrerequisites(mean) # as long as they are sorted correctly...
@@ -415,7 +426,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
       varlist.sort() # ... alphabetical order...
   else:
     logger.debug("{0:s} Creating new output file '{1:s}'.\n".format(pidstr,meanfile))
-    mean = nc.Dataset(meanfile, 'w', format='NETCDF4') # open to start a new file (mode='w')
+    mean = nc.Dataset(tmpmeanfile, 'w', format='NETCDF4') # open to start a new file (mode='w')
     t0 = 1 # time index where we start (first month)
     mean.createDimension(time, size=None) # make time dimension unlimited
     add_coord(mean, time, data=None, dtype='i4', atts=dict(units='month since '+begindate)) # unlimited time dimension
@@ -856,9 +867,11 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
   if not lparallel: logger.info('') # terminate the line (of dates) 
   else: logger.info('\n{0:s} Processed dates: {1:s}'.format(pidstr, progressstr))   
   mean.sync()
-  logger.info('\n{0:s} Writing output to: {1:s}\n({2:s})\n'.format(pidstr, filename, meanfile))
+  logger.info("\n{0:s} Writing output to: {1:s}\n('{2:s}')\n".format(pidstr, filename, meanfile))
   # close files        
   mean.close()  
+  # rename file to proper name
+  os.rename(tmpmeanfile,meanfile)      
   # return exit code
   return ec
 

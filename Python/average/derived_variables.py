@@ -12,6 +12,8 @@ points during the averaging process.
 ## imports
 import netCDF4 as nc
 import numpy as np
+from scipy.integrate import simps # Simpson rule for integration
+from numexpr import evaluate
 import calendar
 from datetime import datetime
 # import numpy as np
@@ -215,7 +217,7 @@ class Rain(DerivedVariable):
     ''' Compute total precipitation as the sum of convective  and non-convective precipitation. '''
     super(Rain,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
     if delta == 0: raise ValueError, 'RAIN depends on accumulated variables; differences can not be computed from single time steps. (delta=0)'    
-    outdata = indata['RAINNC'] + indata['RAINC'] # compute
+    outdata = evaluate('RAINNC + RAINC', local_dict=indata) # compute
     return outdata
 
 
@@ -252,7 +254,8 @@ class LiquidPrecip(DerivedVariable):
   def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
     ''' Compute liquid precipitation as the difference between total and solid precipitation. '''
     super(LiquidPrecip,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
-    outdata = indata['RAINNC'] + indata['RAINC'] - indata['ACSNOW'] # compute
+    RAINNC = indata['RAINNC']; RAINC = indata['RAINC']; ACSNOW = indata['ACSNOW']; # for use in expressions
+    outdata = evaluate('RAINNC + RAINC - ACSNOW') # compute
     return outdata
 
 
@@ -288,10 +291,10 @@ class LiquidPrecipSR(DerivedVariable):
   def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
     ''' Compute liquid precipitation from total precipitation and the solid fraction. '''
     super(LiquidPrecipSR,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
-    if np.max(indata['SR']) > 1:    
-      outdata = indata['RAIN'] * ( 1 - indata['SR'] / 2. ) # compute
-    else:
-      outdata = indata['RAIN'] * ( 1 - indata['SR'] ) # compute
+    # optimize using expressions
+    RAIN = indata['RAIN']; SR = indata['SR'] # for use in expressions
+    if np.max(indata['SR']) > 1: outdata = evaluate('RAIN * ( 1 - SR / 2. )') # compute
+    else: outdata = evaluate('RAIN * ( 1 - SR )') # compute
     return outdata
 
 
@@ -309,10 +312,9 @@ class SolidPrecipSR(DerivedVariable):
   def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
     ''' Compute solid precipitation from total precipitation and the solid fraction. '''
     super(SolidPrecipSR,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
-    if np.max(indata['SR']) > 1:
-      outdata = indata['RAIN'] * indata['SR'] / 2. # compute (SR ranges from 0 - 2)
-    else:
-      outdata = indata['RAIN'] * indata['SR'] # compute (SR ranges from 0 - 1)
+    # compute
+    outdata = indata['RAIN'] * indata['SR'] # compute (SR ranges from 0 - 1)
+    if np.max(indata['SR']) > 1: outdata /= 2. # if SR ranges from 0 - 2
     return outdata
 
 
@@ -366,8 +368,8 @@ class NetWaterFlux(DerivedVariable):
 
   def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
     ''' Compute net water flux as the sum of liquid precipitation and snowmelt minus evapo-transpiration. '''
-    super(NetWaterFlux,self).computeValues(indata, const=None) # perform some type checks    
-    outdata = indata['LiquidPrecip'] - indata['SFCEVP']  + indata['ACSNOM'] # compute
+    super(NetWaterFlux,self).computeValues(indata, const=None) # perform some type checks
+    outdata = evaluate('LiquidPrecip - SFCEVP + ACSNOM', local_dict=indata)  # compute
     return outdata
 
 
@@ -403,8 +405,9 @@ class WaterVapor(DerivedVariable):
 
   def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
     ''' Compute total runoff as the sum of surface and underground runoff. '''
-    super(WaterVapor,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks    
-    outdata = indata['Q2'] * indata['PSFC'] * self.Mratio # compute
+    super(WaterVapor,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
+    Mratio = self.Mratio; Q2 = indata['Q2']; PSFC = indata['PSFC'] # for use in expression    
+    outdata =  evaluate('Mratio * Q2 * PSFC') # compute
     return outdata
   
 
@@ -491,13 +494,18 @@ class OrographicIndex(DerivedVariable):
     if 'hgtgrd_sn' not in const:
       if 'HGT' not in const: raise ValueError
       if 'DY' not in const: raise ValueError
-      const['hgtgrd_sn'] = ctrDiff(const['HGT'], axis=1, delta=const['DY'])
+      hgtgrd_sn = ctrDiff(const['HGT'], axis=1, delta=const['DY'])
+      const['hgtgrd_sn'] = hgtgrd_sn
+    else: hgtgrd_sn = const['hgtgrd_sn']  
     if 'hgtgrd_we' not in const:
       if 'HGT' not in const: raise ValueError
       if 'DX' not in const: raise ValueError
-      const['hgtgrd_we'] = ctrDiff(const['HGT'], axis=2, delta=const['DX'])
+      hgtgrd_we = ctrDiff(const['HGT'], axis=2, delta=const['DX'])
+      const['hgtgrd_we'] = hgtgrd_we
+    else: hgtgrd_we = const['hgtgrd_we']
+    U = indata['U10']; V = indata['V10']
     # compute covariance (projection, scalar product, etc.)    
-    outdata = indata['U10']*const['hgtgrd_we'] + indata['V10']*const['hgtgrd_sn']
+    outdata = evaluate('U * hgtgrd_we + V * hgtgrd_sn')
     # N.B.: outer dimensions (i.e. the first) are broadcast automatically, which is what we want here 
     return outdata
 
@@ -517,7 +525,7 @@ class CovOIP(DerivedVariable):
     ''' Covariance of Origraphic Index and Precipitation (needed to calculate correlation coefficient). '''
     super(CovOIP,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
     # compute covariance
-    outdata = indata['OrographicIndex'] * indata['RAIN'] 
+    outdata = evaluate('OrographicIndex * RAIN', local_dict=indata) 
     return outdata
 
 
@@ -540,13 +548,18 @@ class OrographicIndexPlev(DerivedVariable):
     if 'hgtgrd_sn' not in const:
       if 'HGT' not in const: raise ValueError
       if 'DY' not in const: raise ValueError
-      const['hgtgrd_sn'] = ctrDiff(const['HGT'], axis=1, delta=const['DY'])
+      hgtgrd_sn = ctrDiff(const['HGT'], axis=1, delta=const['DY'])
+      const['hgtgrd_sn'] = hgtgrd_sn
+    else: hgtgrd_sn = const['hgtgrd_sn']  
     if 'hgtgrd_we' not in const:
       if 'HGT' not in const: raise ValueError
       if 'DX' not in const: raise ValueError
-      const['hgtgrd_we'] = ctrDiff(const['HGT'], axis=2, delta=const['DX'])    
+      hgtgrd_we = ctrDiff(const['HGT'], axis=2, delta=const['DX'])
+      const['hgtgrd_we'] = hgtgrd_we
+    else: hgtgrd_we = const['hgtgrd_we']
+    U = indata['U_PL']; V = indata['V_PL']
     # compute covariance (projection, scalar product, etc.)    
-    outdata = indata['U_PL']*const['hgtgrd_we'] + indata['V_PL']*const['hgtgrd_sn']
+    outdata = evaluate('U * hgtgrd_we + V * hgtgrd_sn')
     # N.B.: outer dimensions (i.e. the first and second) are broadcast automatically, which is what we want here 
     return outdata
 
@@ -567,9 +580,9 @@ class WaterDensity(DerivedVariable):
     ''' Compute mass denisty of water vapor using the Magnus formula. '''
     super(WaterDensity,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
     # compute water vapor content from dew point (using magnus formula)
-    Td = indata['TD_PL'] - 273.15 # convert to Celsius for Magnus formula 
-    es = 6.1094 * np.exp( 17.625 * Td / (Td + 243.04) ) # compute partial pressure using Magnus formula (Wikipedia)
-    outdata = self.MR * ( es / indata['T_PL'] ) # compute mass per volume "density"
+    MP = self.MR; Td = indata['TD_PL']; T = indata['T_PL'] # for use in expression
+    # compute partial pressure using Magnus formula (Wikipedia) and mass per volume "density"
+    outdata = evaluate('MP * 6.1094 * exp( 17.625 * (Td - 273.15) / (Td - 30.11) ) / T')
     # N.B.: outer dimensions (i.e. the first and second) are broadcast automatically, which is what we want here 
     return outdata
 
@@ -593,6 +606,45 @@ class WaterFlux_U(DerivedVariable):
     # N.B.: outer dimensions (i.e. the first and second) are broadcast automatically, which is what we want here 
     return outdata
 
+
+class WaterTransport_U(DerivedVariable):
+  ''' DerivedVariable child for computing the column-integrated atmospheric transport of water vapor (West-East). '''
+  
+  def __init__(self):
+    ''' Initialize with fixed values; constructor takes no arguments. '''
+    super(WaterTransport_U,self).__init__(name='WaterTransport_U', # name of the variable
+                              units='kg/m/s', # flux 
+                              prerequisites=['T_PL','P_PL','WaterFlux_U'], # west-east direction: U
+                              axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
+                              dtype=dv_float, atts=None, linear=False) 
+    self.RMg = 8.3144621 / ( 0.01802 *  9.80616 )  # R / (M g); from AMS Glossary (g at 45 lat)
+    
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+    ''' Compute West-East atmospheric water vapor transport. '''
+    super(WaterTransport_U,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
+    # allocate extended array with boundary points
+    # make sure dimensions fit (pressure is the second dimension)
+    assert indata['T_PL'].ndim == 4 and indata['P_PL'].ndim == 2 
+    assert indata['T_PL'].shape[:2] == indata['P_PL'].shape # tuple comparison doesn't require all()
+    # make temporary array (first and last plev are just zero: boundary conditions)
+    tmpshape = list(indata['T_PL'].shape)
+    tmpshape[1] += 2 # add two levels (integral boundaries)
+    tmpdata = np.zeros(tmpshape, dtype=dv_float)
+    # make extended plev axis
+    assert np.all( np.diff(indata['P_PL'][0,:]) < 0 ), 'The pressure axis has to decrease monotonically'    
+    pax = np.zeros((tmpshape[1],), dtype=dv_float)
+    pax[1:-1] = indata['P_PL'][0,:]; pax[0] = 1.e5; pax[-1] = 0.    
+    pax = -1 * pax # invert, since we are integrating in the wrong direction
+    # compute pressure/mass-weighted flux at each (non-boundary) level       
+    p = indata['P_PL'].reshape(indata['P_PL'].shape+(1,1)) # extend singleton dimensions
+    RMg = self.RMg; wflx = indata['WaterFlux_U']; T = indata['T_PL'] # for use in expression 
+    tmpdata[:,1:-1,:] = evaluate('RMg * wflx * T / p') # first and last are zero
+    # integrate using Simpson rule
+    outdata = simps(tmpdata, pax, axis=1, even='first') # even intervals anyway...
+    # N.B.: outer dimensions (i.e. the first and second) are broadcast automatically, which is what we want here 
+    return outdata
+
+
 class WaterFlux_V(DerivedVariable):
   ''' DerivedVariable child for computing the atmospheric transport of water vapor (South-North). '''
   
@@ -609,6 +661,44 @@ class WaterFlux_V(DerivedVariable):
     super(WaterFlux_V,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
     # compute covariance (projection, scalar product, etc.)    
     outdata = indata['V_PL']*indata['WaterDensity']
+    # N.B.: outer dimensions (i.e. the first and second) are broadcast automatically, which is what we want here 
+    return outdata
+
+
+class WaterTransport_V(DerivedVariable):
+  ''' DerivedVariable child for computing the column-integrated atmospheric transport of water vapor (West-East). '''
+  
+  def __init__(self):
+    ''' Initialize with fixed values; constructor takes no arguments. '''
+    super(WaterTransport_V,self).__init__(name='WaterTransport_V', # name of the variable
+                              units='kg/m/s', # flux 
+                              prerequisites=['T_PL','P_PL','WaterFlux_V'], # west-east direction: U
+                              axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
+                              dtype=dv_float, atts=None, linear=False) 
+    self.RMg = 8.3144621 / ( 0.01802 *  9.80616 )  # R / (M g); from AMS Glossary (g at 45 lat)
+    
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+    ''' Compute West-East atmospheric water vapor transport. '''
+    super(WaterTransport_V,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
+    # allocate extended array with boundary points
+    # make sure dimensions fit (pressure is the second dimension)
+    assert indata['T_PL'].ndim == 4 and indata['P_PL'].ndim == 2 
+    assert indata['T_PL'].shape[:2] == indata['P_PL'].shape # tuple comparison doesn't require all()
+    # make temporary array (first and last plev are just zero: boundary conditions)
+    tmpshape = list(indata['T_PL'].shape)
+    tmpshape[1] += 2 # add two levels (integral boundaries)
+    tmpdata = np.zeros(tmpshape, dtype=dv_float)
+    # make extended plev axis
+    assert np.all( np.diff(indata['P_PL'][0,:]) < 0 ), 'The pressure axis has to decrease monotonically'    
+    pax = np.zeros((tmpshape[1],), dtype=dv_float)
+    pax[1:-1] = indata['P_PL'][0,:]; pax[0] = 1.e5; pax[-1] = 0.    
+    pax = -1 * pax # invert, since we are integrating in the wrong direction
+    # compute pressure/mass-weighted flux at each (non-boundary) level       
+    p = indata['P_PL'].reshape(indata['P_PL'].shape+(1,1)) # extend singleton dimensions
+    RMg = self.RMg; wflx = indata['WaterFlux_V']; T = indata['T_PL'] # for use in expression 
+    tmpdata[:,1:-1,:] = evaluate('RMg * wflx * T / p') # first and last are zero
+    # integrate using Simpson rule
+    outdata = simps(tmpdata, pax, axis=1, even='first') # even intervals anyway...
     # N.B.: outer dimensions (i.e. the first and second) are broadcast automatically, which is what we want here 
     return outdata
 
