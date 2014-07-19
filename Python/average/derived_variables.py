@@ -13,10 +13,11 @@ points during the averaging process.
 import netCDF4 as nc
 import numpy as np
 from scipy.integrate import simps # Simpson rule for integration
-from numexpr import evaluate
 import calendar
 from datetime import datetime
-# import numpy as np
+from numexpr import evaluate, set_num_threads, set_vml_num_threads
+# numexpr parallelisation: don't parallelize at this point!
+set_num_threads(1); set_vml_num_threads(1)
 # my own netcdf stuff
 from geodata.nctools import add_var
 # days per month without leap days (duplicate from datasets.common) 
@@ -24,6 +25,9 @@ days_per_month_365 = np.array([31,28,31,30,31,30,31,31,30,31,30,31])
 # N.B.: importing from datasets.common causes problems with GDAL, if it is not installed
 dv_float = np.dtype('float32') # final precision used for derived floating point variables 
 dtype_float = dv_float # general floating point precision used for temporary arrays
+
+# N.B.: this could have been implemented much more efficiently, without the need for separate classes,
+#       using a numexpr string and the variable dicts to define the computation 
 
 ## function to calculate time deltas and subtract leap-days, if necessary
 def calcTimeDelta(timestamps, year=None, month=None):
@@ -574,7 +578,8 @@ class WaterDensity(DerivedVariable):
                               prerequisites=['TD_PL','T_PL'], # it's the sum of these two
                               axes=('time','num_press_levels_stag','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype=dv_float, atts=None, linear=False)
-    self.MR = 0.01802 / 8.3144621 # M / R; from AMS Glossary
+    self.MR = np.asarray( 0.01802 / 8.3144621, dtype=dv_float) # M / R; from AMS Glossary
+    # N.B.: it is necessary to enforce the type of scalars, otherwise numexpr casts everything as doubles
     
   def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
     ''' Compute mass denisty of water vapor using the Magnus formula. '''
@@ -617,7 +622,8 @@ class WaterTransport_U(DerivedVariable):
                               prerequisites=['T_PL','P_PL','WaterFlux_U'], # west-east direction: U
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype=dv_float, atts=None, linear=False) 
-    self.RMg = 8.3144621 / ( 0.01802 *  9.80616 )  # R / (M g); from AMS Glossary (g at 45 lat)
+    self.RMg = np.asarray( 8.3144621 / ( 0.01802 *  9.80616 ), dtype=dv_float) # R / (M g); from AMS Glossary (g at 45 lat)
+    # N.B.: it is necessary to enforce the type of scalars, otherwise numexpr casts everything as doubles
     
   def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
     ''' Compute West-East atmospheric water vapor transport. '''
@@ -675,7 +681,8 @@ class WaterTransport_V(DerivedVariable):
                               prerequisites=['T_PL','P_PL','WaterFlux_V'], # west-east direction: U
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype=dv_float, atts=None, linear=False) 
-    self.RMg = 8.3144621 / ( 0.01802 *  9.80616 )  # R / (M g); from AMS Glossary (g at 45 lat)
+    self.RMg = np.asarray( 8.3144621 / ( 0.01802 *  9.80616 ), dtype=dv_float)  # R / (M g); from AMS Glossary (g at 45 lat)
+    # N.B.: it is necessary to enforce the type of scalars, otherwise numexpr casts everything as doubles
     
   def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
     ''' Compute West-East atmospheric water vapor transport. '''
@@ -787,8 +794,9 @@ class ConsecutiveExtrema(Extrema):
     if name is None: name = '{0:s}{1:f}{2:s}'.format(prefix,threshold,varname[0].upper() + varname[1:])
     # infer attributes of consecutive extreme variable
     super(Extrema,self).__init__(name=name, units='days', prerequisites=[varname], axes=axes, 
-                                 dtype=dv_float, atts=atts, linear=False, normalize=False)    
+                                 dtype=np.dtype('int16'), atts=atts, linear=False, normalize=False)    
     self.lengthofday = 86400. # delta's are in units of seconds (24 * 60 * 60)
+    self.period = 0. # will be set later
     self.thresmode = exmode # above (=1) or below (=0) 
     self.threshold = threshold # threshold value
     self.mode = 1 # aggregation method is always maximum (longest period)
@@ -802,7 +810,10 @@ class ConsecutiveExtrema(Extrema):
     if 'COX_DELTA' in tmp: 
       if delta != tmp['COX_DELTA']: 
         raise NotImplementedError, 'Consecutive extrema currently only work, if the output interval is constant.'
-    else: tmp['COX_DELTA'] = delta # save and check next time 
+    else: 
+      tmp['COX_DELTA'] = delta # save and check next time
+    if self.period == 0.: 
+      self.period = delta / self.lengthofday 
     # get data
     data = indata[self.prerequisites[0]]
     # if axis is not 0 (innermost), roll axis until it is
@@ -813,7 +824,7 @@ class ConsecutiveExtrema(Extrema):
     if self.tmpdata in tmp: xcnt = tmp[self.tmpdata] # carry over from previous period 
     else: xcnt = np.zeros(xshape, dtype='int16')# initialize as zero
     # initialize output array
-    maxdata = np.zeros(xshape, dtype=dtype_float) # record of maximum consecutive days in computation period 
+    maxdata = np.zeros(xshape, dtype=np.dtype('int16')) # record of maximum consecutive days in computation period 
     # march along aggregation axis
     for t in xrange(tlen):
       # detect threshold changes
@@ -821,7 +832,7 @@ class ConsecutiveExtrema(Extrema):
       elif self.thresmode == 0: xmask = ( data[t,:] < self.threshold ) # below
       #nxmask = not xmask # inverse mask
       # update maxima of exceedances
-      xnew = np.where(xmask,0,xcnt) * delta / self.lengthofday # extract periods before reset
+      xnew = np.where(xmask,0,xcnt) * self.period # extract periods before reset
       maxdata = np.maximum(maxdata,xnew) #       
       # set counter for all non-exceedances to zero
       xcnt[np.invert(xmask)] = 0
