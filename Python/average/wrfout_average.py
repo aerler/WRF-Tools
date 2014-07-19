@@ -20,7 +20,7 @@ exactly one output file.
 import numpy as np
 from collections import OrderedDict
 #import numpy.ma as ma
-import os, re, sys, shutil
+import os, re, sys, shutil, gc
 import netCDF4 as nc
 # my own netcdf stuff
 from geodata.nctools import add_coord, copy_dims, copy_ncatts, copy_vars
@@ -459,7 +459,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
     mean.experiment = exp
     mean.creator = 'Andre R. Erler'
   # sync with file
-  mean.sync()        
+  mean.sync()     
 
 
   ## construct dependencies
@@ -771,7 +771,8 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
           lasttimestamp = str().join(wrfout.variables[wrftimestamp][wrfendidx-1,:]) # needed to determine, if first timestep is the same as last
           assert lskip or lasttimestamp == monthlytimestamps[-1]
           # lasttimestep is also used for leap-year detection later on
-          wrfout.close() # close file...
+          wrfout.close() # close file
+          #del wrfout; gc.collect() # doesn't seem to work here - strange error
           # N.B.: filecounter +1 < len(filelist) is already checked above 
           filecounter += 1 # move to next file
           logger.debug("\n{0:s} Opening input file '{1:s}'.\n".format(pidstr,filelist[filecounter]))
@@ -794,7 +795,8 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
           assert lskip or lasttimestamp == monthlytimestamps[-1]                
           # open next file (if end of month and file coincide)
           if wrfendidx == len(wrfout.dimensions[wrftime])-1: # reach end of file
-            wrfout.close() # close file...
+            wrfout.close() # close file
+            #del wrfout; gc.collect() # doesn't seem to work here - strange error
             filecounter += 1 # move to next file
             if filecounter < len(filelist):    
               logger.debug("\n{0:s} Opening input file '{1:s}'.\n".format(pidstr,filelist[filecounter]))
@@ -846,8 +848,14 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
         mean.end_date = starttimestamp[:10] # the date of the first day of the last included month
         mean.variables[wrftimestamp][meanidx,:] = starttimestamp 
         mean.variables[time][meanidx] = meantime # update time axis (last action)
-        # sync data
-        mean.sync()
+        # sync data and clear memory
+        mean.sync(); mean.close() # sync and close dataset
+        del mean, ncvar, vardata # remove all other references to data
+        gc.collect() # clean up memory
+        # N.B.: the netCDF4 module keeps all data written to a netcdf file in memory; there is no flush command
+        mean = nc.Dataset(tmpmeanfile, mode='a', format='NETCDF4') # re-open to append more data (mode='a')
+        # N.B.: flushing the mean file here prevents repeated close/re-open when no data was written (i.e. 
+        #       the month was skiped); only flush memory when data was actually written. 
         
     ec = 0 # set zero exit code for this operation
         
@@ -871,7 +879,9 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
   # close files        
   mean.close()  
   # rename file to proper name
-  os.rename(tmpmeanfile,meanfile)      
+  os.rename(tmpmeanfile,meanfile)    
+  # clean up memory
+  del mean, data  
   # return exit code
   return ec
 
