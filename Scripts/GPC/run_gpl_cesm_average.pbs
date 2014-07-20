@@ -49,10 +49,10 @@ export CCA=${CAA:-"/reserved1/p/peltier/aerler//CESM/archive/"} # my CESM archiv
 RUNS=${RUNS:-'h[abc]b20trcn1x1/ tb20trcn1x1/ h[abct]brcp85cn1x1/ h[abct]brcp85cn1x1d/ seaice-[35]r-hf/ seaice-5r-hfd/'}
 PERIODS=${PERIODS:-'5 10 15'} # averaging periods
 # cesm_average settings
-CVDP=${CVDP:-'CVDP'} # Climate Variability Diagnostics Package
-DIAG=${DIAG:-'DIAG'} # Climatology Diagnostics Package
-CONCAT=${CONCAT:-'CONCAT'} # concatenate monthly files
-AVERAGE=${AVERAGE:-'AVERAGE'} # compute climatologies
+CVDP=${CVDP:-'FALSE'} # Climate Variability Diagnostics Package (set to CVDP)
+DIAG=${DIAG:-'FALSE'} # Climatology Diagnostics Package (set to DIAG)
+CONCAT=${CONCAT:-'FALSE'} # concatenate monthly files (set to CONCAT)
+AVERAGE=${AVERAGE:-'FALSE'} # compute climatologies (set to AVERAGE)
 OVERWRITE=${OVERWRITE:-'FALSE'} # recompute or not
 FILETYPES=${FILETYPES:-'atm lnd ice'} # file types to process
 

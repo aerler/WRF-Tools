@@ -7,7 +7,7 @@
 
 # pre-process arguments using getopt
 if [ -z $( getopt -T ) ]; then
-  TMP=$( getopt -o p:tsdh --long processes:,test,highspeed,debug,overwrite,help -n "$0" -- "$@" ) # pre-process arguments
+  TMP=$( getopt -o p:tsdn:h --long processes:,test,highspeed,debug,niceness,overwrite,help -n "$0" -- "$@" ) # pre-process arguments
   [ $? != 0 ] && exit 1 # getopt already prints an error message
   eval set -- "$TMP" # reset positional parameters (arguments) to $TMP list
 fi # check if GNU getopt ("enhanced")
@@ -16,17 +16,19 @@ fi # check if GNU getopt ("enhanced")
 while true; do
   case "$1" in
     -p | --processes )   PYAVG_THREADS=$2; shift 2;;
-    -t | --test      ) \ PYAVG_BATCH='FALSE'; shift;;    
-    -s | --highspeed )   HISPD=${HISPD:-'HISPD'};  shift;;
+    -t | --test      )   PYAVG_BATCH='FALSE'; shift;;    
+    -s | --highspeed )   HISPD='HISPD';  shift;;
     -d | --debug     )   PYAVG_DEBUG=DEBUG; shift;;
+    -n | --niceness  )   NICENESS=$2; shift 2;;
          --overwrite )   PYAVG_OVERWRITE='OVERWRITE';  shift;;
     -h | --help     )   echo -e " \
                             \n\
-    -p | --processes    number of processes to use by Python multi-processing \n\
-    -s | --highspeed    whether or not to use the high-speed datamover connection \n\
-    -d | --debug        print dataset information in Python modules and prefix results with 'test_' \n\
-         --overwrite    recompute all averages and regridding \n\
-    -t | --test         do not run Python modules in batch mode mode \n\
+    -p | --processes    number of processes to use by Python multi-processing (default: 4)\n\
+    -t | --test         do not run Python modules in batch mode mode (default: Batch)\n\
+    -s | --highspeed    whether or not to use the high-speed datamover connection (default: False)\n\
+    -d | --debug        print dataset information in Python modules and prefix results with 'test_' (default: False)\n\
+    -n | --niceness     nicesness of the sub-processes (default: +5)\n\
+         --overwrite    recompute all averages and regridding (default: False)\n\
     -h | --help         print this help \n\
                              "; exit 0;; # \n\ == 'line break, next line'; for syntax highlighting
     -- ) shift; break;; # this terminates the argument list, if GNU getopt is used
@@ -45,6 +47,8 @@ SCRIPTS="${CODE}/WRF Tools/Scripts/Misc/" # folder with all the scripts
 export ROOT='/data/'
 export WRFDATA="${ROOT}/WRF/" # local WRF data root
 export CESMDATA="${ROOT}/CESM/" # local CESM data root
+# general settings
+NICESNESS=${NICESNESS:-5}
 
 ## error reporting
 ERR=0 # error counter
