@@ -114,7 +114,9 @@ begin
         else
             ; obs require special treatment, because they are on a different grid!
             check_custom_climo(names(ee),syear(ee),eyear(ee),CLIMO_SYEAR,CLIMO_EYEAR)
-            obsclm = clmMonTLL(sst({CLIMO_SYEAR*100+1:CLIMO_EYEAR*100+12},:,:))                 
+            obs_syr = 1979 ; no obs in future... but use same period length!
+            obs_eyr = 1979 + CLIMO_EYEAR - CLIMO_SYEAR
+            obsclm = clmMonTLL(sst({obs_syr*100+1:obs_eyr*100+12},:,:))                 
             ;printVarSummary(sst)        
             sst   = calcMonAnomTLL(sst,obsclm) 
             delete(obsclm)
@@ -183,8 +185,11 @@ begin
            z@notes = "Data from "+names(ee)+" from "+syear(ee)+"-"+eyear(ee)
            if (OPT_CLIMO.eq."Full") then
               z@climatology = syear(ee)+"-"+eyear(ee)+" climatology removed prior to all calculations (other than means)"
+           else if (OPT_CLIMO.eq."External") then
+              z@climatology = "An external climatology from "+CLIMO_SYEAR+"-"+CLIMO_EYEAR+" was removed prior to all calculations (other than means)"              
            else
               z@climatology = CLIMO_SYEAR+"-"+CLIMO_EYEAR+" climatology removed prior to all calculations (other than means)"
+           end if
            end if
         else
            z = addfile(fn,"w")

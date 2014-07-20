@@ -22,11 +22,9 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
   if (opt_climo.eq."Custom") then
      climo_syear    = 1920                   ; remove the climatology/annual cycle based on these years when opt_climo = "Custom"
      climo_eyear    = 2010                   ; note: climo_syear and climo_eyear should be within the range of years of all analyzed model runs 
-  else if (opt_climo.eq."External") then
-     climo_file     = getenv("CLIM_FILE")    ; path to the file containing the external annual climatology to be used
-     climo_syear    = getenv("SPRD")
-     climo_eyear    = getenv("EPRD")
-  end if                                     ;       and specified observational datasets.
+  else if (opt_climo.eq."External") then     ; and specified observational datasets.
+     climo_file     = getenv("CLIM_FILE")    ; path to the file containing the external monthly climatology to be used
+  end if                                     
   end if
 ;- - - - - - - - - - - - - - - - - -   
   colormap          = 0                      ; 0 = default colormaps, 1 = colormaps better for color blindness

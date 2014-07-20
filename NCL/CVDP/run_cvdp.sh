@@ -65,6 +65,8 @@ echo
 export TEST
 export OUTDIR
 export CLIM_FILE
+export SPRD
+export EPRD
 export TITLE="$RUN $SPRD-$EPRD"
 # run NCL driver script
 cd "$WORKDIR"

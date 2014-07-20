@@ -23,8 +23,8 @@ begin
   if (OPT_CLIMO.eq."Full") then
      subtxt = "Climatological Period Used: Full"
   end if
-  if (OPT_CLIMO.eq."Common") then
-     subtxt = "Climatological Period Used: "
+  if (OPT_CLIMO.eq."External") then
+     subtxt = "Climatological Period Used: "+CLIMO_SYEAR+"-"+CLIMO_EYEAR
   end if
   if (OPT_CLIMO.eq."Custom") then
      subtxt = "Climatological Period Used: "+CLIMO_SYEAR+"-"+CLIMO_EYEAR
