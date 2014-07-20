@@ -24,6 +24,8 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
      climo_eyear    = 2010                   ; note: climo_syear and climo_eyear should be within the range of years of all analyzed model runs 
   else if (opt_climo.eq."External") then
      climo_file     = getenv("CLIM_FILE")    ; path to the file containing the external annual climatology to be used
+     climo_syear    = getenv("SPRD")
+     climo_eyear    = getenv("EPRD")
   end if                                     ;       and specified observational datasets.
   end if
 ;- - - - - - - - - - - - - - - - - -   
@@ -57,7 +59,7 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
   if (.not.isfilepresent(outdir)) then
      system("mkdir "+outdir)
   end if
-  if (opt_climo.ne."Custom") then
+  if (opt_climo.ne."Custom".and.opt_climo.ne."External") then
      climo_syear = -999
      climo_eyear = -999
   end if

@@ -29,7 +29,7 @@ NEXTSTEP = os.getenv('NEXTSTEP')
 hostname = socket.gethostname()
 if ('gpc' in hostname):
   # we need to know something about the queue system...
-  nodes = 2 # number of nodes
+  nodes = 1 # number of nodes
   ppn = 16 # processes per node
   showq = 'showq -w class=largemem' # queue query command
   submitPrimary = 'qsub %s -v NEXTSTEP=%s -l nodes=1:m128g:ppn=16 -q largemem'%(WPSSCRIPT,NEXTSTEP)

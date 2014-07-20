@@ -80,9 +80,13 @@ begin
   
   ; read in external climatology before looping
   if (OPT_CLIMO.eq."External") then
-      print("   >>>   Opening External Climatology File: "+CLIMO_FILE)
-      climfile = addfile(CLIMO_FILE,"r")   
+      ;print("")
+      ;print("   >>>   Opening External Climatology File: "+CLIMO_FILE)
+      ;print("")
+      climfile = addfile(CLIMO_FILE,"r") 
+      ;climo = create_empty_array(0,0,1,12)
       climo = climfile->TS
+      ;printVarSummary(climo)
       ; convert to Celsius, if necessary
       if (climo@units.eq."K".or.climo@units.eq."Kelvin") then   
         climo = climo-273.15
@@ -92,10 +96,12 @@ begin
       climo = where(climo.le.-1.8,-1.8,climo)
       lsm = landsea_mask(basemap,climo&lat,climo&lon)
       climo = mask(climo,conform(climo,lsm,(/1,2/)).ge.1,False)
-      delete(lsm)
+      delete([/lsm,climfile/])
+      ;printVarSummary(climo)
   end if   
      
   do ee = 0,nsim-1
+     ;print(paths(ee))
      sst = data_read_in(paths(ee),"TS",syear(ee),eyear(ee))    ; read in data, orient lats/lons correctly, set time coordinate variable up
      if (isatt(sst,"is_all_missing")) then
         delete(sst)
@@ -103,28 +109,34 @@ begin
      end if
        
      if (isfilepresent("obs_ts").and.ee.eq.0) then   ; mask out land in array going into EOF functions
+        if (OPT_CLIMO.eq."Full") then
+            sst = rmMonAnnCycTLL(sst)
+        else
+            ; obs require special treatment, because they are on a different grid!
+            check_custom_climo(names(ee),syear(ee),eyear(ee),CLIMO_SYEAR,CLIMO_EYEAR)
+            obsclm = clmMonTLL(sst({CLIMO_SYEAR*100+1:CLIMO_EYEAR*100+12},:,:))                 
+            ;printVarSummary(sst)        
+            sst   = calcMonAnomTLL(sst,obsclm) 
+            delete(obsclm)
+        end if
      else
         sst = where(sst.le.-1.8,-1.8,sst)
         ;d = addfile("$NCARG_ROOT/lib/ncarg/data/cdf/landsea.nc","r")   
         ;basemap = d->LSMASK
         lsm = landsea_mask(basemap,sst&lat,sst&lon)
         sst = mask(sst,conform(sst,lsm,(/1,2/)).ge.1,False)
-        delete(lsm)
-        ;printStatInfo(sst)
-        ;delete([/lsm,basemap/])
-        ;delete(d)
+        delete(lsm)         
+        if (OPT_CLIMO.eq."Full") then
+            sst = rmMonAnnCycTLL(sst)
+        else
+            if (OPT_CLIMO.eq."Custom") then
+              check_custom_climo(names(ee),syear(ee),eyear(ee),CLIMO_SYEAR,CLIMO_EYEAR)
+              climo = clmMonTLL(sst({CLIMO_SYEAR*100+1:CLIMO_EYEAR*100+12},:,:))                 
+            end if
+            ;printVarSummary(sst)        
+            sst   = calcMonAnomTLL(sst,climo) 
+        end if      
      end if    
-         
-     if (OPT_CLIMO.eq."Full") then
-        sst = rmMonAnnCycTLL(sst)
-     else
-        if (OPT_CLIMO.eq."Custom") then
-          check_custom_climo(names(ee),syear(ee),eyear(ee),CLIMO_SYEAR,CLIMO_EYEAR)
-          climo = clmMonTLL(sst({CLIMO_SYEAR*100+1:CLIMO_EYEAR*100+12},:,:))                 
-        end if
-        sst   = calcMonAnomTLL(sst,climo) 
-        ;delete(climo)
-     end if
   
      coswgt=cos(rad*sst&lat)
      coswgt!0 = "lat"
@@ -401,13 +413,7 @@ begin
      
      delete([/val1,val2,pc1/])
   end do
-  delete([/lsm,basemap/]) ; used before and through-out
-  delete(d)
-  delete(climo)
-  if (OPT_CLIMO.eq."External") then
-      delete(climfile)
-  end if
-
+  delete([/d,basemap,climo/]) ; used before and through-out the loop
 
   if (isfilepresent("obs_ts")) then    ; for pattern correlation table  
      clat = cos(0.01745329*patcor&lat)
