@@ -50,6 +50,7 @@ RUNS=${RUNS:-'h[abc]b20trcn1x1/ tb20trcn1x1/ h[abct]brcp85cn1x1/ h[abct]brcp85cn
 PERIODS=${PERIODS:-'5 10 15'} # averaging periods
 # cesm_average settings
 CVDP=${CVDP:-'FALSE'} # Climate Variability Diagnostics Package (set to CVDP)
+REFCLM=${REFCLM:-'HISTORICAL'} # climatology that is used to remove annual cycle in CVDP" HISTORICAL, PERIOD 
 DIAG=${DIAG:-'FALSE'} # Climatology Diagnostics Package (set to DIAG)
 CONCAT=${CONCAT:-'FALSE'} # concatenate monthly files (set to CONCAT)
 AVERAGE=${AVERAGE:-'FALSE'} # compute climatologies (set to AVERAGE)
@@ -101,8 +102,13 @@ for RUN in $RUNS
     elif [[ "$RUN" == seaice-*-hf ]]; then SPRD='2045'; EPRD='2059'; HREF='tb20trcn1x1'
     else echo "ERROR: No settings found for experiment '$RUN' - aborting!"; exit 1     
     fi # $RUN settings
+    EEPRD=$(( $EPRD +1 )) # different convention in climatology file
     case $SPRD in # ensemble control
-        1979) CREF='tb20trcn1x1';; 2045) CREF='htbrcp85cn1x1';; 2085) CREF='htbrcp85cn1x1d';; esac
+        1979) CREF='tb20trcn1x1'; P_CLIM_FILE="$CCA/ens20trcn1x1/cesmavg/cesmatm_clim_${SPRD}-${EEPRD}.nc";;
+        2045) CREF='htbrcp85cn1x1'; P_CLIM_FILE="$CCA/ensrcp85cn1x1/cesmavg/cesmatm_clim_${SPRD}-${EEPRD}.nc";;
+        2085) CREF='htbrcp85cn1x1d'; P_CLIM_FILE="$CCA/ensrcp85cn1x1d/cesmavg/cesmatm_clim_${SPRD}-${EEPRD}.nc";;
+    esac
+    H_CLIM_FILE="$CCA/ens20trcn1x1/cesmavg/cesmatm_clim_1979-1994.nc" # historical climatology
     HPRD='1979'; CPRD=$SPRD # begin of reference periods: hsitorical and current/control
     if [[ "$RUN" == "$CREF" ]]; then CREF=''; CPRD=''; fi # special case: can't compare to itself
     # save meta info in script for later reference
@@ -213,7 +219,10 @@ for RUN in $RUNS
           echo "   Running CVDP"
           rm -rf "$RUNDIR/cvdp/" 
           export TEST # TEST=True only generates namelists
-          echo "cd $RUNDIR; bash -e run_cvdp.sh $RUN $SPRD $EPRD &> $RUNDIR/cvdp.log" >> "${CMDFILE}.cvdp" 
+          if [[ "$REFCLM" == 'HISTORICAL' ]]; then CLIMO="$H_CLIM_FILE"
+          elif [[ "$REFCLM" == 'PERIOD' ]]; then CLIMO="$P_CLIM_FILE"
+          fi # currently no other options
+          echo "cd $RUNDIR; bash -e run_cvdp.sh $RUN $SPRD $EPRD $CLIMO &> $RUNDIR/cvdp.log" >> "${CMDFILE}.cvdp" 
         else
           echo "   Skipping CVDP"
         fi # if actually running

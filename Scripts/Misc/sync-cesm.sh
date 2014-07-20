@@ -3,7 +3,7 @@
 
 # CESM directories / data sources
 REX='h[abc]b20trcn1x1 tb20trcn1x1 h[abcz]brcp85cn1x1 htbrcp85cn1x1 seaice-5r-hf h[abcz]brcp85cn1x1d htbrcp85cn1x1d seaice-5r-hfd'
-ENS='ens*/'
+ENS='ens20trcn1x1 ensrcp85cn1x1 ensrcp85cn1x1d'
 CESMDATA=${CESMDATA:-/data/CESM/} # can be supplied by caller
 CCA='/reserved1/p/peltier/aerler/CESM/archive/' # archives with my own cesmavg files
 # connection settings
@@ -107,6 +107,36 @@ for E in $( ssh ${SSH} ${HOST} "ls -d ${D}" ) # get folder listing from scinet
 		        echo
 		    fi # if ls scinet
     done # for amwg & cvdp
+done # for experiments
+
+# generate list of ensembles to copy back to SciNet
+D=''; for R in ${ENS}; do D="${D} ${CESMDATA}/cesmavg/${R}"; done # assemble list of source folders
+# loop over all relevant experiments
+for E in $( ls -d ${D} ) # get folder listing (this time local)
+  do 
+
+    E=${E%/} # necessary for folder/experiment name
+		N=${E##*/} # isolate folder name (local folder name)
+    echo
+    echo "   ***   Copying $N to SciNet  ***   "
+    echo
+    
+    ## synchronize/backup cesmavg/ens files
+    F="${E}/cesm[ali][tnc][mde]_clim_*.nc" # only copy monthly climatology, no time-series
+    # check if experiment has any data
+    ls ${F} &> /dev/null
+    if [ $? == 0 ] # check exit code 
+      then
+        M="${CCA}/${N}/cesmavg" # absolute path
+        ssh ${SSH} ${HOST} "mkdir -p '${M}'" # make sure remote directory exists
+        echo "${E}/" # feedback
+        # use rsync for the transfer; verbose, archive, update (gzip is probably not necessary)
+        rsync -vau -e "ssh ${SSH}" ${F} "${HOST}:${M}/" # from here to SciNet 
+        ERR=$(( ${ERR} + $? )) # capture exit code, and repeat, if unsuccessful
+        # N.B.: with connection sharing, repeating connection attempts is not really necessary
+        echo
+    fi # if ls scinet
+
 done # for experiments
 
 

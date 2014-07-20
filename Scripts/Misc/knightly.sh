@@ -7,7 +7,7 @@
 
 # pre-process arguments using getopt
 if [ -z $( getopt -T ) ]; then
-  TMP=$( getopt -o p:tsdn:h --long processes:,test,highspeed,debug,niceness,overwrite,help -n "$0" -- "$@" ) # pre-process arguments
+  TMP=$( getopt -o p:tsdn:h --long processes:,test,highspeed,debug,niceness:,overwrite,help -n "$0" -- "$@" ) # pre-process arguments
   [ $? != 0 ] && exit 1 # getopt already prints an error message
   eval set -- "$TMP" # reset positional parameters (arguments) to $TMP list
 fi # check if GNU getopt ("enhanced")
@@ -48,7 +48,7 @@ export ROOT='/data/'
 export WRFDATA="${ROOT}/WRF/" # local WRF data root
 export CESMDATA="${ROOT}/CESM/" # local CESM data root
 # general settings
-NICENESS=${NICENESS:-5}
+NICENESS=${NICENESS:-10}
 
 ## error reporting
 ERR=0 # error counter

@@ -17,12 +17,15 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
   compute_modes_mon    = "True"              ; True = compute DJF, MAM, JJA, SON, Annual and Monthly Atmospheric Modes of Variability 
                                              ; False = do not compute the Monthly Atmospheric Modes of Variability  (saves computation time)                               
 ;- - - - - - - - - - - - - - - - - -   
-  opt_climo         = "Full"                 ; "Full"  = remove climatology based on full record of each simulation,
+  opt_climo         = "External"                 ; "Full"  = remove climatology based on full record of each simulation,
                                              ; "Custom" = use start and end year of climatological period specified by climo_syear and climo_eyear 
   if (opt_climo.eq."Custom") then
      climo_syear    = 1920                   ; remove the climatology/annual cycle based on these years when opt_climo = "Custom"
      climo_eyear    = 2010                   ; note: climo_syear and climo_eyear should be within the range of years of all analyzed model runs 
+  else if (opt_climo.eq."External") then
+     climo_file     = getenv("CLIM_FILE")    ; path to the file containing the external annual climatology to be used
   end if                                     ;       and specified observational datasets.
+  end if
 ;- - - - - - - - - - - - - - - - - -   
   colormap          = 0                      ; 0 = default colormaps, 1 = colormaps better for color blindness
 
@@ -58,6 +61,9 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
      climo_syear = -999
      climo_eyear = -999
   end if
+  if (opt_climo.ne."External") then
+     climo_file = ""
+  end if
   
   webpage_title = str_sub_str(webpage_title," ","%")
 
@@ -68,7 +74,7 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
   if (namelists_only.eq."True") then
      system("   export OUTDIR="+outdir+";   export OBS="+obs+";   export SCALE_TIMESERIES="+scale_timeseries+";   "+\
          "export OUTPUT_DATA="+output_data+";   export VERSION="+version+";   export PNG_SCALE="+png_scale+";   "+\
-         "export OPT_CLIMO="+opt_climo+";   export CLIMO_SYEAR="+climo_syear+";   export CLIMO_EYEAR="+climo_eyear+";   "+\
+         "export OPT_CLIMO="+opt_climo+";   export CLIMO_SYEAR="+climo_syear+";   export CLIMO_EYEAR="+climo_eyear+";   "+"export CLIMO_FILE="+climo_file+";    "+\
          "export COMPUTE_MODES_MON="+compute_modes_mon+";   export OUTPUT_TYPE="+output_type+";"+\         
          " "+ncl_exec+" "+zp+"namelist.ncl")
      print("Variable namelists have been created. Examine files in namelist_byvar/ directory to verify CVDP file selection.")
@@ -82,7 +88,7 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
               
   system("   export OUTDIR="+outdir+";   export OBS="+obs+";   export SCALE_TIMESERIES="+scale_timeseries+";   "+\
          "export OUTPUT_DATA="+output_data+";   export VERSION="+version+";   export PNG_SCALE="+png_scale+";   "+\
-         "export OPT_CLIMO="+opt_climo+";   export CLIMO_SYEAR="+climo_syear+";   export CLIMO_EYEAR="+climo_eyear+";   "+\
+         "export OPT_CLIMO="+opt_climo+";   export CLIMO_SYEAR="+climo_syear+";   export CLIMO_EYEAR="+climo_eyear+";   "+"export CLIMO_FILE="+climo_file+";    "+\
          "export COMPUTE_MODES_MON="+compute_modes_mon+";   export OUTPUT_TYPE="+output_type+";   export COLORMAP="+colormap+";"+\   
          " "+ncl_exec+" "+zp+"namelist.ncl; "+ncl_exec+" "+zp+"sst.indices.ncl; "+ncl_exec+" "+zp+"amo.ncl;"+\
          " "+ncl_exec+" "+zp+"pdo.ncl; "+ncl_exec+" "+zp+"psl.modes_indices.ncl; "+ncl_exec+" "+zp+"tas.trends_timeseries.ncl;"+\
@@ -127,7 +133,7 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
      system("   export OUTDIR="+outdir+"; "+ncl_exec+" "+zp+"metrics.ncl")
   end if
   system("   export OUTDIR="+outdir+";   export VERSION="+version+";   export OUTPUT_DATA="+output_data+";   "+\
-         "export OPT_CLIMO="+opt_climo+";   export CLIMO_SYEAR="+climo_syear+";   export CLIMO_EYEAR="+climo_eyear+";   "+\
+         "export OPT_CLIMO="+opt_climo+";   export CLIMO_SYEAR="+climo_syear+";   export CLIMO_EYEAR="+climo_eyear+";   "+"export CLIMO_FILE="+climo_file+";    "+\
          "export WEBTITLE="+webpage_title+";   export OBS="+obs+"; "+ncl_exec+" "+zp+"webpage.ncl")
 ;-------------------------------
   if (tar_output.eq."True") then
@@ -145,5 +151,5 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
         system("rm obs_"+variables(gg))
      end if 
   end do
-  delete([/ofiles,variables,outdir,obs,scale_timeseries,output_data,opt_climo,climo_syear,climo_eyear,png_scale,webpage_title,compute_modes_mon/])
+  delete([/ofiles,variables,outdir,obs,scale_timeseries,output_data,opt_climo,climo_syear,climo_eyear,climo_file,png_scale,webpage_title,compute_modes_mon/])
 
