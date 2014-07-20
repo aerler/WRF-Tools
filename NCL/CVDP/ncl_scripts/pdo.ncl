@@ -84,7 +84,6 @@ begin
       ;print("   >>>   Opening External Climatology File: "+CLIMO_FILE)
       ;print("")
       climfile = addfile(CLIMO_FILE,"r") 
-      ;climo = create_empty_array(0,0,1,12)
       climo = climfile->TS
       ;printVarSummary(climo)
       ; convert to Celsius, if necessary
@@ -113,9 +112,9 @@ begin
             sst = rmMonAnnCycTLL(sst)
         else
             ; obs require special treatment, because they are on a different grid!
-            check_custom_climo(names(ee),syear(ee),eyear(ee),CLIMO_SYEAR,CLIMO_EYEAR)
             obs_syr = 1979 ; no obs in future... but use same period length!
             obs_eyr = 1979 + CLIMO_EYEAR - CLIMO_SYEAR
+            check_custom_climo(names(ee),syear(ee),eyear(ee),obs_syr,obs_eyr)
             obsclm = clmMonTLL(sst({obs_syr*100+1:obs_eyr*100+12},:,:))                 
             ;printVarSummary(sst)        
             sst   = calcMonAnomTLL(sst,obsclm) 

@@ -19,6 +19,7 @@ begin
   OPT_CLIMO        = getenv("OPT_CLIMO")
   CLIMO_SYEAR      = toint(getenv("CLIMO_SYEAR"))
   CLIMO_EYEAR      = toint(getenv("CLIMO_EYEAR"))
+  CLIMO_FILE       = getenv("CLIMO_FILE")
   OUTPUT_TYPE      = getenv("OUTPUT_TYPE") 
   COLORMAP         = getenv("COLORMAP")  
   
@@ -187,6 +188,7 @@ begin
   
   n34sc_frame = 1     ; n34sc_frame = flag to create regressions .ps/.png files. Created/used instead of n34sc_plot_flag
                       ; so that if sst regressions are not created for the last simulation listed that .ps/png files are created
+                        
   do ee = 0,nsim-1
 ;     print(paths(ee)+" ee = "+ee)
      sst = data_read_in(paths(ee),"TS",syear(ee),eyear(ee))    ; read in data, orient lats/lons correctly, set time coordinate variable up
@@ -198,26 +200,50 @@ begin
        
      if (isfilepresent("obs_ts").and.ee.eq.0) then   ; mask out land in array going into EOF functions
         n34sc_flag = 1     ; this flag MAY be overruled by n34sc_obs
+        if (OPT_CLIMO.eq."Full") then
+            sst = rmMonAnnCycTLL(sst)
+        else
+            obs_syr = 1979 ; no obs in future... but use same period length!
+            obs_eyr = 1979 + CLIMO_EYEAR - CLIMO_SYEAR
+            check_custom_climo(names(ee),syear(ee),eyear(ee),obs_syr,obs_eyr)
+            climo = clmMonTLL(sst({obs_syr*100+1:obs_eyr*100+12},:,:))                 
+            sst   = calcMonAnomTLL(sst,climo) 
+            delete(climo)
+        end if        
      else
-        n34sc_flag = 0     ; flag set to trigger nino3.4 composite
-        
-        sst = where(sst.le.-1.8,-1.8,sst)
-        d = addfile("$NCARG_ROOT/lib/ncarg/data/cdf/landsea.nc","r")   
-        basemap = d->LSMASK
-        lsm = landsea_mask(basemap,sst&lat,sst&lon)
-        sst = mask(sst,conform(sst,lsm,(/1,2/)).ge.1,False)
-;        printStatInfo(sst)
-        delete([/lsm,basemap/])
-        delete(d)
+          n34sc_flag = 0     ; flag set to trigger nino3.4 composite
+          
+          sst = where(sst.le.-1.8,-1.8,sst)
+          d = addfile("$NCARG_ROOT/lib/ncarg/data/cdf/landsea.nc","r")   
+          basemap = d->LSMASK
+          lsm = landsea_mask(basemap,sst&lat,sst&lon)
+          sst = mask(sst,conform(sst,lsm,(/1,2/)).ge.1,False)
+          if (OPT_CLIMO.eq."Full") then
+              sst = rmMonAnnCycTLL(sst)
+          else
+              if (OPT_CLIMO.eq."Custom") then
+                check_custom_climo(names(ee),syear(ee),eyear(ee),CLIMO_SYEAR,CLIMO_EYEAR)
+                climo = clmMonTLL(sst({CLIMO_SYEAR*100+1:CLIMO_EYEAR*100+12},:,:))                 
+              else (OPT_CLIMO.eq."External") then
+                climfile = addfile(CLIMO_FILE,"r") 
+                climo = climfile->TS              
+                if (climo@units.eq."K".or.climo@units.eq."Kelvin") then   
+                  climo = climo-273.15
+                  climo@units = "C" ; convert to Celsius, if necessary
+                end if              
+                climo = where(climo.le.-1.8,-1.8,climo) 
+                climo = mask(climo,conform(climo,lsm,(/1,2/)).ge.1,False)
+                delete(climfile)
+                ;printVarSummary(climo)
+              end if
+              end if
+              ;printVarSummary(sst)        
+              sst   = calcMonAnomTLL(sst,climo) 
+              delete(climo)
+          end if      
+          delete([/lsm,basemap/])
+          delete(d)
      end if    
-     if (OPT_CLIMO.eq."Full") then
-        sst = rmMonAnnCycTLL(sst)
-     else
-        check_custom_climo(names(ee),syear(ee),eyear(ee),CLIMO_SYEAR,CLIMO_EYEAR)
-        climo = clmMonTLL(sst({CLIMO_SYEAR*100+1:CLIMO_EYEAR*100+12},:,:))                 
-        sst   = calcMonAnomTLL(sst,climo) 
-        delete(climo)
-     end if
 
      coswgt=cos(rad*sst&lat)
      coswgt!0 = "lat" 
@@ -314,8 +340,11 @@ begin
            z@notes = "Data from "+names(ee)+" from "+syear(ee)+"-"+eyear(ee)
            if (OPT_CLIMO.eq."Full") then
               z@climatology = syear(ee)+"-"+eyear(ee)+" climatology removed prior to all calculations (other than means)"
+           else if (OPT_CLIMO.eq."External") then
+              z@climatology = "An external climatology from "+CLIMO_SYEAR+"-"+CLIMO_EYEAR+" was removed prior to all calculations (other than means)"              
            else
               z@climatology = CLIMO_SYEAR+"-"+CLIMO_EYEAR+" climatology removed prior to all calculations (other than means)"
+           end if
            end if
         else
            z = addfile(fn,"w")

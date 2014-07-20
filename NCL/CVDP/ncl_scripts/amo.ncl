@@ -17,6 +17,7 @@ begin
   OPT_CLIMO        = getenv("OPT_CLIMO")
   CLIMO_SYEAR      = toint(getenv("CLIMO_SYEAR"))
   CLIMO_EYEAR      = toint(getenv("CLIMO_EYEAR"))
+  CLIMO_FILE       = getenv("CLIMO_FILE")
   OUTPUT_TYPE      = getenv("OUTPUT_TYPE") 
   COLORMAP         = getenv("COLORMAP")
   
@@ -74,25 +75,50 @@ begin
         continue
      end if  
      if (isfilepresent("obs_ts").and.ee.eq.0) then   ; mask out land in array going into EOF functions
+        if (OPT_CLIMO.eq."Full") then
+            sstT = rmMonAnnCycTLL(sstT)
+        else
+            obs_syr = 1979 ; no obs in future... but use same period length!
+            obs_eyr = 1979 + CLIMO_EYEAR - CLIMO_SYEAR
+            check_custom_climo(names(ee),syear(ee),eyear(ee),obs_syr,obs_eyr)
+            climo = clmMonTLL(sstT({obs_syr*100+1:obs_eyr*100+12},:,:))                 
+            sstT   = calcMonAnomTLL(sstT,climo) 
+            delete(climo)
+        end if
      else
         sstT = where(sstT.le.-1.8,-1.8,sstT)
         d = addfile("$NCARG_ROOT/lib/ncarg/data/cdf/landsea.nc","r")   
         basemap = d->LSMASK
         lsm = landsea_mask(basemap,sstT&lat,sstT&lon)
         sstT = mask(sstT,conform(sstT,lsm,(/1,2/)).ge.1,False)
+        if (OPT_CLIMO.eq."Full") then
+            sstT = rmMonAnnCycTLL(sstT)
+        else
+            if (OPT_CLIMO.eq."Custom") then
+              check_custom_climo(names(ee),syear(ee),eyear(ee),CLIMO_SYEAR,CLIMO_EYEAR)
+              climo = clmMonTLL(sst({CLIMO_SYEAR*100+1:CLIMO_EYEAR*100+12},:,:))                 
+            else (OPT_CLIMO.eq."External") then
+              climfile = addfile(CLIMO_FILE,"r") 
+              climo = climfile->TS              
+              if (climo@units.eq."K".or.climo@units.eq."Kelvin") then   
+                climo = climo-273.15
+                climo@units = "C" ; convert to Celsius, if necessary
+              end if              
+              climo = where(climo.le.-1.8,-1.8,climo) 
+              climo = mask(climo,conform(climo,lsm,(/1,2/)).ge.1,False)
+              delete(climfile)
+              ;printVarSummary(climo)
+            end if
+            end if
+            ;printVarSummary(sst)        
+            sstT   = calcMonAnomTLL(sstT,climo) 
+            delete(climo)
+        end if      
         delete([/lsm,basemap/])
         delete(d)
      end if    
      
      sstT = lonFlip(sstT)   ; orient longitudes from -180:180 (set to 0:360 in data_read_in function)
-     if (OPT_CLIMO.eq."Full") then
-        sstT = rmMonAnnCycTLL(sstT)
-     else
-        check_custom_climo(names(ee),syear(ee),eyear(ee),CLIMO_SYEAR,CLIMO_EYEAR)
-        climo = clmMonTLL(sstT({CLIMO_SYEAR*100+1:CLIMO_EYEAR*100+12},:,:))                 
-        sstT   = calcMonAnomTLL(sstT,climo) 
-        delete(climo)
-     end if
           
      coswgt=cos(rad*sstT&lat)
      coswgt!0 = "lat"
