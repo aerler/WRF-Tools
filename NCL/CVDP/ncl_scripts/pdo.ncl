@@ -186,6 +186,7 @@ begin
               z@climatology = syear(ee)+"-"+eyear(ee)+" climatology removed prior to all calculations (other than means)"
            else if (OPT_CLIMO.eq."External") then
               z@climatology = "An external climatology from "+CLIMO_SYEAR+"-"+CLIMO_EYEAR+" was removed prior to all calculations (other than means)"              
+              z@clim_file = CLIMO_FILE
            else
               z@climatology = CLIMO_SYEAR+"-"+CLIMO_EYEAR+" climatology removed prior to all calculations (other than means)"
            end if

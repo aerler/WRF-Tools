@@ -18,6 +18,7 @@ begin
   OPT_CLIMO        = getenv("OPT_CLIMO")
   CLIMO_SYEAR      = toint(getenv("CLIMO_SYEAR"))
   CLIMO_EYEAR      = toint(getenv("CLIMO_EYEAR"))
+  CLIMO_FILE       = getenv("CLIMO_FILE")
   OUTPUT_TYPE      = getenv("OUTPUT_TYPE") 
   COMPUTE_MODES_MON = getenv("COMPUTE_MODES_MON")
   COLORMAP         = getenv("COLORMAP")  
@@ -295,14 +296,41 @@ begin
         continue
      end if 
      
-     if (OPT_CLIMO.eq."Full") then
+     
+    if (OPT_CLIMO.eq."Full") then
         arr = rmMonAnnCycTLL(arr)
-     else
-        check_custom_climo(names(ee),syear(ee),eyear(ee),CLIMO_SYEAR,CLIMO_EYEAR)
-        climo = clmMonTLL(arr({CLIMO_SYEAR*100+1:CLIMO_EYEAR*100+12},:,:))                 
+    else
+        if (OPT_CLIMO.eq."Custom") then
+          check_custom_climo(names(ee),syear(ee),eyear(ee),CLIMO_SYEAR,CLIMO_EYEAR)
+          climo = clmMonTLL(arr({CLIMO_SYEAR*100+1:CLIMO_EYEAR*100+12},:,:))                 
+        else if (OPT_CLIMO.eq."External") then
+          climfile = addfile(CLIMO_FILE,"r") 
+          climo = climfile->PSL
+          clm_sz = dimsizes(climo)
+          arr_sz = dimsizes(arr)
+          if (clm_sz(1).eq.arr_sz(1).and.clm_sz(2).eq.arr_sz(2)) then
+            if (climo@units.eq."Pa".or.climo@units.eq."Pascals".or.climo@units.eq."Pascal") then
+            climo = climo/100.
+            climo@units = "hPa"
+            end if
+            ;printVarSummary(climo)
+          else
+            obs_syr = 1979 ; no obs in future... but use same period length!
+            obs_eyr = 1979 + CLIMO_EYEAR - CLIMO_SYEAR
+            check_custom_climo(names(ee),syear(ee),eyear(ee),obs_syr,obs_eyr)
+            delete(climo) ; need to clear again...
+            climo = clmMonTLL(arr({obs_syr*100+1:obs_eyr*100+12},:,:))                 
+          end if
+          delete(climfile)
+        end if
+        end if
+        ;printVarSummary(arr)        
         arr   = calcMonAnomTLL(arr,climo) 
         delete(climo)
-     end if
+    end if      
+    
+    ;printVarSummary(arr)
+
 
      arrT =  runave_n_Wrap(arr,3,0,0)               ; form DJF averages
      arrT(0,:,:) = (/ dim_avg_n(arr(:1,:,:),0) /)   
@@ -362,22 +390,51 @@ begin
            delete(sst)
         end if
         
+        ;printVarSummary(sst)
+        
         if (sstreg_plot_flag.eq.0) then     ; only continue if both PSL/TS fields are present
-           sst = where(sst.le.-1.8,-1.8,sst)
-           d = addfile("$NCARG_ROOT/lib/ncarg/data/cdf/landsea.nc","r")   
-           basemap = d->LSMASK
-           lsm = landsea_mask(basemap,sst&lat,sst&lon)
-           sst = mask(sst,conform(sst,lsm,(/1,2/)).ge.1,False)
-           delete(lsm)
-           
-           if (OPT_CLIMO.eq."Full") then
+          sst = where(sst.le.-1.8,-1.8,sst)
+          d = addfile("$NCARG_ROOT/lib/ncarg/data/cdf/landsea.nc","r")   
+          basemap = d->LSMASK
+          lsm = landsea_mask(basemap,sst&lat,sst&lon)
+          sst = mask(sst,conform(sst,lsm,(/1,2/)).ge.1,False)
+          
+          if (OPT_CLIMO.eq."Full") then
               sst = rmMonAnnCycTLL(sst)
-           else
-              check_custom_climo(names_ts(ee+ts_offset),syear_ts(ee+ts_offset),eyear_ts(ee+ts_offset),CLIMO_SYEAR,CLIMO_EYEAR)
-              climo = clmMonTLL(sst({CLIMO_SYEAR*100+1:CLIMO_EYEAR*100+12},:,:))                 
+          else
+              if (OPT_CLIMO.eq."Custom") then
+                check_custom_climo(names(ee),syear(ee),eyear(ee),CLIMO_SYEAR,CLIMO_EYEAR)
+                climo = clmMonTLL(sst({CLIMO_SYEAR*100+1:CLIMO_EYEAR*100+12},:,:))                 
+              else if (OPT_CLIMO.eq."External") then
+                climfile = addfile(CLIMO_FILE,"r") 
+                climo = climfile->TS
+                clm_sz = dimsizes(climo)
+                sst_sz = dimsizes(sst)
+                if (clm_sz(1).eq.sst_sz(1).and.clm_sz(2).eq.sst_sz(2)) then
+                  if (climo@units.eq."K".or.climo@units.eq."Kelvin") then   
+                    climo = climo-273.15
+                    climo@units = "C" ; convert to Celsius, if necessary
+                  end if              
+                  climo = where(climo.le.-1.8,-1.8,climo) 
+                  climo = mask(climo,conform(climo,lsm,(/1,2/)).ge.1,False)
+                  ;printVarSummary(climo)
+                else
+                  obs_syr = 1979 ; no obs in future... but use same period length!
+                  obs_eyr = 1979 + CLIMO_EYEAR - CLIMO_SYEAR
+                  check_custom_climo(names(ee),syear(ee),eyear(ee),obs_syr,obs_eyr)
+                  delete(climo) ; need to clear again...
+                  climo = clmMonTLL(sst({obs_syr*100+1:obs_eyr*100+12},:,:))                 
+                end if
+                delete(climfile)
+              end if
+              end if
+              ;printVarSummary(sst)        
               sst   = calcMonAnomTLL(sst,climo) 
               delete(climo)
-           end if
+          end if      
+          delete([/lsm,basemap/])
+          delete(d)
+          
 ;           sst = (/ dtrend_msg_n(ispan(0,dimsizes(sst&time)-1,1),sst,False,False,0) /)  
         
            sstT =  runave_n_Wrap(sst,3,0,0)               ; form DJF averages
@@ -1198,8 +1255,12 @@ begin
            z@notes = "Data from "+names(ee)+" from "+syear(ee)+"-"+eyear(ee)
            if (OPT_CLIMO.eq."Full") then
               z@climatology = syear(ee)+"-"+eyear(ee)+" climatology removed prior to all calculations (other than means)"
+           else if (OPT_CLIMO.eq."External") then
+              z@climatology = "An external climatology from "+CLIMO_SYEAR+"-"+CLIMO_EYEAR+" was removed prior to all calculations (other than means)"              
+              z@clim_file = CLIMO_FILE
            else
               z@climatology = CLIMO_SYEAR+"-"+CLIMO_EYEAR+" climatology removed prior to all calculations (other than means)"
+           end if
            end if
         else
            z = addfile(fn,"w")

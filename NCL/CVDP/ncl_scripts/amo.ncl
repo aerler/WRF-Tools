@@ -97,7 +97,7 @@ begin
             if (OPT_CLIMO.eq."Custom") then
               check_custom_climo(names(ee),syear(ee),eyear(ee),CLIMO_SYEAR,CLIMO_EYEAR)
               climo = clmMonTLL(sst({CLIMO_SYEAR*100+1:CLIMO_EYEAR*100+12},:,:))                 
-            else (OPT_CLIMO.eq."External") then
+            else if (OPT_CLIMO.eq."External") then
               climfile = addfile(CLIMO_FILE,"r") 
               climo = climfile->TS              
               if (climo@units.eq."K".or.climo@units.eq."Kelvin") then   
@@ -153,8 +153,12 @@ begin
            z@notes = "Data from "+names(ee)+" from "+syear(ee)+"-"+eyear(ee)
            if (OPT_CLIMO.eq."Full") then
               z@climatology = syear(ee)+"-"+eyear(ee)+" climatology removed prior to all calculations (other than means)"
+           else if (OPT_CLIMO.eq."External") then
+              z@climatology = "An external climatology from "+CLIMO_SYEAR+"-"+CLIMO_EYEAR+" was removed prior to all calculations (other than means)"              
+              z@clim_file = CLIMO_FILE
            else
               z@climatology = CLIMO_SYEAR+"-"+CLIMO_EYEAR+" climatology removed prior to all calculations (other than means)"
+           end if
            end if
         else
            z = addfile(fn,"w")

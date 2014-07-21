@@ -17,6 +17,7 @@ begin
   OPT_CLIMO        = getenv("OPT_CLIMO")
   CLIMO_SYEAR      = toint(getenv("CLIMO_SYEAR"))
   CLIMO_EYEAR      = toint(getenv("CLIMO_EYEAR"))
+  CLIMO_FILE       = getenv("CLIMO_FILE")
   OUTPUT_TYPE      = getenv("OUTPUT_TYPE") 
   COLORMAP         = getenv("COLORMAP")
   
@@ -82,14 +83,38 @@ begin
         delete(psl)
         continue
      end if 
-     if (OPT_CLIMO.eq."Full") then
+     
+    if (OPT_CLIMO.eq."Full") then
         psl = rmMonAnnCycTLL(psl)
-     else
-        check_custom_climo(names(ee),syear(ee),eyear(ee),CLIMO_SYEAR,CLIMO_EYEAR)
-        climo = clmMonTLL(psl({CLIMO_SYEAR*100+1:CLIMO_EYEAR*100+12},:,:))                 
+    else
+        if (OPT_CLIMO.eq."Custom") then
+          check_custom_climo(names(ee),syear(ee),eyear(ee),CLIMO_SYEAR,CLIMO_EYEAR)
+          climo = clmMonTLL(psl({CLIMO_SYEAR*100+1:CLIMO_EYEAR*100+12},:,:))                 
+        else if (OPT_CLIMO.eq."External") then
+          climfile = addfile(CLIMO_FILE,"r") 
+          climo = climfile->PSL
+          clm_sz = dimsizes(climo)
+          psl_sz = dimsizes(psl)
+          if (clm_sz(1).eq.psl_sz(1).and.clm_sz(2).eq.psl_sz(2)) then
+            if (climo@units.eq."Pa".or.climo@units.eq."Pascals".or.climo@units.eq."Pascal") then
+            climo = climo/100.
+            climo@units = "hPa"
+            end if
+            ;printVarSummary(climo)
+          else
+            obs_syr = 1979 ; no obs in future... but use same period length!
+            obs_eyr = 1979 + CLIMO_EYEAR - CLIMO_SYEAR
+            check_custom_climo(names(ee),syear(ee),eyear(ee),obs_syr,obs_eyr)
+            delete(climo) ; need to clear again...
+            climo = clmMonTLL(psl({obs_syr*100+1:obs_eyr*100+12},:,:))                 
+          end if
+          delete(climfile)
+        end if
+        end if
+        ;printVarSummary(psl)        
         psl   = calcMonAnomTLL(psl,climo) 
         delete(climo)
-     end if
+    end if      
  
      tttt = dtrend_msg_n(ispan(0,dimsizes(psl&time)-1,1),psl,False,True,0)
      psl_trends_mon = psl(0,:,:)
@@ -139,8 +164,12 @@ begin
            z@notes = "Data from "+names(ee)+" from "+syear(ee)+"-"+eyear(ee)
            if (OPT_CLIMO.eq."Full") then
               z@climatology = syear(ee)+"-"+eyear(ee)+" climatology removed prior to all calculations (other than means)"
+           else if (OPT_CLIMO.eq."External") then
+              z@climatology = "An external climatology from "+CLIMO_SYEAR+"-"+CLIMO_EYEAR+" was removed prior to all calculations (other than means)"
+              z@clim_file = CLIMO_FILE
            else
               z@climatology = CLIMO_SYEAR+"-"+CLIMO_EYEAR+" climatology removed prior to all calculations (other than means)"
+           end if
            end if
         else
            z = addfile(fn,"w")

@@ -224,7 +224,7 @@ begin
               if (OPT_CLIMO.eq."Custom") then
                 check_custom_climo(names(ee),syear(ee),eyear(ee),CLIMO_SYEAR,CLIMO_EYEAR)
                 climo = clmMonTLL(sst({CLIMO_SYEAR*100+1:CLIMO_EYEAR*100+12},:,:))                 
-              else (OPT_CLIMO.eq."External") then
+              else if (OPT_CLIMO.eq."External") then
                 climfile = addfile(CLIMO_FILE,"r") 
                 climo = climfile->TS              
                 if (climo@units.eq."K".or.climo@units.eq."Kelvin") then   
@@ -342,6 +342,7 @@ begin
               z@climatology = syear(ee)+"-"+eyear(ee)+" climatology removed prior to all calculations (other than means)"
            else if (OPT_CLIMO.eq."External") then
               z@climatology = "An external climatology from "+CLIMO_SYEAR+"-"+CLIMO_EYEAR+" was removed prior to all calculations (other than means)"              
+              z@clim_file = CLIMO_FILE
            else
               z@climatology = CLIMO_SYEAR+"-"+CLIMO_EYEAR+" climatology removed prior to all calculations (other than means)"
            end if
@@ -465,20 +466,56 @@ begin
          ;  delete([/lsm,basemap/])                                          ; (Even if the land portion of TAS is the
          ;  delete(d)                                                        ; only portion plotted as SST shown over oceans.)
 
-           if (OPT_CLIMO.eq."Full") then
+         ;printVarSummary(tas)
+                
+          if (OPT_CLIMO.eq."Full") then
               tas = rmMonAnnCycTLL(tas)
               psl = rmMonAnnCycTLL(psl)           
-           else
-              check_custom_climo(names_trefht(ee+trefht_offset),syear_trefht(ee+trefht_offset),eyear_trefht(ee+trefht_offset),CLIMO_SYEAR,CLIMO_EYEAR)
-              climo = clmMonTLL(tas({CLIMO_SYEAR*100+1:CLIMO_EYEAR*100+12},:,:))                 
-              tas   = calcMonAnomTLL(tas,climo) 
-              delete(climo)
+          else
+              if (OPT_CLIMO.eq."Custom") then
+                check_custom_climo(names_trefht(ee+trefht_offset),syear_trefht(ee+trefht_offset),eyear_trefht(ee+trefht_offset),CLIMO_SYEAR,CLIMO_EYEAR)
+                climo_tas = clmMonTLL(tas({CLIMO_SYEAR*100+1:CLIMO_EYEAR*100+12},:,:))                 
+                check_custom_climo(names_psl(ee+psl_offset),syear_psl(ee+psl_offset),eyear_psl(ee+psl_offset),CLIMO_SYEAR,CLIMO_EYEAR)
+                climo_psl = clmMonTLL(psl({CLIMO_SYEAR*100+1:CLIMO_EYEAR*100+12},:,:))                 
+              else if (OPT_CLIMO.eq."External") then
+                climfile = addfile(CLIMO_FILE,"r") 
+                climo_tas = climfile->TS
+                clm_tas_sz = dimsizes(climo_tas)
+                climo_psl = climfile->PSL
+                clm_psl_sz = dimsizes(climo_psl)
+                tas_sz = dimsizes(tas)
+                psl_sz = dimsizes(psl)
+                if (clm_tas_sz(1).eq.tas_sz(1).and.clm_tas_sz(2).eq.tas_sz(2).and.clm_psl_sz(1).eq.psl_sz(1).and.clm_psl_sz(2).eq.psl_sz(2)) then                  
+                  if (climo_tas@units.eq."K".or.climo_tas@units.eq."Kelvin") then   
+                    climo_tas = climo_tas-273.15
+                    climo_tas@units = "C" ; convert to Celsius, if necessary
+                  end if
+                  if (climo_psl@units.eq."Pa".or.climo_psl@units.eq."Pascals".or.climo_psl@units.eq."Pascal") then
+                    climo_psl = climo_psl/100.
+                    climo_psl@units = "hPa"
+                  end if
+                else
+                  obs_syr = 1979 ; no obs in future... but use same period length!
+                  obs_eyr = 1979 + CLIMO_EYEAR - CLIMO_SYEAR
+                  delete([/climo_tas,climo_psl/])              
+                  check_custom_climo(names_trefht(ee+trefht_offset),syear_trefht(ee+trefht_offset),eyear_trefht(ee+trefht_offset),obs_syr,obs_eyr)
+                  climo_tas = clmMonTLL(tas({obs_syr*100+1:obs_eyr*100+12},:,:))                 
+                  check_custom_climo(names_psl(ee+psl_offset),syear_psl(ee+psl_offset),eyear_psl(ee+psl_offset),obs_syr,obs_eyr)
+                  climo_psl = clmMonTLL(psl({obs_syr*100+1:obs_eyr*100+12},:,:))                                 
+                  tas   = calcMonAnomTLL(tas,climo_tas) 
+                  psl   = calcMonAnomTLL(psl,climo_psl)
+                end if
+                delete(climfile)
+                ;printVarSummary(climo_psl)
+              end if
+              end if
+              ;printVarSummary(tas)
+              ;printVarSummary(psl)
+              tas   = calcMonAnomTLL(tas,climo_tas) 
+              psl   = calcMonAnomTLL(psl,climo_psl)
+              delete([/climo_tas,climo_psl/])                            
+          end if
            
-              check_custom_climo(names_psl(ee+psl_offset),syear_psl(ee+psl_offset),eyear_psl(ee+psl_offset),CLIMO_SYEAR,CLIMO_EYEAR)
-              climo = clmMonTLL(psl({CLIMO_SYEAR*100+1:CLIMO_EYEAR*100+12},:,:))                 
-              psl   = calcMonAnomTLL(psl,climo) 
-              delete(climo)
-           end if
            tas = (/ dtrend_msg_n(ispan(0,dimsizes(tas&time)-1,1),tas,False,False,0) /)     ; sst detrended up above
            psl = (/ dtrend_msg_n(ispan(0,dimsizes(psl&time)-1,1),psl,False,False,0) /)  
         

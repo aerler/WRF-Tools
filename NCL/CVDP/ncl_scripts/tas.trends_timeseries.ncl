@@ -17,6 +17,7 @@ begin
   OPT_CLIMO        = getenv("OPT_CLIMO")
   CLIMO_SYEAR      = toint(getenv("CLIMO_SYEAR"))
   CLIMO_EYEAR      = toint(getenv("CLIMO_EYEAR"))
+  CLIMO_FILE       = getenv("CLIMO_FILE")
   OUTPUT_TYPE      = getenv("OUTPUT_TYPE") 
   COLORMAP         = getenv("COLORMAP")  
   
@@ -124,6 +125,42 @@ begin
         delete(tas)
         continue
      end if 
+     
+    if (OPT_CLIMO.eq."Full") then
+        tas = rmMonAnnCycTLL(tas)
+    else
+        if (OPT_CLIMO.eq."Custom") then
+          check_custom_climo(names(ee),syear(ee),eyear(ee),CLIMO_SYEAR,CLIMO_EYEAR)
+          climo = clmMonTLL(tas({CLIMO_SYEAR*100+1:CLIMO_EYEAR*100+12},:,:))                 
+        else if (OPT_CLIMO.eq."External") then
+          climfile = addfile(CLIMO_FILE,"r") 
+          climo = climfile->TS
+          clm_sz = dimsizes(climo)
+          tas_sz = dimsizes(tas)
+          if (clm_sz(1).eq.tas_sz(1).and.clm_sz(2).eq.tas_sz(2)) then
+            if (climo@units.eq."K".or.climo@units.eq."Kelvin") then   
+                climo = climo-273.15
+                climo@units = "C" ; convert to Celsius, if necessary
+            end if                  
+            ;printVarSummary(climo)
+          else
+            obs_syr = 1979 ; no obs in future... but use same period length!
+            obs_eyr = 1979 + CLIMO_EYEAR - CLIMO_SYEAR
+            check_custom_climo(names(ee),syear(ee),eyear(ee),obs_syr,obs_eyr)
+            delete(climo) ; need to clear again...
+            climo = clmMonTLL(tas({obs_syr*100+1:obs_eyr*100+12},:,:))                 
+          end if
+          delete(climfile)
+        end if
+        end if
+        ;printVarSummary(tas)        
+        tas   = calcMonAnomTLL(tas,climo) 
+        delete(climo)
+    end if      
+    
+    ;printVarSummary(tas)
+
+     
      if (OPT_CLIMO.eq."Full") then
         tas = rmMonAnnCycTLL(tas)
      else
@@ -205,8 +242,12 @@ begin
            z@notes = "Data from "+names(ee)+" from "+syear(ee)+"-"+eyear(ee)
            if (OPT_CLIMO.eq."Full") then
               z@climatology = syear(ee)+"-"+eyear(ee)+" climatology removed prior to all calculations (other than means)"
+           else if (OPT_CLIMO.eq."External") then
+              z@climatology = "An external climatology from "+CLIMO_SYEAR+"-"+CLIMO_EYEAR+" was removed prior to all calculations (other than means)"              
+              z@clim_file = CLIMO_FILE
            else
               z@climatology = CLIMO_SYEAR+"-"+CLIMO_EYEAR+" climatology removed prior to all calculations (other than means)"
+           end if
            end if
         else
            z = addfile(fn,"w")

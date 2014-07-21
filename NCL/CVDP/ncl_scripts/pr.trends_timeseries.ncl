@@ -17,6 +17,7 @@ begin
   OPT_CLIMO        = getenv("OPT_CLIMO")
   CLIMO_SYEAR      = toint(getenv("CLIMO_SYEAR"))
   CLIMO_EYEAR      = toint(getenv("CLIMO_EYEAR"))
+  CLIMO_FILE       = getenv("CLIMO_FILE")
   OUTPUT_TYPE      = getenv("OUTPUT_TYPE") 
   COLORMAP         = getenv("COLORMAP")  
   
@@ -126,14 +127,39 @@ begin
         continue
      end if 
 
-     if (OPT_CLIMO.eq."Full") then
+    if (OPT_CLIMO.eq."Full") then
         ppt = rmMonAnnCycTLL(ppt)
-     else
-        check_custom_climo(names(ee),syear(ee),eyear(ee),CLIMO_SYEAR,CLIMO_EYEAR)
-        climo = clmMonTLL(ppt({CLIMO_SYEAR*100+1:CLIMO_EYEAR*100+12},:,:))                 
+    else
+        if (OPT_CLIMO.eq."Custom") then
+          check_custom_climo(names(ee),syear(ee),eyear(ee),CLIMO_SYEAR,CLIMO_EYEAR)
+          climo = clmMonTLL(ppt({CLIMO_SYEAR*100+1:CLIMO_EYEAR*100+12},:,:))                 
+        else if (OPT_CLIMO.eq."External") then
+          climfile = addfile(CLIMO_FILE,"r") 
+          climo = climfile->PSL
+          clm_sz = dimsizes(climo)
+          ppt_sz = dimsizes(ppt)
+          if (clm_sz(1).eq.ppt_sz(1).and.clm_sz(2).eq.ppt_sz(2)) then
+            if (ppt@units.eq."m/s".or.ppt@units.eq."m s-1") then
+                ppt = ppt*86400000.
+            end if
+            if (ppt@units.eq."kg m-2 s-1") then
+                ppt = ppt*86400.
+            end if
+            ;printVarSummary(climo)
+          else
+            obs_syr = 1979 ; no obs in future... but use same period length!
+            obs_eyr = 1979 + CLIMO_EYEAR - CLIMO_SYEAR
+            check_custom_climo(names(ee),syear(ee),eyear(ee),obs_syr,obs_eyr)
+            delete(climo) ; need to clear again...
+            climo = clmMonTLL(ppt({obs_syr*100+1:obs_eyr*100+12},:,:))                 
+          end if
+          delete(climfile)
+        end if
+        end if
+        ;printVarSummary(ppt)        
         ppt   = calcMonAnomTLL(ppt,climo) 
         delete(climo)
-     end if
+    end if      
 
      coswgt=cos(rad*ppt&lat)
      coswgt!0 = "lat"
@@ -207,8 +233,12 @@ begin
            z@notes = "Data from "+names(ee)+" from "+syear(ee)+"-"+eyear(ee)
            if (OPT_CLIMO.eq."Full") then
               z@climatology = syear(ee)+"-"+eyear(ee)+" climatology removed prior to all calculations (other than means)"
+           else if (OPT_CLIMO.eq."External") then
+              z@climatology = "An external climatology from "+CLIMO_SYEAR+"-"+CLIMO_EYEAR+" was removed prior to all calculations (other than means)"              
+              z@clim_file = CLIMO_FILE
            else
               z@climatology = CLIMO_SYEAR+"-"+CLIMO_EYEAR+" climatology removed prior to all calculations (other than means)"
+           end if
            end if
         else
            z = addfile(fn,"w")
