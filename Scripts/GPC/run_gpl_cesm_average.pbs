@@ -240,7 +240,8 @@ rm "${CMDFILE}.diag" "${CMDFILE}.concat" "${CMDFILE}.average" "${CMDFILE}.cvdp"
 #parallel -j $THREADS --joblog "${LOGFILE}" < "${CMDFILE}" # only for single-node execution
 parallel --sshloginfile "$PBS_NODEFILE" --workdir "$PWD" \
           --env PYTHON_EGG_CACHE \
-          #--env PYAVG_FILETYPE \ # probably not necessary, since explicitly set in command
+          --env CCA \
+          --env TEST \
          -j 8 --joblog "${LOGFILE}" < "${CMDFILE}"
 ERR=$? # capture exit code
 
