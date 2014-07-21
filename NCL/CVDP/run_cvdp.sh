@@ -2,6 +2,15 @@
 # script to set up and run NCAR's CVDP for a particular CESM simulations
 # 2014/06/20, Andre R. Erler
 
+# load modules (we need to load the netcdf module in order to use it in Python)
+echo
+module purge
+module load intel/13.1.1 gcc/4.8.1 hdf5/187-v18-serial-intel netcdf/4.1.3_hdf5_serial-intel gnu-parallel/20130422  
+module load python/2.7.3 gdal/1.9.2 extras/64_6.4 ncl/6.2.0 gsl/1.13-intel udunits/2.1.11 nco/4.3.2-intel
+module load Xlibraries/X11-64 ImageMagick/6.6.7
+module list
+echo
+
 # environment variables: MODEL_ROOT, CCA
 # run using loaded modules
 set -e # abort, if anything goes wrong
@@ -24,6 +33,8 @@ OBSDIR="$ROOTDIR/input_obs/" # folder with observational data
 OBSSRC='/reserved1/p/peltier/aerler/CESM/CVDP/obs_input/' # source of obs data
 CVDPSRC="$MODEL_ROOT/WRF Tools/NCL/CVDP/"
 
+sleep $PARALLEL_SEQ # disentangle processes... to avoid race conditions
+
 # announcement
 echo
 echo "   ***   $RUN ($SPRD-$EPRD)   ***   "
@@ -34,9 +45,10 @@ echo
 
 # setup folders
 if [ ! -e "$SRC" ]; then echo "ERROR: Source folder '$SRC' not found!"; exit 1; fi
+rm -fr "$WORKDIR" # make sure we are clean
 mkdir -p "$DST" "$WORKDIR" "$DATADIR"
-if [ ! -e "$OBSDIR" ]; then echo "   Copying observational data from $OBSSRC to $OBSDIR"; cp -r "$OBSSRC" "$OBSDIR"
-else echo "   Observational data already present: $OBSDIR" ; mkdir -p "$OBSDIR"; fi
+if [ ! -e "$OBSDIR" ]; then echo "   Copying observational data from $OBSSRC to $OBSDIR"; cp "$OBSSRC" "$OBSDIR"
+else echo "   Observational data already present: $OBSDIR"; mkdir -p "$OBSDIR"; fi
 if [[ "$TEST" == 'True' ]]; then ls "$OBSDIR"; echo ''; fi # check that data is present
 # copy CVDP files
 cp "$CVDPSRC/driver.ncl" "$WORKDIR"
