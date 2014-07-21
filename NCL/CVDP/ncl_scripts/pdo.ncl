@@ -156,7 +156,6 @@ begin
      pcts = eofunc_ts(sst2({20:70},{110:260},:),evecv,False)
      pctsS = dim_standardize(pcts(0,:),0)
      pcvari = evecv@pcvar
-     delete([/pcts,evecv/])
      finarr = sst2(:,:,0)
      finarr = finarr@_FillValue
 
@@ -165,10 +164,11 @@ begin
      finarr@eyear = eyear(ee)
 
      pdo = finarr
-     pc1 = pctsS
+     pc1 = pcts(0,:) + pcts@ts_mean(0) ; restore mean value
      pc1!0 = "time"
      pc1&time = sst2&time
      pcvari = decimalPlaces(pcvari(0),0,True)     
+     delete([/pcts,evecv/])
      if (pdo({37},{200}).lt.0) then   ; arbitrary attempt to make all plots have the same sign..
         pdo = pdo*-1.
         pc1 = pc1*-1.

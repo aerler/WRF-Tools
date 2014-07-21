@@ -47,7 +47,7 @@ echo
 if [ ! -e "$SRC" ]; then echo "ERROR: Source folder '$SRC' not found!"; exit 1; fi
 rm -fr "$WORKDIR" # make sure we are clean
 mkdir -p "$DST" "$WORKDIR" "$DATADIR"
-if [ ! -e "$OBSDIR" ]; then echo "   Copying observational data from $OBSSRC to $OBSDIR"; cp "$OBSSRC" "$OBSDIR"
+if [ ! -e "$OBSDIR" ]; then echo "   Copying observational data from $OBSSRC to $OBSDIR"; cp -r "$OBSSRC" "$OBSDIR"
 else echo "   Observational data already present: $OBSDIR"; mkdir -p "$OBSDIR"; fi
 if [[ "$TEST" == 'True' ]]; then ls "$OBSDIR"; echo ''; fi # check that data is present
 # copy CVDP files
