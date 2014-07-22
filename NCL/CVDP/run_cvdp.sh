@@ -19,6 +19,9 @@ RUN=$1 # name of experiment
 SPRD=$2 # start year of the analysis period
 EPRD=$3 # end year of the analysis period
 CLIM_FILE=$4 # climatology used to remove annual cycle
+if [[ -n "$CLIM_FILE" ]]; then OPT_CLIMO='External'
+elif [[ -n "$SPRD" ]] && [[ -n "$EPRD" ]]; then OPT_CLIMO='Custom'
+else OPT_CLIMO='Full'; fi
 SRC="$CCA/$RUN/cesmavg/" # source folder
 DST="$CCA/$RUN/cvdp/" # results folder
 DMP="$CCA/$RUN/CVDP_DUMP/" # dump work dir here in case of error 
@@ -74,11 +77,7 @@ echo
 
 ## run CVDP
 # some influential environment variables
-export TEST
-export OUTDIR
-export CLIM_FILE
-export SPRD
-export EPRD
+export TEST OUTDIR OPT_CLIMO SPRD EPRD CLIM_FILE 
 export TITLE="$RUN $SPRD-$EPRD"
 # run NCL driver script
 cd "$WORKDIR"

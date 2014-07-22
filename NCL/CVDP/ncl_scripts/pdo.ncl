@@ -158,17 +158,19 @@ begin
      pcvari = evecv@pcvar
      finarr = sst2(:,:,0)
      finarr = finarr@_FillValue
+     delete(evecv)
 
      finarr = (/ regCoef(pctsS,sst2) /)
      finarr@syear = syear(ee)
      finarr@eyear = eyear(ee)
 
      pdo = finarr
-     pc1 = pcts(0,:) + pcts@ts_mean(0) ; restore mean value
+     pc1 = pctsS
      pc1!0 = "time"
      pc1&time = sst2&time
+     pc1@ts_mean = pcts@ts_mean(0) ; save the mean of the time-series (before normalization)
+     delete(pcts)
      pcvari = decimalPlaces(pcvari(0),0,True)     
-     delete([/pcts,evecv/])
      if (pdo({37},{200}).lt.0) then   ; arbitrary attempt to make all plots have the same sign..
         pdo = pdo*-1.
         pc1 = pc1*-1.

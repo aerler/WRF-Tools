@@ -17,8 +17,9 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
   compute_modes_mon    = "True"              ; True = compute DJF, MAM, JJA, SON, Annual and Monthly Atmospheric Modes of Variability 
                                              ; False = do not compute the Monthly Atmospheric Modes of Variability  (saves computation time)                               
 ;- - - - - - - - - - - - - - - - - -   
-  opt_climo         = "External"                 ; "Full"  = remove climatology based on full record of each simulation,
+  opt_climo         = getenv("OPT_CLIMO")    ; "Full"  = remove climatology based on full record of each simulation,
                                              ; "Custom" = use start and end year of climatological period specified by climo_syear and climo_eyear 
+                                             ; "External" = use an external climatology (only for CESM; needs to be in CESM format/grid); still need to provide climo_syear and climo_eyear for use with observations
   if (opt_climo.eq."Custom") then
      climo_syear    = 1920                   ; remove the climatology/annual cycle based on these years when opt_climo = "Custom"
      climo_eyear    = 2010                   ; note: climo_syear and climo_eyear should be within the range of years of all analyzed model runs 
