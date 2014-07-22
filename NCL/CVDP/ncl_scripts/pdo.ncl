@@ -420,7 +420,11 @@ begin
      
      delete([/val1,val2,pc1/])
   end do
-  delete([/d,basemap,climo/]) ; used before and through-out the loop
+  delete([/d,basemap/]) ; used before and through-out the loop
+  if (OPT_CLIMO.eq."Custom".or.OPT_CLIMO.eq."External") then 
+      delete(climo) 
+  end if
+
 
   if (isfilepresent("obs_ts")) then    ; for pattern correlation table  
      clat = cos(0.01745329*patcor&lat)
