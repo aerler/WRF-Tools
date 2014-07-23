@@ -14,7 +14,7 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
   scale_timeseries     = "True"              ; True = scale timeseries so that x-axis length is comparable across timeseries, False = do not
   output_data          = "True"              ; True = output selected calculated data to a netCDF file. Make sure .nc files from previous CVDP
                                              ;        runs are in outdir or they will get added to/modified.  
-  compute_modes_mon    = "True"              ; True = compute DJF, MAM, JJA, SON, Annual and Monthly Atmospheric Modes of Variability 
+  compute_modes_mon    = "False"              ; True = compute DJF, MAM, JJA, SON, Annual and Monthly Atmospheric Modes of Variability 
                                              ; False = do not compute the Monthly Atmospheric Modes of Variability  (saves computation time)                               
 ;- - - - - - - - - - - - - - - - - -   
   opt_climo         = getenv("OPT_CLIMO")    ; "Full"  = remove climatology based on full record of each simulation,
@@ -39,7 +39,7 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
                                              ; Default = 1, which = 1500 (H) x 1500 (W) before automatic cropping of white space
   webpage_title     = getenv("TITLE")        ; Webpage title   
   
-  tar_output        = "True"                 ; tar up all output in outdir and remove individual files?                                      
+  tar_output        = "False"                ; tar up all output in outdir and remove individual files?                                      
                                              ; Note: ALL files in outdir will be tarred up and then removed fromthe outdir directory. 
 ;========END USER MODIFICATIONS===========================================================
   version = "3.2.0"
@@ -93,11 +93,11 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
          "export OUTPUT_DATA="+output_data+";   export VERSION="+version+";   export PNG_SCALE="+png_scale+";   "+\
          "export OPT_CLIMO="+opt_climo+";   export CLIMO_SYEAR="+climo_syear+";   export CLIMO_EYEAR="+climo_eyear+";   "+"export CLIMO_FILE="+climo_file+";    "+\
          "export COMPUTE_MODES_MON="+compute_modes_mon+";   export OUTPUT_TYPE="+output_type+";   export COLORMAP="+colormap+";"+\   
-         " "+ncl_exec+" "+zp+"namelist.ncl; "+ncl_exec+" "+zp+"sst.indices.ncl; "+ncl_exec+" "+zp+"amo.ncl;"+\
-         " "+ncl_exec+" "+zp+"pdo.ncl; "+ncl_exec+" "+zp+"psl.modes_indices.ncl; "+ncl_exec+" "+zp+"tas.trends_timeseries.ncl;"+\
-         " "+ncl_exec+" "+zp+"psl.trends.ncl; "+ncl_exec+" "+zp+"pr.trends_timeseries.ncl; "+ncl_exec+" "+zp+"sst.mean_stddev.ncl;"+\ 
-         " "+ncl_exec+" "+zp+"snd.trends.ncl; "+ncl_exec+" "+zp+"psl.mean_stddev.ncl; "+ncl_exec+" "+zp+"tas.mean_stddev.ncl;"+\
-         " "+ncl_exec+" "+zp+"pr.mean_stddev.ncl; "+ncl_exec+" "+zp+"sst.trends_timeseries.ncl")
+         " "+ncl_exec+" "+zp+"namelist.ncl; "+\ ;ncl_exec+" "+zp+"sst.indices.ncl; "+ncl_exec+" "+zp+"amo.ncl;"+\
+         " "+ncl_exec+" "+zp+"pdo.ncl; ") ;+ncl_exec+" "+zp+"psl.modes_indices.ncl; "+ncl_exec+" "+zp+"tas.trends_timeseries.ncl;"+\
+         ;" "+ncl_exec+" "+zp+"psl.trends.ncl; "+ncl_exec+" "+zp+"pr.trends_timeseries.ncl; "+ncl_exec+" "+zp+"sst.mean_stddev.ncl;"+\ 
+         ;" "+ncl_exec+" "+zp+"snd.trends.ncl; "+ncl_exec+" "+zp+"psl.mean_stddev.ncl; "+ncl_exec+" "+zp+"tas.mean_stddev.ncl;"+\
+         ;" "+ncl_exec+" "+zp+"pr.mean_stddev.ncl; "+ncl_exec+" "+zp+"sst.trends_timeseries.ncl")
          
   if (output_type.eq."png") then
      ofiles = systemfunc("ls "+outdir+"*.png")
