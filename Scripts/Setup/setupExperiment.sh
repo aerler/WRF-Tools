@@ -138,6 +138,9 @@ echo
 mkdir -p "${RUNDIR}"
 mkdir -p "${WRFOUT}"
 
+# apply command line argument for WRFSYS
+[[ -n $1 ]] && WRFSYS="$1"
+
 ## fix default settings
 
 # WPS defaults

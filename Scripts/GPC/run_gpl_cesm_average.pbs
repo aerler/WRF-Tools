@@ -42,16 +42,18 @@ THREADS=${THREADS:-4} # GNU Parallel threads
 export CCA=${CAA:-"/reserved1/p/peltier/aerler//CESM/archive/"} # my CESM archive folder as source; used in several scripts
 
 # just for tests
+TEST=${TEST:-'FALSE'} # CVDP run script expects FALSE; use TEST=DRYRUN to only generate command file
 #RUNS='seaice-3r-hf/'
 #PERIODS='5' # averaging periods
 # historical runs and projections
 ENSEMBLE=${ENSEMBLE:-'ens20trcn1x1/ ensrcp85cn1x1/ ensrcp85cn1x1d/ grand-ensemble/'}
+[[ "$ENSEMBLE" == 'NONE' ]] && ENSEMBLE=''
 RUNS=${RUNS:-'h[abc]b20trcn1x1/ tb20trcn1x1/ h[abct]brcp85cn1x1/ h[abct]brcp85cn1x1d/ seaice-[35]r-hf/ seaice-5r-hfd/'}
+[[ "$RUNS" == 'NONE' ]] && RUNS=''
 PERIODS=${PERIODS:-'5 10 15'} # averaging periods
 # cesm_average settings
 CVDP=${CVDP:-'FALSE'} # Climate Variability Diagnostics Package (set to CVDP)
 REFCLM=${REFCLM:-'NONE'} # climatology that is used to remove annual cycle in CVDP" HISTORICAL, PERIOD 
-TEST=${TEST:-'FALSE'} # CVDP run script expects FALSE
 DIAG=${DIAG:-'FALSE'} # Climatology Diagnostics Package (set to DIAG)
 CONCAT=${CONCAT:-'FALSE'} # concatenate monthly files (set to CONCAT)
 AVERAGE=${AVERAGE:-'FALSE'} # compute climatologies (set to AVERAGE)
@@ -100,7 +102,7 @@ function RUNCMDS {
     elif [[ "$RUN" == seaice-5r-hfd ]]; then SPRD='2085'; EPRD='2099'; HREF='tb20trcn1x1'
     elif [[ "$RUN" == seaice-5r-hf ]]; then SPRD='2045'; EPRD='2059'; HREF='tb20trcn1x1'
     elif [[ "$RUN" == seaice-*-hf ]]; then SPRD='2045'; EPRD='2059'; HREF='tb20trcn1x1'
-    elif [[ "$RUN" == grand-ensemble ]]; then SPRD='0000'; EPRD='0014'; HREF=''
+    elif [[ "$RUN" == grand-ensemble ]]; then SPRD='1000'; EPRD='1014'; HREF='' # using '0' seems to cause problems
     else echo "ERROR: No settings found for experiment '$RUN' - aborting!"; exit 1     
     fi # $RUN settings
     EEPRD=$(( $EPRD +1 )) # different convention in climatology file
@@ -111,7 +113,7 @@ function RUNCMDS {
         1979) CREF='tb20trcn1x1'; P_CLIM_FILE="$CCA/ens20trcn1x1/cesmavg/cesmatm_clim_${SPRD}-${EEPRD}.nc";;
         2045) CREF='htbrcp85cn1x1'; P_CLIM_FILE="$CCA/ensrcp85cn1x1/cesmavg/cesmatm_clim_${SPRD}-${EEPRD}.nc";;
         2085) CREF='htbrcp85cn1x1d'; P_CLIM_FILE="$CCA/ensrcp85cn1x1d/cesmavg/cesmatm_clim_${SPRD}-${EEPRD}.nc";;
-        0000) CREF=''; P_CLIM_FILE="";; # not needed
+        1000) CREF=''; P_CLIM_FILE="";; # not needed
     esac
     HPRD='1979'; CPRD=$SPRD # begin of reference periods: historical and current/control
     if [[ "$RUN" == "$CREF" ]]; then CREF=''; CPRD=''; fi # special case: can't compare to itself
@@ -226,7 +228,7 @@ function RUNCMDS {
           elif [[ "$REFCLM" == 'HISTORICAL' ]]; then CLIMO="$H_CLIM_FILE"
           elif [[ "$REFCLM" == 'PERIOD' ]]; then CLIMO="$P_CLIM_FILE"
           fi # currently no other options
-          echo "cd $RUNDIR; bash run_cvdp.sh $RUN $SPRD $EPRD $CLIMO &> $RUNDIR/cvdp.log" >> "${CMDFILE}.cvdp" 
+          echo "cd $RUNDIR; bash -e run_cvdp.sh $RUN $SPRD $EPRD $CLIMO &> $RUNDIR/cvdp.log" >> "${CMDFILE}.cvdp" 
         else
           echo "   Skipping CVDP"
         fi # if actually running
@@ -238,34 +240,52 @@ function RUNCMDS {
 cd "${WORKDIR}"
 touch "${CMDFILE}.diag" "${CMDFILE}.concat" "${CMDFILE}.average" "${CMDFILE}.cvdp"
 # loop over ensemble
-for ENS in $( ls -d $ENSEMBLE )
-  do
-    echo
-    RUNCMDS "$ENS" 'ENSEMBLE' # generate commands for individual runs
-done # for $RUNS
-cd "${WORKDIR}"
-echo  
+if [[ -n "$ENSEMBLE" ]]
+  then
+    for ENS in $( ls -d $ENSEMBLE )
+      do
+        echo
+        RUNCMDS "$ENS" 'ENSEMBLE' # generate commands for individual runs
+    done # for $ENSEMBLE
+  cd "${WORKDIR}"
+  echo  
+fi # if $ENSEMBLE
 # loop over runs
-for RUN in $( ls -d $RUNS )
-  do
-    echo
-    RUNCMDS "$RUN" 'RUN' "$FILETYPES" "$PERIODS" # generate commands for individual runs
-done # for $RUNS
-echo 
-cd "${WORKDIR}"
+if [[ -n "$RUNS" ]]
+  then
+    for RUN in $( ls -d $RUNS )
+      do
+        echo
+        RUNCMDS "$RUN" 'RUN' "$FILETYPES" "$PERIODS" # generate commands for individual runs
+    done # for $RUNS
+  cd "${WORKDIR}"
+  echo 
+fi # if $RUNS
 
 # assemble command file (so that not all processes are accessing the same files at once)
 cat "${CMDFILE}.diag" "${CMDFILE}.concat" "${CMDFILE}.average" "${CMDFILE}.cvdp" > "${CMDFILE}"
 rm "${CMDFILE}.diag" "${CMDFILE}.concat" "${CMDFILE}.average" "${CMDFILE}.cvdp"
 
 ## execute GNU Parallel commands
-#parallel -j $THREADS --joblog "${LOGFILE}" < "${CMDFILE}" # only for single-node execution
-parallel --sshloginfile "$PBS_NODEFILE" --workdir "$PWD" \
-          --env PYTHON_EGG_CACHE \
-          --env CCA \
-          --env TEST \
-         -j 8 --joblog "${LOGFILE}" < "${CMDFILE}"
-ERR=$? # capture exit code
+echo # print command
+echo "parallel --sshloginfile \"$PBS_NODEFILE\" --workdir \"$PWD\" "
+echo "         --env PYTHON_EGG_CACHE "
+echo "         --env CCA "
+echo "         --env TEST "
+echo "         -j 8 --joblog \"${LOGFILE}\" < \"${CMDFILE}\" "
+if [[ "$TEST" != 'DRYRUN' ]]
+  then
+    #parallel -j $THREADS --joblog "${LOGFILE}" < "${CMDFILE}" # only for single-node execution
+    parallel --sshloginfile "$PBS_NODEFILE" --workdir "$PWD" \
+              --env PYTHON_EGG_CACHE \
+              --env CCA \
+              --env TEST \
+             -j 8 --joblog "${LOGFILE}" < "${CMDFILE}"
+    ERR=$? # capture exit code
+else
+    ERR=1
+fi # if DRYRUN
+echo
 
 # clean up
 echo
@@ -273,7 +293,11 @@ if [[ 0 == ${ERR} ]]
   then
     echo '   ***   All Jobs Completed Successfully!!!   ***   '
     rm "${CMDFILE}" "${LOGFILE}"
-  else
+elif [[ "$TEST" == 'DRYRUN' ]]
+  then
+    echo '   ===   This was a dry-run --- inspect the command file   ===   '
+    echo "   ${CMDFILE}"
+else
     echo "  >>>   ERRORS DETECTED - EXIT CODE ${ERR}   <<<   " 
     echo "Inspect command and log files:"
     echo "   ${CMDFILE}"
