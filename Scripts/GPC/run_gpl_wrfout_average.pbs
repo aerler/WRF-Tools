@@ -37,6 +37,7 @@ DS=${DS:-'/scratch/p/peltier/aerler/Downscaling'}
 NCOADD=${NCOADD:-'~/Scripts/addVariable.sh'} # NCO script to add variables (usually not in run folder)
 
 # options
+TEST=${TEST:-'FALSE'} # use TEST=DRYRUN to only generate command file
 ADDVAR=${ADDVAR:-'ACSNOW SR'} # add potentially missing variables from other files
 AVERAGE=${AVERAGE:-'AVERAGE'} # run python averaging script
 
@@ -114,20 +115,38 @@ for D in ${DATASRC}
     
     fi # file check    
 done
+
+## execute GNU Parallel commands
+echo # print command
+echo "parallel --sshloginfile \"$PBS_NODEFILE\" --workdir \"$PWD\" "
+echo "          --env PYTHON_EGG_CACHE   = $PYTHON_EGG_CACHE"
+echo "          --env PYAVG_THREADS      = $PYAVG_THREADS   "
+echo "          --env PYAVG_RECALC       = $PYAVG_RECALC    "
+echo "          --env PYAVG_OVERWRITE    = $PYAVG_OVERWRITE "
+echo "          --env PYAVG_ADDNEW       = $PYAVG_ADDNEW    "
+echo "          --env PYAVG_RECOVER      = $PYAVG_RECOVER   "
+echo "          --env PYAVG_FILETYPES    = $PYAVG_FILETYPES "
+echo "          --env PYAVG_DOMAINS      = $PYAVG_DOMAINS   "
+echo "          --env PYAVG_DEBUG        = $PYAVG_DEBUG     "
+echo "         -j 8 --joblog \"${LOGFILE}\" < \"${CMDFILE}\" "
+if [[ "$TEST" != 'DRYRUN' ]]
+  then
+		parallel --sshloginfile "$PBS_NODEFILE" --workdir "$PWD" \
+							--env PYTHON_EGG_CACHE \
+							--env PYAVG_THREADS \
+							--env PYAVG_RECALC \
+							--env PYAVG_OVERWRITE \
+							--env PYAVG_ADDNEW \
+							--env PYAVG_RECOVER \
+							--env PYAVG_FILETYPES \
+							--env PYAVG_DOMAINS \
+							--env PYAVG_DEBUG \
+		         -j 8 --joblog "${LOGFILE}" < "${CMDFILE}"
+		ERR=$? # capture exit code
+else
+    ERR=1
+fi # if DRYRUN
 echo
-# execute GNU Parallel commands
-parallel --sshloginfile "$PBS_NODEFILE" --workdir "$PWD" \
-					--env PYTHON_EGG_CACHE \
-					--env PYAVG_THREADS \
-					--env PYAVG_RECALC \
-					--env PYAVG_OVERWRITE \
-					--env PYAVG_ADDNEW \
-					--env PYAVG_RECOVER \
-					--env PYAVG_FILETYPES \
-					--env PYAVG_DOMAINS \
-					--env PYAVG_DEBUG \
-         -j 8 --joblog "${LOGFILE}" < "${CMDFILE}"
-ERR=$? # capture exit code
 
 # clean up
 echo
@@ -135,11 +154,15 @@ if [[ 0 == ${ERR} ]]
   then
     echo '   ***   All Jobs Completed Successfully!!!   ***   '
     rm "${CMDFILE}" "${LOGFILE}"
-  else
+elif [[ "$TEST" == 'DRYRUN' ]]
+  then
+    echo '   ===   This was a dry-run --- inspect the command file   ===   '
+    echo "   '${CMDFILE}'"
+else
     echo "  >>>   ERRORS DETECTED - EXIT CODE ${ERR}   <<<   " 
     echo "Inspect command and log files:"
-    echo "   ${CMDFILE}"
-    echo "   ${LOGFILE}"
+    echo "   '${CMDFILE}'"
+    echo "   '${LOGFILE}'"
     echo 
     cat "${LOGFILE}"
 fi # if $ERR

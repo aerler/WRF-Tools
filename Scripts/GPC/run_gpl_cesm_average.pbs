@@ -269,10 +269,10 @@ rm "${CMDFILE}.diag" "${CMDFILE}.concat" "${CMDFILE}.average" "${CMDFILE}.cvdp"
 ## execute GNU Parallel commands
 echo # print command
 echo "parallel --sshloginfile \"$PBS_NODEFILE\" --workdir \"$PWD\" "
-echo "         --env PYTHON_EGG_CACHE "
-echo "         --env CCA "
-echo "         --env TEST "
-echo "         -j 8 --joblog \"${LOGFILE}\" < \"${CMDFILE}\" "
+echo "         --env PYTHON_EGG_CACHE   = $PYTHON_EGG_CACHE"
+echo "         --env CCA                = $CCA             "
+echo "         --env TEST               = $TEST            "
+echo "        -j 8 --joblog \"${LOGFILE}\" < \"${CMDFILE}\" "
 if [[ "$TEST" != 'DRYRUN' ]]
   then
     #parallel -j $THREADS --joblog "${LOGFILE}" < "${CMDFILE}" # only for single-node execution
@@ -296,12 +296,12 @@ if [[ 0 == ${ERR} ]]
 elif [[ "$TEST" == 'DRYRUN' ]]
   then
     echo '   ===   This was a dry-run --- inspect the command file   ===   '
-    echo "   ${CMDFILE}"
+    echo "   '${CMDFILE}'"
 else
     echo "  >>>   ERRORS DETECTED - EXIT CODE ${ERR}   <<<   " 
     echo "Inspect command and log files:"
-    echo "   ${CMDFILE}"
-    echo "   ${LOGFILE}"
+    echo "   '${CMDFILE}'"
+    echo "   '${LOGFILE}'"
     echo
     cat "${LOGFILE}"
 fi # if $ERR
