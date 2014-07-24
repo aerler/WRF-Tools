@@ -1,5 +1,4 @@
 #!/bin/bash
-
 ## queue/PBS settings
 #PBS -l nodes=1:m128g:ppn=16
 # batch queue: nodes=4:m32g:ppn=8
@@ -46,11 +45,12 @@ export CCA=${CAA:-"/reserved1/p/peltier/aerler//CESM/archive/"} # my CESM archiv
 #RUNS='seaice-3r-hf/'
 #PERIODS='5' # averaging periods
 # historical runs and projections
+ENSEMBLE=${ENSEMBLE:-'ens20trcn1x1/ ensrcp85cn1x1/ ensrcp85cn1x1d/ grand-ensemble/'}
 RUNS=${RUNS:-'h[abc]b20trcn1x1/ tb20trcn1x1/ h[abct]brcp85cn1x1/ h[abct]brcp85cn1x1d/ seaice-[35]r-hf/ seaice-5r-hfd/'}
 PERIODS=${PERIODS:-'5 10 15'} # averaging periods
 # cesm_average settings
 CVDP=${CVDP:-'FALSE'} # Climate Variability Diagnostics Package (set to CVDP)
-REFCLM=${REFCLM:-'HISTORICAL'} # climatology that is used to remove annual cycle in CVDP" HISTORICAL, PERIOD 
+REFCLM=${REFCLM:-'NONE'} # climatology that is used to remove annual cycle in CVDP" HISTORICAL, PERIOD 
 DIAG=${DIAG:-'FALSE'} # Climatology Diagnostics Package (set to DIAG)
 CONCAT=${CONCAT:-'FALSE'} # concatenate monthly files (set to CONCAT)
 AVERAGE=${AVERAGE:-'FALSE'} # compute climatologies (set to AVERAGE)
@@ -62,6 +62,7 @@ cd "${WORKDIR}"
 echo ''
 echo 'Processing CESM experiments:'
 echo ''
+ls -d $ENSEMBLE
 ls -d $RUNS
 echo ''
 echo "Computing AMWG Diagnostics: ${DIAG}"
@@ -73,20 +74,18 @@ echo "Computing CVDP: ${CVDP}"
 echo "Overwriting Files: ${OVERWRITE}"
 echo
 
-
-## generate command file for GNU Parallel
-# root directory
-cd "${WORKDIR}"
-touch "${CMDFILE}.diag" "${CMDFILE}.concat" "${CMDFILE}.average" "${CMDFILE}.cvdp" 
-# loop over runs
-for RUN in $RUNS
-  do
-    echo
+## function to generate GNU Parallel commands for a given run
+function RUNCMDS {
+    # translate arguments
+    RUN=$1 # name of the run (folder)
+    MODE=$2 # whether individual run or ensemble
+    FILETYPES=$3 # list of file types 
+    PERIODS=$4 # list of periods
     # set up folders
     RUN=${RUN%/} # remove trailing slash, if any
     RUNDIR="${WORKDIR}/${RUN}/" # extract highest order folder name as run name
     AVGDIR="${RUNDIR}/cesmavg/" # subfolder for averages
-    echo "   ***   Processing $RUN   ***   "
+    echo "   ***   Preparing $RUN   ***   "
     echo "   ($RUNDIR)" 
     cd "${RUNDIR}"
 
@@ -100,16 +99,20 @@ for RUN in $RUNS
     elif [[ "$RUN" == seaice-5r-hfd ]]; then SPRD='2085'; EPRD='2099'; HREF='tb20trcn1x1'
     elif [[ "$RUN" == seaice-5r-hf ]]; then SPRD='2045'; EPRD='2059'; HREF='tb20trcn1x1'
     elif [[ "$RUN" == seaice-*-hf ]]; then SPRD='2045'; EPRD='2059'; HREF='tb20trcn1x1'
+    elif [[ "$RUN" == grand-ensemble ]]; then SPRD='0000'; EPRD='0015'; HREF=''
     else echo "ERROR: No settings found for experiment '$RUN' - aborting!"; exit 1     
     fi # $RUN settings
     EEPRD=$(( $EPRD +1 )) # different convention in climatology file
+    H_CLIM_FILE="$CCA/ens20trcn1x1/cesmavg/cesmatm_clim_1979-1994.nc" # historical climatology for CVDP
+    # reference/control runs for ensemble and external climatologies for CVDP (for each period)
+    # N.B.: the external climatology is for an option taht was added to CVDP, but is currently not used  
     case $SPRD in # ensemble control
         1979) CREF='tb20trcn1x1'; P_CLIM_FILE="$CCA/ens20trcn1x1/cesmavg/cesmatm_clim_${SPRD}-${EEPRD}.nc";;
         2045) CREF='htbrcp85cn1x1'; P_CLIM_FILE="$CCA/ensrcp85cn1x1/cesmavg/cesmatm_clim_${SPRD}-${EEPRD}.nc";;
         2085) CREF='htbrcp85cn1x1d'; P_CLIM_FILE="$CCA/ensrcp85cn1x1d/cesmavg/cesmatm_clim_${SPRD}-${EEPRD}.nc";;
+        0000) CREF=''; P_CLIM_FILE="";; # not needed
     esac
-    H_CLIM_FILE="$CCA/ens20trcn1x1/cesmavg/cesmatm_clim_1979-1994.nc" # historical climatology
-    HPRD='1979'; CPRD=$SPRD # begin of reference periods: hsitorical and current/control
+    HPRD='1979'; CPRD=$SPRD # begin of reference periods: historical and current/control
     if [[ "$RUN" == "$CREF" ]]; then CREF=''; CPRD=''; fi # special case: can't compare to itself
     # save meta info in script for later reference
     echo "RUN='${RUN}'; SPRD='${SPRD}'; EPRD='${EPRD}'; HREF='${HREF}'; HPRD='${RPRD}'; CREF='${CREF}'; CPRD='${CPRD}'" > exp_info.sh     
@@ -124,22 +127,22 @@ for RUN in $RUNS
       if [ $PRD -le $NPRD ]; then PRDS="${PRDS} ${SPRD}-$(( $SPRD + $PRD ))"; fi
     done # loop over start dates and periods
 
-		
+    
     ## Climatology Diagnostics Package (AMWG)
-		if [[ "${DIAG}" == 'DIAG' ]]
-		  then
-		    mkdir -p "$RUNDIR/diag/" # make sure destination folder exists
+    if [[ "${DIAG}" == 'DIAG' ]] && [[ "${MODE}" == 'RUN' ]]
+      then
+        mkdir -p "$RUNDIR/diag/" # make sure destination folder exists
         ln -sf "${MODEL_ROOT}/WRF Tools/Scripts/GPC/run_amwg_diag.csh" # link AMWG script (CSH)
         # current/control reference
         if [[ -n "$HREF" ]]; then 
-	        if [[ "$HREF" == 'OBS' ]]; then DIAGTAR="$RUNDIR/diag/$RUN-obs.tar"
-	        else DIAGTAR="$RUNDIR/diag/$RUN-$HREF.tar"; fi
-	        if [ ! -f "$DIAGTAR" ] || [[ "$OVERWRITE" == 'OVERWRITE' ]]; then
-			      echo "   Running AMWG Diagnostics: $DIAGTAR"
-	          echo "cd $RUNDIR; csh -ef run_amwg_diag.csh $RUN $SPRD $NPRD $HREF $HPRD &> $RUNDIR/diag_hist.log" >> "${CMDFILE}.diag"
-			    else
-	          echo "   Skipping AMWG Diagnostics: $DIAGTAR"
-	        fi # if actually running
+          if [[ "$HREF" == 'OBS' ]]; then DIAGTAR="$RUNDIR/diag/$RUN-obs.tar"
+          else DIAGTAR="$RUNDIR/diag/$RUN-$HREF.tar"; fi
+          if [ ! -f "$DIAGTAR" ] || [[ "$OVERWRITE" == 'OVERWRITE' ]]; then
+            echo "   Running AMWG Diagnostics: $DIAGTAR"
+            echo "cd $RUNDIR; csh -ef run_amwg_diag.csh $RUN $SPRD $NPRD $HREF $HPRD &> $RUNDIR/diag_hist.log" >> "${CMDFILE}.diag"
+          else
+            echo "   Skipping AMWG Diagnostics: $DIAGTAR"
+          fi # if actually running
         fi # $HREF
         # current/control reference
         if [[ -n "$CREF" ]]; then 
@@ -152,64 +155,63 @@ for RUN in $RUNS
             echo "   Skipping AMWG Diagnostics: $DIAGTAR"
           fi # if actually running
         fi # $CREF
-		fi # $DIAG 
-		   
-		   
+    fi # $DIAG 
+       
+       
     # loop iver file types
-		for FILETYPE in $FILETYPES
-      do        
+    for FILETYPE in $FILETYPES
+      do
         
         ## concatenate history files
-		    if [[ "${CONCAT}" == 'CONCAT' ]]
+        if [[ "${CONCAT}" == 'CONCAT' ]] && [[ "${MODE}" == 'RUN' ]]
           then
             mkdir -p "${AVGDIR}" # make sure destination folder exists
-		        ## assemble time-series
-				    case $FILETYPE in
-				      atm) FILES="${RUNDIR}/${FILETYPE}/hist/${RUN}.cam2.h0";; 
-				      lnd) FILES="${RUNDIR}/${FILETYPE}/hist/${RUN}.clm2.h0";; 
-				      ice) FILES="${RUNDIR}/${FILETYPE}/hist/${RUN}.cice.h";; 
-				    esac
+            ## assemble time-series
+            case $FILETYPE in
+              atm) FILES="${RUNDIR}/${FILETYPE}/hist/${RUN}.cam2.h0";; 
+              lnd) FILES="${RUNDIR}/${FILETYPE}/hist/${RUN}.clm2.h0";; 
+              ice) FILES="${RUNDIR}/${FILETYPE}/hist/${RUN}.cice.h";; 
+            esac
             # list of proper years
             FILELIST=''
             for Y in $( seq $SPRD $EPRD ); do
               FILELIST="${FILELIST} ${FILES}.${Y}-??.nc"; done
-				    # NCO command
-				    NCOARGS="--netcdf4 --deflate 1" # use NetCDF4 compression
-		        NCOOUT="${AVGDIR}/cesm${FILETYPE}_monthly.nc"
-				    if [[ ! -e "${NCOOUT}" ]] || [[ "$OVERWRITE" == 'OVERWRITE' ]]; then
-				      echo "   Concatenating: ${NCOOUT}"
-		          echo "cd ${RUNDIR}; ncrcat $NCOARGS --output ${NCOOUT} --overwrite ${FILELIST} &> ${NCOOUT%.nc}.log" >> "${CMDFILE}.concat"
-				    else
-				      echo "   Skipping: ${NCOOUT}"
-				    fi # if already file exits
+            # NCO command
+            NCOARGS="--netcdf4 --deflate 1" # use NetCDF4 compression
+            NCOOUT="${AVGDIR}/cesm${FILETYPE}_monthly.nc"
+            if [[ ! -e "${NCOOUT}" ]] || [[ "$OVERWRITE" == 'OVERWRITE' ]]; then
+              echo "   Concatenating: ${NCOOUT}"
+              echo "cd ${RUNDIR}; ncrcat $NCOARGS --output ${NCOOUT} --overwrite ${FILELIST} &> ${NCOOUT%.nc}.log" >> "${CMDFILE}.concat"
+            else
+              echo "   Skipping: ${NCOOUT}"
+            fi # if already file exits
         fi # $CONCAT
 
-
         ## compute climatologies (from monthly averages)
-        if [[ "${AVERAGE}" == 'AVERAGE' ]]
+        if [[ "${AVERAGE}" == 'AVERAGE' ]] && [[ "${MODE}" == 'RUN' ]]
           then
             mkdir -p "${AVGDIR}" # make sure destination folder exists
             ln -sf "${MODEL_ROOT}/WRF Tools/Python/average/cesm_average.py" # link averaging script
-				    # loop over averaging periods
-		        for PERIOD in $PRDS
-		          do
-		            ## compute averaged climatologies
-		            # launch python script, save output in log file
-		            PYAVGOUT="${AVGDIR}/cesm${FILETYPE}_clim_${PERIOD}.nc"
-		            if [[ ! -f "$PYAVGOUT" ]] || [[ "$OVERWRITE" == 'OVERWRITE' ]]; then
-		              echo "   Averaging: ${PYAVGOUT}"
-			            echo "cd ${RUNDIR}; export PYAVG_FILETYPE=${FILETYPE}; python -u cesm_average.py ${PERIOD} &> ${PYAVGOUT%.nc}.log" >> "${CMDFILE}.average"
-		            else
-		              echo "   Skipping: ${PYAVGOUT}"
-		            fi # if already file exits
-		        done # for $PERIODS
+            # loop over averaging periods
+            for PERIOD in $PRDS
+              do
+                ## compute averaged climatologies
+                # launch python script, save output in log file
+                PYAVGOUT="${AVGDIR}/cesm${FILETYPE}_clim_${PERIOD}.nc"
+                if [[ ! -f "$PYAVGOUT" ]] || [[ "$OVERWRITE" == 'OVERWRITE' ]]; then
+                  echo "   Averaging: ${PYAVGOUT}"
+                  echo "cd ${RUNDIR}; export PYAVG_FILETYPE=${FILETYPE}; python -u cesm_average.py ${PERIOD} &> ${PYAVGOUT%.nc}.log" >> "${CMDFILE}.average"
+                else
+                  echo "   Skipping: ${PYAVGOUT}"
+                fi # if already file exits
+            done # for $PERIODS
         fi # $AVERAGE
 
     done # for $FILETYPES
 
 
     ## climate variability diagnostics (CVDP)
-    if [[ "${CVDP}" == 'CVDP' ]]
+    if [[ "${CVDP}" == 'CVDP' ]] # also works for ensemble mode
       then
         mkdir -p "$RUNDIR/cvdp/" # make sure destination folder exists
         ln -sf "${MODEL_ROOT}/WRF Tools/NCL/CVDP/run_cvdp.sh" # link CVDP driver script
@@ -218,8 +220,9 @@ for RUN in $RUNS
         if [ ! -f "$RUNDIR/cvdp/cvdp.tar" ] || [[ "$OVERWRITE" == 'OVERWRITE' ]]; then
           echo "   Running CVDP"
           rm -rf "$RUNDIR/cvdp/" 
-          export TEST # TEST=True only generates namelists
-          if [[ "$REFCLM" == 'HISTORICAL' ]]; then CLIMO="$H_CLIM_FILE"
+          export TEST # TEST=NAMELISTS_ONLY only generates namelists
+          if [[ "$REFCLM" == 'NONE' ]]; then CLIMO='' # don't use external climatology
+          elif [[ "$REFCLM" == 'HISTORICAL' ]]; then CLIMO="$H_CLIM_FILE"
           elif [[ "$REFCLM" == 'PERIOD' ]]; then CLIMO="$P_CLIM_FILE"
           fi # currently no other options
           echo "cd $RUNDIR; bash -e run_cvdp.sh $RUN $SPRD $EPRD $CLIMO &> $RUNDIR/cvdp.log" >> "${CMDFILE}.cvdp" 
@@ -227,8 +230,24 @@ for RUN in $RUNS
           echo "   Skipping CVDP"
         fi # if actually running
     fi # $CVDP
-    
+} # fct RUNCMDS
 
+## generate command file for GNU Parallel
+# root directory
+cd "${WORKDIR}"
+touch "${CMDFILE}.diag" "${CMDFILE}.concat" "${CMDFILE}.average" "${CMDFILE}.cvdp"
+# loop over ensemble
+for ENS in $ENSEMBLE
+  do
+    echo
+    RUNCMDS "$ENS" 'ENSEMBLE' # generate commands for individual runs
+done # for $RUNS
+echo  
+# loop over runs
+for RUN in $RUNS
+  do
+    echo
+    RUNCMDS "$RUN" 'RUN' "$FILETYPES" "$PERIODS" # generate commands for individual runs
 done # for $RUNS
 echo 
 
