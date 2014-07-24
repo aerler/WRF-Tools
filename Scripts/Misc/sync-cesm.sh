@@ -2,8 +2,9 @@
 # script to synchronize CESM data with SciNet
 
 # CESM directories / data sources
-REX='h[abc]b20trcn1x1 tb20trcn1x1 h[abcz]brcp85cn1x1 htbrcp85cn1x1 seaice-5r-hf h[abcz]brcp85cn1x1d htbrcp85cn1x1d seaice-5r-hfd'
+REX= #'h[abc]b20trcn1x1 tb20trcn1x1 h[abcz]brcp85cn1x1 htbrcp85cn1x1 seaice-5r-hf h[abcz]brcp85cn1x1d htbrcp85cn1x1d seaice-5r-hfd'
 ENS='ens20trcn1x1 ensrcp85cn1x1 ensrcp85cn1x1d'
+CVDPENS="${ENS} grand-ensemble"
 CESMDATA=${CESMDATA:-/data/CESM/} # can be supplied by caller
 CCA='/reserved1/p/peltier/aerler/CESM/archive/' # archives with my own cesmavg files
 # connection settings
@@ -29,6 +30,7 @@ echo "      Local:  ${CESMDATA}"
 echo "      Host: ${HOST}"
 echo
 echo "   Experiments: ${REX}"
+echo "   Ensembles:   ${ENS}"
 echo
 
 ERR=0
@@ -67,7 +69,7 @@ for E in $( ssh ${SSH} ${HOST} "ls -d ${D}" ) # get folder listing from scinet
 		  do 
 		    #echo $ANA
 		    E=${E%/} # necessary for subsequent step (see below)
-		    F="${E}/${ANA}/*.tar" # tarball with HTML browseable diagnostics
+		    F="${E}/${ANA}/*.tgz" # tarball with HTML browseable diagnostics
 		    #echo $F
 		    # check if experiment has any data
 		    ssh ${SSH} ${HOST} "ls ${F}" &> /dev/null
@@ -82,21 +84,21 @@ for E in $( ssh ${SSH} ${HOST} "ls -d ${D}" ) # get folder listing from scinet
 		        ERR=$(( ${ERR} + $? )) # capture exit code, and repeat, if unsuccessful
 		        # N.B.: with connection sharing, repeating connection attempts is not really necessary
 		        # extract tarball, if file was updated
-            ls "${M}"/*.tar &> /dev/null # make sure tarball is there
+            ls "${M}"/*.tgz &> /dev/null # make sure tarball is there
 		        if [ $? -eq 0 ] # puttign the globex into the bracket fails if there is no tarball!
 		          then
 		            cd "${M}" # tar extracts into the current directory
-		            for TB in "${M}"/*.tar; do
+		            for TB in "${M}"/*.tgz; do
 		                T=${TB%.tar} # get folder name (no .tar)
 		                if [[ ! -e "${T}/" ]]; then
 		                    echo "Extracting diagnostic tarball (${ANA}): ${TB}"
-		                    tar xf "${TB}"
+		                    tar xzf "${TB}"
 		                    ERR=$(( ${ERR} + $? )) # capture exit code, and repeat, if unsuccessful
 		                    touch "${T}" # update modification date of folder
 		                elif [[ "${TB}" -nt "${T}/" ]]; then
 		                    echo "Extracting new diagnostic tarball (${ANA}): ${TB}"
 		                    rm -r "${T}/"
-		                    tar xf "${TB}"
+		                    tar xzf "${TB}"
 		                    ERR=$(( ${ERR} + $? )) # capture exit code, and repeat, if unsuccessful
 		                    touch "${T}" # update modification date of folder
 		                else
@@ -107,6 +109,59 @@ for E in $( ssh ${SSH} ${HOST} "ls -d ${D}" ) # get folder listing from scinet
 		        echo
 		    fi # if ls scinet
     done # for amwg & cvdp
+done # for experiments
+
+# generate list of experiments
+D=''; for R in ${CVDPENS}; do D="${D} ${CCA}/${R}"; done # assemble list of source folders
+# loop over all relevant experiments
+for E in $( ssh ${SSH} ${HOST} "ls -d ${D}" ) # get folder listing from scinet
+  do 
+    echo
+    echo "   ***   $E   ***   "
+    echo
+
+    ## synchronize CVDP dignostic files
+    # loop over all relevant ensembles
+		E=${E%/} # necessary for subsequent step (see below)
+		F="${E}/cvdp/*.tgz" # tarball with HTML browseable diagnostics
+    #echo $F
+    # check if experiment has any data
+		ssh ${SSH} ${HOST} "ls ${F}" &> /dev/null
+		if [ $? == 0 ] # check exit code 
+		  then
+		    N=${E##*/} # isolate folder name (local folder name)
+		    M="${CESMDATA}/cvdp/${N}" # absolute path
+		    mkdir -p "${M}" # make sure directory is there
+		    echo "${N}" # feedback
+		    # use rsync for the transfer; verbose, archive, update (gzip is probably not necessary)
+		    rsync -vau -e "ssh ${SSH}" "${HOST}:${F}" "${M}/"
+		    ERR=$(( ${ERR} + $? )) # capture exit code, and repeat, if unsuccessful
+		    # N.B.: with connection sharing, repeating connection attempts is not really necessary
+		    # extract tarball, if file was updated
+		    ls "${M}"/*.tgz &> /dev/null # make sure tarball is there
+		    if [ $? -eq 0 ] # puttign the globex into the bracket fails if there is no tarball!
+		      then
+		        cd "${M}" # tar extracts into the current directory
+		        for TB in "${M}"/*.tgz; do
+		            T=${TB%.tar} # get folder name (no .tar)
+		            if [[ ! -e "${T}/" ]]; then
+		                echo "Extracting diagnostic tarball (cvdp): ${TB}"
+		                tar xzf "${TB}"
+		                ERR=$(( ${ERR} + $? )) # capture exit code, and repeat, if unsuccessful
+		                touch "${T}" # update modification date of folder
+		            elif [[ "${TB}" -nt "${T}/" ]]; then
+		                echo "Extracting new diagnostic tarball (cvdp): ${TB}"
+		                rm -r "${T}/"
+		                tar xzf "${TB}"
+		                ERR=$(( ${ERR} + $? )) # capture exit code, and repeat, if unsuccessful
+		                touch "${T}" # update modification date of folder
+		            else
+		                echo "${T} diagnostics are up-to-date (cvdp)"
+		            fi # if $T/
+		        done # for *.tar
+		    fi # if ${M}/*.tar
+		    echo
+		fi # if ls scinet
 done # for experiments
 
 # generate list of ensembles to copy back to SciNet
