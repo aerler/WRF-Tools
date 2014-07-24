@@ -51,6 +51,7 @@ PERIODS=${PERIODS:-'5 10 15'} # averaging periods
 # cesm_average settings
 CVDP=${CVDP:-'FALSE'} # Climate Variability Diagnostics Package (set to CVDP)
 REFCLM=${REFCLM:-'NONE'} # climatology that is used to remove annual cycle in CVDP" HISTORICAL, PERIOD 
+TEST=${TEST:-'FALSE'} # CVDP run script expects FALSE
 DIAG=${DIAG:-'FALSE'} # Climatology Diagnostics Package (set to DIAG)
 CONCAT=${CONCAT:-'FALSE'} # concatenate monthly files (set to CONCAT)
 AVERAGE=${AVERAGE:-'FALSE'} # compute climatologies (set to AVERAGE)
@@ -99,7 +100,7 @@ function RUNCMDS {
     elif [[ "$RUN" == seaice-5r-hfd ]]; then SPRD='2085'; EPRD='2099'; HREF='tb20trcn1x1'
     elif [[ "$RUN" == seaice-5r-hf ]]; then SPRD='2045'; EPRD='2059'; HREF='tb20trcn1x1'
     elif [[ "$RUN" == seaice-*-hf ]]; then SPRD='2045'; EPRD='2059'; HREF='tb20trcn1x1'
-    elif [[ "$RUN" == grand-ensemble ]]; then SPRD='0000'; EPRD='0015'; HREF=''
+    elif [[ "$RUN" == grand-ensemble ]]; then SPRD='0000'; EPRD='0014'; HREF=''
     else echo "ERROR: No settings found for experiment '$RUN' - aborting!"; exit 1     
     fi # $RUN settings
     EEPRD=$(( $EPRD +1 )) # different convention in climatology file
@@ -225,7 +226,7 @@ function RUNCMDS {
           elif [[ "$REFCLM" == 'HISTORICAL' ]]; then CLIMO="$H_CLIM_FILE"
           elif [[ "$REFCLM" == 'PERIOD' ]]; then CLIMO="$P_CLIM_FILE"
           fi # currently no other options
-          echo "cd $RUNDIR; bash -e run_cvdp.sh $RUN $SPRD $EPRD $CLIMO &> $RUNDIR/cvdp.log" >> "${CMDFILE}.cvdp" 
+          echo "cd $RUNDIR; bash run_cvdp.sh $RUN $SPRD $EPRD $CLIMO &> $RUNDIR/cvdp.log" >> "${CMDFILE}.cvdp" 
         else
           echo "   Skipping CVDP"
         fi # if actually running

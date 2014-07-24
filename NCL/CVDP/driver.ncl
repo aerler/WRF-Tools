@@ -39,7 +39,7 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
                                              ; Default = 1, which = 1500 (H) x 1500 (W) before automatic cropping of white space
   webpage_title     = getenv("TITLE")        ; Webpage title   
   
-  tar_output        = "True"                 ; tar up all output in outdir and remove individual files?                                      
+  tar_output        = "False"                ; tar up all output in outdir and remove individual files?                                      
                                              ; Note: ALL files in outdir will be tarred up and then removed fromthe outdir directory. 
 ;========END USER MODIFICATIONS===========================================================
   version = "3.2.0"

@@ -166,6 +166,10 @@ if [ $ERR -eq 0 ] && [ $ENSNO -gt 1 ]; then
   done # loop over members
 fi # if NCL successful
 
+# make tarball
+cd "$OUTDIR" # in output folder, because of convention
+tar czf cvdp.tgz * # everything!
+
 # copy results, clean up and exit
 echo
 if [ $ERR -ne 0 ]; then 
