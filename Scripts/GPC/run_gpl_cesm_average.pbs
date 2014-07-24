@@ -237,19 +237,21 @@ function RUNCMDS {
 cd "${WORKDIR}"
 touch "${CMDFILE}.diag" "${CMDFILE}.concat" "${CMDFILE}.average" "${CMDFILE}.cvdp"
 # loop over ensemble
-for ENS in $ENSEMBLE
+for ENS in $( ls -d $ENSEMBLE )
   do
     echo
     RUNCMDS "$ENS" 'ENSEMBLE' # generate commands for individual runs
 done # for $RUNS
+cd "${WORKDIR}"
 echo  
 # loop over runs
-for RUN in $RUNS
+for RUN in $( ls -d $RUNS )
   do
     echo
     RUNCMDS "$RUN" 'RUN' "$FILETYPES" "$PERIODS" # generate commands for individual runs
 done # for $RUNS
 echo 
+cd "${WORKDIR}"
 
 # assemble command file (so that not all processes are accessing the same files at once)
 cat "${CMDFILE}.diag" "${CMDFILE}.concat" "${CMDFILE}.average" "${CMDFILE}.cvdp" > "${CMDFILE}"
