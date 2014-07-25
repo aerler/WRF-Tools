@@ -52,9 +52,9 @@ for FILE in $FILELIST
             echo "${FN}"
             unset EXCLUDE # clear eclude list
             # detect file type and set an exlude list
-            if [[ $FN == *hydro* ]]; then EXCLUDE='T2,Tmean,SolidPrecip_SR,LiquidPrecip_SR,liqprec_sr,solprec_sr'
-            elif [[ $FN == *srfc* ]]; then EXCLUDE='TSK'
-            fi # file type/name
+            #if [[ $FN == *hydro* ]]; then EXCLUDE='T2,Tmean,SolidPrecip_SR,LiquidPrecip_SR,liqprec_sr,solprec_sr'
+            #elif [[ $FN == *srfc* ]]; then EXCLUDE='TSK'
+            #fi # file type/name
             # add flags to EXCLUDE list
             if [[ -n "$EXCLUDE" ]]; then EXCLUDE="--exclude --variable $EXCLUDE"; fi
             MEMFILES=''; for M in $MEMDIRS; do MEMFILES="$MEMFILES $M/$FN"; done # source files

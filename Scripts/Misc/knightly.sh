@@ -77,13 +77,13 @@ echo
 export HISPD=${HISPD:-'FALSE'} # whether or not to use the high-speed datamover connection
 # N.B.: the datamover connection needs to be established manually beforehand
 # WRF
-nice --adjustment=${NICENESS} ${NICESNESS} "${SCRIPTS}/sync-wrf.sh" 1> ${WRFDATA}/sync-wrf.log 2> ${WRFDATA}/sync-wrf.err # 2>&1
+nice --adjustment=${NICENESS} ${NICESNESS} "${SCRIPTS}/sync-wrf.sh" &> ${WRFDATA}/sync-wrf.log #2> ${WRFDATA}/sync-wrf.err # 2>&1
 REPORT $? 'WRF Synchronization'  
 # CESM
-nice --adjustment=${NICENESS} "${SCRIPTS}/sync-cesm.sh" 1> ${CESMDATA}/sync-cesm.log 2> ${CESMDATA}/sync-cesm.err # 2>&1
+nice --adjustment=${NICENESS} "${SCRIPTS}/sync-cesm.sh" &> ${CESMDATA}/sync-cesm.log #2> ${CESMDATA}/sync-cesm.err # 2>&1
 REPORT $? 'CESM Synchronization' 
 # Datasets
-nice --adjustment=${NICENESS} "${SCRIPTS}/sync-datasets.sh" 1> ${ROOT}/sync-datasets.log 2> ${ROOT}/sync-datasets.err # 2>&1
+nice --adjustment=${NICENESS} "${SCRIPTS}/sync-datasets.sh" &> ${ROOT}/sync-datasets.log #2> ${ROOT}/sync-datasets.err # 2>&1
 REPORT $? 'Dataset/Obs Synchronization' 
 
 ## run post-processing (update climatologies)
@@ -93,21 +93,21 @@ export PYAVG_THREADS=${PYAVG_THREADS:-4} # parallel execution
 export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
 export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
 #"${PYTHON}/bin/python" -c "print 'OK'" 1> ${WRFDATA}/wrfavg.log 2> ${WRFDATA}/wrfavg.err # for debugging
-nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/PyGeoDat/src/processing/wrfavg.py" 1> ${WRFDATA}/wrfavg.log 2> ${WRFDATA}/wrfavg.err
+nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/PyGeoDat/src/processing/wrfavg.py" &> ${WRFDATA}/wrfavg.log #2> ${WRFDATA}/wrfavg.err
 REPORT $? 'WRF Post-processing'
 
 ## compute ensemble averages
 # WRF
 cd "${WRFDATA}/wrfavg/"
 for E in *ensemble*/; do 
-   nice --adjustment=${NICENESS} "${SCRIPTS}/ensembleAverage.sh" ${E} 1> ${E}/ensembleAverage.log 2> ${E}/ensembleAverage.err
-   REPORT $? "WRF Ensemble Average '${E}'"
+  nice --adjustment=${NICENESS} "${SCRIPTS}/ensembleAverage.sh" ${E} &> ${E}/ensembleAverage.log #2> ${E}/ensembleAverage.err
+  REPORT $? "WRF Ensemble Average '${E}'"
 done
 # CESM
 cd "${CESMDATA}/cesmavg/"
 for E in ens*/; do 
-   nice --adjustment=${NICENESS} "${SCRIPTS}/ensembleAverage.sh" ${E} 1> ${E}/ensembleAverage.log 2> ${E}/ensembleAverage.err
-   REPORT $? "CESM Ensemble Average '${E}'"
+  nice --adjustment=${NICENESS} "${SCRIPTS}/ensembleAverage.sh" ${E} &> ${E}/ensembleAverage.log #2> ${E}/ensembleAverage.err
+  REPORT $? "CESM Ensemble Average '${E}'"
 done
 
 ## run regridding (WRF and CESM)
@@ -116,7 +116,7 @@ export PYAVG_BATCH=${PYAVG_BATCH:-'BATCH'} # run in batch mode - this should not
 export PYAVG_THREADS=${PYAVG_THREADS:-4} # parallel execution
 export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
 export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
-nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/PyGeoDat/src/processing/regrid.py" 1> ${ROOT}/regrid.log 2> ${ROOT}/regrid.err
+nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/PyGeoDat/src/processing/regrid.py" &> ${ROOT}/regrid.log #2> ${ROOT}/regrid.err
 REPORT $? 'CESM & WRF regridding'
 
 # report
