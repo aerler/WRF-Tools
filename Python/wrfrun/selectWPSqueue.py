@@ -33,7 +33,7 @@ if ('gpc' in hostname):
   ppn = 16 # processes per node
   showq = 'showq -w class=largemem' # queue query command
   submitPrimary = 'qsub %s -v NEXTSTEP=%s -l nodes=1:m128g:ppn=16 -q largemem'%(WPSSCRIPT,NEXTSTEP)
-  submitSecondary = 'qsub %s -v NEXTSTEP=%s -l nodes=1:m32g:ppn=8 -q batch'%(WPSSCRIPT,NEXTSTEP)
+  submitSecondary = 'qsub %s -v NEXTSTEP=%s -l nodes=1:m128g:ppn=16 -q sandy'%(WPSSCRIPT,NEXTSTEP)
   #submitPrimary = submitSecondary # temporarily disabled
 else:
   # this is for test purpose only; read file 'queue-test.txt' in same directory

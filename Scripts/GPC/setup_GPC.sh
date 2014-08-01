@@ -39,7 +39,8 @@ fi # if on GPC
 # RAM-disk settings: infer from queue
 if [[ ${RUNPYWPS} == 1 ]] && [[ ${RUNREAL} == 1 ]]
   then
-    if [[ "${PBS_QUEUE}" == 'largemem' ]]; then
+    #if [[ "${PBS_QUEUE}" == 'largemem' ]]; then
+    if [ $(( $(free | grep 'Mem:' | awk '{print $2}') / 1024**2 )) -gt 100 ]; then
 	export RAMIN=${RAMIN:-1}
 	export RAMOUT=${RAMOUT:-1}
     else
