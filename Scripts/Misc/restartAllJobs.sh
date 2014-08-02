@@ -49,6 +49,7 @@ function CHECK {
               ssh p7n01-ib0 "cd '${INIDIR}'; nohup ./startCycle.sh --restart=${NEXTSTEP} --name=${JOBNAME} &> '$SCLOG' &"
               #echo "ERROR: No active run directory found for experiment ${E}!"
             fi # handle incomplete/missing WPS
+            MIA=$(( $MIA + 1 )) # modifies global counter!
           fi # if folder exists (prevent accidential deletion)                                 
 			  else
 				  echo "Experiment ${E} on ${MAC} is running!"
