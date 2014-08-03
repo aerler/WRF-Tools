@@ -29,10 +29,17 @@ NEXTSTEP = os.getenv('NEXTSTEP')
 hostname = socket.gethostname()
 if ('gpc' in hostname):
   # we need to know something about the queue system...
+  # use only sandy
+  #nodes = 76 # number of nodes
+  #ppn = 16 # processes per node
+  #showq = 'showq -w class=sandy' # queue query command
+  #submitPrimary = 'qsub %s -v NEXTSTEP=%s -l nodes=1:m128g:ppn=16 -q sandy '%(WPSSCRIPT,NEXTSTEP)
+  #submitSecondary = 'qsub %s -v NEXTSTEP=%s -l nodes=1:m128g:ppn=16 -q sandy'%(WPSSCRIPT,NEXTSTEP)
+  # use largemem as primary
   nodes = 1 # number of nodes
   ppn = 16 # processes per node
   showq = 'showq -w class=largemem' # queue query command
-  submitPrimary = 'qsub %s -v NEXTSTEP=%s -l nodes=1:m128g:ppn=16 -q largemem'%(WPSSCRIPT,NEXTSTEP)
+  submitPrimary = 'qsub %s -v NEXTSTEP=%s -l nodes=1:ppn=16 -q largemem '%(WPSSCRIPT,NEXTSTEP)
   submitSecondary = 'qsub %s -v NEXTSTEP=%s -l nodes=1:m128g:ppn=16 -q sandy'%(WPSSCRIPT,NEXTSTEP)
   #submitPrimary = submitSecondary # temporarily disabled
 else:
