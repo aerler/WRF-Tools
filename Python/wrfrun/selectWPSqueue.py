@@ -15,14 +15,14 @@ import math
 import os # directory operations
 #import fileinput # reading and writing config files
 #import shutil # file operations
-#import sys # writing to stdout
+import sys # writing to stdout and exit with exit code
 #import datetime # to compute run time
 #import calendar # to locate leap years
 
 ## Settings
 # environment variables (set by caller instance)
-WRFWCT = os.getenv('WRFWCT')
-WPSWCT = os.getenv('WPSWCT')
+WRFWCT = os.getenv('WRFWCT','00:00:00')
+WPSWCT = os.getenv('WPSWCT','00:00:00')
 WPSSCRIPT = os.getenv('WPSSCRIPT')
 NEXTSTEP = os.getenv('NEXTSTEP')
 # machine-specific setup
@@ -144,16 +144,22 @@ if __name__ == '__main__':
     if timelimit <= 0 or waittime < timelimit:    
       print('   >>> submitting to primary queue system:')
       print(submitPrimary)
-      subprocess.Popen(submitPrimary, shell=True)
+      subproc=subprocess.Popen(submitPrimary, shell=True)
+      exitcode=subproc.wait() # wait for completion and capture exit code
     else:
       print('   >>> submitting to secondary queue system:')
       print(submitSecondary)
-      subprocess.Popen(submitSecondary, shell=True)
+      subproc=subprocess.Popen(submitSecondary, shell=True)
+      exitcode=subproc.wait() # wait for completion and capture exit code
   else:
     # just launch on primary queue	
     print('WARNING: invalid timelimit!')
     print('   >>> submitting to primary queue system:')
     print(submitPrimary)
-    subprocess.Popen(submitPrimary, shell=True)
+    subproc=subprocess.Popen(submitPrimary, shell=True)
+    exitcode=subproc.wait() # wait for completion and capture exit code
 
+# N.B.: could capture stdout/stderr with the stdout=subprocess.PIPE and stderr=subprocess.STDOUT
+# option and retrieving the string with subproc.communicate()
 
+sys.exit(exitcode) # use exit code from submit command
