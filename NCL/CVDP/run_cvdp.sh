@@ -90,7 +90,7 @@ else cp "$CVDPSRC/driver.ncl" "$WORKDIR"; fi # use full driver script
 cp -r "$CVDPSRC/ncl_scripts/" "$WORKDIR"
 
 # period length
-PRDLEN=$(( $EPRD - $SPRD +1 )) # length of time dimension to extract
+PRDLEN=$(( $EPRD - $SPRD +1 )) # length of time period to extract (in years)
 DIMLEN=$(( $PRDLEN * 12 )) # length of time dimension to extract
 PRDAYS=$(( $PRDLEN * 365 )) # length of period in days (CESM time coordinate)
 ENSLEN=$(( $PRDLEN * $ENSNO )) # length of the total record
@@ -160,8 +160,9 @@ if [ $ERR -eq 0 ] && [ $ENSNO -gt 1 ]; then
   # loop over ensemble members
   Z=0
   for M in $ENSMEM; do
-    S=$(( ( $DIMLEN * $Z ) + 1 )); E=$(( $DIMLEN * ( $Z + 1 ) ))
-    ncks -F -d time,$S,$E "$OUTNC" "${WORKDIR}/output/${M}.cvdp_data.${SPRD}-${EPRD}.nc" # now the original end-of-period
+    S=$(( ( $PRDLEN * $Z ) + 1 )); E=$(( $PRDLEN * ( $Z + 1 ) )) # yearly time dimension
+    SS=$(( ( $DIMLEN * $Z ) + 1 )); EE=$(( $DIMLEN * ( $Z + 1 ) )) # monthly time dimension
+    ncks -F -d TIME,$S,$E -d time,$SS,$EE "$OUTNC" "${WORKDIR}/output/${M}.cvdp_data.${SPRD}-${EPRD}.nc" # now the original end-of-period
     Z=$(( Z + 1 ))
   done # loop over members
 fi # if NCL successful
