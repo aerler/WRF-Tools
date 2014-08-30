@@ -138,14 +138,16 @@ class DerivedVariable(object):
       self.atts['units'] = self.units = units  # units... also
     else: self.units = atts['units']
     
-  def checkPrerequisites(self, target, const=None):
+  def checkPrerequisites(self, target, const=None, varmap=None):
     ''' Check if all required variables are in the source NetCDF dataset. '''
     if not isinstance(target, nc.Dataset): raise TypeError
     if not (const is None or isinstance(const, nc.Dataset)): raise TypeError
+    if not (varmap is None or isinstance(varmap, dict)): raise TypeError
     check = True # any mismatch will set this to False
     # check all prerequisites
     for var in self.prerequisites:
-      if var not in target.variables:
+      if varmap: var = varmap.get(var,var)
+      if var not in target.variables:        
         check = False # prerequisite variable not found
 # N.B.: checking dimensions is potentially too restrictive, if variables are not defined pointwise
 #       if var in target.variables:
@@ -172,9 +174,9 @@ class DerivedVariable(object):
     ncvar = add_var(target, name=self.name, dims=self.axes, data=None, atts=self.atts, dtype=self.dtype )
     return ncvar
     
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Compute values for new variable from existing stock; child classes have to overload this method. '''
-    # N.B.: this method ii called directly for linear and through aggregateValues() for non-linear variables
+    # N.B.: this method is called directly for linear and through aggregateValues() for non-linear variables
     if not isinstance(indata,dict): raise TypeError
     if not isinstance(aggax,(int,np.integer)): raise TypeError # the aggregation axis (needed for extrema) 
     if not (const is None or isinstance(const,dict)): raise TypeError # dictionary of constant(s)/fields
@@ -188,16 +190,22 @@ class DerivedVariable(object):
         raise ValueError, 'The variable \'{:s}\' requires a constants dictionary!'.format(self.name)
     return NotImplemented
   
-  def aggregateValues(self, aggdata, comdata, aggax=0):
+  def aggregateValues(self, comdata, aggdata=None, aggax=0, ignoreNaN=False):
     ''' Compute and aggregate values for non-linear over several input periods/files. '''
     # N.B.: linear variables can go through this chain as well, if it is a pre-requisite for non-linear variable
-    if not isinstance(aggdata,np.ndarray): raise TypeError # aggregate variable
     if not isinstance(comdata,np.ndarray): raise TypeError # newly computed values
     if not isinstance(aggax,(int,np.integer)): raise TypeError # the aggregation axis (needed for extrema)
     # the default implementation is just a simple sum that will be normalized to an average
-    if not self.normalize: raise DerivedVariableError, 'The default aggregation requires normalization.'
-    if comdata is not None and comdata.size > 0: 
-      aggdata = aggdata + np.sum(comdata, axis=aggax) # don't use in-place addition, because it destroys masks
+    if comdata is not None and comdata.size > 0:
+      if aggdata is None: 
+        if self.normalize: raise DerivedVariableError, 'The one-pass aggregation automatically normalizes.'
+        if ignoreNaN: aggdata = np.nanmean(comdata, axis=aggax) # ignore NaN's
+        else: aggdata = np.mean(comdata, axis=aggax) # don't use in-place addition, because it destroys masks
+      else:
+        if not self.normalize: raise DerivedVariableError, 'The default aggregation requires normalization.'
+        if not isinstance(aggdata,np.ndarray): raise TypeError # aggregate variable
+        if ignoreNaN: aggdata = aggdata + np.nansum(comdata, axis=aggax) # ignore NaN's
+        else: aggdata = aggdata + np.sum(comdata, axis=aggax) # don't use in-place addition, because it destroys masks
     # return aggregated value for further treatment
     return aggdata 
 
@@ -446,14 +454,15 @@ class WetDays(DerivedVariable):
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype=dv_float, atts=None, linear=False) 
     
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Count the number of events above a threshold. '''
     super(WetDays,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
     # check that delta does not change!
-    if 'WETDAYS_DELTA' in tmp: 
-      if delta != tmp['WETDAYS_DELTA']: 
-        raise NotImplementedError, 'Output interval is assumed to be constant for conversion to days. (delta={:f})'.format(delta)
-    else: tmp['WETDAYS_DELTA'] = delta # save and check next time
+    if tmp is not None:
+      if 'WETDAYS_DELTA' in tmp: 
+        if delta != tmp['WETDAYS_DELTA']: 
+          raise NotImplementedError, 'Output interval is assumed to be constant for conversion to days. (delta={:f})'.format(delta)
+      else: tmp['WETDAYS_DELTA'] = delta # save and check next time
     # sampling does not have to be daily may not be daily     
     outdata = indata['RAIN'] > 2.3e-7 # definition according to AMS Glossary: precip > 0.02 mm/day
     # N.B.: this is actually the fraction of wet days in a month (i.e. not really days)      
@@ -474,7 +483,7 @@ class FrostDays(DerivedVariable):
   def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
     ''' Count the number of events below a threshold (0 Celsius) '''
     super(FrostDays,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks    
-    assert delta == 86400., 'WRF extreme values are suppposed to be daily; encountered delta={:f}'.format(delta)
+    if delta != 86400.: raise ValueError, 'WRF extreme values are suppposed to be daily; encountered delta={:f}'.format(delta)
     outdata = indata['T2MIN'] < 273.15 # event below threshold (0 deg. C., according to AMS Glossary)    
     return outdata
 
@@ -716,7 +725,7 @@ class WaterTransport_V(DerivedVariable):
 class Extrema(DerivedVariable):
   ''' DerivedVariable child implementing computation of extrema in monthly WRF output. '''
   
-  def __init__(self, var, mode, name=None, dimmap=None):
+  def __init__(self, var, mode, name=None, longname=None, dimmap=None):
     ''' Constructor; takes variable object as argument and infers meta data. '''
     # construct name with prefix 'Max'/'Min' and camel-case
     if isinstance(var, DerivedVariable):
@@ -729,6 +738,7 @@ class Extrema(DerivedVariable):
       atts['Aggregation'] = 'Monthly Maximum'; prefix = 'Max'; exmode = 1
     elif mode.lower() == 'min':      
       atts['Aggregation'] = 'Monthly Minimum'; prefix = 'Min'; exmode = 0
+    if longname is not None: atts['long_name'] = longname
     if isinstance(dimmap,dict): axes = [dimmap[dim] if dim in dimmap else dim for dim in axes]
     if name is None: name = '{0:s}{1:s}'.format(prefix,varname[0].upper() + varname[1:])
     # infer attributes of extreme variable
@@ -737,34 +747,41 @@ class Extrema(DerivedVariable):
     self.mode = exmode
     self.tmpdata = None # don't need temporary storage 
 
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Compute field of maxima '''
     super(Extrema,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
     # decide, what to do
     if self.mode == 1:
-      outdata = np.amax(indata[self.prerequisites[0]], axis=aggax) # compute maximum
+      if ignoreNaN: outdata = np.nanmax(indata[self.prerequisites[0]], axis=aggax) # ignore NaNs
+      else: outdata = np.max(indata[self.prerequisites[0]], axis=aggax) # compute maximum
     elif self.mode == 0:
-      outdata = np.amin(indata[self.prerequisites[0]], axis=aggax) # compute minimum
+      if ignoreNaN: outdata = np.nanmin(indata[self.prerequisites[0]], axis=aggax) # ignore NaNs
+      else: outdata = np.min(indata[self.prerequisites[0]], axis=aggax) # compute minimum
     # N.B.: already partially aggregating here, saves memory
     return outdata
   
-  def aggregateValues(self, aggdata, comdata, aggax=0):
+  def aggregateValues(self, comdata, aggdata=None, aggax=0, ignoreNaN=False):
     ''' Compute and aggregate values for non-linear over several input periods/files. '''
     # N.B.: linear variables can go through this chain as well, if it is a pre-requisite for non-linear variable
-    if not isinstance(aggdata,np.ndarray): raise TypeError # aggregate variable
+    if not isinstance(aggdata,np.ndarray) and aggdata is not None: raise TypeError # aggregate variable
     if not isinstance(comdata,np.ndarray) and comdata is not None: raise TypeError # newly computed values
     if not isinstance(aggax,(int,np.integer)): raise TypeError # the aggregation axis (needed for extrema)
     # the default implementation is just a simple sum that will be normalized to an average
     if self.normalize: raise DerivedVariableError, 'Aggregated extrema should not be normalized!'
     #print self.name, comdata.shape
     if comdata is not None and comdata.size > 0:
-      # N.B.: comdata can be None if the record was not long enough to compute this variable     
-      if self.mode == 1: 
-        aggdata = np.maximum(aggdata,comdata) # aggregat maxima
-      elif self.mode == 0:
-        aggdata = np.minimum(aggdata,comdata) # aggregat minima
+      # N.B.: comdata can be None if the record was not long enough to compute this variable
+      if aggdata is None:
+        aggdata = comdata # i.e. no intermediate accumulation step (already monthly data)
+      else:
+        if self.mode == 1: 
+          if ignoreNaN: aggdata = np.fmax(aggdata,comdata)
+          else: aggdata = np.maximum(aggdata,comdata) # aggregate maxima
+        elif self.mode == 0:
+          if ignoreNaN: aggdata = np.fmin(aggdata,comdata)
+          else: aggdata = np.minimum(aggdata,comdata) # aggregate minima
     # return aggregated value for further treatment
-    return aggdata 
+    return aggdata
   
   
 # base class for 'period over threshold'-type extrema 
@@ -803,9 +820,9 @@ class ConsecutiveExtrema(Extrema):
     self.tmpdata = 'COX_'+self.name # don't need temporary storage 
     self.carryover = True # don't stop counting - this is vital    
     
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Count consecutive above/below threshold days '''
-    super(Extrema,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
+    super(Extrema,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp, ignoreNaN=ignoreNaN) # perform some type checks
     # check that delta does not change!
     if 'COX_DELTA' in tmp: 
       if delta != tmp['COX_DELTA']: 
@@ -816,7 +833,7 @@ class ConsecutiveExtrema(Extrema):
       self.period = delta / self.lengthofday 
     # get data
     data = indata[self.prerequisites[0]]
-    # if axis is not 0 (innermost), roll axis until it is
+    # if axis is not 0 (outermost), roll axis until it is
     if aggax != 0: data = np.rollaxis(data, axis=aggax, start=0)
     tlen = data.shape[0] # aggregation axis
     xshape = data.shape[1:] # rest of the map
@@ -848,10 +865,10 @@ class ConsecutiveExtrema(Extrema):
 class MeanExtrema(Extrema):
   ''' Extrema child implementing extrema of interval-averaged values in monthly WRF output. '''
   
-  def __init__(self, var, mode, interval=7, name=None, dimmap=None):
+  def __init__(self, var, mode, interval=7, name=None, longname=None, dimmap=None):
     ''' Constructor; takes variable object as argument and infers meta data. '''
     # infer attributes of Maximum variable
-    super(MeanExtrema,self).__init__(var, mode, name=name, dimmap=dimmap)
+    super(MeanExtrema,self).__init__(var, mode, name=name, longname=longname, dimmap=dimmap)
     if len(self.prerequisites) > 1: raise ValueError, "Extrema can only have one Prerquisite"
     self.atts['name'] = self.name = '{0:s}_{1:d}d'.format(self.name,interval)
     self.atts['Aggregation'] = 'Averaged ' + self.atts['Aggregation']
@@ -860,12 +877,14 @@ class MeanExtrema(Extrema):
     self.tmpdata = 'MEX_'+self.name # handle for temporary storage
     self.carryover = True # don't drop data    
 
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Compute field of maxima '''
-    if aggax != 0: raise NotImplementedError, 'Currently, interval averaging only works on the innermost dimension.'
+    #if aggax != 0: raise NotImplementedError, 'Currently, interval averaging only works on the innermost dimension.'
     if delta == 0: raise ValueError, 'No interval to average over...'
     # assemble data
     data = indata[self.prerequisites[0]]
+    # if axis is not 0 (outermost), roll axis until it is
+    if aggax != 0: data = np.rollaxis(data, axis=aggax, start=0)
     if self.tmpdata in tmp:
       data = np.concatenate((tmp[self.tmpdata], data), axis=0)
     # determine length of interval
@@ -882,8 +901,9 @@ class MeanExtrema(Extrema):
       # average interval
       meandata = data.mean(axis=0) # average over interval dimension
       datadict = {self.prerequisites[0]:meandata} # next method expects a dictionary...
-      # find extrema as before 
-      outdata = super(MeanExtrema,self).computeValues(datadict, aggax=aggax, delta=delta, const=const, tmp=None) # perform some type checks
+      # find extrema as before (but aggregation axis was shifted to 0)
+      outdata = super(MeanExtrema,self).computeValues(datadict, aggax=0, delta=delta, const=const, 
+                                                      tmp=None, ignoreNaN=ignoreNaN) # perform some type checks
     else:
       rest = data # carry over everything
       outdata = None # nothing to return (handled in aggregation)

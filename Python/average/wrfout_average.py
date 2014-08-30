@@ -743,7 +743,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
               if not devar.linear: # only non-linear ones here, linear one at the end
                 logger.debug('\n{0:s} {1:s} {2:s}'.format(pidstr, dename, str(devar.prerequisites)))
                 tmp = devar.computeValues(pqdata, aggax=tax, delta=delta, const=const, tmp=tmpdata) # possibly needed as pre-requisite  
-                dedata[dename] = devar.aggregateValues(dedata[dename], tmp, aggax=tax)
+                dedata[dename] = devar.aggregateValues(tmp, aggdata=dedata[dename], aggax=tax)
                 # N.B.: in-place operations with non-masked array destroy the mask, hence need to use this
                 if dename in pqset: pqdata[dename] = tmp
                 # N.B.: missing values should be handled implicitly, following missing values in pre-requisites            
