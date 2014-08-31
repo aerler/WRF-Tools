@@ -72,13 +72,14 @@ def calcTimeDelta(timestamps, year=None, month=None):
               
 
 ## helper routine: central differences
+# N.B.: due to the roll operation, this function is not fully thread-safe
 def ctrDiff(data, axis=0, delta=1):
   if not isinstance(data,np.ndarray): raise TypeError
   if not isinstance(delta,(float,np.inexact,int,np.integer)): raise TypeError
   if not isinstance(axis,(int,np.integer)): raise TypeError
   # if axis is not 0, roll axis until it is
   # N.B.: eventhough '0' is the outermost axis, the index order does not seem to have any effect  
-  if axis != 0: data = np.rollaxis(data, axis=axis, start=0)
+  if axis != 0: data = np.rollaxis(data, axis=axis, start=0) # changes original - need to undo later
   # prepare calculation
   outdata = np.zeros_like(data, dtype=dtype_float) # allocate             
   # compute centered differences, except at the edges, where forward/backward difference are used
@@ -96,7 +97,7 @@ def ctrDiff(data, axis=0, delta=1):
     outdata[[0,-1],:] /= delta # but aplly the denominator, "dx"
       
   # roll axis back to original position and return
-  if axis != 0: outdata = np.rollaxis(outdata, axis=0, start=axis+1)
+  if axis != 0: outdata = np.rollaxis(outdata, axis=0, start=axis+1) # undo roll
   return outdata
 
 
@@ -463,8 +464,12 @@ class WetDays(DerivedVariable):
         if delta != tmp['WETDAYS_DELTA']: 
           raise NotImplementedError, 'Output interval is assumed to be constant for conversion to days. (delta={:f})'.format(delta)
       else: tmp['WETDAYS_DELTA'] = delta # save and check next time
-    # sampling does not have to be daily may not be daily     
-    outdata = indata['RAIN'] > 2.3e-7 # definition according to AMS Glossary: precip > 0.02 mm/day
+    # sampling does not have to be daily may not be daily
+    if ignoreNaN:
+      outdata = np.where(indata['RAIN'] > 2.3e-7, 1,0) # comparisons with NaN always yield False
+      outdata = np.where(np.isnan(indata['RAIN']), np.NaN,outdata)     
+    else:
+      outdata = indata['RAIN'] > 2.3e-7 # definition according to AMS Glossary: precip > 0.02 mm/day
     # N.B.: this is actually the fraction of wet days in a month (i.e. not really days)      
     return outdata
 
@@ -484,7 +489,11 @@ class FrostDays(DerivedVariable):
     ''' Count the number of events below a threshold (0 Celsius) '''
     super(FrostDays,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks    
     if delta != 86400.: raise ValueError, 'WRF extreme values are suppposed to be daily; encountered delta={:f}'.format(delta)
-    outdata = indata['T2MIN'] < 273.15 # event below threshold (0 deg. C., according to AMS Glossary)    
+    if ignoreNaN:
+      outdata = np.where(indata['T2MIN'] < 273.15, 1,0) # comparisons with NaN always yield False
+      outdata = np.where(np.isnan(indata['T2MIN']), np.NaN,outdata)     
+    else:
+      outdata = indata['T2MIN'] < 273.15 # event below threshold (0 deg. C., according to AMS Glossary)    
     return outdata
 
 
@@ -834,7 +843,7 @@ class ConsecutiveExtrema(Extrema):
     # get data
     data = indata[self.prerequisites[0]]
     # if axis is not 0 (outermost), roll axis until it is
-    if aggax != 0: data = np.rollaxis(data, axis=aggax, start=0)
+    if aggax != 0: data = np.rollaxis(data, axis=aggax, start=0).copy() # should make a copy
     tlen = data.shape[0] # aggregation axis
     xshape = data.shape[1:] # rest of the map
     # initialize counter of consecutive exceedances
@@ -847,7 +856,7 @@ class ConsecutiveExtrema(Extrema):
       # detect threshold changes
       if self.thresmode == 1: xmask = ( data[t,:] > self.threshold ) # above
       elif self.thresmode == 0: xmask = ( data[t,:] < self.threshold ) # below
-      #nxmask = not xmask # inverse mask
+      # N.B.: comparisons with NaN always yield False, i.e. non-exceedance
       # update maxima of exceedances
       xnew = np.where(xmask,0,xcnt) * self.period # extract periods before reset
       maxdata = np.maximum(maxdata,xnew) #       
@@ -858,6 +867,8 @@ class ConsecutiveExtrema(Extrema):
     # carry over current counter to next period or month
     tmp[self.tmpdata] = xcnt
     # return output for further aggregation
+    if ignoreNaN:
+      maxdata = np.ma.masked_where(np.isnan(data).sum(axis=0) > 0, maxdata)
     return maxdata
   
 
@@ -884,7 +895,7 @@ class MeanExtrema(Extrema):
     # assemble data
     data = indata[self.prerequisites[0]]
     # if axis is not 0 (outermost), roll axis until it is
-    if aggax != 0: data = np.rollaxis(data, axis=aggax, start=0)
+    if aggax != 0: data = np.rollaxis(data, axis=aggax, start=0).copy() # rollaxis just provides a view
     if self.tmpdata in tmp:
       data = np.concatenate((tmp[self.tmpdata], data), axis=0)
     # determine length of interval
