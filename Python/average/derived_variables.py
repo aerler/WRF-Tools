@@ -225,7 +225,7 @@ class Rain(DerivedVariable):
                               dtype=dv_float, atts=None, linear=True) 
     # N.B.: this computation is actually linear, but some non-linear computations depend on it
 
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Compute total precipitation as the sum of convective  and non-convective precipitation. '''
     super(Rain,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
     if delta == 0: raise ValueError, 'RAIN depends on accumulated variables; differences can not be computed from single time steps. (delta=0)'    
@@ -245,7 +245,7 @@ class RainMean(DerivedVariable):
                               dtype=dv_float, atts=None, linear=True) 
     # N.B.: this computation is actually linear, but some non-linear computations depend on it
 
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Compute total precipitation as the sum of convective  and non-convective precipitation. '''
     super(RainMean,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks    
     outdata = indata['RAINNCVMEAN'] + indata['RAINCVMEAN'] # compute
@@ -263,7 +263,7 @@ class LiquidPrecip(DerivedVariable):
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype=dv_float, atts=None, linear=True) # this computation is actually linear
 
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Compute liquid precipitation as the difference between total and solid precipitation. '''
     super(LiquidPrecip,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
     RAINNC = indata['RAINNC']; RAINC = indata['RAINC']; ACSNOW = indata['ACSNOW']; # for use in expressions
@@ -282,7 +282,7 @@ class SolidPrecip(DerivedVariable):
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype=dv_float, atts=None, linear=True) # this computation is actually linear
 
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Just copy the snow accumulation as solid precipitation. '''
     super(SolidPrecip,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
     outdata = indata['ACSNOW'].copy() # compute
@@ -300,7 +300,7 @@ class LiquidPrecipSR(DerivedVariable):
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype=dv_float, atts=None, linear=False) # this computation is actually linear
 
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Compute liquid precipitation from total precipitation and the solid fraction. '''
     super(LiquidPrecipSR,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
     # optimize using expressions
@@ -321,7 +321,7 @@ class SolidPrecipSR(DerivedVariable):
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype=dv_float, atts=None, linear=False) # this computation is actually linear
 
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Compute solid precipitation from total precipitation and the solid fraction. '''
     super(SolidPrecipSR,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
     # compute
@@ -342,7 +342,7 @@ class NetPrecip_Hydro(DerivedVariable):
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype=dv_float, atts=None, linear=True) # this computation is actually linear
 
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Compute net precipitation as the difference between total precipitation and evapo-transpiration. '''
     super(NetPrecip_Hydro,self).computeValues(indata, const=None) # perform some type checks    
     outdata = indata['RAIN'] - indata['SFCEVP'] # compute
@@ -360,7 +360,7 @@ class NetPrecip_Srfc(DerivedVariable):
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype=dv_float, atts=None, linear=True) # this computation is actually linear
 
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Compute net precipitation as the difference between total precipitation and evapo-transpiration. '''
     super(NetPrecip_Srfc,self).computeValues(indata, const=None) # perform some type checks    
     outdata = indata['RAIN'] - indata['QFX'] # compute
@@ -378,7 +378,7 @@ class NetWaterFlux(DerivedVariable):
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype=dv_float, atts=None, linear=True) # this computation is actually linear
 
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Compute net water flux as the sum of liquid precipitation and snowmelt minus evapo-transpiration. '''
     super(NetWaterFlux,self).computeValues(indata, const=None) # perform some type checks
     outdata = evaluate('LiquidPrecip - SFCEVP + ACSNOM', local_dict=indata)  # compute
@@ -396,7 +396,7 @@ class RunOff(DerivedVariable):
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype=dv_float, atts=None, linear=True) 
 
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Compute total runoff as the sum of surface and underground runoff. '''
     super(RunOff,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks    
     outdata = indata['SFROFF'] + indata['UDROFF'] # compute
@@ -415,7 +415,7 @@ class WaterVapor(DerivedVariable):
                               dtype=dv_float, atts=None, linear=False)
     self.Mratio = 28.96 / 18.02 # g/mol, Molecular mass ratio of dry air over water 
 
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Compute total runoff as the sum of surface and underground runoff. '''
     super(WaterVapor,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
     Mratio = self.Mratio; Q2 = indata['Q2']; PSFC = indata['PSFC'] # for use in expression    
@@ -434,7 +434,7 @@ class WetDaysMean(DerivedVariable):
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype=dv_float, atts=None, linear=False) 
     
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Count the number of events above a threshold (0 for now) '''
     super(WetDaysMean,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
     assert delta == 86400., 'WRF extreme values are suppposed to be daily; encountered delta={:f}'.format(delta)
@@ -480,7 +480,7 @@ class FrostDays(DerivedVariable):
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype=dv_float, atts=None, linear=False) 
 
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Count the number of events below a threshold (0 Celsius) '''
     super(FrostDays,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks    
     if delta != 86400.: raise ValueError, 'WRF extreme values are suppposed to be daily; encountered delta={:f}'.format(delta)
@@ -500,7 +500,7 @@ class OrographicIndex(DerivedVariable):
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype=dv_float, atts=None, linear=False) 
 
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Project surface winds onto topographic gradient. '''
     super(OrographicIndex,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
     # compute topographic gradients and save in constants (for later use)
@@ -534,7 +534,7 @@ class CovOIP(DerivedVariable):
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype=dv_float, atts=None, linear=False) 
 
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Covariance of Origraphic Index and Precipitation (needed to calculate correlation coefficient). '''
     super(CovOIP,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
     # compute covariance
@@ -554,7 +554,7 @@ class OrographicIndexPlev(DerivedVariable):
                               axes=('time','num_press_levels_stag','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype=dv_float, atts=None, linear=False) 
     
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Project atmospheric winds onto underlying topographic gradient. '''
     super(OrographicIndexPlev,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
     # compute topographic gradients and save in constants (for later use)
@@ -590,7 +590,7 @@ class WaterDensity(DerivedVariable):
     self.MR = np.asarray( 0.01802 / 8.3144621, dtype=dv_float) # M / R; from AMS Glossary
     # N.B.: it is necessary to enforce the type of scalars, otherwise numexpr casts everything as doubles
     
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Compute mass denisty of water vapor using the Magnus formula. '''
     super(WaterDensity,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
     # compute water vapor content from dew point (using magnus formula)
@@ -612,7 +612,7 @@ class WaterFlux_U(DerivedVariable):
                               axes=('time','num_press_levels_stag','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype=dv_float, atts=None, linear=False) 
     
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Compute West-East atmospheric water vapor transport. '''
     super(WaterFlux_U,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
     # compute covariance (projection, scalar product, etc.)    
@@ -634,7 +634,7 @@ class WaterTransport_U(DerivedVariable):
     self.RMg = np.asarray( 8.3144621 / ( 0.01802 *  9.80616 ), dtype=dv_float) # R / (M g); from AMS Glossary (g at 45 lat)
     # N.B.: it is necessary to enforce the type of scalars, otherwise numexpr casts everything as doubles
     
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Compute West-East atmospheric water vapor transport. '''
     super(WaterTransport_U,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
     # allocate extended array with boundary points
@@ -671,7 +671,7 @@ class WaterFlux_V(DerivedVariable):
                               axes=('time','num_press_levels_stag','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype=dv_float, atts=None, linear=False) 
     
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Compute South-North atmospheric water vapor transport. '''
     super(WaterFlux_V,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
     # compute covariance (projection, scalar product, etc.)    
@@ -693,7 +693,7 @@ class WaterTransport_V(DerivedVariable):
     self.RMg = np.asarray( 8.3144621 / ( 0.01802 *  9.80616 ), dtype=dv_float)  # R / (M g); from AMS Glossary (g at 45 lat)
     # N.B.: it is necessary to enforce the type of scalars, otherwise numexpr casts everything as doubles
     
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Compute West-East atmospheric water vapor transport. '''
     super(WaterTransport_V,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
     # allocate extended array with boundary points
