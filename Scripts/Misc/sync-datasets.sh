@@ -3,7 +3,7 @@
 
 LOC="${ROOT:-/data/}" # local datasets root, can be supplied by caller
 REM=/reserved1/p/peltier/aerler/Datasets/ # datasets root on SciNet
-DATASETS='Unity GPCC NARR CFSR CRU PRISM PCIC' # list of datasets/folders
+DATASETS='Unity GPCC NARR CFSR CRU PRISM PCIC EC' # list of datasets/folders
 # DATASETS='PRISM' # for tests
 # ssh settings: special identity/ssh key, batch mode, and connection sharing
 # connection settings
