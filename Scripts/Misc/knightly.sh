@@ -89,7 +89,7 @@ REPORT $? 'Dataset/Obs Synchronization'
 ## run post-processing (update climatologies)
 # WRF
 export PYAVG_BATCH=${PYAVG_BATCH:-'BATCH'} # run in batch mode - this should not be changed
-export PYAVG_THREADS=${PYAVG_THREADS:-2} # parallel execution
+export PYAVG_THREADS=${PYAVG_THREADS:-4} # parallel execution
 export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
 export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
 #"${PYTHON}/bin/python" -c "print 'OK'" 1> ${WRFDATA}/wrfavg.log 2> ${WRFDATA}/wrfavg.err # for debugging
@@ -113,7 +113,7 @@ done
 ## run regridding (all datasets)
 # same settings as wrfavg...
 export PYAVG_BATCH=${PYAVG_BATCH:-'BATCH'} # run in batch mode - this should not be changed
-export PYAVG_THREADS=${PYAVG_THREADS:-2} # parallel execution
+export PYAVG_THREADS=${PYAVG_THREADS:-3} # parallel execution
 export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
 export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
 nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/PyGeoDat/src/processing/regrid.py" &> ${ROOT}/regrid.log #2> ${ROOT}/regrid.err
@@ -122,7 +122,7 @@ REPORT $? 'Dataset Regridding'
 ## extract station data (all datasets)
 # same settings as wrfavg...
 export PYAVG_BATCH=${PYAVG_BATCH:-'BATCH'} # run in batch mode - this should not be changed
-export PYAVG_THREADS=${PYAVG_THREADS:-2} # parallel execution
+export PYAVG_THREADS=${PYAVG_THREADS:-3} # parallel execution
 export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
 export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
 nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/PyGeoDat/src/processing/exstns.py" &> ${ROOT}/exstns.log #2> ${ROOT}/exstns.err
