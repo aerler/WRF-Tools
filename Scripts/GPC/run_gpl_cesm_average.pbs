@@ -1,8 +1,8 @@
 #!/bin/bash
 ## queue/PBS settings
-#PBS -l nodes=1:m128g:ppn=16
+#PBS -l nodes=4:m32g:ppn=8
 # batch queue: nodes=4:m32g:ppn=8
-# largemem queue: nodes=1:m128g:ppn=16
+# largemem/sandy queue: nodes=1:m128g:ppn=16
 #PBS -l walltime=48:00:00
 # merge standard error and output stream
 #PBS -j oe
@@ -14,8 +14,8 @@
 #PBS -N gpl_cesmavg_all
 ###PBS -W depend=afterok:$PBS_JOBID
 ## submit to queue (NB: this has to be the last PBS line!)
-# batch (default), debug, largemem
-#PBS -q largemem
+# batch (default), debug, largemem, sandy
+#PBS -q batch
 
 # load modules (we need to load the netcdf module in order to use it in Python)
 echo

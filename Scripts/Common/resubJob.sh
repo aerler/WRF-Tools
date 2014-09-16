@@ -5,6 +5,10 @@
 # The following environment variables have to be set by the caller:
 # INIDIR, RSTDIR, WRFSCRIPT, RESUBJOB, NEXTSTEP, NOWPS
 
+# set default for $NOWPS and $RSTCNT, to avoid problems when passing variable to next job
+NOWPS=${NOWPS:-'WPS'} # i.e. launch WPS, unless instructed otherwise
+RSTCNT=${RSTCNT:-0} # assume no restart by default
+# $NEXTSTEP is handled below
 
 ## launch WRF for next step (if $NEXTSTEP is not empty)
 if [[ -n "${NEXTSTEP}" ]]
