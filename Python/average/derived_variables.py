@@ -72,13 +72,14 @@ def calcTimeDelta(timestamps, year=None, month=None):
               
 
 ## helper routine: central differences
+# N.B.: due to the roll operation, this function is not fully thread-safe
 def ctrDiff(data, axis=0, delta=1):
   if not isinstance(data,np.ndarray): raise TypeError
   if not isinstance(delta,(float,np.inexact,int,np.integer)): raise TypeError
   if not isinstance(axis,(int,np.integer)): raise TypeError
   # if axis is not 0, roll axis until it is
   # N.B.: eventhough '0' is the outermost axis, the index order does not seem to have any effect  
-  if axis != 0: data = np.rollaxis(data, axis=axis, start=0)
+  if axis != 0: data = np.rollaxis(data, axis=axis, start=0) # changes original - need to undo later
   # prepare calculation
   outdata = np.zeros_like(data, dtype=dtype_float) # allocate             
   # compute centered differences, except at the edges, where forward/backward difference are used
@@ -96,7 +97,7 @@ def ctrDiff(data, axis=0, delta=1):
     outdata[[0,-1],:] /= delta # but aplly the denominator, "dx"
       
   # roll axis back to original position and return
-  if axis != 0: outdata = np.rollaxis(outdata, axis=0, start=axis+1)
+  if axis != 0: outdata = np.rollaxis(outdata, axis=0, start=axis+1) # undo roll
   return outdata
 
 
@@ -138,14 +139,16 @@ class DerivedVariable(object):
       self.atts['units'] = self.units = units  # units... also
     else: self.units = atts['units']
     
-  def checkPrerequisites(self, target, const=None):
+  def checkPrerequisites(self, target, const=None, varmap=None):
     ''' Check if all required variables are in the source NetCDF dataset. '''
     if not isinstance(target, nc.Dataset): raise TypeError
     if not (const is None or isinstance(const, nc.Dataset)): raise TypeError
+    if not (varmap is None or isinstance(varmap, dict)): raise TypeError
     check = True # any mismatch will set this to False
     # check all prerequisites
     for var in self.prerequisites:
-      if var not in target.variables:
+      if varmap: var = varmap.get(var,var)
+      if var not in target.variables:        
         check = False # prerequisite variable not found
 # N.B.: checking dimensions is potentially too restrictive, if variables are not defined pointwise
 #       if var in target.variables:
@@ -172,9 +175,9 @@ class DerivedVariable(object):
     ncvar = add_var(target, name=self.name, dims=self.axes, data=None, atts=self.atts, dtype=self.dtype )
     return ncvar
     
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Compute values for new variable from existing stock; child classes have to overload this method. '''
-    # N.B.: this method ii called directly for linear and through aggregateValues() for non-linear variables
+    # N.B.: this method is called directly for linear and through aggregateValues() for non-linear variables
     if not isinstance(indata,dict): raise TypeError
     if not isinstance(aggax,(int,np.integer)): raise TypeError # the aggregation axis (needed for extrema) 
     if not (const is None or isinstance(const,dict)): raise TypeError # dictionary of constant(s)/fields
@@ -188,16 +191,22 @@ class DerivedVariable(object):
         raise ValueError, 'The variable \'{:s}\' requires a constants dictionary!'.format(self.name)
     return NotImplemented
   
-  def aggregateValues(self, aggdata, comdata, aggax=0):
+  def aggregateValues(self, comdata, aggdata=None, aggax=0, ignoreNaN=False):
     ''' Compute and aggregate values for non-linear over several input periods/files. '''
     # N.B.: linear variables can go through this chain as well, if it is a pre-requisite for non-linear variable
-    if not isinstance(aggdata,np.ndarray): raise TypeError # aggregate variable
     if not isinstance(comdata,np.ndarray): raise TypeError # newly computed values
     if not isinstance(aggax,(int,np.integer)): raise TypeError # the aggregation axis (needed for extrema)
     # the default implementation is just a simple sum that will be normalized to an average
-    if not self.normalize: raise DerivedVariableError, 'The default aggregation requires normalization.'
-    if comdata is not None and comdata.size > 0: 
-      aggdata = aggdata + np.sum(comdata, axis=aggax) # don't use in-place addition, because it destroys masks
+    if comdata is not None and comdata.size > 0:
+      if aggdata is None: 
+        if self.normalize: raise DerivedVariableError, 'The one-pass aggregation automatically normalizes.'
+        if ignoreNaN: aggdata = np.nanmean(comdata, axis=aggax) # ignore NaN's
+        else: aggdata = np.mean(comdata, axis=aggax) # don't use in-place addition, because it destroys masks
+      else:
+        if not self.normalize: raise DerivedVariableError, 'The default aggregation requires normalization.'
+        if not isinstance(aggdata,np.ndarray): raise TypeError # aggregate variable
+        if ignoreNaN: aggdata = aggdata + np.nansum(comdata, axis=aggax) # ignore NaN's
+        else: aggdata = aggdata + np.sum(comdata, axis=aggax) # don't use in-place addition, because it destroys masks
     # return aggregated value for further treatment
     return aggdata 
 
@@ -217,7 +226,7 @@ class Rain(DerivedVariable):
                               dtype=dv_float, atts=None, linear=True) 
     # N.B.: this computation is actually linear, but some non-linear computations depend on it
 
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Compute total precipitation as the sum of convective  and non-convective precipitation. '''
     super(Rain,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
     if delta == 0: raise ValueError, 'RAIN depends on accumulated variables; differences can not be computed from single time steps. (delta=0)'    
@@ -237,7 +246,7 @@ class RainMean(DerivedVariable):
                               dtype=dv_float, atts=None, linear=True) 
     # N.B.: this computation is actually linear, but some non-linear computations depend on it
 
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Compute total precipitation as the sum of convective  and non-convective precipitation. '''
     super(RainMean,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks    
     outdata = indata['RAINNCVMEAN'] + indata['RAINCVMEAN'] # compute
@@ -255,7 +264,7 @@ class LiquidPrecip(DerivedVariable):
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype=dv_float, atts=None, linear=True) # this computation is actually linear
 
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Compute liquid precipitation as the difference between total and solid precipitation. '''
     super(LiquidPrecip,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
     RAINNC = indata['RAINNC']; RAINC = indata['RAINC']; ACSNOW = indata['ACSNOW']; # for use in expressions
@@ -274,7 +283,7 @@ class SolidPrecip(DerivedVariable):
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype=dv_float, atts=None, linear=True) # this computation is actually linear
 
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Just copy the snow accumulation as solid precipitation. '''
     super(SolidPrecip,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
     outdata = indata['ACSNOW'].copy() # compute
@@ -292,7 +301,7 @@ class LiquidPrecipSR(DerivedVariable):
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype=dv_float, atts=None, linear=False) # this computation is actually linear
 
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Compute liquid precipitation from total precipitation and the solid fraction. '''
     super(LiquidPrecipSR,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
     # optimize using expressions
@@ -313,7 +322,7 @@ class SolidPrecipSR(DerivedVariable):
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype=dv_float, atts=None, linear=False) # this computation is actually linear
 
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Compute solid precipitation from total precipitation and the solid fraction. '''
     super(SolidPrecipSR,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
     # compute
@@ -334,7 +343,7 @@ class NetPrecip_Hydro(DerivedVariable):
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype=dv_float, atts=None, linear=True) # this computation is actually linear
 
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Compute net precipitation as the difference between total precipitation and evapo-transpiration. '''
     super(NetPrecip_Hydro,self).computeValues(indata, const=None) # perform some type checks    
     outdata = indata['RAIN'] - indata['SFCEVP'] # compute
@@ -352,7 +361,7 @@ class NetPrecip_Srfc(DerivedVariable):
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype=dv_float, atts=None, linear=True) # this computation is actually linear
 
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Compute net precipitation as the difference between total precipitation and evapo-transpiration. '''
     super(NetPrecip_Srfc,self).computeValues(indata, const=None) # perform some type checks    
     outdata = indata['RAIN'] - indata['QFX'] # compute
@@ -370,7 +379,7 @@ class NetWaterFlux(DerivedVariable):
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype=dv_float, atts=None, linear=True) # this computation is actually linear
 
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Compute net water flux as the sum of liquid precipitation and snowmelt minus evapo-transpiration. '''
     super(NetWaterFlux,self).computeValues(indata, const=None) # perform some type checks
     outdata = evaluate('LiquidPrecip - SFCEVP + ACSNOM', local_dict=indata)  # compute
@@ -388,7 +397,7 @@ class RunOff(DerivedVariable):
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype=dv_float, atts=None, linear=True) 
 
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Compute total runoff as the sum of surface and underground runoff. '''
     super(RunOff,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks    
     outdata = indata['SFROFF'] + indata['UDROFF'] # compute
@@ -407,7 +416,7 @@ class WaterVapor(DerivedVariable):
                               dtype=dv_float, atts=None, linear=False)
     self.Mratio = 28.96 / 18.02 # g/mol, Molecular mass ratio of dry air over water 
 
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Compute total runoff as the sum of surface and underground runoff. '''
     super(WaterVapor,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
     Mratio = self.Mratio; Q2 = indata['Q2']; PSFC = indata['PSFC'] # for use in expression    
@@ -426,7 +435,7 @@ class WetDaysMean(DerivedVariable):
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype=dv_float, atts=None, linear=False) 
     
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Count the number of events above a threshold (0 for now) '''
     super(WetDaysMean,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
     assert delta == 86400., 'WRF extreme values are suppposed to be daily; encountered delta={:f}'.format(delta)
@@ -446,16 +455,21 @@ class WetDays(DerivedVariable):
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype=dv_float, atts=None, linear=False) 
     
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Count the number of events above a threshold. '''
     super(WetDays,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
     # check that delta does not change!
-    if 'WETDAYS_DELTA' in tmp: 
-      if delta != tmp['WETDAYS_DELTA']: 
-        raise NotImplementedError, 'Output interval is assumed to be constant for conversion to days. (delta={:f})'.format(delta)
-    else: tmp['WETDAYS_DELTA'] = delta # save and check next time
-    # sampling does not have to be daily may not be daily     
-    outdata = indata['RAIN'] > 2.3e-7 # definition according to AMS Glossary: precip > 0.02 mm/day
+    if tmp is not None:
+      if 'WETDAYS_DELTA' in tmp: 
+        if delta != tmp['WETDAYS_DELTA']: 
+          raise NotImplementedError, 'Output interval is assumed to be constant for conversion to days. (delta={:f})'.format(delta)
+      else: tmp['WETDAYS_DELTA'] = delta # save and check next time
+    # sampling does not have to be daily may not be daily
+    if ignoreNaN:
+      outdata = np.where(indata['RAIN'] > 2.3e-7, 1,0) # comparisons with NaN always yield False
+      outdata = np.where(np.isnan(indata['RAIN']), np.NaN,outdata)     
+    else:
+      outdata = indata['RAIN'] > 2.3e-7 # definition according to AMS Glossary: precip > 0.02 mm/day
     # N.B.: this is actually the fraction of wet days in a month (i.e. not really days)      
     return outdata
 
@@ -471,11 +485,15 @@ class FrostDays(DerivedVariable):
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype=dv_float, atts=None, linear=False) 
 
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Count the number of events below a threshold (0 Celsius) '''
     super(FrostDays,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks    
-    assert delta == 86400., 'WRF extreme values are suppposed to be daily; encountered delta={:f}'.format(delta)
-    outdata = indata['T2MIN'] < 273.15 # event below threshold (0 deg. C., according to AMS Glossary)    
+    if delta != 86400.: raise ValueError, 'WRF extreme values are suppposed to be daily; encountered delta={:f}'.format(delta)
+    if ignoreNaN:
+      outdata = np.where(indata['T2MIN'] < 273.15, 1,0) # comparisons with NaN always yield False
+      outdata = np.where(np.isnan(indata['T2MIN']), np.NaN,outdata)     
+    else:
+      outdata = indata['T2MIN'] < 273.15 # event below threshold (0 deg. C., according to AMS Glossary)    
     return outdata
 
 
@@ -491,7 +509,7 @@ class OrographicIndex(DerivedVariable):
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype=dv_float, atts=None, linear=False) 
 
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Project surface winds onto topographic gradient. '''
     super(OrographicIndex,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
     # compute topographic gradients and save in constants (for later use)
@@ -525,7 +543,7 @@ class CovOIP(DerivedVariable):
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype=dv_float, atts=None, linear=False) 
 
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Covariance of Origraphic Index and Precipitation (needed to calculate correlation coefficient). '''
     super(CovOIP,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
     # compute covariance
@@ -545,7 +563,7 @@ class OrographicIndexPlev(DerivedVariable):
                               axes=('time','num_press_levels_stag','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype=dv_float, atts=None, linear=False) 
     
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Project atmospheric winds onto underlying topographic gradient. '''
     super(OrographicIndexPlev,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
     # compute topographic gradients and save in constants (for later use)
@@ -581,7 +599,7 @@ class WaterDensity(DerivedVariable):
     self.MR = np.asarray( 0.01802 / 8.3144621, dtype=dv_float) # M / R; from AMS Glossary
     # N.B.: it is necessary to enforce the type of scalars, otherwise numexpr casts everything as doubles
     
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Compute mass denisty of water vapor using the Magnus formula. '''
     super(WaterDensity,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
     # compute water vapor content from dew point (using magnus formula)
@@ -603,7 +621,7 @@ class WaterFlux_U(DerivedVariable):
                               axes=('time','num_press_levels_stag','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype=dv_float, atts=None, linear=False) 
     
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Compute West-East atmospheric water vapor transport. '''
     super(WaterFlux_U,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
     # compute covariance (projection, scalar product, etc.)    
@@ -625,7 +643,7 @@ class WaterTransport_U(DerivedVariable):
     self.RMg = np.asarray( 8.3144621 / ( 0.01802 *  9.80616 ), dtype=dv_float) # R / (M g); from AMS Glossary (g at 45 lat)
     # N.B.: it is necessary to enforce the type of scalars, otherwise numexpr casts everything as doubles
     
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Compute West-East atmospheric water vapor transport. '''
     super(WaterTransport_U,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
     # allocate extended array with boundary points
@@ -662,7 +680,7 @@ class WaterFlux_V(DerivedVariable):
                               axes=('time','num_press_levels_stag','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype=dv_float, atts=None, linear=False) 
     
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Compute South-North atmospheric water vapor transport. '''
     super(WaterFlux_V,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
     # compute covariance (projection, scalar product, etc.)    
@@ -684,7 +702,7 @@ class WaterTransport_V(DerivedVariable):
     self.RMg = np.asarray( 8.3144621 / ( 0.01802 *  9.80616 ), dtype=dv_float)  # R / (M g); from AMS Glossary (g at 45 lat)
     # N.B.: it is necessary to enforce the type of scalars, otherwise numexpr casts everything as doubles
     
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Compute West-East atmospheric water vapor transport. '''
     super(WaterTransport_V,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
     # allocate extended array with boundary points
@@ -716,7 +734,7 @@ class WaterTransport_V(DerivedVariable):
 class Extrema(DerivedVariable):
   ''' DerivedVariable child implementing computation of extrema in monthly WRF output. '''
   
-  def __init__(self, var, mode, name=None, dimmap=None):
+  def __init__(self, var, mode, name=None, longname=None, dimmap=None):
     ''' Constructor; takes variable object as argument and infers meta data. '''
     # construct name with prefix 'Max'/'Min' and camel-case
     if isinstance(var, DerivedVariable):
@@ -729,6 +747,7 @@ class Extrema(DerivedVariable):
       atts['Aggregation'] = 'Monthly Maximum'; prefix = 'Max'; exmode = 1
     elif mode.lower() == 'min':      
       atts['Aggregation'] = 'Monthly Minimum'; prefix = 'Min'; exmode = 0
+    if longname is not None: atts['long_name'] = longname
     if isinstance(dimmap,dict): axes = [dimmap[dim] if dim in dimmap else dim for dim in axes]
     if name is None: name = '{0:s}{1:s}'.format(prefix,varname[0].upper() + varname[1:])
     # infer attributes of extreme variable
@@ -737,34 +756,41 @@ class Extrema(DerivedVariable):
     self.mode = exmode
     self.tmpdata = None # don't need temporary storage 
 
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Compute field of maxima '''
     super(Extrema,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
     # decide, what to do
     if self.mode == 1:
-      outdata = np.amax(indata[self.prerequisites[0]], axis=aggax) # compute maximum
+      if ignoreNaN: outdata = np.nanmax(indata[self.prerequisites[0]], axis=aggax) # ignore NaNs
+      else: outdata = np.max(indata[self.prerequisites[0]], axis=aggax) # compute maximum
     elif self.mode == 0:
-      outdata = np.amin(indata[self.prerequisites[0]], axis=aggax) # compute minimum
+      if ignoreNaN: outdata = np.nanmin(indata[self.prerequisites[0]], axis=aggax) # ignore NaNs
+      else: outdata = np.min(indata[self.prerequisites[0]], axis=aggax) # compute minimum
     # N.B.: already partially aggregating here, saves memory
     return outdata
   
-  def aggregateValues(self, aggdata, comdata, aggax=0):
+  def aggregateValues(self, comdata, aggdata=None, aggax=0, ignoreNaN=False):
     ''' Compute and aggregate values for non-linear over several input periods/files. '''
     # N.B.: linear variables can go through this chain as well, if it is a pre-requisite for non-linear variable
-    if not isinstance(aggdata,np.ndarray): raise TypeError # aggregate variable
+    if not isinstance(aggdata,np.ndarray) and aggdata is not None: raise TypeError # aggregate variable
     if not isinstance(comdata,np.ndarray) and comdata is not None: raise TypeError # newly computed values
     if not isinstance(aggax,(int,np.integer)): raise TypeError # the aggregation axis (needed for extrema)
     # the default implementation is just a simple sum that will be normalized to an average
     if self.normalize: raise DerivedVariableError, 'Aggregated extrema should not be normalized!'
     #print self.name, comdata.shape
     if comdata is not None and comdata.size > 0:
-      # N.B.: comdata can be None if the record was not long enough to compute this variable     
-      if self.mode == 1: 
-        aggdata = np.maximum(aggdata,comdata) # aggregat maxima
-      elif self.mode == 0:
-        aggdata = np.minimum(aggdata,comdata) # aggregat minima
+      # N.B.: comdata can be None if the record was not long enough to compute this variable
+      if aggdata is None:
+        aggdata = comdata # i.e. no intermediate accumulation step (already monthly data)
+      else:
+        if self.mode == 1: 
+          if ignoreNaN: aggdata = np.fmax(aggdata,comdata)
+          else: aggdata = np.maximum(aggdata,comdata) # aggregate maxima
+        elif self.mode == 0:
+          if ignoreNaN: aggdata = np.fmin(aggdata,comdata)
+          else: aggdata = np.minimum(aggdata,comdata) # aggregate minima
     # return aggregated value for further treatment
-    return aggdata 
+    return aggdata
   
   
 # base class for 'period over threshold'-type extrema 
@@ -803,9 +829,9 @@ class ConsecutiveExtrema(Extrema):
     self.tmpdata = 'COX_'+self.name # don't need temporary storage 
     self.carryover = True # don't stop counting - this is vital    
     
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Count consecutive above/below threshold days '''
-    super(Extrema,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
+    super(Extrema,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp, ignoreNaN=ignoreNaN) # perform some type checks
     # check that delta does not change!
     if 'COX_DELTA' in tmp: 
       if delta != tmp['COX_DELTA']: 
@@ -816,8 +842,8 @@ class ConsecutiveExtrema(Extrema):
       self.period = delta / self.lengthofday 
     # get data
     data = indata[self.prerequisites[0]]
-    # if axis is not 0 (innermost), roll axis until it is
-    if aggax != 0: data = np.rollaxis(data, axis=aggax, start=0)
+    # if axis is not 0 (outermost), roll axis until it is
+    if aggax != 0: data = np.rollaxis(data, axis=aggax, start=0).copy() # should make a copy
     tlen = data.shape[0] # aggregation axis
     xshape = data.shape[1:] # rest of the map
     # initialize counter of consecutive exceedances
@@ -830,7 +856,7 @@ class ConsecutiveExtrema(Extrema):
       # detect threshold changes
       if self.thresmode == 1: xmask = ( data[t,:] > self.threshold ) # above
       elif self.thresmode == 0: xmask = ( data[t,:] < self.threshold ) # below
-      #nxmask = not xmask # inverse mask
+      # N.B.: comparisons with NaN always yield False, i.e. non-exceedance
       # update maxima of exceedances
       xnew = np.where(xmask,0,xcnt) * self.period # extract periods before reset
       maxdata = np.maximum(maxdata,xnew) #       
@@ -841,6 +867,8 @@ class ConsecutiveExtrema(Extrema):
     # carry over current counter to next period or month
     tmp[self.tmpdata] = xcnt
     # return output for further aggregation
+    if ignoreNaN:
+      maxdata = np.ma.masked_where(np.isnan(data).sum(axis=0) > 0, maxdata)
     return maxdata
   
 
@@ -848,10 +876,10 @@ class ConsecutiveExtrema(Extrema):
 class MeanExtrema(Extrema):
   ''' Extrema child implementing extrema of interval-averaged values in monthly WRF output. '''
   
-  def __init__(self, var, mode, interval=7, name=None, dimmap=None):
+  def __init__(self, var, mode, interval=7, name=None, longname=None, dimmap=None):
     ''' Constructor; takes variable object as argument and infers meta data. '''
     # infer attributes of Maximum variable
-    super(MeanExtrema,self).__init__(var, mode, name=name, dimmap=dimmap)
+    super(MeanExtrema,self).__init__(var, mode, name=name, longname=longname, dimmap=dimmap)
     if len(self.prerequisites) > 1: raise ValueError, "Extrema can only have one Prerquisite"
     self.atts['name'] = self.name = '{0:s}_{1:d}d'.format(self.name,interval)
     self.atts['Aggregation'] = 'Averaged ' + self.atts['Aggregation']
@@ -860,12 +888,14 @@ class MeanExtrema(Extrema):
     self.tmpdata = 'MEX_'+self.name # handle for temporary storage
     self.carryover = True # don't drop data    
 
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Compute field of maxima '''
-    if aggax != 0: raise NotImplementedError, 'Currently, interval averaging only works on the innermost dimension.'
+    #if aggax != 0: raise NotImplementedError, 'Currently, interval averaging only works on the innermost dimension.'
     if delta == 0: raise ValueError, 'No interval to average over...'
     # assemble data
     data = indata[self.prerequisites[0]]
+    # if axis is not 0 (outermost), roll axis until it is
+    if aggax != 0: data = np.rollaxis(data, axis=aggax, start=0).copy() # rollaxis just provides a view
     if self.tmpdata in tmp:
       data = np.concatenate((tmp[self.tmpdata], data), axis=0)
     # determine length of interval
@@ -882,8 +912,9 @@ class MeanExtrema(Extrema):
       # average interval
       meandata = data.mean(axis=0) # average over interval dimension
       datadict = {self.prerequisites[0]:meandata} # next method expects a dictionary...
-      # find extrema as before 
-      outdata = super(MeanExtrema,self).computeValues(datadict, aggax=aggax, delta=delta, const=const, tmp=None) # perform some type checks
+      # find extrema as before (but aggregation axis was shifted to 0)
+      outdata = super(MeanExtrema,self).computeValues(datadict, aggax=0, delta=delta, const=const, 
+                                                      tmp=None, ignoreNaN=ignoreNaN) # perform some type checks
     else:
       rest = data # carry over everything
       outdata = None # nothing to return (handled in aggregation)

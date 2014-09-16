@@ -110,14 +110,23 @@ for E in ens*/; do
   REPORT $? "CESM Ensemble Average '${E}'"
 done
 
-## run regridding (WRF and CESM)
+## run regridding (all datasets)
 # same settings as wrfavg...
 export PYAVG_BATCH=${PYAVG_BATCH:-'BATCH'} # run in batch mode - this should not be changed
-export PYAVG_THREADS=${PYAVG_THREADS:-4} # parallel execution
+export PYAVG_THREADS=${PYAVG_THREADS:-3} # parallel execution
 export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
 export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
 nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/PyGeoDat/src/processing/regrid.py" &> ${ROOT}/regrid.log #2> ${ROOT}/regrid.err
-REPORT $? 'CESM & WRF regridding'
+REPORT $? 'Dataset Regridding'
+
+## extract station data (all datasets)
+# same settings as wrfavg...
+export PYAVG_BATCH=${PYAVG_BATCH:-'BATCH'} # run in batch mode - this should not be changed
+export PYAVG_THREADS=${PYAVG_THREADS:-3} # parallel execution
+export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
+export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
+nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/PyGeoDat/src/processing/exstns.py" &> ${ROOT}/exstns.log #2> ${ROOT}/exstns.err
+REPORT $? 'Station Data Extraction'
 
 # report
 echo
