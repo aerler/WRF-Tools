@@ -70,8 +70,10 @@ WPSDIR="${RAMDISK}/WPS"
 ## initialize
 # load modules
 module purge
+#module load intel/13.1.1 intelmpi/4.1.0.027 hdf5/187-v18-serial-intel netcdf/4.1.3_hdf5_serial-intel
+#module load gcc/4.7.2 python/2.7.2 extras/64_6.4 ncl/6.1.0 
 module load intel/13.1.1 intelmpi/4.1.0.027 hdf5/187-v18-serial-intel netcdf/4.1.3_hdf5_serial-intel
-module load gcc/4.7.2 python/2.7.2 extras/64_6.4 ncl/6.1.0 
+module load gcc/4.8.1 python/2.7.5 gdal/1.9.2 ncl/6.2.0 gsl/1.13-intel udunits/2.1.11 nco/4.3.2-intel extras/64_6.4
 module list
 export J="-j ${TASKS}"
 
