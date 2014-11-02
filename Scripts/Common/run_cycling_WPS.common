@@ -34,7 +34,7 @@ export NODES=${WPSNODES} # number of nodes or processes (depending on system)
 export RUNPYWPS=1
 export RUNREAL=1
 # folders: $METDATA, $REALIN, $REALOUT
-export METDATA="" # to output metgrid data set "ldisk = True" in meta/namelist.py
+# $METDATA is defined in the machine setup, if metgrid files need to be output to disk
 
 # setup environment
 cd "${INIDIR}"

@@ -29,8 +29,9 @@ fi # if WPS
 echo
 echo "Running on ${PBS_QUEUE} queue; RAMIN=${RAMIN} and RAMOUT=${RAMOUT}"
 echo
-# if we are not using RAM disk, the path names get too long, so we need a shortcut
-export REALTMP="${HOME}/metgrid"
+# if we are not using RAM disk, we need to output to disk 
+export METDATA="${WORKDIR}/metgrid" # output metgrid data to disk; set will set "ldisk = True" in pyWPS.py
+export REALTMP="${HOME}/metgrid" # the path names get too long, so we need a shortcut
 
 # RAM disk folder (cleared and recreated if needed)
 export RAMDISK="/dev/shm/${USER}/"
