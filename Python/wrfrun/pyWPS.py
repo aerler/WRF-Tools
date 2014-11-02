@@ -68,7 +68,8 @@ if os.environ.has_key('MODEL_ROOT'): Model = os.environ['MODEL_ROOT']
 # NCARG installation folder (for NCL)
 if os.environ.has_key('NCARG_ROOT'): 
   NCARG = os.environ['NCARG_ROOT']
-  NCL = NCARG + '/bin/ncl'
+  if NCARG[-1] != '/': NCARG += '/' # local convention is that directories already have a slash
+  NCL = NCARG + 'bin/ncl'
 # RAM disk
 if os.environ.has_key('RAMDISK'): Ram = os.environ['RAMDISK']
 # keep data in memory (for real.exe)
@@ -78,6 +79,7 @@ else: ldata = True
 # save metgrid data
 if os.environ.has_key('PYWPS_MET_DATA') and os.environ['PYWPS_MET_DATA']:
   Disk = os.environ['PYWPS_MET_DATA']
+  if Disk[-1] != '/': Disk += '/' # local convention is that directories already have a slash
   ldisk = True
 else: ldisk = False
 # number of processes NP 
