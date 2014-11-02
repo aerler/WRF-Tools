@@ -37,10 +37,10 @@ pdir = 'proc{:02d}/'
 # destination folder(s)
 ramlnk = 'ram' # automatically generated link to ramdisk (if applicable)
 data = 'data/' # data folder in ram
-ldata = True # whether or not to keep data in memory
+ldata = True # whether or not to keep data in memory; can be set with environment variables
 disk = 'data/' # destination folder on hard disk
 Disk = '' # default: Root + disk
-ldisk = False # don't write metgrid files to hard disk
+ldisk = False # don't write metgrid files to hard disk; can be set with environment variables
 ## Commands
 # metgrid
 metgrid_exe = 'metgrid.exe'
@@ -71,6 +71,10 @@ if os.environ.has_key('NCARG_ROOT'):
   NCL = NCARG + '/bin/ncl'
 # RAM disk
 if os.environ.has_key('RAMDISK'): Ram = os.environ['RAMDISK']
+# keep data in memory (for real.exe)
+if os.environ.has_key('PYWPS_KEEP_DATA'):
+  ldata = bool(int(os.environ['PYWPS_KEEP_DATA'])) # expects 0 or 1
+else: ldata = True
 # save metgrid data
 if os.environ.has_key('PYWPS_MET_DATA') and os.environ['PYWPS_MET_DATA']:
   Disk = os.environ['PYWPS_MET_DATA']

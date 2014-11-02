@@ -25,6 +25,7 @@ METDATA=${METDATA:-''}
 # real.exe
 RUNREAL=${RUNREAL:-1} # whether to run real.exe
 REALIN=${REALIN:-"${METDATA}"} # location of metgrid files
+REALTMP=${REALTMP:-"${HOME}/metgrid"} # in case path to metgrid data is too long
 RAMIN=${RAMIN:-1} # copy input data to ramdisk or read from HD
 REALOUT=${REALOUT:-"${WORKDIR}"} # output folder for WRF input data
 RAMOUT=${RAMOUT:-1} # write output data to ramdisk or directly to HD
@@ -77,11 +78,13 @@ if [[ ${RUNPYWPS} == 1 ]]
     # environment variables required by Python script pyWPS
     export PYWPS_THREADS=$(( TASKS*THREADS ))
     export PYWPS_DATA_TYPE="${DATATYPE}"
+    export PYWPS_KEEP_DATA="${RAMIN}"
     export PYWPS_MET_DATA="${METDATA}"
     echo
     echo "OMP_NUM_THREADS=${OMP_NUM_THREADS}"
     echo "PYWPS_THREADS=${PYWPS_THREADS}"
     echo "PYWPS_DATA_TYPE=${DATATYPE}"
+    echo "PYWPS_KEEP_DATA=${RAMIN}"
     echo "PYWPS_MET_DATA=${METDATA}"
     echo
     echo "python pyWPS.py"
@@ -167,7 +170,8 @@ if [[ ${RUNREAL} == 1 ]]
     if [[ ${RAMIN} == 1 ]]; then
 	sed -i '/\&time_control/ a\ auxinput1_inname = "'"${RAMDATA}"'/met_em.d<domain>.<date>"' namelist.input
     else
-	sed -i '/\&time_control/ a\ auxinput1_inname = "'"${REALIN}"'/met_em.d<domain>.<date>"' namelist.input
+        ln -sf "${REALIN}" "${REALTMP}" # temporary link to metgrid data, if path is too long for real.exe
+	sed -i '/\&time_control/ a\ auxinput1_inname = "'"${REALTMP}"'/met_em.d<domain>.<date>"' namelist.input
     fi
 
     ## run and time hybrid (mpi/openmp) job
@@ -190,9 +194,8 @@ if [[ ${RUNREAL} == 1 ]]
     fi
 
     # clean-up and move output to hard disk
-    if [[ "${REALDIR}" == "${WORKDIR}" ]]; then
-	rm -rf "${WORKDIR}/${REALLOG}" # remove existing logs, just in case
-    fi
+    if [[ "${REALDIR}" == "${WORKDIR}" ]]; then rm -rf "${WORKDIR}/${REALLOG}"; fi # remove existing logs, just in case
+    if [[ ${RAMIN} != 1 ]]; then rm "${REALTMP}"; fi # remove temporary link to metgrid data
     mkdir -p "${REALLOG}" # make folder for log files locally
     #cd "${REALDIR}"
     # save log files and meta data

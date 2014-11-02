@@ -20,7 +20,7 @@ echo
 # RAM-disk settings: infer from queue
 if [[ ${RUNPYWPS} == 1 ]] && [[ ${RUNREAL} == 1 ]]
   then
-    export RAMIN=${RAMIN:-1}
+    export RAMIN=${RAMIN:-0}
     export RAMOUT=${RAMOUT:-0}
   else
     export RAMIN=${RAMIN:-0}
@@ -29,6 +29,8 @@ fi # if WPS
 echo
 echo "Running on ${PBS_QUEUE} queue; RAMIN=${RAMIN} and RAMOUT=${RAMOUT}"
 echo
+# if we are not using RAM disk, the path names get too long, so we need a shortcut
+export REALTMP="${HOME}/metgrid"
 
 # RAM disk folder (cleared and recreated if needed)
 export RAMDISK="/dev/shm/${USER}/"

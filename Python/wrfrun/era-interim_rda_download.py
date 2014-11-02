@@ -72,8 +72,8 @@ for localfolder in localfolders.itervalues():
   if not os.path.exists(localfolder): os.mkdir(localfolder)
 
 # date settings
-begin = pandas.datetime(1997, 1, 1)
-end   = pandas.datetime(1999, 1, 1)
+begin = pandas.datetime(1999, 1, 1)
+end   = pandas.datetime(2000, 1, 1)
 freq  = '6H' # every 6 hours
 datelist = pandas.date_range(begin, end, freq=freq)
 # iterate over dates
