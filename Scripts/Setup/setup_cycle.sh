@@ -94,7 +94,7 @@ else # cold start
       [ $VERBOSITY -gt 0 ] && echo "${METDATA}"
       rm -rf "${METDATA}" 
     fi
-    mkdir -fp "${METDATA}" # will fail, if path depends on job step, but can be ignored
+    mkdir -p "${METDATA}" # will fail, if path depends on job step, but can be ignored
   fi
   if [[ -n ${WRFOUT} ]]; then
     if [[ "${MODE}" == 'CLEAN' ]]; then 
