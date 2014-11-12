@@ -3,7 +3,7 @@
 
 LOC="${ROOT:-/data/}" # local datasets root, can be supplied by caller
 REM=/reserved1/p/peltier/aerler/Datasets/ # datasets root on SciNet
-DATASETS='Unity GPCC NARR CFSR CRU PRISM PCIC EC' # list of datasets/folders
+DATASETS='Unity GPCC NARR CFSR CRU PRISM PCIC EC WSC' # list of datasets/folders
 # DATASETS='PRISM' # for tests
 # ssh settings: special identity/ssh key, batch mode, and connection sharing
 # connection settings
@@ -35,9 +35,15 @@ echo
 for D in ${DATASETS}
   do
     echo "${D}"
-    E="${LOC}/${D}" # no trailing slash!
     # use rsync for the transfer; verbose, archive, update, gzip
-    time rsync -vauz -e "ssh ${SSH}"  "${E}" "${HOST}:${REM}"
+    if [[ "${RESTORE}" == 'TRUE' ]]; then
+      E="${REM}/${D}" # no trailing slash!
+      # to restore from backup, local and remote are switched
+      time rsync -vauz -e "ssh ${SSH}"  "${HOST}:${E}" "${LOC}"
+    else
+      E="${LOC}/${D}" # no trailing slash!
+      time rsync -vauz -e "ssh ${SSH}"  "${E}" "${HOST}:${REM}"
+    fi # if restore mode
     ERR=$(( $ERR + $? )) # capture exit code
     # N.B.: with connection sharing, repeating connection attempts is not really necessary
     echo    

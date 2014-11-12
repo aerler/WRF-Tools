@@ -7,7 +7,7 @@
 
 # pre-process arguments using getopt
 if [ -z $( getopt -T ) ]; then
-  TMP=$( getopt -o p:tsdn:h --long processes:,test,highspeed,debug,niceness:,overwrite,help -n "$0" -- "$@" ) # pre-process arguments
+  TMP=$( getopt -o p:tsrdn:h --long processes:,test,highspeed,restore,debug,niceness:,overwrite,no-download,no-compute,help -n "$0" -- "$@" ) # pre-process arguments
   [ $? != 0 ] && exit 1 # getopt already prints an error message
   eval set -- "$TMP" # reset positional parameters (arguments) to $TMP list
 fi # check if GNU getopt ("enhanced")
@@ -15,21 +15,27 @@ fi # check if GNU getopt ("enhanced")
 #while getopts 'fs' OPTION; do # getopts version... supports only short options
 while true; do
   case "$1" in
-    -p | --processes )   PYAVG_THREADS=$2; shift 2;;
-    -t | --test      )   PYAVG_BATCH='FALSE'; shift;;    
-    -s | --highspeed )   HISPD='HISPD';  shift;;
-    -d | --debug     )   PYAVG_DEBUG=DEBUG; shift;;
-    -n | --niceness  )   NICENESS=$2; shift 2;;
-         --overwrite )   PYAVG_OVERWRITE='OVERWRITE';  shift;;
-    -h | --help     )   echo -e " \
+    -p | --processes   )   PYAVG_THREADS=$2; shift 2;;
+    -t | --test        )   PYAVG_BATCH='FALSE'; shift;;    
+    -s | --highspeed   )   HISPD='HISPD';  shift;;
+    -r | --restore     )   RESTORE='TRUE'; shift;;
+    -d | --debug       )   PYAVG_DEBUG=DEBUG; shift;;
+    -n | --niceness    )   NICENESS=$2; shift 2;;
+         --overwrite   )   PYAVG_OVERWRITE='OVERWRITE';  shift;;
+         --no-download )   NODOWNLOAD='TRUE'; shift;;
+         --no-compute  )   NOCOMPUTE='TRUE'; shift;;
+    -h | --help        )   echo -e " \
                             \n\
-    -p | --processes    number of processes to use by Python multi-processing (default: 4)\n\
-    -t | --test         do not run Python modules in batch mode mode (default: Batch)\n\
-    -s | --highspeed    whether or not to use the high-speed datamover connection (default: False)\n\
-    -d | --debug        print dataset information in Python modules and prefix results with 'test_' (default: False)\n\
-    -n | --niceness     nicesness of the sub-processes (default: +5)\n\
-         --overwrite    recompute all averages and regridding (default: False)\n\
-    -h | --help         print this help \n\
+    -p | --processes     number of processes to use by Python multi-processing (default: 4)\n\
+    -t | --test          do not run Python modules in batch mode mode (default: Batch)\n\
+    -s | --highspeed     whether or not to use the high-speed datamover connection (default: False)\n\
+    -r | --restore       inverts local and remote for datasets, so that they are restored\n\
+    -d | --debug         print dataset information in Python modules and prefix results with 'test_' (default: False)\n\
+    -n | --niceness      nicesness of the sub-processes (default: +5)\n\
+         --overwrite     recompute all averages and regridding (default: False)\n\
+         --no-download   skips all downloads and computation of ensemble means\n\
+         --no-compute    skips the computation steps except the ensemble means (skips all Python scripts)\n\
+    -h | --help          print this help \n\
                              "; exit 0;; # \n\ == 'line break, next line'; for syntax highlighting
     -- ) shift; break;; # this terminates the argument list, if GNU getopt is used
     * ) break;;
@@ -44,7 +50,7 @@ export PYTHONPATH="${CODE}/PyGeoDat/src/:${CODE}/WRF Tools/Python/" # my own mod
 PYTHON='/home/data/Enthought/EPD/' # path to Python home (do not export!)
 SCRIPTS="${CODE}/WRF Tools/Scripts/Misc/" # folder with all the scripts
 # data root directories
-export ROOT='/data/'
+export ROOT='/data-3/'
 export WRFDATA="${ROOT}/WRF/" # local WRF data root
 export CESMDATA="${ROOT}/CESM/" # local CESM data root
 # general settings
@@ -73,60 +79,73 @@ echo
 date
 echo
 
-## synchronize data with SciNet
-export HISPD=${HISPD:-'FALSE'} # whether or not to use the high-speed datamover connection
-# N.B.: the datamover connection needs to be established manually beforehand
-# WRF
-nice --adjustment=${NICENESS} ${NICESNESS} "${SCRIPTS}/sync-wrf.sh" &> ${WRFDATA}/sync-wrf.log #2> ${WRFDATA}/sync-wrf.err # 2>&1
-REPORT $? 'WRF Synchronization'  
-# CESM
-nice --adjustment=${NICENESS} "${SCRIPTS}/sync-cesm.sh" &> ${CESMDATA}/sync-cesm.log #2> ${CESMDATA}/sync-cesm.err # 2>&1
-REPORT $? 'CESM Synchronization' 
-# Datasets
-nice --adjustment=${NICENESS} "${SCRIPTS}/sync-datasets.sh" &> ${ROOT}/sync-datasets.log #2> ${ROOT}/sync-datasets.err # 2>&1
-REPORT $? 'Dataset/Obs Synchronization' 
+if [[ "${NODOWNLOAD}" != 'TRUE' ]]
+  then
+    ## synchronize data with SciNet
+    export HISPD=${HISPD:-'FALSE'} # whether or not to use the high-speed datamover connection
+    # N.B.: the datamover connection needs to be established manually beforehand
+    # Datasets
+    export RESTORE=${RESTORE:-'FALSE'} # whether or not to invert dataset download
+    nice --adjustment=${NICENESS} "${SCRIPTS}/sync-datasets.sh" &> ${ROOT}/sync-datasets.log #2> ${ROOT}/sync-datasets.err # 2>&1
+    REPORT $? 'Dataset/Obs Synchronization' 
+    # WRF
+    nice --adjustment=${NICENESS} ${NICESNESS} "${SCRIPTS}/sync-wrf.sh" &> ${WRFDATA}/sync-wrf.log #2> ${WRFDATA}/sync-wrf.err # 2>&1
+    REPORT $? 'WRF Synchronization'  
+    # CESM
+    nice --adjustment=${NICENESS} "${SCRIPTS}/sync-cesm.sh" &> ${CESMDATA}/sync-cesm.log #2> ${CESMDATA}/sync-cesm.err # 2>&1
+    REPORT $? 'CESM Synchronization' 
+fi # if no-download
 
-## run post-processing (update climatologies)
-# WRF
-export PYAVG_BATCH=${PYAVG_BATCH:-'BATCH'} # run in batch mode - this should not be changed
-export PYAVG_THREADS=${PYAVG_THREADS:-4} # parallel execution
-export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
-export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
-#"${PYTHON}/bin/python" -c "print 'OK'" 1> ${WRFDATA}/wrfavg.log 2> ${WRFDATA}/wrfavg.err # for debugging
-nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/PyGeoDat/src/processing/wrfavg.py" &> ${WRFDATA}/wrfavg.log #2> ${WRFDATA}/wrfavg.err
-REPORT $? 'WRF Post-processing'
+if [[ "${NOCOMPUTE}" != 'TRUE' ]]
+  then
+    ## run post-processing (update climatologies)
+    # WRF
+    export PYAVG_BATCH=${PYAVG_BATCH:-'BATCH'} # run in batch mode - this should not be changed
+    export PYAVG_THREADS=${PYAVG_THREADS:-4} # parallel execution
+    export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
+    export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
+    #"${PYTHON}/bin/python" -c "print 'OK'" 1> ${WRFDATA}/wrfavg.log 2> ${WRFDATA}/wrfavg.err # for debugging
+    nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/PyGeoDat/src/processing/wrfavg.py" &> ${WRFDATA}/wrfavg.log #2> ${WRFDATA}/wrfavg.err
+    REPORT $? 'WRF Post-processing'
+fi # if no-compute
 
-## compute ensemble averages
-# WRF
-cd "${WRFDATA}/wrfavg/"
-for E in *ensemble*/; do 
-  nice --adjustment=${NICENESS} "${SCRIPTS}/ensembleAverage.sh" ${E} &> ${E}/ensembleAverage.log #2> ${E}/ensembleAverage.err
-  REPORT $? "WRF Ensemble Average '${E}'"
-done
-# CESM
-cd "${CESMDATA}/cesmavg/"
-for E in ens*/; do 
-  nice --adjustment=${NICENESS} "${SCRIPTS}/ensembleAverage.sh" ${E} &> ${E}/ensembleAverage.log #2> ${E}/ensembleAverage.err
-  REPORT $? "CESM Ensemble Average '${E}'"
-done
+if [[ "${NODOWNLOAD}" != 'TRUE' ]]
+  then
+    ## compute ensemble averages
+    # WRF
+    cd "${WRFDATA}/wrfavg/"
+    for E in *ensemble*/; do 
+      nice --adjustment=${NICENESS} "${SCRIPTS}/ensembleAverage.sh" ${E} &> ${E}/ensembleAverage.log #2> ${E}/ensembleAverage.err
+      REPORT $? "WRF Ensemble Average '${E}'"
+    done
+    # CESM
+    cd "${CESMDATA}/cesmavg/"
+    for E in ens*/; do 
+      nice --adjustment=${NICENESS} "${SCRIPTS}/ensembleAverage.sh" ${E} &> ${E}/ensembleAverage.log #2> ${E}/ensembleAverage.err
+      REPORT $? "CESM Ensemble Average '${E}'"
+    done
+fi # if no-download
 
-## run regridding (all datasets)
-# same settings as wrfavg...
-export PYAVG_BATCH=${PYAVG_BATCH:-'BATCH'} # run in batch mode - this should not be changed
-export PYAVG_THREADS=${PYAVG_THREADS:-3} # parallel execution
-export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
-export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
-nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/PyGeoDat/src/processing/regrid.py" &> ${ROOT}/regrid.log #2> ${ROOT}/regrid.err
-REPORT $? 'Dataset Regridding'
-
-## extract station data (all datasets)
-# same settings as wrfavg...
-export PYAVG_BATCH=${PYAVG_BATCH:-'BATCH'} # run in batch mode - this should not be changed
-export PYAVG_THREADS=${PYAVG_THREADS:-3} # parallel execution
-export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
-export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
-nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/PyGeoDat/src/processing/exstns.py" &> ${ROOT}/exstns.log #2> ${ROOT}/exstns.err
-REPORT $? 'Station Data Extraction'
+if [[ "${NOCOMPUTE}" != 'TRUE' ]]
+  then
+    ## run regridding (all datasets)
+    # same settings as wrfavg...
+    export PYAVG_BATCH=${PYAVG_BATCH:-'BATCH'} # run in batch mode - this should not be changed
+    export PYAVG_THREADS=${PYAVG_THREADS:-4} # parallel execution
+    export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
+    export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
+    nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/PyGeoDat/src/processing/regrid.py" &> ${ROOT}/regrid.log #2> ${ROOT}/regrid.err
+    REPORT $? 'Dataset Regridding'
+    
+    ## extract station data (all datasets)
+    # same settings as wrfavg...
+    export PYAVG_BATCH=${PYAVG_BATCH:-'BATCH'} # run in batch mode - this should not be changed
+    export PYAVG_THREADS=${PYAVG_THREADS:-4} # parallel execution
+    export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
+    export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
+    nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/PyGeoDat/src/processing/exstns.py" &> ${ROOT}/exstns.log #2> ${ROOT}/exstns.err
+    REPORT $? 'Station Data Extraction'
+fi # if no-compute
 
 # report
 echo
@@ -142,4 +161,4 @@ date
 echo
 
 # exit with error code
-exit ${ERR}
+#exit ${ERR}

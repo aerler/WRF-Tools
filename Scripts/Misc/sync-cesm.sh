@@ -2,7 +2,7 @@
 # script to synchronize CESM data with SciNet
 
 # CESM directories / data sources
-REX= #'h[abc]b20trcn1x1 tb20trcn1x1 h[abcz]brcp85cn1x1 htbrcp85cn1x1 seaice-5r-hf h[abcz]brcp85cn1x1d htbrcp85cn1x1d seaice-5r-hfd'
+REX='h[abc]b20trcn1x1 tb20trcn1x1 h[abcz]brcp85cn1x1 htbrcp85cn1x1 seaice-5r-hf h[abcz]brcp85cn1x1d htbrcp85cn1x1d seaice-5r-hfd'
 ENS='ens20trcn1x1 ensrcp85cn1x1 ensrcp85cn1x1d'
 CVDPENS="${ENS} grand-ensemble"
 CESMDATA=${CESMDATA:-/data/CESM/} # can be supplied by caller
