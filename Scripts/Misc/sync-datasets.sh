@@ -44,7 +44,7 @@ for D in ${DATASETS}
       E="${LOC}/${D}" # no trailing slash!
       time rsync -vauz -e "ssh ${SSH}"  "${E}" "${HOST}:${REM}"
     fi # if restore mode
-    ERR=$(( $ERR + $? )) # capture exit code
+    [ $? -gt 0 ] && ERR=$(( $ERR + 1 )) # capture exit code
     # N.B.: with connection sharing, repeating connection attempts is not really necessary
     echo    
 done # for regex sets

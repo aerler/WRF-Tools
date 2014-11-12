@@ -58,7 +58,7 @@ for E in $( ssh ${SSH} ${HOST} "ls -d ${D}" ) # get folder listing from scinet
         echo "${N}" # feedback
         # use rsync for the transfer; verbose, archive, update (gzip is probably not necessary)
         rsync -vau -e "ssh ${SSH}" "${HOST}:${F}" ${M}/ 
-        ERR=$(( ${ERR} + $? )) # capture exit code, and repeat, if unsuccessful
+        [ $? -gt 0 ] && ERR=$(( $ERR + 1 )) # capture exit code
         # N.B.: with connection sharing, repeating connection attempts is not really necessary
         echo
     fi # if ls scinet
@@ -81,7 +81,7 @@ for E in $( ssh ${SSH} ${HOST} "ls -d ${D}" ) # get folder listing from scinet
 		        echo "${N}" # feedback
 		        # use rsync for the transfer; verbose, archive, update (gzip is probably not necessary)
 		        rsync -vau -e "ssh ${SSH}" "${HOST}:${F}" "${M}/"
-		        ERR=$(( ${ERR} + $? )) # capture exit code, and repeat, if unsuccessful
+            [ $? -gt 0 ] && ERR=$(( $ERR + 1 )) # capture exit code
 		        # N.B.: with connection sharing, repeating connection attempts is not really necessary
 		        # extract tarball, if file was updated
             ls "${M}"/*.tgz &> /dev/null # make sure tarball is there
@@ -93,13 +93,13 @@ for E in $( ssh ${SSH} ${HOST} "ls -d ${D}" ) # get folder listing from scinet
 		                if [[ ! -e "${T}/" ]]; then
 		                    echo "Extracting diagnostic tarball (${ANA}): ${TB}"
 		                    tar xzf "${TB}"
-		                    ERR=$(( ${ERR} + $? )) # capture exit code, and repeat, if unsuccessful
+                        [ $? -gt 0 ] && ERR=$(( $ERR + 1 )) # capture exit code
 		                    touch "${T}" # update modification date of folder
 		                elif [[ "${TB}" -nt "${T}/" ]]; then
 		                    echo "Extracting new diagnostic tarball (${ANA}): ${TB}"
 		                    rm -r "${T}/"
 		                    tar xzf "${TB}"
-		                    ERR=$(( ${ERR} + $? )) # capture exit code, and repeat, if unsuccessful
+                        [ $? -gt 0 ] && ERR=$(( $ERR + 1 )) # capture exit code
 		                    touch "${T}" # update modification date of folder
 		                else
 		                    echo "${T} diagnostics are up-to-date (${ANA})"
@@ -135,7 +135,7 @@ for E in $( ssh ${SSH} ${HOST} "ls -d ${D}" ) # get folder listing from scinet
 		    echo "${N}" # feedback
 		    # use rsync for the transfer; verbose, archive, update (gzip is probably not necessary)
 		    rsync -vau -e "ssh ${SSH}" "${HOST}:${F}" "${M}/"
-		    ERR=$(( ${ERR} + $? )) # capture exit code, and repeat, if unsuccessful
+        [ $? -gt 0 ] && ERR=$(( $ERR + 1 )) # capture exit code
 		    # N.B.: with connection sharing, repeating connection attempts is not really necessary
 		    # extract tarball, if file was updated
 		    ls "${M}"/*.tgz &> /dev/null # make sure tarball is there
@@ -147,13 +147,13 @@ for E in $( ssh ${SSH} ${HOST} "ls -d ${D}" ) # get folder listing from scinet
 		            if [[ ! -e "${T}/" ]]; then
 		                echo "Extracting diagnostic tarball (cvdp): ${TB}"
 		                tar xzf "${TB}"
-		                ERR=$(( ${ERR} + $? )) # capture exit code, and repeat, if unsuccessful
+                    [ $? -gt 0 ] && ERR=$(( $ERR + 1 )) # capture exit code
 		                touch "${T}" # update modification date of folder
 		            elif [[ "${TB}" -nt "${T}/" ]]; then
 		                echo "Extracting new diagnostic tarball (cvdp): ${TB}"
 		                rm -r "${T}/"
 		                tar xzf "${TB}"
-		                ERR=$(( ${ERR} + $? )) # capture exit code, and repeat, if unsuccessful
+                    [ $? -gt 0 ] && ERR=$(( $ERR + 1 )) # capture exit code
 		                touch "${T}" # update modification date of folder
 		            else
 		                echo "${T} diagnostics are up-to-date (cvdp)"
@@ -187,7 +187,7 @@ for E in $( ls -d ${D} ) # get folder listing (this time local)
         echo "${E}/" # feedback
         # use rsync for the transfer; verbose, archive, update (gzip is probably not necessary)
         rsync -vau -e "ssh ${SSH}" ${F} "${HOST}:${M}/" # from here to SciNet 
-        ERR=$(( ${ERR} + $? )) # capture exit code, and repeat, if unsuccessful
+        [ $? -gt 0 ] && ERR=$(( $ERR + 1 )) # capture exit code
         # N.B.: with connection sharing, repeating connection attempts is not really necessary
         echo
     fi # if ls scinet

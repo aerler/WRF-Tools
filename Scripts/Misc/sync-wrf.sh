@@ -54,19 +54,19 @@ for D in "$DR/*-*/" "$DS/*-*/"
 			    	# use rsync for the transfer; verbose, archive, update (gzip is probably not necessary)
 				    # N.B.: with connection sharing, repeating connection attempts is not really necessary
 			    	rsync -vau -e "ssh $SSH" "$HOST:$F" $M/ 
-				    ERR=$(( $ERR + $? )) # capture exit code, and repeat, if unsuccessful
+            [ $? -gt 0 ] && ERR=$(( $ERR + 1 )) # capture exit code
 			  fi # if ls scinet
         # transfer constants files
         ssh $SSH $HOST "ls $G" &> /dev/null
         if [ $? == 0 ]; then # check exit code 
             rsync -vau -e "ssh $SSH" "$HOST:$G" $M/ 
-            ERR=$(( $ERR + $? )) # capture exit code, and repeat, if unsuccessful
+            [ $? -gt 0 ] && ERR=$(( $ERR + 1 )) # capture exit code
         fi # if ls scinet
         # transfer config files
         ssh $SSH $HOST "ls $H" &> /dev/null
         if [ $? == 0 ]; then # check exit code 
             rsync -vau -e "ssh $SSH" "$HOST:$H" $M/ 
-            ERR=$(( $ERR + $? )) # capture exit code, and repeat, if unsuccessful
+            [ $? -gt 0 ] && ERR=$(( $ERR + 1 )) # capture exit code
         fi # if ls scinet
         echo
     done # for subsets    

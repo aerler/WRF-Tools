@@ -136,6 +136,7 @@ if [[ "${NOCOMPUTE}" != 'TRUE' ]]
     export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
     nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/PyGeoDat/src/processing/regrid.py" &> ${ROOT}/regrid.log #2> ${ROOT}/regrid.err
     REPORT $? 'Dataset Regridding'
+fi # if no-compute
     
     ## extract station data (all datasets)
     # same settings as wrfavg...
@@ -145,7 +146,6 @@ if [[ "${NOCOMPUTE}" != 'TRUE' ]]
     export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
     nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/PyGeoDat/src/processing/exstns.py" &> ${ROOT}/exstns.log #2> ${ROOT}/exstns.err
     REPORT $? 'Station Data Extraction'
-fi # if no-compute
 
 # report
 echo
