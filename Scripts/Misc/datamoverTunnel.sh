@@ -8,7 +8,8 @@ INTERPORT=58257 # random port, just has to match
 # servers for tunneling
 SCINET="aerler@login.scinet.utoronto.ca" # skip all my default settings
 #SERVER="aerler@feynmann.atmosp.physics.utoronto.ca" # man-in-the-middle
-SERVER="aerler@128.100.80.177" # man-in-the-middle
+#SERVER="aerler@128.100.80.177" # feynmann (man-in-the-middle)
+SERVER="aerler@128.100.80.168" # trident (man-in-the-middle)
 
 # ssh into feynmann and put connection in background (standard tunnel)
 ssh -NL $LOCALPORT:localhost:$INTERPORT $SERVER &
