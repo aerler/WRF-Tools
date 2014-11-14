@@ -275,7 +275,7 @@ function BACKUPHTAR () {
     fi # CHECKARCHIVE
   fi # archive already exists
   # create archive
-  htar -cpf "${HTAR}" -Hcrc -Hverify=1 ${FILES}
+  htar -cpf "${HTAR}" -Humask=0137 -Hcrc -Hverify=1 ${FILES}
   # verify contents
   if [[ "${VERIFY}" == 'VERIFY' ]]; then
     # verify archive contents
