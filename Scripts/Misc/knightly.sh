@@ -7,7 +7,7 @@
 
 # pre-process arguments using getopt
 if [ -z $( getopt -T ) ]; then
-  TMP=$( getopt -o p:tsrdn:h --long processes:,test,highspeed,restore,debug,niceness:,overwrite,no-download,no-compute,help -n "$0" -- "$@" ) # pre-process arguments
+  TMP=$( getopt -o p:tsrdn:h --long processes:,test,highspeed,restore,debug,niceness:,from-home,overwrite,no-download,no-compute,help -n "$0" -- "$@" ) # pre-process arguments
   [ $? != 0 ] && exit 1 # getopt already prints an error message
   eval set -- "$TMP" # reset positional parameters (arguments) to $TMP list
 fi # check if GNU getopt ("enhanced")
@@ -21,6 +21,7 @@ while true; do
     -r | --restore     )   RESTORE='TRUE'; shift;;
     -d | --debug       )   PYAVG_DEBUG=DEBUG; shift;;
     -n | --niceness    )   NICENESS=$2; shift 2;;
+         --from-home   )   CODE="${HOME}/Code/"; shift;;
          --overwrite   )   PYAVG_OVERWRITE='OVERWRITE';  shift;;
          --no-download )   NODOWNLOAD='TRUE'; shift;;
          --no-compute  )   NOCOMPUTE='TRUE'; shift;;
@@ -32,6 +33,7 @@ while true; do
     -r | --restore       inverts local and remote for datasets, so that they are restored\n\
     -d | --debug         print dataset information in Python modules and prefix results with 'test_' (default: False)\n\
     -n | --niceness      nicesness of the sub-processes (default: +5)\n\
+         --from-home     use code from user $HOME instead of default (/home/data/Code)\n\
          --overwrite     recompute all averages and regridding (default: False)\n\
          --no-download   skips all downloads and computation of ensemble means\n\
          --no-compute    skips the computation steps except the ensemble means (skips all Python scripts)\n\
