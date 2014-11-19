@@ -8,12 +8,12 @@ if [[ -z "$CASES" ]] || [[ -z "$YEARS" ]]
   then
 
     # seaice
-    CASES='seaice-5r-hfd'
+    #CASES='seaice-5r-hfd'
     #YEARS=$(seq 2055 2060)
-    YEARS=$(seq 2085 2100)
-    # ensemble 2100
-    #CASES='habrcp85cn1x1d hbbrcp85cn1x1d hcbrcp85cn1x1d'
     #YEARS=$(seq 2085 2100)
+    # ensemble 2100
+    CASES='habrcp85cn1x1d hbbrcp85cn1x1d hcbrcp85cn1x1d'
+    YEARS=$(seq 2085 2100)
     CCA=$PWD
 
   else

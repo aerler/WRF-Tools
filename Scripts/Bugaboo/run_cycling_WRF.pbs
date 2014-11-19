@@ -12,7 +12,7 @@
 #PBS -o $PBS_JOBNAME.$PBS_JOBID.out
 # send email if abort (nbae)
 #PBS -M aerler@atmosp.physics.utoronto.ca
-#PBS -m a
+#PBS -m ae
 # job name
 #PBS -N cycling_WRF
 # job dependency

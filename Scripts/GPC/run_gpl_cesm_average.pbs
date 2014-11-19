@@ -272,7 +272,7 @@ echo "parallel --sshloginfile \"$PBS_NODEFILE\" --workdir \"$PWD\" "
 echo "         --env PYTHON_EGG_CACHE   = $PYTHON_EGG_CACHE"
 echo "         --env CCA                = $CCA             "
 echo "         --env TEST               = $TEST            "
-echo "        -j 8 --joblog \"${LOGFILE}\" < \"${CMDFILE}\" "
+echo "        -j ${THREADS} --joblog \"${LOGFILE}\" < \"${CMDFILE}\" "
 if [[ "$TEST" != 'DRYRUN' ]]
   then
     #parallel -j $THREADS --joblog "${LOGFILE}" < "${CMDFILE}" # only for single-node execution
@@ -280,7 +280,7 @@ if [[ "$TEST" != 'DRYRUN' ]]
               --env PYTHON_EGG_CACHE \
               --env CCA \
               --env TEST \
-             -j 8 --joblog "${LOGFILE}" < "${CMDFILE}"
+             -j ${THREADS}--joblog "${LOGFILE}" < "${CMDFILE}"
     ERR=$? # capture exit code
 else
     ERR=1
