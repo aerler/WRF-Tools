@@ -29,7 +29,7 @@ DOM="wc2-${RES}"
 TIME_CONTROL="cycling,${IO}" # default I/O: only output stream #0
 DIAGS='hitop' # needs output stream #23
 PHYSICS='clim-new-v36' # this namelist has to be compatible with the WRF build used!
-PHYSICS_MOD=' fractional_seaice = 0, ! does not work with ERA-I : cu_physics = 5, 0, 0, ! no convection scheme in inner domain : cugd_avedx = 2 ! increase subsidence spreading in outer domain '
+PHYSICS_MOD=' cu_physics = 5, 0, 0, ! no convection scheme in inner domain : cu_rad_feedback = .true., .false., .false., : cu_diag = 0, : cugd_avedx = 2 ! increase subsidence spreading in outer domain ' # fractional_seaice = 0, ! does not work with ERA-I? 
 NOAH_MP='new-v36'
 DOMAINS="${DATATYPE,,}-${RES},${DOM}-grid" # lower-case dataset name
 FDDA='spectral'
