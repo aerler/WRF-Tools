@@ -38,7 +38,7 @@ function CHECK {
   local MAC="${3}" # machine we are checking
   for E in ${JOBS}
     do
-      if [[ -z $( echo ${LISTING} | grep ${E}_WRF ) ]]
+      if [[ -z $( echo ${LISTING} | grep " ${E}_WRF" ) ]]
 	then 
 	  echo
 	  echo "Experiment ${E} on ${MAC} is not running!"
