@@ -91,4 +91,4 @@ export SUBMITAVG=${SUBMITAVG:-'cd \"${INIDIR}\" && qsub ./${AVGSCRIPT} -v PERIOD
 export RESUBJOB=${RESUBJOB-'cd ${INIDIR} && qsub ./${WRFSCRIPT} -v NOWPS=${NOWPS},NEXTSTEP=${NEXTSTEP},RSTCNT=${RSTCNT}'} # evaluated by resubJob
 
 # sleeper job submission (for next step when WPS is delayed; should run on devel node)
-export SLEEPERJOB=${SLEEPERJOB-'ssh bugaboo "cd \"${INIDIR}\"; nohup ./${STARTSCRIPT} --skipwps --restart=${NEXTSTEP} --name=${JOBNAME} &> ${STARTSCRIPT%.sh}_${JOBNAME}_${NEXTSTEP}.log &"'} # evaluated by resubJob
+export SLEEPERJOB=${SLEEPERJOB-'ssh bugaboo "cd \"${INIDIR}\"; nohup ./${STARTSCRIPT} --restart=${NEXTSTEP} --name=${JOBNAME} &> ${STARTSCRIPT%.sh}_${JOBNAME}_${NEXTSTEP}.log &"'} # evaluated by resubJob; relaunches WPS

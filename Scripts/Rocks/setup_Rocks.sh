@@ -106,4 +106,4 @@ export RESUBJOB=${RESUBJOB-'ssh rocks-ib.ib "cd \"${INIDIR}\"; export NEXTSTEP=$
 #export RESUBJOB=${RESUBJOB-'cd \"${INIDIR}\"; export NEXTSTEP=${NEXTSTEP}; export NOWPS=${NOWPS}; qsub ${WRFSCRIPT}'} # evaluated by resubJob
 
 # sleeper job submission (for next step when WPS is delayed)
-export SLEEPERJOB=${SLEEPERJOB-'ssh rocks-ib.ib "cd \"${INIDIR}\"; nohup ./${STARTSCRIPT} --skipwps --restart=${NEXTSTEP} --name=${JOBNAME} &> ${STARTSCRIPT%.sh}_${JOBNAME}_${NEXTSTEP}.log &"'} # evaluated by resubJob
+export SLEEPERJOB=${SLEEPERJOB-'ssh rocks-ib.ib "cd \"${INIDIR}\"; nohup ./${STARTSCRIPT} --restart=${NEXTSTEP} --name=${JOBNAME} &> ${STARTSCRIPT%.sh}_${JOBNAME}_${NEXTSTEP}.log &"'} # evaluated by resubJob

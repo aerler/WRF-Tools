@@ -104,5 +104,5 @@ export SUBMITAVG=${SUBMITAVG:-'ssh gpc-f104n084-ib0 "cd \"${INIDIR}\"; qsub ./${
 export RESUBJOB=${RESUBJOB-'ssh gpc-f104n084-ib0 "cd \"${INIDIR}\"; qsub ./${WRFSCRIPT} -v NOWPS=${NOWPS},NEXTSTEP=${NEXTSTEP},RSTCNT=${RSTCNT}"'} # evaluated by resubJob
 
 # sleeper job submission (for next step when WPS is delayed)
-export SLEEPERJOB=${SLEEPERJOB-'ssh p7n01-ib0 "cd \"${INIDIR}\"; nohup ./${STARTSCRIPT} --skipwps --restart=${NEXTSTEP} --name=${JOBNAME} &> ${STARTSCRIPT%.sh}_${JOBNAME}_${NEXTSTEP}.log &"'} # evaluated by resubJob
+export SLEEPERJOB=${SLEEPERJOB-'ssh p7n01-ib0 "cd \"${INIDIR}\"; nohup ./${STARTSCRIPT} --restart=${NEXTSTEP} --name=${JOBNAME} &> ${STARTSCRIPT%.sh}_${JOBNAME}_${NEXTSTEP}.log &"'} # evaluated by resubJob; relaunches WPS
 # N.B.: all sleeper jobs should be submitted to P7

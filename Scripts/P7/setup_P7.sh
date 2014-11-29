@@ -102,5 +102,5 @@ export RESUBJOB=${RESUBJOB-'ssh p7n01-ib0 "cd \"${INIDIR}\"; export NEXTSTEP=${N
 export ALTSUBJOB=${ALTSUBJOB-'ssh p7n01-ib0 "cd \"${INIDIR}\"; export NEXTSTEP=${NEXTSTEP}; export NOWPS=${NOWPS}; export RSTCNT=${RSTCNT}; llsubmit ./${WRFSCRIPT}"'} # for start_cycle from different machines
 
 # sleeper job submission (for next step when WPS is delayed)
-export SLEEPERJOB=${SLEEPERJOB-'ssh p7n01-ib0 "cd \"${INIDIR}\"; nohup ./${STARTSCRIPT} --skipwps --restart=${NEXTSTEP} --name=${JOBNAME} &> ${STARTSCRIPT%.sh}_${JOBNAME}_${NEXTSTEP}.log &"'} # evaluated by resubJob
+export SLEEPERJOB=${SLEEPERJOB-'ssh p7n01-ib0 "cd \"${INIDIR}\"; nohup ./${STARTSCRIPT} --restart=${NEXTSTEP} --name=${JOBNAME} &> ${STARTSCRIPT%.sh}_${JOBNAME}_${NEXTSTEP}.log &"'} # evaluated by resubJob; relaunches WPS
 # N.B.: all sleeper jobs should be submitted to P7
