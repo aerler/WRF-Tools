@@ -10,7 +10,7 @@ if [ -z $( getopt -T ) ]; then
 fi # check if GNU getopt ("enhanced")
 # set default parameters
 ROOT="$PWD"
-RECLEV=3
+RECLEV=1
 HGSYNC=1
 HGPULL=1
 HGUPDATE=1
