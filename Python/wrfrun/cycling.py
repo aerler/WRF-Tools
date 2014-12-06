@@ -18,9 +18,7 @@ import calendar # to locate leap years
 # my modules
 from namelist import time
 
-# setup
-#if os.environ.has_key('STEP'):
-#  currentstep = os.environ['STEP'] # name of current (i.e. last) step
+## setup
 # pass current/last step name as argument
 if len(sys.argv) == 1:
   currentstep = '' # just return first step
@@ -45,6 +43,9 @@ if os.environ.has_key('DATATYPE'):
   elif os.environ['DATATYPE'][:4] == 'CCSM': lly = False # CCSMx does not have leap-years
   else: lly = True # reanalysis have leap-years
 else: lly = False # GCMs like CESM/CCSM generally don't have leap-years
+if os.environ.has_key('RSTINT'):
+  rstint = int(os.environ['RSTINT']) # number of restart files per step
+else: rstint = 1
 # standard names for namelists
 nmlstwps = 'namelist.wps' # WPS namelist file
 nmlstwrf = 'namelist.input' # WRF namelist file
@@ -176,8 +177,10 @@ if __name__ == '__main__':
 #    rthours = rtdelta.seconds // 3600; rmndr = rtdelta.seconds - rthours*3600
 #    rtmins = rmndr // 60; rtsecs = rmndr - rtmins*60
     runtime = (rtdays, rthours, rtmins, rtsecs)
-    # make restart interval equal to run time
-    rstmins = rtdays*1440 + rthours*60 + rtmins # restart interval in minutes
+    # make restart interval a integer fraction of run time
+    runmins = rtdays*1440 + rthours*60 + rtmins # restart interval in minutes
+    rstmins = int(runmins/rstint)
+    if rstmins*rstint != runmins: raise ValueError, "Runtime is not an integer multiple of the restart interval (RSTINT={:d})!".format(rstint) 
     rststr = ' restart_interval = '+str(rstmins)+',\n'
     # construct run time strings
     timecats = ('days', 'hours', 'minutes', 'seconds')

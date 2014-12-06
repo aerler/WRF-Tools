@@ -61,6 +61,10 @@ export THREADS=${THREADS:-1} # number of OpenMP threads
 # OpenMPI job launch command
 export HYBRIDRUN=${HYBRIDRUN:-'mpiexec -n $(( NODES*TASKS ))'} # evaluated by execWRF and execWPS
 
+# number of restart files per job step
+export RSTINT=${RSTINT:-4} # jobs on Bugaboo run much longer than on other machines
+# N.B.: this parameter is set in the setup script, so that startCycle.sh is also aware of it
+
 ##TODO: skip hostfile and use normal mpiexec command if not hyperthreading
 ##TODO: also skip is sourced from devel node shell
 #
