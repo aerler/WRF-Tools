@@ -190,9 +190,11 @@ derived_variables['xtrm']   = [dv.RainMean(), dv.WetDaysMean(), dv.FrostDays()]
 derived_variables['hydro']  = [dv.Rain(), dv.LiquidPrecip(), dv.SolidPrecip(), dv.WetDays(),                            
                                dv.NetPrecip_Hydro(), dv.NetWaterFlux()]
 derived_variables['lsm']    = [dv.RunOff()]
-derived_variables['plev3d'] = [dv.OrographicIndexPlev(), dv.WaterDensity(), dv.ColumnWater(), dv.ColumnHeat(),
-                               dv.WaterFlux_U(), dv.WaterFlux_V(), dv.WaterTransport_U(), dv.WaterTransport_V(),
-                               dv.HeatFlux_U(), dv.HeatFlux_V(), dv.HeatTransport_U(),dv.HeatTransport_V()]
+derived_variables['plev3d'] = [dv.OrographicIndexPlev(), dv.Vorticity(), dv.WaterDensity(),
+                               dv.WaterFlux_U(), dv.WaterFlux_V(), dv.ColumnWater(), 
+                               dv.WaterTransport_U(), dv.WaterTransport_V(),
+                               dv.HeatFlux_U(), dv.HeatFlux_V(), dv.ColumnHeat(), 
+                               dv.HeatTransport_U(),dv.HeatTransport_V()]
 # N.B.: derived variables need to be listed in order of computation
 consecutive_variables = {filetype:None for filetype in filetypes} # consecutive variable lists by file type
 # Consecutive exceedance variables
@@ -218,7 +220,7 @@ maximum_variables['xtrm']   = ['T2MEAN', 'T2MAX', 'SPDUV10MEAN', 'SPDUV10MAX',
                                'RAINMEAN', 'RAINNCVMAX', 'RAINCVMAX']
 maximum_variables['hydro']  = ['T2MEAN', 'RAIN', 'RAINC', 'NetPrecip', 'NetWaterFlux']
 maximum_variables['lsm']    = ['SFROFF']
-maximum_variables['plev3d'] = ['S_PL', 'GHT_PL']
+maximum_variables['plev3d'] = ['S_PL', 'GHT_PL', 'Vorticity']
 # daily (smoothed) maxima
 daymax_variables  = {filetype:[] for filetype in filetypes} # maxima variable lists by file type
 daymax_variables['srfc']  = ['T2','RAIN', 'RAINC', 'NetPrecip']
@@ -234,7 +236,7 @@ minimum_variables = {filetype:[] for filetype in filetypes} # minima variable li
 minimum_variables['srfc']   = ['T2']
 minimum_variables['xtrm']   = ['T2MEAN', 'T2MIN']
 minimum_variables['hydro']  = ['T2MEAN']
-minimum_variables['plev3d'] = ['GHT_PL']
+minimum_variables['plev3d'] = ['GHT_PL', 'Vorticity']
 # weekly (smoothed) minima
 weekmin_variables  = {filetype:[] for filetype in filetypes} # mininma variable lists by file type
 weekmin_variables['hydro']  = ['T2MEAN', 'RAIN', 'ACSNOM', 'NetPrecip', 'NetWaterFlux']

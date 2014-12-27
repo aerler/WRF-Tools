@@ -855,6 +855,26 @@ class HeatTransport_V(DerivedVariable):
     return outdata
 
 
+class Vorticity(DerivedVariable):
+  ''' DerivedVariable child for computing relative vorticity. '''
+  
+  def __init__(self):
+    ''' Initialize with fixed values; constructor takes no arguments. '''
+    super(Vorticity,self).__init__(name='Vorticity', # name of the variable
+                              units='1/s', 
+                              prerequisites=['U_PL','V_PL'],
+                              axes=('time','num_press_levels_stag','south_north','west_east'), # dimensions of NetCDF variable 
+                              dtype=dv_float, atts=None, linear=False) 
+
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
+    ''' Project surface winds onto topographic gradient. '''
+    super(Vorticity,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
+    # compute relative vorticity on pressure levels
+    # zeta = dv/dx - du/dy
+    outdata = ( ctrDiff(indata['V_PL'], axis=3, delta=const['DX']) # order of dimensions: t,p,y,x
+                -  ctrDiff(indata['U_PL'], axis=2, delta=const['DY']) )
+    # N.B.: metric factors are not computed
+    return outdata
 
 
 ## extreme values
