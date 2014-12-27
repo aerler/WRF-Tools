@@ -1,6 +1,7 @@
 #!/bin/bash
 # script to synchronize datasets with SciNet
 
+RESTORE=${RESTORE:-'FALSE'} # restore datasets from SciNet backup
 LOC="${ROOT:-/data/}" # local datasets root, can be supplied by caller
 REM=/reserved1/p/peltier/aerler/Datasets/ # datasets root on SciNet
 DATASETS='Unity GPCC NARR CFSR CRU PRISM PCIC EC WSC' # list of datasets/folders
@@ -36,7 +37,7 @@ for D in ${DATASETS}
   do
     echo "${D}"
     # use rsync for the transfer; verbose, archive, update, gzip
-    if [[ "${RESTORE}" == 'TRUE' ]]; then
+    if [[ "${RESTORE}" == 'RESTORE' ]]; then
       E="${REM}/${D}" # no trailing slash!
       # to restore from backup, local and remote are switched
       time rsync -vauz -e "ssh ${SSH}"  "${HOST}:${E}" "${LOC}"

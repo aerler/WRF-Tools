@@ -18,7 +18,7 @@ while true; do
     -p | --processes   )   PYAVG_THREADS=$2; shift 2;;
     -t | --test        )   PYAVG_BATCH='FALSE'; shift;;    
     -s | --highspeed   )   HISPD='HISPD';  shift;;
-    -r | --restore     )   RESTORE='TRUE'; shift;;
+    -r | --restore     )   RESTORE='RESTORE'; shift;;
     -d | --debug       )   PYAVG_DEBUG=DEBUG; shift;;
     -n | --niceness    )   NICENESS=$2; shift 2;;
          --from-home   )   CODE="${HOME}/Code/"; shift;;
@@ -91,7 +91,7 @@ if [[ "${NODOWNLOAD}" != 'TRUE' ]]
     nice --adjustment=${NICENESS} "${SCRIPTS}/sync-datasets.sh" &> ${ROOT}/sync-datasets.log #2> ${ROOT}/sync-datasets.err # 2>&1
     REPORT $? 'Dataset/Obs Synchronization' 
     # WRF
-    nice --adjustment=${NICENESS} ${NICESNESS} "${SCRIPTS}/sync-wrf.sh" &> ${WRFDATA}/sync-wrf.log #2> ${WRFDATA}/sync-wrf.err # 2>&1
+    nice --adjustment=${NICENESS} "${SCRIPTS}/sync-wrf.sh" &> ${WRFDATA}/sync-wrf.log #2> ${WRFDATA}/sync-wrf.err # 2>&1
     REPORT $? 'WRF Synchronization'  
     # CESM
     nice --adjustment=${NICENESS} "${SCRIPTS}/sync-cesm.sh" &> ${CESMDATA}/sync-cesm.log #2> ${CESMDATA}/sync-cesm.err # 2>&1
