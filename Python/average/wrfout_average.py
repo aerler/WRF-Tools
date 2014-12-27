@@ -212,12 +212,18 @@ consecutive_variables['hydro'] = {'CWD'  : ('RAIN', 'above', 2.3e-7, 'Consecutiv
 #consecutive_variables['hydro'] = {}
 # Maxima (just list base variables; derived variables will be created later)
 maximum_variables = {filetype:[] for filetype in filetypes} # maxima variable lists by file type
-maximum_variables['srfc']   = ['T2', 'U10', 'V10', 'RAIN', 'RAINC']
+maximum_variables['srfc']   = ['T2', 'U10', 'V10', 'RAIN', 'RAINC', 'NetPrecip']
 maximum_variables['xtrm']   = ['T2MEAN', 'T2MAX', 'SPDUV10MEAN', 'SPDUV10MAX', 
                                'RAINMEAN', 'RAINNCVMAX', 'RAINCVMAX']
-maximum_variables['hydro']  = ['T2MEAN', 'RAIN', 'RAINC', 'NetWaterFlux']
+maximum_variables['hydro']  = ['T2MEAN', 'RAIN', 'RAINC', 'NetPrecip', 'NetWaterFlux']
 maximum_variables['lsm']    = ['SFROFF']
 maximum_variables['plev3d'] = ['S_PL', 'GHT_PL']
+# daily (smoothed) maxima
+daymax_variables  = {filetype:[] for filetype in filetypes} # maxima variable lists by file type
+daymax_variables['srfc']  = ['T2','RAIN', 'RAINC', 'NetPrecip']
+# daily (smoothed) minima
+daymin_variables  = {filetype:[] for filetype in filetypes} # mininma variable lists by file type
+daymin_variables['srfc']  = ['T2']
 # weekly (smoothed) maxima
 weekmax_variables  = {filetype:[] for filetype in filetypes} # maxima variable lists by file type
 weekmax_variables['hydro']  = ['T2MEAN', 'RAIN', 'ACSNOM', 'NetPrecip', 'NetWaterFlux']
@@ -293,6 +299,8 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
   # and now add them
   addExtrema(maximum_variables, 'max')
   addExtrema(minimum_variables, 'min')
+  addExtrema(daymax_variables, 'max', interval=1)
+  addExtrema(daymin_variables, 'min', interval=1)  
   addExtrema(weekmax_variables, 'max', interval=7)
   addExtrema(weekmin_variables, 'min', interval=7)  
 
@@ -400,7 +408,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
           var.checkPrerequisites(mean) # as long as they are sorted correctly...
           var.createVariable(mean)
           newdevars.append(varname)
-        else: del derived_vars[devar] # don't bother
+        else: del derived_vars[varname] # don't bother
         # N.B.: it is not possible that a previously computed variable depends on a missing variable,
         #       unless it was purposefully deleted, in which case this will crash!
         #raise (dv.DerivedVariableError, "{0:s} Derived variable '{1:s}' not found in file '{2:s}'".format(pidstr,var.name,filename))
@@ -834,7 +842,8 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
             vardata = dedata[dename] / ntime # no accumulated variables here!
           else: vardata = dedata[dename] # just the data...
           # not all variables are normalized (e.g. extrema)
-          logger.debug('{0:s} {1:s}, {2:f}, {3:f}, {4:f}'.format(pidstr,dename,float(vardata.mean()),float(vardata.min()),float(vardata.max())))
+          mmm = (float(np.nanmean(vardata)),float(np.nanmin(vardata)),float(np.nanmax(vardata)),)
+          logger.debug('{0:s} {1:s}, {2:f}, {3:f}, {4:f}'.format(pidstr,dename,*mmm))
           data[dename] = vardata # add to data array, so that it can be used to compute linear variables
           # save variable
           ncvar = mean.variables[dename] # this time the destination variable

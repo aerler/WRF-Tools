@@ -26,11 +26,9 @@ days_per_month_365 = np.array([31,28,31,30,31,30,31,31,30,31,30,31])
 dv_float = np.dtype('float32') # final precision used for derived floating point variables 
 dtype_float = dv_float # general floating point precision used for temporary arrays
 
-# N.B.: this could have been implemented much more efficiently, without the need for separate classes,
-#       using a numexpr string and the variable dicts to define the computation 
 
-## function to calculate time deltas and subtract leap-days, if necessary
 def calcTimeDelta(timestamps, year=None, month=None):
+  ''' function to calculate time deltas and subtract leap-days, if necessary '''
   # check dates
   y1, m1, d1 = tuple( int(i) for i in timestamps[0][:10].split('-') )
   y2, m2, d2 = tuple( int(i) for i in timestamps[-1][:10].split('-') )
@@ -71,9 +69,9 @@ def calcTimeDelta(timestamps, year=None, month=None):
   return delta
               
 
-## helper routine: central differences
-# N.B.: due to the roll operation, this function is not fully thread-safe
 def ctrDiff(data, axis=0, delta=1):
+  ''' helper routine to compute central differences
+      N.B.: due to the roll operation, this function is not fully thread-safe '''
   if not isinstance(data,np.ndarray): raise TypeError
   if not isinstance(delta,(float,np.inexact,int,np.integer)): raise TypeError
   if not isinstance(axis,(int,np.integer)): raise TypeError
@@ -101,10 +99,42 @@ def ctrDiff(data, axis=0, delta=1):
   return outdata
 
 
+def pressureIntegral(var, T, p, RMg):
+  ''' helper routine to compute mass-weighted vertical integrals 
+      (currently only works on pressure levels) '''
+  # allocate extended array with boundary points
+  # make sure dimensions fit (pressure is the second dimension)
+  assert T.ndim == 4 and p.ndim == 2 
+  assert T.shape[:2] == p.shape # tuple comparison doesn't require all()
+  # make temporary array (first and last plev are just zero: boundary conditions)
+  tmpshape = list(T.shape)
+  tmpshape[1] += 2 # add two levels (integral boundaries)
+  tmpdata = np.zeros(tmpshape, dtype=dv_float)
+  # make extended plev axis
+  assert np.all( np.diff(p[0,:]) < 0 ), 'The pressure axis has to decrease monotonically'    
+  pax = np.zeros((tmpshape[1],), dtype=dv_float)
+  pax[1:-1] = p[0,:]; pax[0] = 1.e5; pax[-1] = 0. # pad with zero-boundaries
+  pax = -1 * pax # invert, since we are integrating in the wrong direction
+  # compute pressure/mass-weighted flux at each (non-boundary) level       
+  p = p.reshape(p.shape+(1,1)) # extend singleton dimensions
+  # fill missing values/NaN with zeros to allow integration
+  var = np.nan_to_num(var); T = np.nan_to_num(T)
+  # compute mass-weighted flux
+  tmpdata[:,1:-1,:] = evaluate('RMg * var * T / p') # first and last are zero
+  # integrate using Simpson rule
+  outdata = simps(tmpdata, pax, axis=1, even='first') # even intervals anyway...
+  # N.B.: outer dimensions (i.e. the first and second) are broadcast automatically, which is what we want here 
+  return outdata
+
+
 # class for errors with derived variables
 class DerivedVariableError(Exception):
   ''' Exceptions related to derived variables. '''
   pass
+
+
+# N.B.: this could have been implemented much more efficiently, without the need for separate classes,
+#       using a numexpr string and the variable dicts to define the computation 
 
 # derived variable base class
 class DerivedVariable(object):
@@ -610,6 +640,27 @@ class WaterDensity(DerivedVariable):
     return outdata
 
 
+class ColumnWater(DerivedVariable):
+  ''' DerivedVariable child for computing the column-integrated atmospheric water vapor content. '''
+  
+  def __init__(self):
+    ''' Initialize with fixed values; constructor takes no arguments. '''
+    super(WaterTransport_U,self).__init__(name='ColumnWater', # name of the variable
+                              units='kg/m', # flux 
+                              prerequisites=['T_PL','P_PL','WaterDensity'], # west-east direction: U
+                              axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
+                              dtype=dv_float, atts=None, linear=False) 
+    self.RMg = np.asarray( 8.3144621 / ( 0.01802 *  9.80616 ), dtype=dv_float) # R / (M g); from AMS Glossary (g at 45 lat)
+    # N.B.: it is necessary to enforce the type of scalars, otherwise numexpr casts everything as doubles
+    
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
+    ''' Compute West-East atmospheric water vapor transport. '''
+    super(ColumnWater,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
+    outdata = pressureIntegral(var=indata['WaterDensity'], T=indata['T_PL'], 
+                               p=indata['P_PL'], RMg=self.RMg)
+    return outdata
+
+
 class WaterFlux_U(DerivedVariable):
   ''' DerivedVariable child for computing the atmospheric transport of water vapor (West-East). '''
   
@@ -646,26 +697,8 @@ class WaterTransport_U(DerivedVariable):
   def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Compute West-East atmospheric water vapor transport. '''
     super(WaterTransport_U,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
-    # allocate extended array with boundary points
-    # make sure dimensions fit (pressure is the second dimension)
-    assert indata['T_PL'].ndim == 4 and indata['P_PL'].ndim == 2 
-    assert indata['T_PL'].shape[:2] == indata['P_PL'].shape # tuple comparison doesn't require all()
-    # make temporary array (first and last plev are just zero: boundary conditions)
-    tmpshape = list(indata['T_PL'].shape)
-    tmpshape[1] += 2 # add two levels (integral boundaries)
-    tmpdata = np.zeros(tmpshape, dtype=dv_float)
-    # make extended plev axis
-    assert np.all( np.diff(indata['P_PL'][0,:]) < 0 ), 'The pressure axis has to decrease monotonically'    
-    pax = np.zeros((tmpshape[1],), dtype=dv_float)
-    pax[1:-1] = indata['P_PL'][0,:]; pax[0] = 1.e5; pax[-1] = 0.    
-    pax = -1 * pax # invert, since we are integrating in the wrong direction
-    # compute pressure/mass-weighted flux at each (non-boundary) level       
-    p = indata['P_PL'].reshape(indata['P_PL'].shape+(1,1)) # extend singleton dimensions
-    RMg = self.RMg; wflx = indata['WaterFlux_U']; T = indata['T_PL'] # for use in expression 
-    tmpdata[:,1:-1,:] = evaluate('RMg * wflx * T / p') # first and last are zero
-    # integrate using Simpson rule
-    outdata = simps(tmpdata, pax, axis=1, even='first') # even intervals anyway...
-    # N.B.: outer dimensions (i.e. the first and second) are broadcast automatically, which is what we want here 
+    outdata = pressureIntegral(var=indata['WaterFlux_U'], T=indata['T_PL'], 
+                               p=indata['P_PL'], RMg=self.RMg)
     return outdata
 
 
@@ -703,28 +736,10 @@ class WaterTransport_V(DerivedVariable):
     # N.B.: it is necessary to enforce the type of scalars, otherwise numexpr casts everything as doubles
     
   def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
-    ''' Compute West-East atmospheric water vapor transport. '''
+    ''' Compute South-North atmospheric water vapor transport. '''
     super(WaterTransport_V,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
-    # allocate extended array with boundary points
-    # make sure dimensions fit (pressure is the second dimension)
-    assert indata['T_PL'].ndim == 4 and indata['P_PL'].ndim == 2 
-    assert indata['T_PL'].shape[:2] == indata['P_PL'].shape # tuple comparison doesn't require all()
-    # make temporary array (first and last plev are just zero: boundary conditions)
-    tmpshape = list(indata['T_PL'].shape)
-    tmpshape[1] += 2 # add two levels (integral boundaries)
-    tmpdata = np.zeros(tmpshape, dtype=dv_float)
-    # make extended plev axis
-    assert np.all( np.diff(indata['P_PL'][0,:]) < 0 ), 'The pressure axis has to decrease monotonically'    
-    pax = np.zeros((tmpshape[1],), dtype=dv_float)
-    pax[1:-1] = indata['P_PL'][0,:]; pax[0] = 1.e5; pax[-1] = 0.    
-    pax = -1 * pax # invert, since we are integrating in the wrong direction
-    # compute pressure/mass-weighted flux at each (non-boundary) level       
-    p = indata['P_PL'].reshape(indata['P_PL'].shape+(1,1)) # extend singleton dimensions
-    RMg = self.RMg; wflx = indata['WaterFlux_V']; T = indata['T_PL'] # for use in expression 
-    tmpdata[:,1:-1,:] = evaluate('RMg * wflx * T / p') # first and last are zero
-    # integrate using Simpson rule
-    outdata = simps(tmpdata, pax, axis=1, even='first') # even intervals anyway...
-    # N.B.: outer dimensions (i.e. the first and second) are broadcast automatically, which is what we want here 
+    outdata = pressureIntegral(var=indata['WaterFlux_V'], T=indata['T_PL'], 
+                               p=indata['P_PL'], RMg=self.RMg)
     return outdata
 
 
