@@ -119,7 +119,7 @@ def pressureIntegral(var, T, p, RMg):
   p = p.reshape(p.shape+(1,1)) # extend singleton dimensions
   # fill missing values/NaN with zeros to allow integration
   var = np.nan_to_num(var); T = np.nan_to_num(T)
-  # compute mass-weighted flux
+  # compute mass-weighted variable
   tmpdata[:,1:-1,:] = evaluate('RMg * var * T / p') # first and last are zero
   # integrate using Simpson rule
   outdata = simps(tmpdata, pax, axis=1, even='first') # even intervals anyway...
@@ -626,7 +626,7 @@ class WaterDensity(DerivedVariable):
                               prerequisites=['TD_PL','T_PL'], # it's the sum of these two
                               axes=('time','num_press_levels_stag','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype=dv_float, atts=None, linear=False)
-    self.MR = np.asarray( 0.01802 / 8.3144621, dtype=dv_float) # M / R; from AMS Glossary
+    self.MR = np.asarray( 0.01802 / 8.3144621, dtype=dv_float) # Mh2o / R; from AMS Glossary
     # N.B.: it is necessary to enforce the type of scalars, otherwise numexpr casts everything as doubles
     
   def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
@@ -645,12 +645,12 @@ class ColumnWater(DerivedVariable):
   
   def __init__(self):
     ''' Initialize with fixed values; constructor takes no arguments. '''
-    super(WaterTransport_U,self).__init__(name='ColumnWater', # name of the variable
-                              units='kg/m', # flux 
+    super(ColumnWater,self).__init__(name='ColumnWater', # name of the variable
+                              units='kg/m^2', # flux 
                               prerequisites=['T_PL','P_PL','WaterDensity'], # west-east direction: U
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype=dv_float, atts=None, linear=False) 
-    self.RMg = np.asarray( 8.3144621 / ( 0.01802 *  9.80616 ), dtype=dv_float) # R / (M g); from AMS Glossary (g at 45 lat)
+    self.RMg = np.asarray( 8.3144621 / ( 0.01802 *  9.80616 ), dtype=dv_float) # R / (Mh2o g); from AMS Glossary (g at 45 lat)
     # N.B.: it is necessary to enforce the type of scalars, otherwise numexpr casts everything as doubles
     
   def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
@@ -681,6 +681,26 @@ class WaterFlux_U(DerivedVariable):
     return outdata
 
 
+class WaterFlux_V(DerivedVariable):
+  ''' DerivedVariable child for computing the atmospheric transport of water vapor (South-North). '''
+  
+  def __init__(self):
+    ''' Initialize with fixed values; constructor takes no arguments. '''
+    super(WaterFlux_V,self).__init__(name='WaterFlux_V', # name of the variable
+                              units='kg/m^2/s', # flux 
+                              prerequisites=['V_PL','WaterDensity'], # south-north direction: V
+                              axes=('time','num_press_levels_stag','south_north','west_east'), # dimensions of NetCDF variable 
+                              dtype=dv_float, atts=None, linear=False) 
+    
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
+    ''' Compute South-North atmospheric water vapor transport. '''
+    super(WaterFlux_V,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
+    # compute covariance (projection, scalar product, etc.)    
+    outdata = indata['V_PL']*indata['WaterDensity']
+    # N.B.: outer dimensions (i.e. the first and second) are broadcast automatically, which is what we want here 
+    return outdata
+
+
 class WaterTransport_U(DerivedVariable):
   ''' DerivedVariable child for computing the column-integrated atmospheric transport of water vapor (West-East). '''
   
@@ -699,26 +719,6 @@ class WaterTransport_U(DerivedVariable):
     super(WaterTransport_U,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
     outdata = pressureIntegral(var=indata['WaterFlux_U'], T=indata['T_PL'], 
                                p=indata['P_PL'], RMg=self.RMg)
-    return outdata
-
-
-class WaterFlux_V(DerivedVariable):
-  ''' DerivedVariable child for computing the atmospheric transport of water vapor (South-North). '''
-  
-  def __init__(self):
-    ''' Initialize with fixed values; constructor takes no arguments. '''
-    super(WaterFlux_V,self).__init__(name='WaterFlux_V', # name of the variable
-                              units='kg/m^2/s', # flux 
-                              prerequisites=['V_PL','WaterDensity'], # south-north direction: V
-                              axes=('time','num_press_levels_stag','south_north','west_east'), # dimensions of NetCDF variable 
-                              dtype=dv_float, atts=None, linear=False) 
-    
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
-    ''' Compute South-North atmospheric water vapor transport. '''
-    super(WaterFlux_V,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
-    # compute covariance (projection, scalar product, etc.)    
-    outdata = indata['V_PL']*indata['WaterDensity']
-    # N.B.: outer dimensions (i.e. the first and second) are broadcast automatically, which is what we want here 
     return outdata
 
 
@@ -741,6 +741,120 @@ class WaterTransport_V(DerivedVariable):
     outdata = pressureIntegral(var=indata['WaterFlux_V'], T=indata['T_PL'], 
                                p=indata['P_PL'], RMg=self.RMg)
     return outdata
+
+
+class ColumnHeat(DerivedVariable):
+  ''' DerivedVariable child for computing the column-integrated atmospheric water vapor content. '''
+  
+  def __init__(self):
+    ''' Initialize with fixed values; constructor takes no arguments. '''
+    super(ColumnHeat,self).__init__(name='ColumnHeat', # name of the variable
+                              units='J/m', # flux 
+                              prerequisites=['T_PL','P_PL'], # west-east direction: U
+                              axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
+                              dtype=dv_float, atts=None, linear=False) 
+    self.RMg = np.asarray( 8.3144621 / ( 0.01802 *  9.80616 ), dtype=dv_float) # R / (M g); from AMS Glossary (g at 45 lat)
+    self.cp = np.asarray( 1005.7, dtype=dv_float) # J/(kg K), specific heat of dry air per mass (AMS Glossary)
+    # N.B.: it is necessary to enforce the type of scalars, otherwise numexpr casts everything as doubles
+
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
+    ''' Compute West-East atmospheric water vapor transport. '''
+    super(ColumnHeat,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
+    outdata = pressureIntegral(var=indata['T_PL'], T=indata['T_PL'], 
+                               p=indata['P_PL'], RMg=self.RMg)
+    outdata *= self.cp # since integration is linear
+    return outdata
+
+
+class HeatFlux_U(DerivedVariable):
+  ''' DerivedVariable child for computing the atmospheric (sensible) heat transport (West-East). '''
+  
+  def __init__(self):
+    ''' Initialize with fixed values; constructor takes no arguments. '''
+    super(HeatFlux_U,self).__init__(name='HeatFlux_U', # name of the variable
+                              units='J/m^2/s', # flux 
+                              prerequisites=['U_PL','P_PL'], # west-east direction: U
+                              axes=('time','num_press_levels_stag','south_north','west_east'), # dimensions of NetCDF variable 
+                              dtype=dv_float, atts=None, linear=False) 
+    self.cpMR = np.asarray( 1005.7 * 0.0289644 / 8.3144621, dtype=dv_float) # cp * Mair / R (AMS Glossary)
+    
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
+    ''' Compute West-East atmospheric water vapor transport. '''
+    super(HeatFlux_U,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
+    # compute covariance (projection, scalar product, etc.)    
+    # N.B.: u * T*cp * rho; rho = p / (R/M * T) => u * p * (cp * M / R)
+    p=indata['P_PL']; u = indata['U_PL']; cpMR = self.cpMR
+    p = p.reshape(p.shape+(1,1)) # extend singleton dimensions
+    outdata = evaluate('u * p * cpMR')
+    # N.B.: outer dimensions (i.e. the first and second) are broadcast automatically, which is what we want here 
+    return outdata
+
+class HeatFlux_V(DerivedVariable):
+  ''' DerivedVariable child for computing the atmospheric (sensible) heat transport (South-North). '''
+  
+  def __init__(self):
+    ''' Initialize with fixed values; constructor takes no arguments. '''
+    super(HeatFlux_V,self).__init__(name='HeatFlux_V', # name of the variable
+                              units='J/m^2/s', # flux 
+                              prerequisites=['V_PL','P_PL'], # west-east direction: U
+                              axes=('time','num_press_levels_stag','south_north','west_east'), # dimensions of NetCDF variable 
+                              dtype=dv_float, atts=None, linear=False) 
+    self.cpMR = np.asarray( 1005.7 * 0.0289644 / 8.3144621, dtype=dv_float) # cp * Mair / R (AMS Glossary)
+    
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
+    ''' Compute West-East atmospheric water vapor transport. '''
+    super(HeatFlux_V,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
+    # compute covariance (projection, scalar product, etc.)    
+    # N.B.: u * T*cp * rho; rho = p / (R/M * T) => u * p * (cp * M / R)
+    p=indata['P_PL']; v = indata['V_PL']; cpMR = self.cpMR
+    p = p.reshape(p.shape+(1,1)) # extend singleton dimensions
+    outdata = evaluate('v * p * cpMR')
+    # N.B.: outer dimensions (i.e. the first and second) are broadcast automatically, which is what we want here 
+    return outdata
+
+
+class HeatTransport_U(DerivedVariable):
+  ''' DerivedVariable child for computing the column-integrated atmospheric heat transport (West-East). '''
+  
+  def __init__(self):
+    ''' Initialize with fixed values; constructor takes no arguments. '''
+    super(HeatTransport_U,self).__init__(name='HeatTransport_U', # name of the variable
+                              units='J/m/s', # flux 
+                              prerequisites=['T_PL','P_PL','HeatFlux_U'], # west-east direction: U
+                              axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
+                              dtype=dv_float, atts=None, linear=False) 
+    self.RMg = np.asarray( 8.3144621 / ( 0.01802 *  9.80616 ), dtype=dv_float) # R / (M g); from AMS Glossary (g at 45 lat)
+    # N.B.: it is necessary to enforce the type of scalars, otherwise numexpr casts everything as doubles
+    
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
+    ''' Compute West-East atmospheric water vapor transport. '''
+    super(HeatTransport_U,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
+    outdata = pressureIntegral(var=indata['HeatFlux_U'], T=indata['T_PL'], 
+                               p=indata['P_PL'], RMg=self.RMg)
+    return outdata
+
+
+class HeatTransport_V(DerivedVariable):
+  ''' DerivedVariable child for computing the column-integrated atmospheric heat transport (South-North). '''
+  
+  def __init__(self):
+    ''' Initialize with fixed values; constructor takes no arguments. '''
+    super(HeatTransport_V,self).__init__(name='HeatTransport_V', # name of the variable
+                              units='J/m/s', # flux 
+                              prerequisites=['T_PL','P_PL','HeatFlux_V'], # west-east direction: U
+                              axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
+                              dtype=dv_float, atts=None, linear=False) 
+    self.RMg = np.asarray( 8.3144621 / ( 0.01802 *  9.80616 ), dtype=dv_float) # R / (M g); from AMS Glossary (g at 45 lat)
+    # N.B.: it is necessary to enforce the type of scalars, otherwise numexpr casts everything as doubles
+    
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
+    ''' Compute West-East atmospheric water vapor transport. '''
+    super(HeatTransport_V,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
+    outdata = pressureIntegral(var=indata['HeatFlux_V'], T=indata['T_PL'], 
+                               p=indata['P_PL'], RMg=self.RMg)
+    return outdata
+
+
 
 
 ## extreme values

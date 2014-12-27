@@ -190,8 +190,9 @@ derived_variables['xtrm']   = [dv.RainMean(), dv.WetDaysMean(), dv.FrostDays()]
 derived_variables['hydro']  = [dv.Rain(), dv.LiquidPrecip(), dv.SolidPrecip(), dv.WetDays(),                            
                                dv.NetPrecip_Hydro(), dv.NetWaterFlux()]
 derived_variables['lsm']    = [dv.RunOff()]
-derived_variables['plev3d'] = [dv.OrographicIndexPlev(), dv.WaterDensity(), dv.WaterFlux_U(),  
-                               dv.WaterFlux_V(), dv.WaterTransport_U(), dv.WaterTransport_V(),]
+derived_variables['plev3d'] = [dv.OrographicIndexPlev(), dv.WaterDensity(), dv.ColumnWater(), dv.ColumnHeat(),
+                               dv.WaterFlux_U(), dv.WaterFlux_V(), dv.WaterTransport_U(), dv.WaterTransport_V(),
+                               dv.HeatFlux_U(), dv.HeatFlux_V(), dv.HeatTransport_U(),dv.HeatTransport_V()]
 # N.B.: derived variables need to be listed in order of computation
 consecutive_variables = {filetype:None for filetype in filetypes} # consecutive variable lists by file type
 # Consecutive exceedance variables
