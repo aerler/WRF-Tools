@@ -93,6 +93,7 @@ export RUNGEO=${RUNGEO:-"mpirun -n 4 ${BINDIR}/geogrid.exe"}
 export JOB_NAME=${JOB_NAME:-'cycling'} # defaults, if these variables are not set
 export JOB_ID=${JOB_ID:-0} # this is necessary for the first WPS job, launched by startCycle
 export SUBMITWPS=${SUBMITWPS:-'ssh rocks-ib.ib "cd \"${INIDIR}\"; export NEXTSTEP=${NEXTSTEP}; nohup ./${WPSSCRIPT} >& ${JOB_NAME%_WRF}_WPS.${JOB_ID}.log &"'} # evaluated by launchPreP; use for production runs on compute nodes
+export WAITFORWPS=${WAITFORWPS:-'NO'} # stay on compute node until WPS for next step finished, in order to submit next WRF job
 #export SUBMITWPS=${SUBMITWPS:-'cd \"${INIDIR}\"; export NEXTSTEP=${NEXTSTEP}; ./${WPSSCRIPT} >& ${JOB_NAME%_WRF}_WPS.${JOB_ID}.log'} # evaluated by launchPreP; use for production runs on compute nodes
 # N.B.: use '&' to spin off, but only on compute nodes, otherwise the system overloads
 

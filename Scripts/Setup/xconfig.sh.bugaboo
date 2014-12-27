@@ -27,6 +27,7 @@ RES='7km'
 DOM="wc2-${RES}"
 # WRF
 TIME_CONTROL="cycling,${IO}" # default I/O: only output stream #0
+TIME_CONTROL_MOD=' io_form_auxhist10 = 2 ! switch on hourly snow diagnostics'
 DIAGS='hitop' # needs output stream #23
 PHYSICS='clim-new-v36' # this namelist has to be compatible with the WRF build used!
 PHYSICS_MOD=' cu_physics = 5, 0, 0, ! no convection scheme in inner domain : cu_rad_feedback = .true., .false., .false., : cu_diag = 0, : cugd_avedx = 2 ! increase subsidence spreading in outer domain ' # fractional_seaice = 0, ! does not work with ERA-I? 

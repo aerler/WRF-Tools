@@ -4,13 +4,14 @@
 
 # pre-process arguments using getopt
 if [ -z $( getopt -T ) ]; then
-  TMP=$( getopt -o frsenwtqh --long force,reset,simple,step:,nowps,wps,test,quiet,help -n "$0" -- "$@" ) # pre-process arguments
+  TMP=$( getopt -o frdse:nwtqh --long force,reset,no-clean,simple,step:,nowps,wps,test,quiet,help -n "$0" -- "$@" ) # pre-process arguments
   [ $? != 0 ] && exit 1 # getopt already prints an error message
   eval set -- "$TMP" # reset positional parameters (arguments) to $TMP list
 fi # check if GNU getopt ("enhanced")
 # default parameters
 FORCE=0 # force restart, even if no paramter set was found
 RESET=0 # regenerate fresh namelist
+CLEAN=1 # clean folder before restart
 SIMPLE=0 # simple restart without increasing stability
 TEST=0 # do not actually restart, just print parameters
 QUIET=0 # suppress output 
@@ -20,6 +21,7 @@ while true; do
   case "$1" in
     -f | --force    )   FORCE=1;  shift;;
     -r | --reset    )   RESET=1; SIMPLE=1; shift;;
+    -d | --no-clean )   CLEAN=0; shift;;
     -s | --simple   )   SIMPLE=1; shift;;
     -e | --step     )   CURRENTSTEP="$2"; shift 2;;
     -n | --nowps    )   NOWPS='NOWPS'; shift;;
@@ -30,6 +32,7 @@ while true; do
                             \n\
     -f | --force        ignore warnings and force restart \n\
     -r | --reset        reset all namelist parameters \n\
+    -d | --no-clean     don't clean run folder before restart \n\
     -s | --simple       do not change stability parameters \n\
     -e | --step         restart at this step \n\
     -n | --nowps        don't run WPS for next step \n\
@@ -148,8 +151,9 @@ fi # no simple restart
 
 # put in restart links
 for DOM in {1..4}; do
-  if [ -f ../wrfout/wrfrst_d0${DOM}_${CURRENTSTEP}* ] # check if restart file for DOM exists; don't use [[ ]] here!
-    then ln -sf ../wrfout/wrfrst_d0${DOM}_${CURRENTSTEP}*; fi # create link
+  ls ../wrfout/wrfrst_d0${DOM}_${CURRENTSTEP}* &> /dev/null
+  if [ $? == 0 ] # check if restart file for DOM exists
+  then ln -sf $( ls ../wrfout/wrfrst_d0${DOM}_${CURRENTSTEP}* | head -n 1 ); fi # create link to first
 done # loop over domains
 
 # change back into initial directory (experiment root)
@@ -170,7 +174,7 @@ if [ $QUIET == 0 ]; then
     else echo "Restarting Experiment ${EXP} on ${MAC}: NEXTSTEP=${CURRENTSTEP}; NOWPS=${NOWPS}; TIME_STEP=${NEW_DELT}; EPSSM=${NEW_EPSS}"
 fi; fi # reporting level
 # launch restart
-rm -rf ${CURRENTSTEP}/rsl.* ${CURRENTSTEP}/wrf*.nc
+[ $CLEAN == 1 ] && rm -rf ${CURRENTSTEP}/rsl.* ${CURRENTSTEP}/wrf*.nc
 ## restart job (using the machine setup)
 export NEXTSTEP="${CURRENTSTEP}"
 export NOWPS

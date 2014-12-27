@@ -5,7 +5,7 @@
 #PBS -l nodes=1:m128g:ppn=16
 # batch queue: nodes=1:m32g:ppn=8
 # largemem queue: nodes=1:m128g:ppn=16
-#PBS -l walltime=1:00:00
+#PBS -l walltime=2:00:00
 # merge standard error and output stream
 #PBS -j oe
 #PBS -o $PBS_JOBNAME.$PBS_JOBID.out

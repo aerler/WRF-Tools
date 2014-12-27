@@ -51,7 +51,7 @@ WPSCFG=${WPSCFG:-'configure.gpc-mpi.o3xssse3grb2nc4'} # configure script to be u
 WPSHG=${WPSHG:-1} # 0=use source from tarball, 1=clone HG repository (see below)
 WPSOUTDIR="${WORKDIR}/WPS" # folder for WPS build output
 WPSBINDIR="${WPSOUTDIR}/${BUILD}" # destination folder for executables (not tarred)
-WPSOUTTAR="${WPSOUTDIR}/wpsbld.tgz" # tarball of build directory
+WPSOUTTAR="${WPSOUTDIR}/${BUILD}/wpsbld.tgz" # tarball of build directory
 WPSINTAR="${WPSINTAR:-${WPSOUTTAR}}" # for optional source input via tarball
 # N.B.: Note that the tarball has to extract into the folder WPS/ (or $WRFOUTDIR needs to be set accordingly)
 
@@ -90,9 +90,9 @@ if [[ ${BLDWRF} == 1 ]]
     # get WRF source code
     if [[ $WRFHG == 0 ]]
       then # untar tarball
-	tar xzf "${WRFINTAR}"
+      	tar xzf "${WRFINTAR}"
       else # checkout repository
-	hg clone --pull "${WRFSRC}" "${WRFDIR}" # --pull makes an actual copy, no links
+      	hg clone --pull "${WRFSRC}" "${WRFDIR}" # --pull makes an actual copy, no links
     fi # if $WRFHG
     cd "${WRFDIR}"
 
@@ -102,9 +102,9 @@ if [[ ${BLDWRF} == 1 ]]
     elif [[ -e "${WRFDIR}/config/${WRFCFG}" ]]
       then cp "${WRFDIR}/config/${WRFCFG}" "${WRFDIR}/configure.wrf"
     else
-	echo "ERROR: configure script ${WRFCFG} not found!"
-	rm -rf "${RAMDISK}" # clear RAM disk before exiting
-	exit 1 # can't build without configure script
+    	echo "ERROR: configure script ${WRFCFG} not found!"
+    	rm -rf "${RAMDISK}" # clear RAM disk before exiting
+    	exit 1 # can't build without configure script
     fi
 
     ## build WRF model
@@ -119,28 +119,27 @@ if [[ ${BLDWRF} == 1 ]]
     echo
     if [[ -e "${WRFDIR}/main/wrf.exe" ]]
       then
-	WRFEXIT=0
-	echo "   ***   WRF Build Successful!!!   ***   "
+      	WRFEXIT=0
+      	echo "   ***   WRF Build Successful!!!   ***   "
     else
-	WRFEXIT=1
-	echo "   ===   WRF Build Failed!!!   ===   "
+      	WRFEXIT=1
+      	echo "   ===   WRF Build Failed!!!   ===   "
     fi # if wrf.exe exists
     echo
     ls -l "${WRFDIR}/main/"
     echo
 
     # move WRF binaries / clean up
-    mkdir -p "${WRFOUTDIR}"
-    cp build.log "${WRFOUTDIR}"
+   	mkdir -p "${WRFBINDIR}"
+    cp build.log "${WRFBINDIR}"
     # if successful, copy binaries
     if [[ $WRFEXIT == 0 ]]
       then
-	mkdir -p "${WRFBINDIR}"
-	# copy binaries to hard disk
-	cp "${WRFDIR}/configure.wrf" "${WRFBINDIR}"
-	cp "${WRFDIR}"/main/wrf.exe "${WRFBINDIR}"
-	cp -f "${WRFDIR}"/main/real.exe "${WRFBINDIR}"
-	cp -f "${WRFDIR}"/main/ideal.exe "${WRFBINDIR}"
+      	# copy binaries to hard disk
+      	cp "${WRFDIR}/configure.wrf" "${WRFBINDIR}"
+      	cp "${WRFDIR}"/main/wrf.exe "${WRFBINDIR}"
+      	cp -f "${WRFDIR}"/main/real.exe "${WRFBINDIR}"
+      	cp -f "${WRFDIR}"/main/ideal.exe "${WRFBINDIR}"
     fi # if OK
 
     # tar and zip directory
@@ -156,15 +155,15 @@ elif [[ ${BLDWPS} == 1 ]]
     echo
     if [[ -e "${WRFINTAR}" ]]
       then
-	# extract tarball of previous WRF build
-	echo '... extracting tarball of previous WRF build: '
-	echo "${WRFINTAR}"
-	tar xzf "${WRFINTAR}"
+      	# extract tarball of previous WRF build
+      	echo '... extracting tarball of previous WRF build: '
+      	echo "${WRFINTAR}"
+      	tar xzf "${WRFINTAR}"
       else
-	echo 'WARNING: no previous WRF build found!'
-	echo "${WRFINTAR} does not exists"
-	rm -rf "${RAMDISK}" # clear RAM disk before exiting
-	exit 1
+      	echo 'WARNING: no previous WRF build found!'
+      	echo "${WRFINTAR} does not exists"
+      	rm -rf "${RAMDISK}" # clear RAM disk before exiting
+      	exit 1
     fi # if WRFINTAR exists
     echo
     
@@ -177,9 +176,9 @@ if [[ ${BLDWPS} == 1 ]]
     # get WPS source code
     if [[ $WPSHG == 0 ]]
       then # untar tarball
-	tar xzf "${WPSINTAR}"
+      	tar xzf "${WPSINTAR}"
       else # checkout repository
-	hg clone --pull "${WPSSRC}" "${WPSDIR}" # --pull makes an actual copy, no links
+      	hg clone --pull "${WPSSRC}" "${WPSDIR}" # --pull makes an actual copy, no links
     fi # if $WPSHG
     cd "${WPSDIR}"
 
@@ -189,9 +188,9 @@ if [[ ${BLDWPS} == 1 ]]
     elif [[ -e "${WPSDIR}/config/${WPSCFG}" ]]
       then cp "${WPSDIR}/config/${WPSCFG}" "${WPSDIR}/configure.wps"
     else
-	echo "ERROR: configure script ${WPSCFG} not found!"
-	rm -rf "${RAMDISK}" # clear RAM disk before exiting
-	exit 1 # can't build without configure script
+    	echo "ERROR: configure script ${WPSCFG} not found!"
+    	rm -rf "${RAMDISK}" # clear RAM disk before exiting
+    	exit 1 # can't build without configure script
     fi
 
     ## build WPS
@@ -206,32 +205,31 @@ if [[ ${BLDWPS} == 1 ]]
     echo
     if [[ -e "${WPSDIR}/geogrid.exe" ]] && [[ -e "${WPSDIR}/metgrid.exe" ]] && [[ -e "${WPSDIR}/ungrib.exe" ]]
       then
-	WPSEXIT=0
-	echo "   ***   WPS Build Successful!!!   ***   "
+      	WPSEXIT=0
+      	echo "   ***   WPS Build Successful!!!   ***   "
     elif [[ -e "${WPSDIR}/geogrid.exe" ]] || [[ -e "${WPSDIR}/metgrid.exe" ]] || [[ -e "${WPSDIR}/ungrib.exe" ]]
-	then
-	WPSEXIT=0
-	echo "   ***   WPS Build Partially Successful...   ***   "
+      	then
+      	WPSEXIT=0
+      	echo "   ***   WPS Build Partially Successful...   ***   "
     else
-	WPSEXIT=1
-	echo "   ===   WPS Build Failed!!!   ===   "
+      	WPSEXIT=1
+      	echo "   ===   WPS Build Failed!!!   ===   "
     fi # if any WPS *.exe exists
     echo
     ls -l "${WPSDIR}/"
     echo
 
     # move WPS binaries / clean up
-    mkdir -p "${WPSOUTDIR}"
-    cp build.log "${WPSOUTDIR}"
+    mkdir -p "${WPSBINDIR}"
+    cp build.log "${WPSBINDIR}"
     # if successful, copy binaries
     if [[ ${WPSEXIT} == 0 ]]
       then
-	mkdir -p "${WPSBINDIR}"
-	# copy binaries to hard disk
-	cp "${WPSDIR}/configure.wps" "${WPSBINDIR}"
-	cp -f "${WPSDIR}/geogrid.exe" "${WPSBINDIR}"
-	cp -f "${WPSDIR}/metgrid.exe" "${WPSBINDIR}"
-	cp -f "${WPSDIR}/ungrib.exe" "${WPSBINDIR}"
+      	# copy binaries to hard disk
+      	cp "${WPSDIR}/configure.wps" "${WPSBINDIR}"
+      	cp -f "${WPSDIR}/geogrid.exe" "${WPSBINDIR}"
+      	cp -f "${WPSDIR}/metgrid.exe" "${WPSBINDIR}"
+      	cp -f "${WPSDIR}/ungrib.exe" "${WPSBINDIR}"
     fi # if OK
 
     # tar and zip directory
