@@ -849,8 +849,14 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
             vardata = dedata[dename] / ntime # no accumulated variables here!
           else: vardata = dedata[dename] # just the data...
           # not all variables are normalized (e.g. extrema)
-          mmm = (float(np.nanmean(vardata)),float(np.nanmin(vardata)),float(np.nanmax(vardata)),)
-          logger.debug('{0:s} {1:s}, {2:f}, {3:f}, {4:f}'.format(pidstr,dename,*mmm))
+          if ldebug:
+            if len(np.__version__) != 5: 
+              raise NotImplementedError, "Numpy version string too long or short ('{:s}'); require np.__version__ >= '1.8.0'".format(np.__version__)
+            elif len(np.__version__) == 5 and np.__version__ >= '1.8.0':
+              mmm = (float(np.nanmean(vardata)),float(np.nanmin(vardata)),float(np.nanmax(vardata)),)
+            else:
+              mmm = (float(np.mean(vardata)),float(np.min(vardata)),float(np.max(vardata)),)
+            logger.debug('{0:s} {1:s}, {2:f}, {3:f}, {4:f}'.format(pidstr,dename,*mmm))
           data[dename] = vardata # add to data array, so that it can be used to compute linear variables
           # save variable
           ncvar = mean.variables[dename] # this time the destination variable
