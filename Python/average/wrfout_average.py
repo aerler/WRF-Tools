@@ -186,7 +186,7 @@ bktpfx = 'I_' # prefix for bucket variables; these are processed together with t
 derived_variables = {filetype:[] for filetype in filetypes} # derived variable lists by file type
 derived_variables['srfc']   = [dv.Rain(), dv.LiquidPrecipSR(), dv.SolidPrecipSR(), dv.WetDays(), 
                                dv.NetPrecip_Srfc(), dv.WaterVapor(), dv.OrographicIndex(), dv.CovOIP()]
-derived_variables['xtrm']   = [dv.RainMean(), dv.WetDaysMean(), dv.FrostDays()]
+derived_variables['xtrm']   = [dv.RainMean(), dv.WetDaysMean(), dv.FrostDays(), dv.TimeOfConvection()]
 derived_variables['hydro']  = [dv.Rain(), dv.LiquidPrecip(), dv.SolidPrecip(), dv.WetDays(),                            
                                dv.NetPrecip_Hydro(), dv.NetWaterFlux()]
 derived_variables['lsm']    = [dv.RunOff()]
@@ -670,6 +670,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
   
         if not lskip:
           ## compute monthly averages
+          # loop over variables
           for varname in varlist:
             logger.debug('{0:s} {1:s}'.format(pidstr,varname))
             var = wrfout.variables[varname]
@@ -718,7 +719,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
                 slices[tax] = slice(wrfstartidx,wrfendidx) # relevant time interval
                 tmp = var.__getitem__(slices) # get array
                 if missing_value is not None:
-                  # N.B.: missing value handling is really only necessary when missing values time-dependent
+                  # N.B.: missing value handling is really only necessary when missing values are time-dependent
                   tmp = np.where(tmp == missing_value, np.NaN, tmp) # set missing values to NaN
                   #tmp = ma.masked_equal(tmp, missing_value, copy=False) # mask missing values
                 data[varname] = data[varname] + tmp.sum(axis=tax) # add to sum
@@ -749,6 +750,8 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
             for pqname,pqvar in pqdata.iteritems():
               if pqname in acclist: pqvar /= delta # normalize
             # loop over derived variables
+            # special treatment for certain string variables
+            if 'Times' in pqset: pqdata['Times'] = currenttimestamps[:wrfendidx-wrfstartidx] # need same length as actual time dimension 
             logger.debug('\n{0:s} Available prerequisites: {1:s}'.format(pidstr, str(pqdata.keys())))
             for dename,devar in derived_vars.iteritems():
               if not devar.linear: # only non-linear ones here, linear one at the end
@@ -822,7 +825,8 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
       
       if not lskip:
         # extend time axis
-        mean.variables[time][meanidx] = -1 # mark timestep in progress 
+        mean.variables[time][meanidx] = -1 # mark timestep in progress
+        ncvar = None; vardata = None # dummies, to prevent crash later on, if varlist is empty 
         # loop over variable names
         for varname in varlist:
           vardata = data[varname]

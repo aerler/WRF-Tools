@@ -146,13 +146,14 @@ class DerivedVariable(object):
   '''
 
   def __init__(self, name=None, units=None, prerequisites=None, constants=None, axes=None, 
-               dtype=None, atts=None, linear=False, normalize=True):
+               dtype=None, atts=None, linear=False, ignoreNaN=False, normalize=True):
     ''' Create and instance of the class, to be imported by wrfout_average. '''
     # set general attributes
     self.prerequisites = prerequisites # a list of variables that this variable depends upon 
     self.constants = constants # similar list of constant fields necessary for computation
     self.linear = linear # only linear computation are supported, i.e. they can be performed after averaging (default=False)
     self.normalize = normalize # whether or not to divide by number or records after aggregation (default=True)
+    self.ignoreNaN = ignoreNaN # use NaN-safe aggregation or not (i.e. ignore NaN's in sums etc.)
     self.checked = False # indicates whether prerequisites were checked
     self.tmpdata = None # handle for temporary storage
     self.carryover = False # carry over temporary storage to next month
@@ -205,7 +206,7 @@ class DerivedVariable(object):
     ncvar = add_var(target, name=self.name, dims=self.axes, data=None, atts=self.atts, dtype=self.dtype )
     return ncvar
     
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
     ''' Compute values for new variable from existing stock; child classes have to overload this method. '''
     # N.B.: this method is called directly for linear and through aggregateValues() for non-linear variables
     if not isinstance(indata,dict): raise TypeError
@@ -221,7 +222,7 @@ class DerivedVariable(object):
         raise ValueError, 'The variable \'{:s}\' requires a constants dictionary!'.format(self.name)
     return NotImplemented
   
-  def aggregateValues(self, comdata, aggdata=None, aggax=0, ignoreNaN=False):
+  def aggregateValues(self, comdata, aggdata=None, aggax=0):
     ''' Compute and aggregate values for non-linear over several input periods/files. '''
     # N.B.: linear variables can go through this chain as well, if it is a pre-requisite for non-linear variable
     if not isinstance(comdata,np.ndarray): raise TypeError # newly computed values
@@ -230,12 +231,12 @@ class DerivedVariable(object):
     if comdata is not None and comdata.size > 0:
       if aggdata is None: 
         if self.normalize: raise DerivedVariableError, 'The one-pass aggregation automatically normalizes.'
-        if ignoreNaN: aggdata = np.nanmean(comdata, axis=aggax) # ignore NaN's
+        if self.ignoreNaN: aggdata = np.nanmean(comdata, axis=aggax) # ignore NaN's
         else: aggdata = np.mean(comdata, axis=aggax) # don't use in-place addition, because it destroys masks
       else:
         if not self.normalize: raise DerivedVariableError, 'The default aggregation requires normalization.'
         if not isinstance(aggdata,np.ndarray): raise TypeError # aggregate variable
-        if ignoreNaN: aggdata = aggdata + np.nansum(comdata, axis=aggax) # ignore NaN's
+        if self.ignoreNaN: aggdata = aggdata + np.nansum(comdata, axis=aggax) # ignore NaN's
         else: aggdata = aggdata + np.sum(comdata, axis=aggax) # don't use in-place addition, because it destroys masks
     # return aggregated value for further treatment
     return aggdata 
@@ -280,6 +281,68 @@ class RainMean(DerivedVariable):
     ''' Compute total precipitation as the sum of convective  and non-convective precipitation. '''
     super(RainMean,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks    
     outdata = indata['RAINNCVMEAN'] + indata['RAINCVMEAN'] # compute
+    return outdata
+
+
+class TimeOfConvection(DerivedVariable):
+  ''' DerivedVariable child implementing computation of total daily precipitation for WRF output. '''
+  
+  def __init__(self):
+    ''' Initialize with fixed values; constructor takes no arguments. '''
+    super(TimeOfConvection,self).__init__(name='TimeOfConvection', # name of the variable
+                              units='s', # units in wrfout are actually minutes
+                              prerequisites=['TRAINCVMAX', 'Times'], # it's the sum of these two 
+                              axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
+                              constants=['XLONG'], # local longitudes
+                              dtype=dv_float, atts=None, linear=False, ignoreNaN=True) 
+    self.time_offset = 0 # shift clock 6 hours back, to avoid errors from averaging over midnight
+    
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
+    ''' Compute total precipitation as the sum of convective  and non-convective precipitation. '''
+    super(TimeOfConvection,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks    
+    times = indata['Times']; tcv = indata['TRAINCVMAX']
+    assert len(times) == tcv.shape[0]
+    # longitude, to transform to local solar time
+    if 'XLONG_360' not in const:
+      xlon = const['XLONG']
+      # avoid discontinuity at dateline (too close to domain)
+      xlon = np.where(xlon < 0, 360.-xlon, xlon)
+      const['XLONG_360'] = xlon
+    else: xlon = const['XLONG_360']
+    # save time of simulation start
+    if 'TimeOfSimulationStart' not in const: 
+      # this is the first time step
+      toss = datetime.strptime(times[0], '%Y-%m-%d_%H:%M:%S')
+      # 0-UTC correction, if ToSS is not 0 UTC 
+      if times[0][10:] !='_00:00:00':
+        dtoss = int( (toss - datetime.strptime(times[0][:10], '%Y-%m-%d')).total_seconds() //60 ) # in minutes
+        #raise NotImplementedError, "Simulation has to start at 0 UTC."
+      else: dtoss = 0
+      # apply time offset
+      dtoss += self.time_offset
+      # save values for later use
+      const['TimeOfSimulationStart'] = toss
+      const['DeltaToSS'] = dtoss # ToSS correction for not starting at 0 UTC
+      # also correct XLONG
+    else: 
+      toss = const['TimeOfSimulationStart']
+      dtoss = const['DeltaToSS']
+    # compute time delta to ToSS
+    deltas = np.asarray([(datetime.strptime(time, '%Y-%m-%d_%H:%M:%S') - toss).total_seconds()//60 for time in times], dtype='int')
+    deltas = deltas.reshape((len(deltas),1,1)) # add singleton spatial dimensions for broadcasting
+    if not np.all( np.diff(deltas) == 1440 ):
+      raise NotImplementedError, 'TimeOfConvection only works with daily output intervals!'
+    deltas -= 1440 # go back one day (convection happened during the previous day)
+    # isolate time of day and remove days that didn't rain
+    tod = tcv - deltas
+    tod = np.where(tod <= 0, np.NaN, tod) # NaN if no convection occurred
+    # convert to local solar time
+    tod += 4*xlon # xlon already has a (singleton) time dimension
+    if dtoss > 0: tod += dtoss # apply correction for not starting at 0 UTC & time offset to avoid averaging errors
+    tod %= 1440 # correct "overflows"; also necessary, because of time offset 
+    # return
+    tod *= 60 # convert to seconds
+    outdata = np.asarray(tod, dtype=dv_float) 
     return outdata
 
     
@@ -980,7 +1043,7 @@ class ConsecutiveExtrema(Extrema):
     
   def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Count consecutive above/below threshold days '''
-    super(Extrema,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp, ignoreNaN=ignoreNaN) # perform some type checks
+    super(Extrema,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
     # check that delta does not change!
     if 'COX_DELTA' in tmp: 
       if delta != tmp['COX_DELTA']: 
