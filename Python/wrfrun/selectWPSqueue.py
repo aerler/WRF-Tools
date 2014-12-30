@@ -118,7 +118,7 @@ if __name__ == '__main__':
   slots = [int(0) for x in xrange(nodes)]
   # distribute running jobs to nodes
   if len(running) > len(slots): warnings.warn('WARNING: number of nodes and number of running jobs inconsistent: %s'%len(running))
-  for i in xrange(len(slots)):
+  for i in xrange(min(len(running),len(slots))):
     slots[i] = running[i]
 #  print slots
   # distribute idle jobs to nodes
