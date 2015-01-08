@@ -794,10 +794,10 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
           # check consistency of missing value flag
           assert missing_value is None or missing_value == wrfout.P_LEV_MISSING
           # find first timestep (compare to last of previous file) and (re-)set time step counter
-          wrfstartidx = -1; starttimestamp = lasttimestamp
-          while starttimestamp <= lasttimestamp:
+          wrfstartidx = -1; tmptimestamp = lasttimestamp
+          while tmptimestamp <= lasttimestamp:
             wrfstartidx += 1
-            starttimestamp = str().join(wrfout.variables[wrftimestamp][wrfstartidx,:])
+            tmptimestamp = str().join(wrfout.variables[wrftimestamp][wrfstartidx,:])
           # some checks
           firsttimestamp = str().join(wrfout.variables[wrftimestamp][0,:])
           error_string = "Inconsistent time-stamps between files:\n lasttimestamp='{:s}', firsttimestamp='{:s}', wrfstartidx={:d}"
