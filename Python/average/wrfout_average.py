@@ -538,7 +538,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
 
   # extend time dimension in monthly average
   if (endyear < beginyear) or (endyear == beginyear and endmonth < beginmonth):
-    raise DateError, "End date is before begin date!"
+    raise DateError, "End date is before begin date: {:04d}-{:02d} < {:04d}-{:02d}".format(endyear,endmonth,beginyear,beginmonth)
   times = np.arange(t0,t0+(endyear-beginyear)*12+endmonth-beginmonth+1)
   # handling of time intervals for accumulated variables
   if wrfxtime in wrfout.variables: 
@@ -791,12 +791,22 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
           filecounter += 1 # move to next file
           logger.debug("\n{0:s} Opening input file '{1:s}'.\n".format(pidstr,filelist[filecounter]))
           wrfout = nc.Dataset(infolder+filelist[filecounter], 'r', format='NETCDF4') # ... and open new one
-          firsttimestamp = str().join(wrfout.variables[wrftimestamp][0,:]) # check first timestep (compare to last of previous file)
           # check consistency of missing value flag
           assert missing_value is None or missing_value == wrfout.P_LEV_MISSING
-          # reset output record / time step counter
-          if firsttimestamp == lasttimestamp: wrfstartidx = 1 # skip the initialization step (was already processed in last step)
-          else: wrfstartidx = 0 # no duplicates: first timestep in next file was not present in previous file
+          # find first timestep (compare to last of previous file) and (re-)set time step counter
+          wrfstartidx = -1; starttimestamp = lasttimestamp
+          while starttimestamp <= lasttimestamp:
+            wrfstartidx += 1
+            starttimestamp = str().join(wrfout.variables[wrftimestamp][wrfstartidx,:])
+          # some checks
+          firsttimestamp = str().join(wrfout.variables[wrftimestamp][0,:])
+          error_string = "Inconsistent time-stamps between files:\n lasttimestamp='{:s}', firsttimestamp='{:s}', wrfstartidx={:d}"
+          if firsttimestamp == lasttimestamp: # skip the initialization step (was already processed in last step)
+            if wrfstartidx != 1: raise DateError, error_string.format(lasttimestamp, firsttimestamp, wrfstartidx)
+          if firsttimestamp > lasttimestamp: # no duplicates: first timestep in next file was not present in previous file
+            if wrfstartidx != 0: raise DateError, error_string.format(lasttimestamp, firsttimestamp, wrfstartidx)
+          if firsttimestamp < lasttimestamp: # files overlap: count up to next timestamp in sequence
+            if wrfstartidx < 2: raise DateError, error_string.format(lasttimestamp, firsttimestamp, wrfstartidx)
         else: # month complete
           # clear temporary storage
           if lcarryover:
