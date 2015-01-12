@@ -37,6 +37,11 @@
  sf_lake_physics                     = 0,   0,   0, ! lake model does not seem to work
  use_lakedepth                       = 1 ! lake depth from geogrid
  lakedepth_default                   = 50 ! default depth if data is missin (50m)
+! FLake lake model
+ flake_update                        = 1, ! use FLake online
+ tsk_flake                           = 1, ! use skin temperature in FLake
+ transparent                         = 0, ! optical properties of lake water: 0=opaque, 1=transparent
+ lake_depth_limit                    = 70, ! maximum lake depth
 ! sea ice and SST
  fractional_seaice                   = 1, ! from CESM; XICE in Vtable (does not work with Noah LSM)
  seaice_albedo_opt                   = 1, ! varies with temperature etc.

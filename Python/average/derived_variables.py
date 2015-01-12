@@ -25,7 +25,7 @@ days_per_month_365 = np.array([31,28,31,30,31,30,31,31,30,31,30,31])
 # N.B.: importing from datasets.common causes problems with GDAL, if it is not installed
 dv_float = np.dtype('float32') # final precision used for derived floating point variables 
 dtype_float = dv_float # general floating point precision used for temporary arrays
-
+dryday_threshold = 2.3e-5 # precip treshold for a dry day
 
 def calcTimeDelta(timestamps, year=None, month=None):
   ''' function to calculate time deltas and subtract leap-days, if necessary '''
@@ -532,7 +532,7 @@ class WetDaysMean(DerivedVariable):
     ''' Count the number of events above a threshold (0 for now) '''
     super(WetDaysMean,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
     assert delta == 86400., 'WRF extreme values are suppposed to be daily; encountered delta={:f}'.format(delta)
-    outdata = indata['RAINMEAN'] > 2.3e-7 # definition according to AMS Glossary: precip > 0.02 mm/day 
+    outdata = indata['RAINMEAN'] > dryday_threshold # definition according to AMS Glossary: precip > 0.02 mm/day 
     # N.B.: this is actually the fraction of wet days in a month (i.e. not really days)
     return outdata
 
@@ -559,10 +559,10 @@ class WetDays(DerivedVariable):
       else: tmp['WETDAYS_DELTA'] = delta # save and check next time
     # sampling does not have to be daily may not be daily
     if ignoreNaN:
-      outdata = np.where(indata['RAIN'] > 2.3e-7, 1,0) # comparisons with NaN always yield False
+      outdata = np.where(indata['RAIN'] > dryday_threshold, 1,0) # comparisons with NaN always yield False
       outdata = np.where(np.isnan(indata['RAIN']), np.NaN,outdata)     
     else:
-      outdata = indata['RAIN'] > 2.3e-7 # definition according to AMS Glossary: precip > 0.02 mm/day
+      outdata = indata['RAIN'] > dryday_threshold # definition according to AMS Glossary: precip > 0.02 mm/day
     # N.B.: this is actually the fraction of wet days in a month (i.e. not really days)      
     return outdata
 
