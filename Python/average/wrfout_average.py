@@ -199,15 +199,15 @@ derived_variables['plev3d'] = [dv.OrographicIndexPlev(), dv.Vorticity(), dv.Wate
 consecutive_variables = {filetype:None for filetype in filetypes} # consecutive variable lists by file type
 # Consecutive exceedance variables
 consecutive_variables['srfc']  = {'CFD' : ('T2', 'below', 273.14, 'Consecutive Frost Days'),
-                                  'CWD'  : ('RAIN', 'above', 2.3e-7, 'Consecutive Wet Days'),
-                                  'CDD'  : ('RAIN', 'below', 2.3e-7, 'Consecutive Dry Days'),
+                                  'CWD'  : ('RAIN', 'above', dv.dryday_threshold, 'Consecutive Wet Days'),
+                                  'CDD'  : ('RAIN', 'below', dv.dryday_threshold, 'Consecutive Dry Days'),
                                   'CNWD' : ('NetPrecip', 'above', 0., 'Consecutive Net Wet Days'),
                                   'CNDD' : ('NetPrecip', 'below', 0., 'Consecutive Net Dry Days'),}
 consecutive_variables['xtrm']  = {'CFD' : ('T2MEAN', 'below', 273.14, 'Consecutive Frost Days'),
-                                  'CWD'  : ('RAINMEAN', 'above', 2.3e-7, 'Consecutive Wet Days'),
-                                  'CDD'  : ('RAINMEAN', 'below', 2.3e-7, 'Consecutive Dry Days'),}
-consecutive_variables['hydro'] = {'CWD'  : ('RAIN', 'above', 2.3e-7, 'Consecutive Wet Days'),
-                                  'CDD'  : ('RAIN', 'below', 2.3e-7, 'Consecutive Dry Days'),
+                                  'CWD'  : ('RAINMEAN', 'above', dv.dryday_threshold, 'Consecutive Wet Days'),
+                                  'CDD'  : ('RAINMEAN', 'below', dv.dryday_threshold, 'Consecutive Dry Days'),}
+consecutive_variables['hydro'] = {'CWD' : ('RAIN', 'above', dv.dryday_threshold, 'Consecutive Wet Days'),
+                                  'CDD'  : ('RAIN', 'below', dv.dryday_threshold, 'Consecutive Dry Days'),
                                   'CNWD' : ('NetPrecip', 'above', 0., 'Consecutive Net Wet Days'),
                                   'CNDD' : ('NetPrecip', 'below', 0., 'Consecutive Net Dry Days'),
                                   'CWGD' : ('NetWaterFlux', 'above', 0., 'Consecutive Water Gain Days'),
@@ -469,6 +469,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
     mean.begin_date = begindate
     mean.experiment = exp
     mean.creator = 'Andre R. Erler'
+    mean.dryday_threshold = dv.dryday_threshold # threshold for dry days used in statistical computations
   # sync with file
   mean.sync()     
 
