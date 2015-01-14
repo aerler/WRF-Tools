@@ -1,34 +1,9 @@
 #!/bin/bash
-# MOAB/Torque submission script for Bugaboo (WestGrid)
-
-## queue/PBS settings
-#PBS -l procs=8
-#PBS -l pmem=1000MB
-#PBS -l walltime=01:00:00
-# merge standard error and output stream
-#PBS -j oe
-#PBS -o $PBS_JOBNAME.$PBS_JOBID.out
-# send email if abort (nbae)
-#PBS -M aerler@atmosp.physics.utoronto.ca
-#PBS -m ae
-# job name
-#PBS -N wrf_avg_test
-## submit to queue (NB: on Bugaboo the queue is selected automatically)
-
-# load some modules
-echo
-hostname
-uname
-echo
-date
-echo
-module purge
-module load python/2.7.4
-module list
-echo
+# script to run a WRF averaging in Bash (local)
+# created 13/01/2015 by Andre R. Erler, GPL v3
 
 # general settings
-INIDIR="${PBS_O_WORKDIR}"
+INIDIR="${PWDR}"
 SCRIPTDIR="${INIDIR}/scripts/" # default location of averaging script
 AVGSCRIPT='run_wrf_avg.pbs' # name of this script...
 PYAVG='wrfout_average.py' # name of Python averaging script

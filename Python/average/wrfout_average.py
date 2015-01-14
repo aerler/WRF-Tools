@@ -19,6 +19,7 @@ exactly one output file.
 ## imports
 import numpy as np
 from collections import OrderedDict
+from warnings import warn
 #import numpy.ma as ma
 import os, re, sys, shutil, gc
 import netCDF4 as nc
@@ -639,7 +640,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
       ntime = 0 # accumulated output time steps     
       # time when accumulation starts (in minutes)        
       # N.B.: the first value is saved as negative, so that adding the last value yields a positive interval
-      if lxtime: xtime = -1 * wrfout.variables[wrfxtime][wrfstartidx] # seconds
+      if lxtime: xtime = -1 * wrfout.variables[wrfxtime][wrfstartidx] # minutes
       monthlytimestamps = [] # list of timestamps, also used for time period calculation  
       # clear temporary arrays
       for varname,var in data.iteritems(): # base variables
@@ -778,7 +779,8 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
             if lxtime:
               xtime += wrfout.variables[wrfxtime][wrfendidx] # get final time interval (in minutes)
               xtime *=  60. # convert minutes to seconds   
-              if timeperiod != xtime: raise ValueError, "Time calculation from time stamps and model time are inconsistent: {:f} != {:f}".format(timeperiod,xtime)            
+              if timeperiod != xtime:  
+                warn("Time calculation from time stamps and model time are inconsistent: {:f} != {:f}".format(timeperiod,xtime))            
         # two possible ends: month is done or reached end of file
         # if we reached the end of the file, open a new one and go again
         if not lcomplete:            
@@ -807,7 +809,8 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
           if firsttimestamp > lasttimestamp: # no duplicates: first timestep in next file was not present in previous file
             if wrfstartidx != 0: raise DateError, error_string.format(lasttimestamp, firsttimestamp, wrfstartidx)
           if firsttimestamp < lasttimestamp: # files overlap: count up to next timestamp in sequence
-            if wrfstartidx < 2: raise DateError, error_string.format(lasttimestamp, firsttimestamp, wrfstartidx)
+            #if wrfstartidx == 2: warn(error_string.format(lasttimestamp, firsttimestamp, wrfstartidx))
+            if wrfstartidx == 0: raise DateError, error_string.format(lasttimestamp, firsttimestamp, wrfstartidx)
         else: # month complete
           # clear temporary storage
           if lcarryover:

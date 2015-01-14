@@ -97,6 +97,10 @@ export WAITFORWPS=${WAITFORWPS:-'NO'} # stay on compute node until WPS for next 
 #export SUBMITWPS=${SUBMITWPS:-'cd \"${INIDIR}\"; export NEXTSTEP=${NEXTSTEP}; ./${WPSSCRIPT} >& ${JOB_NAME%_WRF}_WPS.${JOB_ID}.log'} # evaluated by launchPreP; use for production runs on compute nodes
 # N.B.: use '&' to spin off, but only on compute nodes, otherwise the system overloads
 
+# averaging submission command (for last step in the interval)
+export SUBMITAVG=${SUBMITAVG:-'ssh rocks-ib.ib "cd \"${INIDIR}\"; export PERIOD=${AVGTAG}; nohup ./${AVGSCRIPT} >& ${JOB_NAME%_WRF}_avg.${JOB_ID}.log &"'} # evaluated by launchPostP
+# N.B.: requires $AVGTAG to be set in the launch script
+
 # archive submission command (for last step)
 export SUBMITAR="echo \'No archive script available.\'"
 # export SUBMITAR=${SUBMITAR:-'echo "cd \"${INIDIR}\"; TAGS=${ARTAG}; export MODE=BACKUP; export INTERVAL=${ARINTERVAL}; ./${ARSCRIPT}"'} # evaluated by launchPostP

@@ -1,5 +1,5 @@
 #!/bin/bash
-# script to run a WPScycle in Bash (local)
+# script to run a WPS cycle in Bash (local)
 # created 24/05/2013 by Andre R. Erler, GPL v3
 
 ## run configuration (otherwise set in queue settings)
