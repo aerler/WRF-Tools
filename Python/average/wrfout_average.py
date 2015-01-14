@@ -674,9 +674,10 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
           # loop over variables
           for varname in varlist:
             logger.debug('{0:s} {1:s}'.format(pidstr,varname))
-            if var not in wrfout.variables:
-              logger.info("{:s} Variable {:s} missing in file '{:s}' - filling with NaN!").format(pidstr,varname,filelist[filecounter])
+            if varname not in wrfout.variables:
+              logger.info("{:s} Variable {:s} missing in file '{:s}' - filling with NaN!".format(pidstr,varname,filelist[filecounter]))
               data[varname] *= np.NaN # turn everything into NaN, if variable is missing  
+	      # N.B.: this can happen, when an output stream was reconfigured between cycle steps
             else:
               var = wrfout.variables[varname]
               tax = var.dimensions.index(wrftime) # index of time axis
