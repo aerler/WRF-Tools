@@ -40,6 +40,8 @@ GEOGRID="${DOM},${DOM}-grid"
 # the line in the *_MOD variable will replace the corresponding entry in the template
 # you can separate multiple modifications by colons ':'
 #PHYSICS_MOD=' cu_physics = 3, 3, 3,: shcu_physics = 0, 0, 0,: sf_surface_physics = 4, 4, 4,'
+POLARWRF=0 # use PolarWRF
+FLAKE=1 # use FLake
 
 ## system settings
 # WPSWCT, WRFWCT, WRFNODES # wallclock time and number of nodes
@@ -47,7 +49,5 @@ GEOGRID="${DOM},${DOM}-grid"
 WPSSYS="GPC" # also affects unccsm.exe
 # set path for metgrid.exe and real.exe explicitly using METEXE and REALEXE
 # WRF executable
-POLARWRF=0 # use PolarWRF
-FLAKE=1 # use FLake
 WRFSYS="GPC"
 # set path for geogrid.exe and wrf.exe eplicitly using GEOEXE and WRFEXE

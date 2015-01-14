@@ -13,7 +13,19 @@ NCSFX='.nc'
 # variable specific settings
 VARNM="$1" # passed as argument
 # VARNM='ACSNOW'|'SR' # variable to be transferred
-if [[ "${VARNM}" == 'SR' ]]; then
+if [[ "${VARNM}" == 'PREC_ACC_C' ]]; then
+  DIM='Time,,,4' # dimension/hyperslab argument (only record dim supports stride)
+  SRCPFX='wrfsrfc'
+  DSTPFX='wrfhydro'
+elif [[ "${VARNM}" == 'PREC_ACC_NC' ]]; then
+  DIM='Time,,,4' # dimension/hyperslab argument (only record dim supports stride)
+  SRCPFX='wrfsrfc'
+  DSTPFX='wrfhydro'
+elif [[ "${VARNM}" == 'SNOW_ACC_NC' ]]; then
+  DIM='Time,,,4' # dimension/hyperslab argument (only record dim supports stride)
+  SRCPFX='wrfsrfc'
+  DSTPFX='wrfhydro'
+elif [[ "${VARNM}" == 'SR' ]]; then
 	DIM='Time,,,4' # dimension/hyperslab argument (only record dim supports stride)
 	SRCPFX='wrfsrfc'
 	DSTPFX='wrfhydro'

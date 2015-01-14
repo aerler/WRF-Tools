@@ -9,7 +9,7 @@ CYCLING="5days.2010-08" # stepfile to be used (leave empty if not cycling)
 IO='fineIO' # this is used for namelist construction and archiving
 ARSCRIPT='' # no archiving available on Bugaboo yet
 ARINTERVAL='MONTHLY' # default is yearly
-AVGSCRIPT='' # this is a dummy name...
+AVGSCRIPT='DEFAULT' # this is a dummy name...
 AVGINTERVAL='MONTHLY' # default is yearly
 
 ## configure data sources
@@ -46,6 +46,7 @@ GEOGRID="${DOM},${DOM}-grid"
 # the line in the *_MOD variable will replace the corresponding entry in the template
 # you can separate multiple modifications by colons ':'
 #PHYSICS_MOD=' cu_physics = 3, 3, 3,: shcu_physics = 0, 0, 0,: sf_surface_physics = 4, 4, 4,'
+FLAKE=0 # don't use FLake
 
 ## system settings
 WRFTOOLS="${HOME}/WRF Tools/"

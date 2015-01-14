@@ -50,8 +50,20 @@ export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
 
 # launch script
 echo
-time -p python "${SCRIPTDIR}/${PYAVG}" "${PERIOD}"
-ERR=$? # capture exit code      
+if [[ -n "${PERIOD}" ]]; then
+    time -p python "${SCRIPTDIR}/${PYAVG}" "${PERIOD}"
+    ERR=$? # capture exit code      
+else
+
+    # make sure, certain variables are there...
+    ~/Scripts/addVariable.sh 'PREC_ACC_C'
+    ~/Scripts/addVariable.sh 'PREC_ACC_NC'
+    ~/Scripts/addVariable.sh 'SNOW_ACC_NC'
+
+    # launch actual averaging script
+    time -p python "${SCRIPTDIR}/${PYAVG}"
+    ERR=$? # capture exit code
+fi
 echo
 
 # exit with exit code from python script
