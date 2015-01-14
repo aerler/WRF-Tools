@@ -19,7 +19,6 @@ exactly one output file.
 ## imports
 import numpy as np
 from collections import OrderedDict
-from warnings import warn
 #import numpy.ma as ma
 import os, re, sys, shutil, gc
 import netCDF4 as nc
@@ -176,7 +175,7 @@ dimlist = ['x','y'] # dimensions we just copy
 dimmap = {time:wrftime} #{time:wrftime, 'x':'west_east','y':'south_north'}
 midmap = dict(zip(dimmap.values(),dimmap.keys())) # reverse dimmap
 # accumulated variables (only total accumulation since simulation start, not, e.g., daily accumulated)
-acclist = dict(RAINNC=100,RAINC=100,RAINSH=None,SNOWNC=None,GRAUPELNC=None,SFCEVP=None,POTEVP=None, # srfc vars
+acclist = dict(RAINNC=100.,RAINC=100.,RAINSH=None,SNOWNC=None,GRAUPELNC=None,SFCEVP=None,POTEVP=None, # srfc vars
                SFROFF=None,UDROFF=None,ACGRDFLX=None,ACSNOW=None,ACSNOM=None,ACHFX=None,ACLHF=None, # lsm vars
                ACSWUPT=1.e9,ACSWUPTC=1.e9,ACSWDNT=1.e9,ACSWDNTC=1.e9,ACSWUPB=1.e9,ACSWUPBC=1.e9,ACSWDNB=1.e9,ACSWDNBC=1.e9, # rad vars
                ACLWUPT=1.e9,ACLWUPTC=1.e9,ACLWDNT=1.e9,ACLWDNTC=1.e9,ACLWUPB=1.e9,ACLWUPBC=1.e9,ACLWDNB=1.e9,ACLWDNBC=1.e9) # rad vars
@@ -675,59 +674,63 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
           # loop over variables
           for varname in varlist:
             logger.debug('{0:s} {1:s}'.format(pidstr,varname))
-            var = wrfout.variables[varname]
-            tax = var.dimensions.index(wrftime) # index of time axis
-            slices = [slice(None)]*len(var.shape) 
-            # decide how to average
-            ## Accumulated Variables
-            if varname in acclist: 
-              if missing_value is not None: 
-                raise NotImplementedError, "Can't handle accumulated variables with missing values yet."
-              # compute mean as difference between end points; normalize by time difference
-              if ntime == 0: # first time step of the month
-                slices[tax] = wrfstartidx # relevant time interval
-                tmp = var.__getitem__(slices)
-                if acclist[varname] is not None: # add bucket level, if applicable
-                  bkt = wrfout.variables[bktpfx+varname]
-                  tmp += bkt.__getitem__(slices) * acclist[varname]
-                # check that accumulated fields at the beginning of the simulation are zero  
-                if meanidx == 0 and wrfstartidx == 0:
-                  # note  that if we are skipping the first step, there is no check
-                  assert np.max(tmp) == 0 and np.min(tmp) == 0, 'Accumulated fields were not initialized with zero!' 
-                data[varname] = -1 * tmp # so we can do an in-place operation later 
-              # N.B.: both, begin and end, can be in the same file, hence elif is not appropriate! 
-              if lcomplete: # last step
-                slices[tax] = wrfendidx # relevant time interval
-                tmp = var.__getitem__(slices)
-                if acclist[varname] is not None: # add bucket level, if applicable 
-                  bkt = wrfout.variables[bktpfx+varname]
-                  tmp += bkt.__getitem__(slices) * acclist[varname]   
-                data[varname] +=  tmp # the starting data is already negative
-              # if variable is a prerequisit to others, compute instantaneous values
-              if varname in pqset:
-                # compute mean via sum over all elements; normalize by number of time steps
-                slices[tax] = slice(wrfstartidx,wrfendidx) # relevant time interval
-                tmp = var.__getitem__(slices)
-                if acclist[varname] is not None: # add bucket level, if applicable
-                  bkt = wrfout.variables[bktpfx+varname]
-                  tmp = tmp + bkt.__getitem__(slices) * acclist[varname]
-                pqdata[varname] = dv.ctrDiff(tmp, axis=tax, delta=1) # normalization comes later                   
-            elif varname[0:len(bktpfx)] == bktpfx: pass # do not process buckets
-            ## Normal Variables
-            else: 
-              # skip "empty" steps (only needed to difference accumulated variables)
-              if wrfendidx > wrfstartidx:
-                # compute mean via sum over all elements; normalize by number of time steps
-                slices[tax] = slice(wrfstartidx,wrfendidx) # relevant time interval
-                tmp = var.__getitem__(slices) # get array
-                if missing_value is not None:
-                  # N.B.: missing value handling is really only necessary when missing values are time-dependent
-                  tmp = np.where(tmp == missing_value, np.NaN, tmp) # set missing values to NaN
-                  #tmp = ma.masked_equal(tmp, missing_value, copy=False) # mask missing values
-                data[varname] = data[varname] + tmp.sum(axis=tax) # add to sum
-                # N.B.: in-place operations with non-masked array destroy the mask, hence need to use this
-                # keep data in memory if used in computation of derived variables
-                if varname in pqset: pqdata[varname] = tmp
+            if var not in wrfout.variables:
+              logger.info("{:s} Variable {:s} missing in file '{:s}' - filling with NaN!").format(pidstr,varname,filelist[filecounter])
+              data[varname] *= np.NaN # turn everything into NaN, if variable is missing  
+            else:
+              var = wrfout.variables[varname]
+              tax = var.dimensions.index(wrftime) # index of time axis
+              slices = [slice(None)]*len(var.shape) 
+              # decide how to average
+              ## Accumulated Variables
+              if varname in acclist: 
+                if missing_value is not None: 
+                  raise NotImplementedError, "Can't handle accumulated variables with missing values yet."
+                # compute mean as difference between end points; normalize by time difference
+                if ntime == 0: # first time step of the month
+                  slices[tax] = wrfstartidx # relevant time interval
+                  tmp = var.__getitem__(slices)
+                  if acclist[varname] is not None: # add bucket level, if applicable
+                    bkt = wrfout.variables[bktpfx+varname]
+                    tmp += bkt.__getitem__(slices) * acclist[varname]
+                  # check that accumulated fields at the beginning of the simulation are zero  
+                  if meanidx == 0 and wrfstartidx == 0:
+                    # note  that if we are skipping the first step, there is no check
+                    assert np.max(tmp) == 0 and np.min(tmp) == 0, 'Accumulated fields were not initialized with zero!' 
+                  data[varname] = -1 * tmp # so we can do an in-place operation later 
+                # N.B.: both, begin and end, can be in the same file, hence elif is not appropriate! 
+                if lcomplete: # last step
+                  slices[tax] = wrfendidx # relevant time interval
+                  tmp = var.__getitem__(slices)
+                  if acclist[varname] is not None: # add bucket level, if applicable 
+                    bkt = wrfout.variables[bktpfx+varname]
+                    tmp += bkt.__getitem__(slices) * acclist[varname]   
+                  data[varname] +=  tmp # the starting data is already negative
+                # if variable is a prerequisit to others, compute instantaneous values
+                if varname in pqset:
+                  # compute mean via sum over all elements; normalize by number of time steps
+                  slices[tax] = slice(wrfstartidx,wrfendidx) # relevant time interval
+                  tmp = var.__getitem__(slices)
+                  if acclist[varname] is not None: # add bucket level, if applicable
+                    bkt = wrfout.variables[bktpfx+varname]
+                    tmp = tmp + bkt.__getitem__(slices) * acclist[varname]
+                  pqdata[varname] = dv.ctrDiff(tmp, axis=tax, delta=1) # normalization comes later                   
+              elif varname[0:len(bktpfx)] == bktpfx: pass # do not process buckets
+              ## Normal Variables
+              else: 
+                # skip "empty" steps (only needed to difference accumulated variables)
+                if wrfendidx > wrfstartidx:
+                  # compute mean via sum over all elements; normalize by number of time steps
+                  slices[tax] = slice(wrfstartidx,wrfendidx) # relevant time interval
+                  tmp = var.__getitem__(slices) # get array
+                  if missing_value is not None:
+                    # N.B.: missing value handling is really only necessary when missing values are time-dependent
+                    tmp = np.where(tmp == missing_value, np.NaN, tmp) # set missing values to NaN
+                    #tmp = ma.masked_equal(tmp, missing_value, copy=False) # mask missing values
+                  data[varname] = data[varname] + tmp.sum(axis=tax) # add to sum
+                  # N.B.: in-place operations with non-masked array destroy the mask, hence need to use this
+                  # keep data in memory if used in computation of derived variables
+                  if varname in pqset: pqdata[varname] = tmp
           ## compute derived variables
           # but first generate a list of timestamps
           if lcomplete: tmpendidx = wrfendidx
@@ -780,7 +783,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
               xtime += wrfout.variables[wrfxtime][wrfendidx] # get final time interval (in minutes)
               xtime *=  60. # convert minutes to seconds   
               if timeperiod != xtime:  
-                warn("Time calculation from time stamps and model time are inconsistent: {:f} != {:f}".format(timeperiod,xtime))            
+                logger.info("Time calculation from time stamps and model time are inconsistent: {:f} != {:f}".format(timeperiod,xtime))            
         # two possible ends: month is done or reached end of file
         # if we reached the end of the file, open a new one and go again
         if not lcomplete:            
@@ -967,4 +970,4 @@ if __name__ == '__main__':
   kwargs = dict() # no keyword arguments
   ec = asyncPoolEC(processFileList, args, kwargs, NP=NP, ldebug=ldebug, ltrialnerror=True)
   # exit with number of failures plus 10 as exit code
-  exit(int(10+ec))
+  exit(int(10+ec) if ec > 0 else 0)
