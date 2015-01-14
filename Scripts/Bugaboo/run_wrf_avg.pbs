@@ -28,11 +28,11 @@ module list
 echo
 
 # general settings
-INIDIR="${PBS_O_WORKDIR}"
+INIDIR=${INIDIR:-"${PBS_O_WORKDIR}"}
 SCRIPTDIR="${INIDIR}/scripts/" # default location of averaging script
 AVGSCRIPT='run_wrf_avg.pbs' # name of this script...
 PYAVG='wrfout_average.py' # name of Python averaging script
-DOMAINS='12' # string of single-digit domain indices
+DOMAINS='1234' # string of single-digit domain indices
 
 # return to original working directory
 cd "${INIDIR}"

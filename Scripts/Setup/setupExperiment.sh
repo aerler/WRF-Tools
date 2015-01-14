@@ -304,6 +304,7 @@ sed -i "/max_dom/ s/^\ *max_dom\ *=\ *.*$/ max_dom = ${MAXDOM}, ! this entry was
 if [[ "${FLAKE}" != 1 ]]; then
   sed -i "/flake_update/ s/^\ *flake_update\ *=\ *.*$/! flake_update was removed because FLake is not used/" namelist.input
   sed -i "/tsk_flake/ s/^\ *tsk_flake\ *=\ *.*$/! tsk_flake was removed because FLake is not used/" namelist.input
+  sed -i "/transparent/ s/^\ *transparent\ *=\ *.*$/! transparent was removed because FLake is not used/" namelist.input
   sed -i "/lake_depth_limit/ s/^\ *lake_depth_limit\ *=\ *.*$/! lake_depth_limit was removed because FLake is not used/" namelist.input
 fi # flake
 # determine time step and restart decrement

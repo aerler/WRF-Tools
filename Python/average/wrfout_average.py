@@ -965,5 +965,6 @@ if __name__ == '__main__':
     
   # call parallel execution function
   kwargs = dict() # no keyword arguments
-  asyncPoolEC(processFileList, args, kwargs, NP=NP, ldebug=ldebug, ltrialnerror=True)
-    
+  ec = asyncPoolEC(processFileList, args, kwargs, NP=NP, ldebug=ldebug, ltrialnerror=True)
+  # exit with number of failures plus 10 as exit code
+  exit(int(10+ec))
