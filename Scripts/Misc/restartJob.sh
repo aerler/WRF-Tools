@@ -94,7 +94,7 @@ cd "${WORKDIR}"
 # N.B.: the parameters here are also used for display, in any case
 CUR_DELT=$(sed -n '/time_step/ s/^\ *time_step\ *=\ *\([0-9]*\).*$/\1/p' namelist.input) # time step
 ERR=$(( ${ERR} + $? )) # capture exit code
-CUR_EPSS=$(sed -n '/epssm/ s/^\ *epssm\ *=\ *\([0-9]\?.[0-9]*\).*$/\1/p' namelist.input) # epssm parameter; one or zero times: [0-9]\?.5 -> .5 or 0.5
+CUR_EPSS=$(sed -n '/epssm/ s/^\ *epssm\ *=\ *0\?\(.[0-9]*\).*$/\1/p' namelist.input) # epssm parameter; one or zero times: [0-9]\?.5 -> .5 or 0.5
 ERR=$(( ${ERR} + $? )) # capture exit code
 
 ## change stability parameters
@@ -125,12 +125,13 @@ else # $SIMPLE != 1, i.e. change stability parameters
   elif [[ "$CUR_DELT" == '40' ]] || [[ "$CUR_DELT" == '45' ]]; then
     NEW_DELT='30'; NEW_EPSS='0.99'; NEW_DIFF='0.15'; NEW_DAMP='0.15'; NEW_SNDT='8'
   # just for high resolution runs
-  elif [[ "$CUR_DELT" == '30' ]] || && [[ "$CUR_EPSS" < '0.8' ]]; then  
+  elif [[ "$CUR_DELT" == '30' ]] && [[ "$CUR_EPSS" < '.8' ]]; then  
     NEW_DELT='20'; NEW_EPSS='0.9'; NEW_DIFF='0.06'; NEW_DAMP='0.06'; NEW_SNDT='6'
-  elif [[ "$CUR_DELT" == '20' ]] || && [[ "$CUR_EPSS" < '0.95' ]]; then 
+  elif [[ "$CUR_DELT" == '20' ]] && [[ "$CUR_EPSS" < '.95' ]]; then 
     NEW_DELT='15'; NEW_EPSS='0.99'; NEW_DIFF='0.15'; NEW_DAMP='0.15'; NEW_SNDT='8'
   else #if [[ $FORCE != 1 ]]; then
-    echo 'Error: No applicable set of parameters found!'
+    echo "Current parameters: NEXTSTEP=${CURRENTSTEP}; NOWPS=${NOWPS}; TIME_STEP=${CUR_DELT}; EPSSM=${CUR_EPSS}"
+    echo 'ERROR: No applicable set of parameters found!'
     exit 1
   fi # current state
 
