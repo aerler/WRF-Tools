@@ -15,42 +15,48 @@ function CHECK {
 		  echo
       if [[ -z $( echo ${LISTING} | grep ${E}_WRF ) ]]
 				then 
-				  echo "Restarting ${E} on ${MAC}!"				  
           INIDIR="${DR}/${E}/"
           cd "$INIDIR"
           # figure out next step
-          CURRENTSTEP=$( ls [0-9][0-9][0-9][0-9]-[0-9][0-9]* -d | head -n 1 ) # first step folder
-          NEXTSTEP=$( ls [0-9][0-9][0-9][0-9]-[0-9][0-9]* -d | tail -n 1 ) # second/last step folder
+          CURRENTSTEP=$( ls [0-9][0-9][0-9][0-9]-[0-9][0-9]* -d 2> /dev/null | head -n 1 ) # first step folder
+          NEXTSTEP=$( ls [0-9][0-9][0-9][0-9]-[0-9][0-9]* -d 2> /dev/null | tail -n 1 ) # second/last step folder
           if [[ -f "${INIDIR}/${NEXTSTEP}/run_cycling_WPS.pbs" ]]; then NOWPS='NOWPS' 
           else NOWPS='FALSE'; fi          
-          echo "   NEXTSTEP=${CURRENTSTEP}; NOWPS=${NOWPS}"
-          # clean up a bit
-          if [[ -n "${CURRENTSTEP}" ]] && [[ -f "${INIDIR}/${CURRENTSTEP}/run_cycling_WPS.pbs" ]]; then
-            rm -rf ${CURRENTSTEP}/rsl.* ${CURRENTSTEP}/wrf*.nc
-	          # restart job (this is a bit hackish and not as general as I would like it...)
-	          if [[ "$MAC" == 'GPC' ]]; then 
-	            ssh gpc04 "cd \"${INIDIR}\"; qsub ./run_cycling_WRF.pbs -v NOWPS=${NOWPS},NEXTSTEP=${CURRENTSTEP}"
-	          elif [[ "$MAC" == 'TCS' ]]; then
-	            ssh tcs02 "cd \"${INIDIR}\"; export NEXTSTEP=${CURRENTSTEP}; export NOWPS=${NOWPS}; llsubmit ./run_cycling_WRF.ll"
-	          elif [[ "$MAC" == 'P7' ]]; then
-	            ssh p701 "cd \"${INIDIR}\"; export NEXTSTEP=${CURRENTSTEP}; export NOWPS=${NOWPS}; llsubmit ./run_cycling_WRF.ll"
-	          fi # if MAC
-            MIA=$(( $MIA + 1 )) # modifies global counter!
-          else
-            # This means, WPS did not complete and we need to run it first
-            SCLOG="${INIDIR}/startCycle_${E}_WRF_${CURRENTSTEP}.log"
-            if [[ -f "$SCLOG"  ]] && [ 0 -lt $(tail -n 1 "$SCLOG" | grep -c 'Waiting for WPS job to complete' ) ]; then
-              # This means, the sleeper job is waiting for WPS to complete - just restart WPS
-              if [[ "${WRFWCT}" != '00:00:00' ]] && [[ "${WRFWCT}" != '0' ]]; then WRFWCT='00:45:00'; fi
-              ssh gpc-f102n084-ib0 "cd '${INIDIR}'; export WRFWCT=${WRFWCT}; export WPSWCT='00:15:00'; export NEXTSTEP=${CURRENTSTEP}; export WPSSCRIPT='run_cycling_WPS.pbs'; python scripts/selectWPSqueue.py; sleep 3" # give command some time to complete
-              #ssh gpc04 "cd \"${INIDIR}\"; qsub ./run_cycling_WPS.pbs -v NEXTSTEP=${CURRENTSTEP}"
+          # check, if experiment is active (if some run folder exist)
+          if [[ -n "${CURRENTSTEP}" ]]; then
+            # check, if we need to run WPS and start sleeper job
+            if [[ -f "${INIDIR}/${CURRENTSTEP}/run_cycling_WPS.pbs" ]]; then
+				      echo "Restarting ${E} on ${MAC}!"				  
+              echo "   NEXTSTEP=${CURRENTSTEP}; NOWPS=${NOWPS}"
+              # clean up a bit
+              rm -rf ${CURRENTSTEP}/rsl.* ${CURRENTSTEP}/wrf*.nc
+  	          # restart job (this is a bit hackish and not as general as I would like it...)
+  	          if [[ "$MAC" == 'GPC' ]]; then 
+  	            ssh gpc04 "cd \"${INIDIR}\"; qsub ./run_cycling_WRF.pbs -v NOWPS=${NOWPS},NEXTSTEP=${CURRENTSTEP}"
+  	          elif [[ "$MAC" == 'TCS' ]]; then
+  	            ssh tcs02 "cd \"${INIDIR}\"; export NEXTSTEP=${CURRENTSTEP}; export NOWPS=${NOWPS}; llsubmit ./run_cycling_WRF.ll"
+  	          elif [[ "$MAC" == 'P7' ]]; then
+  	            ssh p701 "cd \"${INIDIR}\"; export NEXTSTEP=${CURRENTSTEP}; export NOWPS=${NOWPS}; llsubmit ./run_cycling_WRF.ll"
+  	          fi # if MAC
+              MIA=$(( $MIA + 1 )) # modifies global counter!
             else
-              # start new sleeper job (which will start WPS)
-              ssh p7n01-ib0 "cd '${INIDIR}'; nohup ./startCycle.sh --restart=${NEXTSTEP} --name=${JOBNAME} &> '$SCLOG' &"
-              #echo "ERROR: No active run directory found for experiment ${E}!"
-            fi # handle incomplete/missing WPS
-            MIA=$(( $MIA + 1 )) # modifies global counter!
-          fi # if folder exists (prevent accidential deletion)                                 
+              # This means, WPS did not complete and we need to run it first
+              SCLOG="${INIDIR}/startCycle_${E}_WRF_${CURRENTSTEP}.log"
+              if [[ -f "$SCLOG"  ]] && [ 0 -lt $(tail -n 1 "$SCLOG" | grep -c 'Waiting for WPS job to complete' ) ]; then
+                # This means, the sleeper job is waiting for WPS to complete - just restart WPS
+                if [[ "${WRFWCT}" != '00:00:00' ]] && [[ "${WRFWCT}" != '0' ]]; then WRFWCT='00:45:00'; fi
+                ssh gpc-f102n084-ib0 "cd '${INIDIR}'; export WRFWCT=${WRFWCT}; export WPSWCT='00:15:00'; export NEXTSTEP=${CURRENTSTEP}; export WPSSCRIPT='run_cycling_WPS.pbs'; python scripts/selectWPSqueue.py; sleep 3" # give command some time to complete
+                #ssh gpc04 "cd \"${INIDIR}\"; qsub ./run_cycling_WPS.pbs -v NEXTSTEP=${CURRENTSTEP}"
+              else
+                # start new sleeper job (which will start WPS)
+                ssh p7n01-ib0 "cd '${INIDIR}'; nohup ./startCycle.sh --restart=${NEXTSTEP} --name=${JOBNAME} &> '$SCLOG' &"
+                #echo "ERROR: No active run directory found for experiment ${E}!"
+              fi # handle incomplete/missing WPS
+              MIA=$(( $MIA + 1 )) # modifies global counter!
+            fi # if folder exists (prevent accidential deletion)                                 
+          else
+            echo "Experiment ${E} on ${MAC} appears to be inactive/completed - not restarting."
+          fi # if $CURRENTSTEP
 			  else
 				  echo "Experiment ${E} on ${MAC} is running!"
 				  OK=$(( $OK + 1 )) # modifies global counter!

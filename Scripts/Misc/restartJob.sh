@@ -4,12 +4,11 @@
 
 # pre-process arguments using getopt
 if [ -z $( getopt -T ) ]; then
-  TMP=$( getopt -o frdse:nwtqh --long force,reset,no-clean,simple,step:,nowps,wps,test,quiet,help -n "$0" -- "$@" ) # pre-process arguments
+  TMP=$( getopt -o rdse:nwtqh --long restart,reset,no-clean,simple,step:,nowps,wps,test,quiet,help -n "$0" -- "$@" ) # pre-process arguments
   [ $? != 0 ] && exit 1 # getopt already prints an error message
   eval set -- "$TMP" # reset positional parameters (arguments) to $TMP list
 fi # check if GNU getopt ("enhanced")
 # default parameters
-FORCE=0 # force restart, even if no paramter set was found
 RESET=0 # regenerate fresh namelist
 CLEAN=1 # clean folder before restart
 SIMPLE=0 # simple restart without increasing stability
@@ -19,10 +18,10 @@ QUIET=0 # suppress output
 #while getopts 'fs' OPTION; do # getopts version... supports only short options
 while true; do
   case "$1" in
-    -f | --force    )   FORCE=1;  shift;;
-    -r | --reset    )   RESET=1; SIMPLE=1; shift;;
-    -d | --no-clean )   CLEAN=0; shift;;
     -s | --simple   )   SIMPLE=1; shift;;
+    -d | --no-clean )   CLEAN=0; shift;;
+    -r | --restart  )   CLEAN=0; SIMPLE=1; shift;;
+         --reset    )   RESET=1; SIMPLE=1; shift;;
     -e | --step     )   CURRENTSTEP="$2"; shift 2;;
     -n | --nowps    )   NOWPS='NOWPS'; shift;;
     -w | --wps      )   NOWPS='FALSE'; shift;;
@@ -30,16 +29,19 @@ while true; do
     -q | --quiet    )   QUIET=1;  shift;;
     -h | --help     )   echo -e " \
                             \n\
-    -f | --force        ignore warnings and force restart \n\
-    -r | --reset        reset all namelist parameters \n\
-    -d | --no-clean     don't clean run folder before restart \n\
     -s | --simple       do not change stability parameters \n\
+    -d | --no-clean     don't clean run folder before restart \n\
+    -r | --restart      restart a simulation without changes or clean-up (use when restart date was changed manually) \n\
+         --reset        reset all namelist parameters \n\
     -e | --step         restart at this step \n\
     -n | --nowps        don't run WPS for next step \n\
     -w | --wps          (re-)run WPS for next step \n\
     -t | --test         dry-run for tests; just print parameters \n\
     -q | --quiet        do not print launch feedback \n\
     -h | --help         print this help \n\
+
+    Note: don't use this script to restart from a different restart point; the restart date has to be changed manually, \n\
+          real.exe (or WPS) needs to be rerun, and the previous WRF output files must not be deleted. \n\
                              "; exit 0;; # \n\ == 'line break, next line'; for syntax highlighting
     -- ) shift; break;; # this terminates the argument list, if GNU getopt is used
     * ) break;;
@@ -122,7 +124,7 @@ else # $SIMPLE != 1, i.e. change stability parameters
     NEW_DELT='45'; NEW_EPSS='0.97'; NEW_DIFF='0.12'; NEW_DAMP='0.12'; NEW_SNDT='8'
   elif [[ "$CUR_DELT" == '40' ]] || [[ "$CUR_DELT" == '45' ]]; then #  && [[ "$CUR_EPSS" == *'.95' ]]
     NEW_DELT='30'; NEW_EPSS='0.99'; NEW_DIFF='0.15'; NEW_DAMP='0.15'; NEW_SNDT='8'
-  elif [[ $FORCE != 1 ]]; then
+  else #if [[ $FORCE != 1 ]]; then
     echo 'Error: No applicable set of parameters found!'
     exit 1
   fi # current state
