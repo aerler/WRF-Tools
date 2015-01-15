@@ -114,16 +114,21 @@ else # $SIMPLE != 1, i.e. change stability parameters
 	ERR=$(( ${ERR} + $? )) # capture exit code
 
   ## define new stability parameters
-  if [[ "$CUR_DELT" == '150' ]]; then #  && [[ "$CUR_EPSS" == *'.55' ]]
+  if [[ "$CUR_DELT" == '150' ]]; then
     NEW_DELT='120'; NEW_EPSS='0.75'; NEW_SNDT='5'
-  elif [[ "$CUR_DELT" == '120' ]]; then #  && [[ "$CUR_EPSS" == *'.75' ]]
+  elif [[ "$CUR_DELT" == '120' ]]; then
     NEW_DELT='90'; NEW_EPSS='0.85'; NEW_DAMP='0.06'; NEW_SNDT='6'
-  elif [[ "$CUR_DELT" == '90' ]]; then #  && [[ "$CUR_EPSS" == *'.85' ]]
+  elif [[ "$CUR_DELT" == '90' ]]; then
     NEW_DELT='60'; NEW_EPSS='0.95'; NEW_DIFF='0.09'; NEW_DAMP='0.09'; NEW_SNDT='7'
-  elif [[ "$CUR_DELT" == '60' ]]; then #  && [[ "$CUR_EPSS" == *'.95' ]]
+  elif [[ "$CUR_DELT" == '60' ]]; then
     NEW_DELT='45'; NEW_EPSS='0.97'; NEW_DIFF='0.12'; NEW_DAMP='0.12'; NEW_SNDT='8'
-  elif [[ "$CUR_DELT" == '40' ]] || [[ "$CUR_DELT" == '45' ]]; then #  && [[ "$CUR_EPSS" == *'.95' ]]
+  elif [[ "$CUR_DELT" == '40' ]] || [[ "$CUR_DELT" == '45' ]]; then
     NEW_DELT='30'; NEW_EPSS='0.99'; NEW_DIFF='0.15'; NEW_DAMP='0.15'; NEW_SNDT='8'
+  # just for high resolution runs
+  elif [[ "$CUR_DELT" == '30' ]] || && [[ "$CUR_EPSS" < '0.8' ]]; then  
+    NEW_DELT='20'; NEW_EPSS='0.9'; NEW_DIFF='0.06'; NEW_DAMP='0.06'; NEW_SNDT='6'
+  elif [[ "$CUR_DELT" == '20' ]] || && [[ "$CUR_EPSS" < '0.95' ]]; then 
+    NEW_DELT='15'; NEW_EPSS='0.99'; NEW_DIFF='0.15'; NEW_DAMP='0.15'; NEW_SNDT='8'
   else #if [[ $FORCE != 1 ]]; then
     echo 'Error: No applicable set of parameters found!'
     exit 1
