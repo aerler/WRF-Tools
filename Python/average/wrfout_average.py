@@ -157,7 +157,7 @@ if len(period) >= 3:
 
 ## definitions
 # input files and folders
-filetypes = filetypes or ['srfc', 'plev3d', 'xtrm', 'hydro', 'lsm', 'rad']
+filetypes = filetypes or ['srfc', 'plev3d', 'xtrm', 'hydro', 'lsm']
 domains = domains or [1,2,3,4] 
 # filetypes and domains can also be set in an semi-colon-separated environment variable (see above)
 # file pattern (WRF output and averaged files)
@@ -545,6 +545,9 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
   if wrfxtime in wrfout.variables: 
     lxtime = True # simply compute differences from XTIME (assuming minutes)
     assert wrfout.variables[wrfxtime].description == "minutes since simulation start"
+    if not wrfout.variables[wrfxtime][0] == 0:
+      raise ValueError, ( 'XTIME in first input file does not start with 0!\n'+
+                          '(this can happen, when the first input file is missing)' )
   elif wrftimestamp in wrfout.variables: 
     lxtime = False # interpret timestamp in Times using datetime module
   else: raise TypeError
@@ -697,7 +700,9 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
                   # check that accumulated fields at the beginning of the simulation are zero  
                   if meanidx == 0 and wrfstartidx == 0:
                     # note  that if we are skipping the first step, there is no check
-                    assert np.max(tmp) == 0 and np.min(tmp) == 0, 'Accumulated fields were not initialized with zero!' 
+                    if np.max(tmp) != 0 or np.min(tmp) != 0: 
+                      raise ValueError, ( 'Accumulated fields were not initialized with zero!\n' +
+                                          '(this can happen, when the first input file is missing)' ) 
                   data[varname] = -1 * tmp # so we can do an in-place operation later 
                 # N.B.: both, begin and end, can be in the same file, hence elif is not appropriate! 
                 if lcomplete: # last step
@@ -904,7 +909,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
     logger.exception('\n # {0:s} WARNING: an Error occured while stepping through files! '.format(pidstr)+
                      '\n # Last State: month={0:d}, variable={1:s}, file={2:s}'.format(meanidx,varname,filename)+
                      '\n # Saving current data and exiting\n')
-    logger.exception(pidstr) # print stack trace of last exception and current process ID
+    #logger.exception(pidstr) # print stack trace of last exception and current process ID
     ec = 1 # set non-zero exit code
     # N.B.: this enables us to still close the file!
     
