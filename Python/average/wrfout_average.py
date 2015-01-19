@@ -545,7 +545,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
   if wrfxtime in wrfout.variables: 
     lxtime = True # simply compute differences from XTIME (assuming minutes)
     assert wrfout.variables[wrfxtime].description == "minutes since simulation start"
-    if not wrfout.variables[wrfxtime][0] == 0:
+    if t0 == 1 and not wrfout.variables[wrfxtime][0] == 0:
       raise ValueError, ( 'XTIME in first input file does not start with 0!\n'+
                           '(this can happen, when the first input file is missing)' )
   elif wrftimestamp in wrfout.variables: 
