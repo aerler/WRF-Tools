@@ -55,6 +55,9 @@ for DD in ${CCA}
       do 
         E=${E%/} # necessary for subsequent step (see below)
         N=${E##*/} # isolate folder name (local folder name)
+        echo
+		    echo "   ***   ${N}   ***   "
+		    echo
         if [[ "${INVERT}" == 'INVERT' ]]
           then E=${E%/wrfavg/*}; DIRAVG="wrfavg/${N}"; DIROUT="wrfavg/${N}" # komputer
           else E=${E%/${N}}; DIRAVG="${N}/wrfavg"; DIROUT="${N}/wrfout" # SciNet

@@ -35,7 +35,9 @@ ERR=0
 echo
 for D in ${DATASETS}
   do
-    echo "${D}"
+    echo
+    echo "   ***   ${D}   ***   "
+    echo
     # use rsync for the transfer; verbose, archive, update, gzip
     if [[ "${RESTORE}" == 'RESTORE' ]]; then
       E="${REM}/${D}" # no trailing slash!
