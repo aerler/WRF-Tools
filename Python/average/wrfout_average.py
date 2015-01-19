@@ -9,7 +9,6 @@ exactly one output file.
 @author: Andre R. Erler, GPL v3
 '''
 
-#TODO: add new plev variables: vorticity (curl) and horizontal water transport (vertical integral)
 #TODO: add time-dependent auxiliary files to file processing (use prerequisites from other files)
 #TODO: add option to discard prerequisit variables
 #TODO: add base variables for correlation and standard deviation (and (co-)variance).
@@ -84,7 +83,7 @@ if os.environ.has_key('PYAVG_RECALC'):
     # recalculate all derived variables and leave others in place
     lrecalc = True; lderivedonly = True; recalcvars = []
   else:
-    recalcvars = os.environ['PYAVG_RECALC'].split(',') # semi-colon separated list of variables to recompute
+    recalcvars = os.environ['PYAVG_RECALC'].split(',') # colon separated list of variables to recompute
     if len(recalcvars) > 0 and len(recalcvars[0]) > 0: lrecalc = True # if there is a variable to recompute
     else: lrecalc = False
   # lrecalc uses the same pathway, but they can operate independently
