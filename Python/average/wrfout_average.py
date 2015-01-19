@@ -685,6 +685,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
               var = wrfout.variables[varname]
               tax = var.dimensions.index(wrftime) # index of time axis
               slices = [slice(None)]*len(var.shape) 
+              ioerror = "File: {:s}, Variable: {:s}, Folder: {:s}".format(filelist[filecounter], varname, infolder)                  
               # decide how to average
               ## Accumulated Variables
               if varname in acclist: 
@@ -693,7 +694,8 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
                 # compute mean as difference between end points; normalize by time difference
                 if ntime == 0: # first time step of the month
                   slices[tax] = wrfstartidx # relevant time interval
-                  tmp = var.__getitem__(slices)
+                  try: tmp = var.__getitem__(slices) # get array
+                  except: raise IOError, ioerror # informative IO Error 
                   if acclist[varname] is not None: # add bucket level, if applicable
                     bkt = wrfout.variables[bktpfx+varname]
                     tmp += bkt.__getitem__(slices) * acclist[varname]
@@ -707,7 +709,8 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
                 # N.B.: both, begin and end, can be in the same file, hence elif is not appropriate! 
                 if lcomplete: # last step
                   slices[tax] = wrfendidx # relevant time interval
-                  tmp = var.__getitem__(slices)
+                  try: tmp = var.__getitem__(slices) # get array
+                  except: raise IOError, ioerror # informative IO Error 
                   if acclist[varname] is not None: # add bucket level, if applicable 
                     bkt = wrfout.variables[bktpfx+varname]
                     tmp += bkt.__getitem__(slices) * acclist[varname]   
@@ -716,7 +719,8 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
                 if varname in pqset:
                   # compute mean via sum over all elements; normalize by number of time steps
                   slices[tax] = slice(wrfstartidx,wrfendidx) # relevant time interval
-                  tmp = var.__getitem__(slices)
+                  try: tmp = var.__getitem__(slices) # get array
+                  except: raise IOError, ioerror # informative IO Error 
                   if acclist[varname] is not None: # add bucket level, if applicable
                     bkt = wrfout.variables[bktpfx+varname]
                     tmp = tmp + bkt.__getitem__(slices) * acclist[varname]
@@ -728,7 +732,8 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
                 if wrfendidx > wrfstartidx:
                   # compute mean via sum over all elements; normalize by number of time steps
                   slices[tax] = slice(wrfstartidx,wrfendidx) # relevant time interval
-                  tmp = var.__getitem__(slices) # get array
+                  try: tmp = var.__getitem__(slices) # get array
+                  except: raise IOError, ioerror # informative IO Error 
                   if missing_value is not None:
                     # N.B.: missing value handling is really only necessary when missing values are time-dependent
                     tmp = np.where(tmp == missing_value, np.NaN, tmp) # set missing values to NaN
