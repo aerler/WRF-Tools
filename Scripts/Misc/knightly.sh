@@ -108,7 +108,8 @@ if [[ "${NOCOMPUTE}" != 'TRUE' ]]
     export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
     export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
     #"${PYTHON}/bin/python" -c "print 'OK'" 1> ${WRFDATA}/wrfavg.log 2> ${WRFDATA}/wrfavg.err # for debugging
-    nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/PyGeoDat/src/processing/wrfavg.py" &> ${WRFDATA}/wrfavg.log #2> ${WRFDATA}/wrfavg.err
+	  nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/PyGeoDat/src/processing/wrfavg.py" \
+	    &> ${WRFDATA}/wrfavg.log #2> ${WRFDATA}/wrfavg.err
     REPORT $? 'WRF Post-processing'
 fi # if no-compute
 
@@ -137,7 +138,8 @@ if [[ "${NOCOMPUTE}" != 'TRUE' ]]
     export PYAVG_THREADS=${PYAVG_THREADS:-4} # parallel execution
     export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
     export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
-    nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/PyGeoDat/src/processing/regrid.py" &> ${ROOT}/regrid.log #2> ${ROOT}/regrid.err
+	  nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/PyGeoDat/src/processing/regrid.py" \
+	     &> ${ROOT}/regrid.log #2> ${ROOT}/regrid.err
     REPORT $? 'Dataset Regridding'
     
     ## extract station data (all datasets)
@@ -146,7 +148,8 @@ if [[ "${NOCOMPUTE}" != 'TRUE' ]]
     export PYAVG_THREADS=${PYAVG_THREADS:-4} # parallel execution
     export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
     export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
-    nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/PyGeoDat/src/processing/exstns.py" &> ${ROOT}/exstns.log #2> ${ROOT}/exstns.err
+    nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/PyGeoDat/src/processing/exstns.py" \ 
+      &> ${ROOT}/exstns.log #2> ${ROOT}/exstns.err
     REPORT $? 'Station Data Extraction'
     
     ## average over regions (all datasets)
@@ -155,8 +158,9 @@ if [[ "${NOCOMPUTE}" != 'TRUE' ]]
     export PYAVG_THREADS=${PYAVG_THREADS:-4} # parallel execution
     export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
     export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
-    nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/PyGeoDat/src/processing/shpavg.py" &> ${ROOT}/exstns.log #2> ${ROOT}/exstns.err
-    REPORT $? 'Regional Averaging'
+	  nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/PyGeoDat/src/processing/shpavg.py" \
+	    &> ${ROOT}/shpavg.log #2> ${ROOT}/shpavg.err
+    REPORT $? 'Regional/Shape Averaging'
 fi # if no-compute
 
 # report
