@@ -81,7 +81,8 @@ export RSTINT=${RSTINT:-4} # jobs on Bugaboo run much longer than on other machi
 export RUNGEO=${RUNGEO:-"mpirun -n 4 ${BINDIR}/geogrid.exe"}
 
 # WPS/preprocessing submission command (for next step)
-export SUBMITWPS=${SUBMITWPS:-'ssh bugaboo "cd \"${INIDIR}\"; qsub ./${WPSSCRIPT} -v NEXTSTEP=${NEXTSTEP}"'} # use Python script to estimate queue time and choose queue
+#export SUBMITWPS=${SUBMITWPS:-'ssh bugaboo "cd \"${INIDIR}\"; qsub ./${WPSSCRIPT} -v NEXTSTEP=${NEXTSTEP}"'} # use Python script to estimate queue time and choose queue
+export SUBMITWPS=${SUBMITWPS:-'cd "${INIDIR}"; qsub ./${WPSSCRIPT} -v NEXTSTEP=${NEXTSTEP}'} # use Python script to estimate queue time and choose queue
 export WAITFORWPS=${WAITFORWPS:-'NO'} # stay on compute node until WPS for next step finished, in order to submit next WRF job
 
 # archive submission command (for last step)
@@ -89,11 +90,13 @@ export SUBMITAR=${SUBMITAR:-'echo "Automatic archiving is currently not availabl
 # N.B.: requires $ARTAG to be set in the launch script
 
 # averaging submission command (for last step in the interval)
-export SUBMITAVG=${SUBMITAVG:-'ssh bugaboo "cd \"${INIDIR}\"; qsub ./${AVGSCRIPT} -v PERIOD=${AVGTAG}"'} # evaluated by launchPostP
+#export SUBMITAVG=${SUBMITAVG:-'ssh bugaboo "cd \"${INIDIR}\"; qsub ./${AVGSCRIPT} -v PERIOD=${AVGTAG}"'} # evaluated by launchPostP
+export SUBMITAVG=${SUBMITAVG:-'cd "${INIDIR}"; qsub ./${AVGSCRIPT} -v PERIOD=${AVGTAG}'} # evaluated by launchPostP
 # N.B.: requires $AVGTAG to be set in the launch script
 
 # job submission command (for next step)
-export RESUBJOB=${RESUBJOB-'ssh bugaboo "cd \"${INIDIR}\"; qsub ./${WRFSCRIPT} -v NOWPS=${NOWPS},NEXTSTEP=${NEXTSTEP},RSTCNT=${RSTCNT}"'} # evaluated by resubJob
+#export RESUBJOB=${RESUBJOB-'ssh bugaboo "cd \"${INIDIR}\"; qsub ./${WRFSCRIPT} -v NOWPS=${NOWPS},NEXTSTEP=${NEXTSTEP},RSTCNT=${RSTCNT}"'} # evaluated by resubJob
+export RESUBJOB=${RESUBJOB-'cd "${INIDIR}"; qsub ./${WRFSCRIPT} -v NOWPS=${NOWPS},NEXTSTEP=${NEXTSTEP},RSTCNT=${RSTCNT}'} # evaluated by resubJob
 
 # sleeper job submission (for next step when WPS is delayed; should run on devel node)
 export SLEEPERJOB=${SLEEPERJOB-'ssh bugaboo "cd \"${INIDIR}\"; nohup ./${STARTSCRIPT} --restart=${NEXTSTEP} --name=${JOBNAME} &> ${STARTSCRIPT%.sh}_${JOBNAME}_${NEXTSTEP}.log &"'} # evaluated by resubJob; relaunches WPS
