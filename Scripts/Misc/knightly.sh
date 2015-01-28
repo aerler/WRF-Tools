@@ -148,6 +148,15 @@ if [[ "${NOCOMPUTE}" != 'TRUE' ]]
     export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
     nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/PyGeoDat/src/processing/exstns.py" &> ${ROOT}/exstns.log #2> ${ROOT}/exstns.err
     REPORT $? 'Station Data Extraction'
+    
+    ## average over regions (all datasets)
+    # same settings as wrfavg...
+    export PYAVG_BATCH=${PYAVG_BATCH:-'BATCH'} # run in batch mode - this should not be changed
+    export PYAVG_THREADS=${PYAVG_THREADS:-4} # parallel execution
+    export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
+    export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
+    nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/PyGeoDat/src/processing/shpavg.py" &> ${ROOT}/exstns.log #2> ${ROOT}/exstns.err
+    REPORT $? 'Regional Averaging'
 fi # if no-compute
 
 # report
