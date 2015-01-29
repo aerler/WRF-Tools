@@ -47,7 +47,7 @@ done # while getopts
 # environment
 export GDAL_DATA='/usr/local/share/gdal' # for GDAL API
 CODE="${CODE:-/home/data/Code/}" # code root
-export PYTHONPATH="${CODE}/PyGeoDat/src/:${CODE}/WRF Tools/Python/" # my own modules...
+export PYTHONPATH="${CODE}/PyGeoData/src/:${CODE}/WRF Tools/Python/" # my own modules...
 # scripts/executables
 PYTHON='/home/data/Enthought/EPD/' # path to Python home (do not export!)
 SCRIPTS="${CODE}/WRF Tools/Scripts/Misc/" # folder with all the scripts
@@ -138,7 +138,7 @@ if [[ "${NOCOMPUTE}" != 'TRUE' ]]
     export PYAVG_THREADS=${PYAVG_THREADS:-4} # parallel execution
     export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
     export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
-	  nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/PyGeoDat/src/processing/regrid.py" \
+	  nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/PyGeoData/src/processing/regrid.py" \
 	     &> ${ROOT}/regrid.log #2> ${ROOT}/regrid.err
     REPORT $? 'Dataset Regridding'
     
@@ -148,7 +148,7 @@ if [[ "${NOCOMPUTE}" != 'TRUE' ]]
     export PYAVG_THREADS=${PYAVG_THREADS:-4} # parallel execution
     export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
     export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
-    nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/PyGeoDat/src/processing/exstns.py" \ 
+    nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/PyGeoData/src/processing/exstns.py" \
       &> ${ROOT}/exstns.log #2> ${ROOT}/exstns.err
     REPORT $? 'Station Data Extraction'
     
@@ -158,7 +158,7 @@ if [[ "${NOCOMPUTE}" != 'TRUE' ]]
     export PYAVG_THREADS=${PYAVG_THREADS:-4} # parallel execution
     export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
     export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
-	  nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/PyGeoDat/src/processing/shpavg.py" \
+	  nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/PyGeoData/src/processing/shpavg.py" \
 	    &> ${ROOT}/shpavg.log #2> ${ROOT}/shpavg.err
     REPORT $? 'Regional/Shape Averaging'
 fi # if no-compute
