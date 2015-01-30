@@ -56,7 +56,7 @@ export ROOT='/data-3/'
 export WRFDATA="${ROOT}/WRF/" # local WRF data root
 export CESMDATA="${ROOT}/CESM/" # local CESM data root
 # general settings
-PYAVG_THREADS=${PYAVG_THREADS:-2} # prevent excessive heat...
+PYAVG_THREADS=${PYAVG_THREADS:-3} # prevent excessive heat...
 NICENESS=${NICENESS:-10}
 
 ## error reporting
