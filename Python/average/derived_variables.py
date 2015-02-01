@@ -540,15 +540,15 @@ class WetDaysMean(DerivedVariable):
 class WetDays(DerivedVariable):
   ''' DerivedVariable child for counting the fraction of rainy days for WRF output. '''
   
-  def __init__(self):
+  def __init__(self, ignoreNaN=False):
     ''' Initialize with fixed values; constructor takes no arguments. '''
     super(WetDays,self).__init__(name='WetDays', # name of the variable
                               units='', # fraction of days 
                               prerequisites=['RAIN'], # above threshold 
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
-                              dtype=dv_float, atts=None, linear=False) 
+                              dtype=dv_float, atts=None, linear=False, ignoreNaN=ignoreNaN) 
     
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
     ''' Count the number of events above a threshold. '''
     super(WetDays,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
     # check that delta does not change!
@@ -558,7 +558,7 @@ class WetDays(DerivedVariable):
           raise NotImplementedError, 'Output interval is assumed to be constant for conversion to days. (delta={:f})'.format(delta)
       else: tmp['WETDAYS_DELTA'] = delta # save and check next time
     # sampling does not have to be daily may not be daily
-    if ignoreNaN:
+    if self.ignoreNaN:
       outdata = np.where(indata['RAIN'] > dryday_threshold, 1,0) # comparisons with NaN always yield False
       outdata = np.where(np.isnan(indata['RAIN']), np.NaN,outdata)     
     else:
@@ -570,19 +570,19 @@ class WetDays(DerivedVariable):
 class FrostDays(DerivedVariable):
   ''' DerivedVariable child for counting the fraction of frost days for WRF output. '''
   
-  def __init__(self):
+  def __init__(self, ignoreNaN=False):
     ''' Initialize with fixed values; constructor takes no arguments. '''
     super(FrostDays,self).__init__(name='FrostDays', # name of the variable
                               units='', # fraction of days 
                               prerequisites=['T2MIN'], # below threshold
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
-                              dtype=dv_float, atts=None, linear=False) 
+                              dtype=dv_float, atts=None, linear=False, ignoreNaN=ignoreNaN) 
 
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
     ''' Count the number of events below a threshold (0 Celsius) '''
     super(FrostDays,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks    
     if delta != 86400.: raise ValueError, 'WRF extreme values are suppposed to be daily; encountered delta={:f}'.format(delta)
-    if ignoreNaN:
+    if self.ignoreNaN:
       outdata = np.where(indata['T2MIN'] < 273.15, 1,0) # comparisons with NaN always yield False
       outdata = np.where(np.isnan(indata['T2MIN']), np.NaN,outdata)     
     else:
@@ -946,7 +946,7 @@ class Vorticity(DerivedVariable):
 class Extrema(DerivedVariable):
   ''' DerivedVariable child implementing computation of extrema in monthly WRF output. '''
   
-  def __init__(self, var, mode, name=None, longname=None, dimmap=None):
+  def __init__(self, var, mode, name=None, longname=None, dimmap=None, ignoreNaN=False):
     ''' Constructor; takes variable object as argument and infers meta data. '''
     # construct name with prefix 'Max'/'Min' and camel-case
     if isinstance(var, DerivedVariable):
@@ -964,24 +964,24 @@ class Extrema(DerivedVariable):
     if name is None: name = '{0:s}{1:s}'.format(prefix,varname[0].upper() + varname[1:])
     # infer attributes of extreme variable
     super(Extrema,self).__init__(name=name, units=var.units, prerequisites=[varname], axes=axes, 
-                                 dtype=var.dtype, atts=atts, linear=False, normalize=False)
+                                 dtype=var.dtype, atts=atts, linear=False, normalize=False, ignoreNaN=ignoreNaN)
     self.mode = exmode
     self.tmpdata = None # don't need temporary storage 
 
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
     ''' Compute field of maxima '''
     super(Extrema,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
     # decide, what to do
     if self.mode == 1:
-      if ignoreNaN: outdata = np.nanmax(indata[self.prerequisites[0]], axis=aggax) # ignore NaNs
+      if self.ignoreNaN: outdata = np.nanmax(indata[self.prerequisites[0]], axis=aggax) # ignore NaNs
       else: outdata = np.max(indata[self.prerequisites[0]], axis=aggax) # compute maximum
     elif self.mode == 0:
-      if ignoreNaN: outdata = np.nanmin(indata[self.prerequisites[0]], axis=aggax) # ignore NaNs
+      if self.ignoreNaN: outdata = np.nanmin(indata[self.prerequisites[0]], axis=aggax) # ignore NaNs
       else: outdata = np.min(indata[self.prerequisites[0]], axis=aggax) # compute minimum
     # N.B.: already partially aggregating here, saves memory
     return outdata
   
-  def aggregateValues(self, comdata, aggdata=None, aggax=0, ignoreNaN=False):
+  def aggregateValues(self, comdata, aggdata=None, aggax=0):
     ''' Compute and aggregate values for non-linear over several input periods/files. '''
     # N.B.: linear variables can go through this chain as well, if it is a pre-requisite for non-linear variable
     if not isinstance(aggdata,np.ndarray) and aggdata is not None: raise TypeError # aggregate variable
@@ -996,10 +996,10 @@ class Extrema(DerivedVariable):
         aggdata = comdata # i.e. no intermediate accumulation step (already monthly data)
       else:
         if self.mode == 1: 
-          if ignoreNaN: aggdata = np.fmax(aggdata,comdata)
+          if self.ignoreNaN: aggdata = np.fmax(aggdata,comdata)
           else: aggdata = np.maximum(aggdata,comdata) # aggregate maxima
         elif self.mode == 0:
-          if ignoreNaN: aggdata = np.fmin(aggdata,comdata)
+          if self.ignoreNaN: aggdata = np.fmin(aggdata,comdata)
           else: aggdata = np.minimum(aggdata,comdata) # aggregate minima
     # return aggregated value for further treatment
     return aggdata
@@ -1009,7 +1009,7 @@ class Extrema(DerivedVariable):
 class ConsecutiveExtrema(Extrema):
   ''' Class of variables that tracks the period of exceedance of a threshold. '''
 
-  def __init__(self, var, mode, threshold=0, name=None, longname=None, dimmap=None):
+  def __init__(self, var, mode, threshold=0, name=None, longname=None, dimmap=None, ignoreNaN=False):
     ''' Constructor; takes variable object as argument and infers meta data. '''
     # construct name with prefix 'Max'/'Min' and camel-case
     if isinstance(var, DerivedVariable):
@@ -1031,7 +1031,7 @@ class ConsecutiveExtrema(Extrema):
     if isinstance(dimmap,dict): axes = [dimmap[dim] if dim in dimmap else dim for dim in axes]
     if name is None: name = '{0:s}{1:f}{2:s}'.format(prefix,threshold,varname[0].upper() + varname[1:])
     # infer attributes of consecutive extreme variable
-    super(Extrema,self).__init__(name=name, units='days', prerequisites=[varname], axes=axes, 
+    super(Extrema,self).__init__(name=name, units='days', prerequisites=[varname], axes=axes, ignoreNaN=ignoreNaN, 
                                  dtype=np.dtype('int16'), atts=atts, linear=False, normalize=False)    
     self.lengthofday = 86400. # delta's are in units of seconds (24 * 60 * 60)
     self.period = 0. # will be set later
@@ -1041,7 +1041,7 @@ class ConsecutiveExtrema(Extrema):
     self.tmpdata = 'COX_'+self.name # don't need temporary storage 
     self.carryover = True # don't stop counting - this is vital    
     
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
     ''' Count consecutive above/below threshold days '''
     super(Extrema,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
     # check that delta does not change!
@@ -1079,7 +1079,7 @@ class ConsecutiveExtrema(Extrema):
     # carry over current counter to next period or month
     tmp[self.tmpdata] = xcnt
     # return output for further aggregation
-    if ignoreNaN:
+    if self.ignoreNaN:
       maxdata = np.ma.masked_where(np.isnan(data).sum(axis=0) > 0, maxdata)
     return maxdata
   
@@ -1088,10 +1088,10 @@ class ConsecutiveExtrema(Extrema):
 class MeanExtrema(Extrema):
   ''' Extrema child implementing extrema of interval-averaged values in monthly WRF output. '''
   
-  def __init__(self, var, mode, interval=7, name=None, longname=None, dimmap=None):
+  def __init__(self, var, mode, interval=7, name=None, longname=None, dimmap=None, ignoreNaN=False):
     ''' Constructor; takes variable object as argument and infers meta data. '''
     # infer attributes of Maximum variable
-    super(MeanExtrema,self).__init__(var, mode, name=name, longname=longname, dimmap=dimmap)
+    super(MeanExtrema,self).__init__(var, mode, name=name, longname=longname, dimmap=dimmap, ignoreNaN=ignoreNaN)
     if len(self.prerequisites) > 1: raise ValueError, "Extrema can only have one Prerquisite"
     self.atts['name'] = self.name = '{0:s}_{1:d}d'.format(self.name,interval)
     self.atts['Aggregation'] = 'Averaged ' + self.atts['Aggregation']
@@ -1100,7 +1100,7 @@ class MeanExtrema(Extrema):
     self.tmpdata = 'MEX_'+self.name # handle for temporary storage
     self.carryover = True # don't drop data    
 
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
     ''' Compute field of maxima '''
     #if aggax != 0: raise NotImplementedError, 'Currently, interval averaging only works on the innermost dimension.'
     if delta == 0: raise ValueError, 'No interval to average over...'
@@ -1126,7 +1126,7 @@ class MeanExtrema(Extrema):
       datadict = {self.prerequisites[0]:meandata} # next method expects a dictionary...
       # find extrema as before (but aggregation axis was shifted to 0)
       outdata = super(MeanExtrema,self).computeValues(datadict, aggax=0, delta=delta, const=const, 
-                                                      tmp=None, ignoreNaN=ignoreNaN) # perform some type checks
+                                                      tmp=None) # perform some type checks
     else:
       rest = data # carry over everything
       outdata = None # nothing to return (handled in aggregation)
