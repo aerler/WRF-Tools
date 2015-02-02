@@ -1,0 +1,9 @@
+This is the grid definition that's shared between the WPS and WRF namelist
+&geogrid
+ parent_id         =    1,    1,
+ parent_grid_ratio =    1,    2,
+ i_parent_start    =    1,   32,
+ j_parent_start    =    1,   13,
+ e_we              =   81,   45,
+ e_sn              =   43,   36,
+/
