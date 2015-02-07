@@ -108,7 +108,7 @@ if [[ "${NOCOMPUTE}" != 'TRUE' ]]
     export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
     export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
     #"${PYTHON}/bin/python" -c "print 'OK'" 1> ${WRFDATA}/wrfavg.log 2> ${WRFDATA}/wrfavg.err # for debugging
-	  nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/PyGeoDat/src/processing/wrfavg.py" \
+	  nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/PyGeoData/src/processing/wrfavg.py" \
 	    &> ${WRFDATA}/wrfavg.log #2> ${WRFDATA}/wrfavg.err
     REPORT $? 'WRF Post-processing'
 fi # if no-compute
