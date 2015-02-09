@@ -557,13 +557,33 @@ class WetDays(DerivedVariable):
         if delta != tmp['WETDAYS_DELTA']: 
           raise NotImplementedError, 'Output interval is assumed to be constant for conversion to days. (delta={:f})'.format(delta)
       else: tmp['WETDAYS_DELTA'] = delta # save and check next time
-    # sampling does not have to be daily may not be daily
+    # sampling does not have to be daily
     if self.ignoreNaN:
       outdata = np.where(indata['RAIN'] > dryday_threshold, 1,0) # comparisons with NaN always yield False
       outdata = np.where(np.isnan(indata['RAIN']), np.NaN,outdata)     
     else:
       outdata = indata['RAIN'] > dryday_threshold # definition according to AMS Glossary: precip > 0.02 mm/day
     # N.B.: this is actually the fraction of wet days in a month (i.e. not really days)      
+    return outdata
+
+
+class WetDayPrecip(DerivedVariable):
+  ''' DerivedVariable child for precipitation amounts on rainy days for WRF output. '''
+  
+  def __init__(self, ignoreNaN=False):
+    ''' Initialize with fixed values; constructor takes no arguments. '''
+    super(WetDayPrecip,self).__init__(name='WetDayPrecip', # name of the variable
+                              units='', # fraction of days 
+                              prerequisites=['RAIN','WetDays'], # above threshold 
+                              axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
+                              dtype=dv_float, atts=None, linear=True, ignoreNaN=ignoreNaN) 
+    
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+    ''' Count the number of events above a threshold. '''
+    super(WetDayPrecip,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
+    # compute monthly wet-day-precip as a quasi-linear operation at the end of each month 
+    outdata = np.where(indata['WetDays'] == 0, 0., indata['RAIN'] / indata['WetDays'])
+    # N.B.: WetDays is actually the fraction of wet days in a month (i.e. not really days)      
     return outdata
 
 
