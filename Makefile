@@ -68,7 +68,7 @@ bin/gribSpectra.o: Fortran/gribSpectra.f90
 	mv gribSpectra.o bin/
 
 ## build read_wrf_nc to change landuse parameters in geogrid
-read_wrf_nc: read_wrf_nc
+#read_wrf_nc: read_wrf_nc
 
 read_wrf_nc: bin/read_wrf_nc.o
 	$(FC) $(FCFLAGS) -o bin/$@ $^ $(NC_LIB)

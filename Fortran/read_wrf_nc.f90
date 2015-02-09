@@ -1632,6 +1632,22 @@ END MODULE map_utils
   elseif ( var == 'TH2') then             ! change TH2 to 273.00  - this is for 3dvar
                                           !                 double precision fields
       data_dp_real = 273.0
+  elseif ( var == 'LU_INDEX') then        ! change landuse types (forest to cropland)
+    where (data_real .eq. 5.)             ! cropland to dryland
+      data_real = 2.
+    endwhere
+    where (data_real .eq. 6.)             ! woodland mosaic to cropland
+      data_real = 5.
+    endwhere
+    where (data_real .eq. 11.)            ! Deciduous Broadleaf to woodland mosaic
+      data_real = 6.
+    endwhere
+    where (data_real .eq. 14.)            ! Evergreen Needleleaf to cropland
+      data_real = 5.
+    endwhere
+    where (data_real .eq. 15.)            ! Mixed Forest to cropland
+      data_real = 5.
+    endwhere
   else
     print*,"Variable given was not one of above - so no change will be"
     print*,"  made to any variables"
