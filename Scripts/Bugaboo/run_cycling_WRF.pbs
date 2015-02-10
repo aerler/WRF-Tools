@@ -6,7 +6,7 @@
 #PBS -l procs=128
 #PBS -l pmem=1000MB
 #PBS -l feature=x5650
-#PBS -l walltime=360:00:00
+#PBS -l walltime=420:00:00
 # std and error output
 #PBS -j oe
 #PBS -o $PBS_JOBNAME.$PBS_JOBID.out
