@@ -44,6 +44,14 @@ while true; do
   esac # case $@
 done # while getopts  
 
+## check if we are already running
+if [ $( ps -A | grep -c ${0##*/} ) -gt 2 ]; then
+  echo
+  echo "An instance of '${0##*/}' already appears to be running --- aborting!"
+  echo 
+  exit 1
+fi # if already running, exit
+
 # environment
 export GDAL_DATA='/usr/local/share/gdal' # for GDAL API
 CODE="${CODE:-/home/data/Code/}" # code root
