@@ -131,6 +131,8 @@ else # $SIMPLE != 1, i.e. change stability parameters
     NEW_DELT='20'; NEW_EPSS='0.9'; NEW_DIFF='0.06'; NEW_DAMP='0.06'; NEW_SNDT='6'
   elif [[ "$CUR_DELT" == '20' ]] && [[ "$CUR_EPSS" < '.95' ]]; then 
     NEW_DELT='15'; NEW_EPSS='0.99'; NEW_DIFF='0.15'; NEW_DAMP='0.15'; NEW_SNDT='8'
+  elif [[ "$CUR_DELT" == '15' ]] && [[ "$CUR_EPSS" < '.99' ]]; then 
+    NEW_DELT='10'; NEW_EPSS='1.00'; NEW_DIFF='0.15'; NEW_DAMP='0.15'; NEW_SNDT='8'
   else #if [[ $FORCE != 1 ]]; then
     echo "Current parameters: NEXTSTEP=${CURRENTSTEP}; NOWPS=${NOWPS}; TIME_STEP=${CUR_DELT}; EPSSM=${CUR_EPSS}"
     echo 'ERROR: No applicable set of parameters found!'
