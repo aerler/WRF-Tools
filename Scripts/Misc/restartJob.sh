@@ -114,7 +114,9 @@ else # $SIMPLE != 1, i.e. change stability parameters
 	ERR=$(( ${ERR} + $? )) # capture exit code
 
   ## define new stability parameters
-  if [[ "$CUR_DELT" == '150' ]]; then
+  if [[ "$CUR_DELT" == '180' ]]; then
+    NEW_DELT='150'; NEW_EPSS='0.75'
+  elif [[ "$CUR_DELT" == '150' ]]; then
     NEW_DELT='120'; NEW_EPSS='0.75'; NEW_SNDT='5'
   elif [[ "$CUR_DELT" == '120' ]]; then
     NEW_DELT='90'; NEW_EPSS='0.85'; NEW_DAMP='0.06'; NEW_SNDT='6'
