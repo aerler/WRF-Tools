@@ -23,14 +23,14 @@ while true; do
     -h | --help        )   echo -e " \
                             \n\
     -s | --highspeed     whether or not to use the high-speed datamover connection (default: False)\n\
-    -n | --niceness      nicesness of the sub-processes (default: +5)\n\
+    -n | --niceness      nicesness of the sub-processes (default: +10)\n\
          --from-home     use code from user $HOME instead of default (/home/data/Code)\n\
          --no-scinet     skip all downloads from SciNet\n\
          --no-komputer   skip all downloads from komputer (workstation)\n\
          --no-datasets   skip download of observational datasets\n\
          --no-cesm       skip download of CESM data\n\
          --no-wrf        skip download of WRF data\n\
-         -h | --help          print this help \n\
+    -h | --help          print this help \n\
                              "; exit 0;; # \n\ == 'line break, next line'; for syntax highlighting
     -- ) shift; break;; # this terminates the argument list, if GNU getopt is used
     * ) break;;
