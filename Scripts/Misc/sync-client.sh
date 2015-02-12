@@ -95,9 +95,19 @@ if [[ "${NOKOMPUTER}" != 'TRUE' ]] && [[ "${NOCESM}" != 'TRUE' ]]; then
   export RESTORE='FALSE'
   export DIAGS='NONE'
   export CVDP='NONE'
-  export FILETYPES='cesm*_ec*_monthly.nc cesm*_clim_*.nc'
+  export FILETYPES='cesm*_clim_*.nc'
   nice --adjustment=${NICENESS} "${SCRIPTS}/sync-cesm.sh" &>> ${CESMDATA}/sync-cesm.log #2>> ${CESMDATA}/sync-cesm.err # 2>&1
   REPORT $? 'CESM Climatologies' 
+fi # if not $NOKOMPUTER
+# stations etc. from komputer
+if [[ "${NOKOMPUTER}" != 'TRUE' ]] && [[ "${NOCESM}" != 'TRUE' ]]; then
+  export HOST='komputer'
+  export RESTORE='FALSE'
+  export DIAGS='NONE'
+  export CVDP='NONE'
+  export FILETYPES='cesm*_ec*_*.nc cesm*_shpavg_*.nc'
+  nice --adjustment=${NICENESS} "${SCRIPTS}/sync-cesm.sh" &>> ${CESMDATA}/sync-cesm.log #2>> ${CESMDATA}/sync-cesm.err # 2>&1
+  REPORT $? 'CESM Stations etc.' 
 fi # if not $NOKOMPUTER
 
 
@@ -115,10 +125,18 @@ fi # if not $NOSCINET
 # climatologies etc. from komputer
 if [[ "${NOKOMPUTER}" != 'TRUE' ]] && [[ "${NOWRF}" != 'TRUE' ]]; then
   export HOST='komputer'
-  export FILETYPES='wrf*_ec*_monthly.nc wrf*_shpavg_*.nc wrf*_d02_clim_*.nc wrf*_d02_arb2_d02_clim_*.nc'
+  export FILETYPES='wrf*_d02_clim_*.nc wrf*_d02_arb2_d02_clim_*.nc'
   export REX='max-ctrl* max-ens-* max-ensemble* old-ctrl* new-ctrl* ctrl* max-seaice* erai-max max-1deg*'
   nice --adjustment=${NICENESS} "${SCRIPTS}/sync-wrf.sh" &>> ${WRFDATA}/sync-wrf.log #2> ${WRFDATA}/sync-wrf.err # 2>&1
   REPORT $? 'WRF Climatologies' 
+fi # if not $NOKOMPUTER
+# stations etc. from komputer
+if [[ "${NOKOMPUTER}" != 'TRUE' ]] && [[ "${NOWRF}" != 'TRUE' ]]; then
+  export HOST='komputer'
+  export FILETYPES='wrf*_ec*_*.nc wrf*_shpavg_*.nc'
+  export REX='*-*'
+  nice --adjustment=${NICENESS} "${SCRIPTS}/sync-wrf.sh" &>> ${WRFDATA}/sync-wrf.log #2> ${WRFDATA}/sync-wrf.err # 2>&1
+  REPORT $? 'WRF Stations etc.' 
 fi # if not $NOKOMPUTER
 
 
