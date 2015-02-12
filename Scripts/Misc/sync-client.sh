@@ -82,13 +82,19 @@ fi # if not $NOSCINET
 rm -f ${CESMDATA}/sync-cesm.log 
 # diagnostics and ensembles from SciNet
 if [[ "${NOSCINET}" != 'TRUE' ]] && [[ "${NOCESM}" != 'TRUE' ]]; then
-  export RESTORE='RESTORE'; export FILETYPES='NONE'; export DIAGS='diag cvdp'
+  export HOST='scinet'
+  export RESTORE='RESTORE'
+  export FILETYPES='NONE'
+  export DIAGS='diag cvdp'
   nice --adjustment=${NICENESS} "${SCRIPTS}/sync-cesm.sh" &>> ${CESMDATA}/sync-cesm.log #2> ${CESMDATA}/sync-cesm.err # 2>&1
   REPORT $? 'CESM Diagnostics from SciNet' 
 fi # if not $NOSCINET
 # climatologies etc. from komputer
 if [[ "${NOKOMPUTER}" != 'TRUE' ]] && [[ "${NOCESM}" != 'TRUE' ]]; then
-  export HOST='komputer'; export RESTORE='FALSE'; export DIAGS='NONE'; export CVDP='NONE'
+  export HOST='komputer'
+  export RESTORE='FALSE'
+  export DIAGS='NONE'
+  export CVDP='NONE'
   export FILETYPES='cesm*_ec*_monthly.nc cesm*_clim_*.nc'
   nice --adjustment=${NICENESS} "${SCRIPTS}/sync-cesm.sh" &>> ${CESMDATA}/sync-cesm.log #2>> ${CESMDATA}/sync-cesm.err # 2>&1
   REPORT $? 'CESM Climatologies' 
@@ -99,14 +105,18 @@ fi # if not $NOKOMPUTER
 rm -f ${WRFDATA}/sync-wrf.log
 # monthly files from SciNet
 if [[ "${NOSCINET}" != 'TRUE' ]] && [[ "${NOWRF}" != 'TRUE' ]]; then
-  export REX=${REX:-'max-ctrl*'}; export STATIC='FALSE'
+  export HOST='scinet' 
+  export REX='max-ctrl*'
+  export FILETYPES='wrf*_d0?_monthly.nc'
+  export STATIC='FALSE'
   nice --adjustment=${NICENESS} "${SCRIPTS}/sync-wrf.sh" &>> ${WRFDATA}/sync-wrf.log #2> ${WRFDATA}/sync-wrf.err # 2>&1
   REPORT $? 'WRF Monthly from SciNet' 
 fi # if not $NOSCINET
 # climatologies etc. from komputer
 if [[ "${NOKOMPUTER}" != 'TRUE' ]] && [[ "${NOWRF}" != 'TRUE' ]]; then
-  export HOST='komputer'; export FILETYPES='wrf*_ec*_monthly.nc wrf*_shpavg_*.nc wrf*_d02_clim_*.nc wrf*_d02_arb2_d02_clim_*.nc'
-  export REX=${REX:-'max-ctrl* max-ens-* max-ensemble* old-ctrl* new-ctrl* ctrl* max-seaice* erai-max max-1deg*'}; 
+  export HOST='komputer'
+  export FILETYPES='wrf*_ec*_monthly.nc wrf*_shpavg_*.nc wrf*_d02_clim_*.nc wrf*_d02_arb2_d02_clim_*.nc'
+  export REX='max-ctrl* max-ens-* max-ensemble* old-ctrl* new-ctrl* ctrl* max-seaice* erai-max max-1deg*'
   nice --adjustment=${NICENESS} "${SCRIPTS}/sync-wrf.sh" &>> ${WRFDATA}/sync-wrf.log #2> ${WRFDATA}/sync-wrf.err # 2>&1
   REPORT $? 'WRF Climatologies' 
 fi # if not $NOKOMPUTER
