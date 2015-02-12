@@ -573,7 +573,7 @@ class WetDayPrecip(DerivedVariable):
   def __init__(self, ignoreNaN=False):
     ''' Initialize with fixed values; constructor takes no arguments. '''
     super(WetDayPrecip,self).__init__(name='WetDayPrecip', # name of the variable
-                              units='', # fraction of days 
+                              units='kg/m^2/s', # fraction of days 
                               prerequisites=['RAIN','WetDays'], # above threshold 
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype=dv_float, atts=None, linear=True, ignoreNaN=ignoreNaN) 
