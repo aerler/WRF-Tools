@@ -194,7 +194,8 @@ derived_variables['plev3d'] = [dv.OrographicIndexPlev(), dv.Vorticity(), dv.Wate
                                dv.WaterFlux_U(), dv.WaterFlux_V(), dv.ColumnWater(), 
                                dv.WaterTransport_U(), dv.WaterTransport_V(),
                                dv.HeatFlux_U(), dv.HeatFlux_V(), dv.ColumnHeat(), 
-                               dv.HeatTransport_U(),dv.HeatTransport_V()]
+                               dv.HeatTransport_U(),dv.HeatTransport_V(),
+                               dv.GHT_Var(), dv.Vorticity_Var()]
 # N.B.: derived variables need to be listed in order of computation
 consecutive_variables = {filetype:None for filetype in filetypes} # consecutive variable lists by file type
 # Consecutive exceedance variables

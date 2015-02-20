@@ -960,6 +960,47 @@ class Vorticity(DerivedVariable):
     return outdata
 
 
+class Vorticity_Var(DerivedVariable):
+  ''' DerivedVariable child for computing the variance of relative vorticity. '''
+  
+  def __init__(self):
+    ''' Initialize with fixed values; constructor takes no arguments. '''
+    super(Vorticity_Var,self).__init__(name='Vorticity_Var', # name of the variable
+                              units='1/s^2', 
+                              prerequisites=['Vorticity'],
+                              axes=('time','num_press_levels_stag','south_north','west_east'), # dimensions of NetCDF variable 
+                              dtype=dv_float, atts=None, linear=False) 
+
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
+    ''' Project surface winds onto topographic gradient. '''
+    super(Vorticity_Var,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
+    # compute variance without subtracting the mean
+    outdata = indata['Vorticity']**2
+    # N.B.: to get actual variance, the square of the mean has to be subtracted after the final stage of aggregation
+    return outdata
+
+
+class GHT_Var(DerivedVariable):
+  ''' DerivedVariable child for computing the variance of geopotential height on pressure levels. '''
+  
+  def __init__(self):
+    ''' Initialize with fixed values; constructor takes no arguments. '''
+    super(GHT_Var,self).__init__(name='GHT_Var', # name of the variable
+                              units='m^2', 
+                              prerequisites=['GHT_PL'],
+                              axes=('time','num_press_levels_stag','south_north','west_east'), # dimensions of NetCDF variable 
+                              dtype=dv_float, atts=None, linear=False) 
+
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
+    ''' Project surface winds onto topographic gradient. '''
+    super(GHT_Var,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
+    # compute variance without subtracting the mean
+    outdata = indata['GHT_PL']**2
+    # N.B.: to get actual variance, the square of the mean has to be subtracted after the final stage of aggregation
+    return outdata
+
+
+
 ## extreme values
 
 # base class for extrema
