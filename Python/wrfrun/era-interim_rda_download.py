@@ -12,19 +12,24 @@ import pandas
 #
 lverbose=True
 lnoclobber=False
+args = []
 for arg in sys.argv[1:]:
   if arg == '-q': lverbose = False
   elif arg == '-n': lnoclobber = True
-  elif arg == '-h':
+  elif arg == '-h' or arg == '--help':
     print ''
-    print "usage: "+sys.argv[0]+" [-q] [-n] [-h] password_on_RDA_webserver"
+    print "usage: "+sys.argv[0]+" [-q] [-n] [-h] password_on_RDA_webserver begin-date end-date"
     print ''
     print "  -q   suppresses the progress message for each file that is downloaded"
     print "  -n   skips existing files (no-clobber)"
     print "  -h   print this message"
     print ''
     sys.exit(1)    
-  else: passwd = arg
+  else: args.append(arg)
+# assign arguments
+passwd, begindate, enddate = args # any pandas-compatible date string is probably fine
+
+# check password
 if (len(sys.argv) == 3 and sys.argv[1] == "-q"):
   passwd_idx=2
   verbose=False
@@ -72,8 +77,8 @@ for localfolder in localfolders.itervalues():
   if not os.path.exists(localfolder): os.mkdir(localfolder)
 
 # date settings
-begin = pandas.datetime(1999, 1, 1)
-end   = pandas.datetime(2000, 1, 1)
+begin = pandas.to_datetime(begindate)
+end   = pandas.to_datetime(enddate)
 freq  = '6H' # every 6 hours
 datelist = pandas.date_range(begin, end, freq=freq)
 # iterate over dates
