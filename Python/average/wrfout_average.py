@@ -22,7 +22,7 @@ from collections import OrderedDict
 import os, re, sys, shutil, gc
 import netCDF4 as nc
 # my own netcdf stuff
-from geodata.nctools import add_coord, copy_dims, copy_ncatts, copy_vars
+from utils.nctools import add_coord, copy_dims, copy_ncatts, copy_vars
 from processing.multiprocess import asyncPoolEC
 # import module providing derived variable classes
 import average.derived_variables as dv

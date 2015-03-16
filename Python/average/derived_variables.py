@@ -19,7 +19,7 @@ from numexpr import evaluate, set_num_threads, set_vml_num_threads
 # numexpr parallelisation: don't parallelize at this point!
 set_num_threads(1); set_vml_num_threads(1)
 # my own netcdf stuff
-from geodata.nctools import add_var
+from utils.nctools import add_var
 # days per month without leap days (duplicate from datasets.common) 
 days_per_month_365 = np.array([31,28,31,30,31,30,31,31,30,31,30,31])
 # N.B.: importing from datasets.common causes problems with GDAL, if it is not installed

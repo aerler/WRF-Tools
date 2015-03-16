@@ -13,7 +13,7 @@ from numpy import arange, array, zeros
 import os, re, sys
 # import netCDF4-python and added functionality
 from netCDF4 import Dataset
-from geodata.nctools import add_coord, copy_dims, copy_ncatts, copy_vars
+from utils.nctools import add_coord, copy_dims, copy_ncatts, copy_vars
 #from netcdf import Dataset, copy_ncatts, copy_vars, copy_dims, add_coord
 
 
