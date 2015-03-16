@@ -160,7 +160,7 @@ filetypes = filetypes or ['srfc', 'plev3d', 'xtrm', 'hydro', 'lsm']
 domains = domains or [1,2,3,4] 
 # filetypes and domains can also be set in an semi-colon-separated environment variable (see above)
 # file pattern (WRF output and averaged files)
-# inputpattern = 'wrf{0:s}_d{1:02d}_{2:s}-{3:s}-{4:s}_\d\d:\d\d:\d\d.nc' # expanded with format(type,domain,year,month)
+# inputpattern = 'wrf{0:s}_d{1:02d}_{2:s}-{3:s}-{4:s}_\d\d:\d\d:\d\d.nc' # expanded with format(type,domain,year,month) 
 inputpattern = 'wrf{0:s}_d{1:02d}_{2:s}_\d\d[_:]\d\d[_:]\d\d.*' # expanded with format(type,domain,datestring)
 constpattern = 'wrfconst_d{0:02d}.*' # expanded with format(domain), also WRF output
 outputpattern = 'wrf{0:s}_d{1:02d}_monthly.nc' # expanded with format(type,domain)
@@ -681,7 +681,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
             if varname not in wrfout.variables:
               logger.info("{:s} Variable {:s} missing in file '{:s}' - filling with NaN!".format(pidstr,varname,filelist[filecounter]))
               data[varname] *= np.NaN # turn everything into NaN, if variable is missing  
-	      # N.B.: this can happen, when an output stream was reconfigured between cycle steps
+	            # N.B.: this can happen, when an output stream was reconfigured between cycle steps
             else:
               var = wrfout.variables[varname]
               tax = var.dimensions.index(wrftime) # index of time axis
@@ -953,7 +953,7 @@ if __name__ == '__main__':
   datergx = re.compile(datestr)
     
   # get file list
-  wrfrgx = re.compile('wrf.*_d\d\d_{0:s}_\d\d:\d\d:\d\d.nc'.format(datestr,))
+  wrfrgx = re.compile(inputpattern.format('.*','\d\d',datestr,)) # for initial search (all filetypes)
   # regular expression to match the name pattern of WRF timestep output files
   masterlist = [wrfrgx.match(filename) for filename in os.listdir(infolder)] # list folder and match
   masterlist = [match.group() for match in masterlist if match is not None] # assemble valid file list
