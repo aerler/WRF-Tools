@@ -162,7 +162,8 @@ domains = domains or [1,2,3,4]
 # file pattern (WRF output and averaged files)
 # inputpattern = 'wrf{0:s}_d{1:02d}_{2:s}-{3:s}-{4:s}_\d\d:\d\d:\d\d.nc' # expanded with format(type,domain,year,month) 
 inputpattern = 'wrf{0:s}_d{1:s}_{2:s}_\d\d[_:]\d\d[_:]\d\d.*' # expanded with format(type,domain,datestring)
-constpattern = 'wrfconst_d{0:02d}.*' # expanded with format(domain), also WRF output
+constpattern = 'wrfconst_d{0:02d}' # expanded with format(domain), also WRF output
+# N.B.: file extension is added automatically for constpattern and handled by regex for inputpattern 
 outputpattern = 'wrf{0:s}_d{1:02d}_monthly.nc' # expanded with format(type,domain)
 # variable attributes
 wrftime = 'Time' # time dim in wrfout files
@@ -500,6 +501,8 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
   lconst = len(cset) > 0
   if lconst:
     constfile = infolder+constpattern.format(ndom)
+    if not os.path.exists(constfile): constfile += '.nc' # try with extension
+    if not os.path.exists(constfile): raise IOError, "No constants file found! ({:s})".format(constfile)
     logger.debug("\n{0:s} Opening constants file '{1:s}'.\n".format(pidstr,constfile))
     wrfconst = nc.Dataset(constfile, 'r', format='NETCDF4')
     # constant variables
@@ -681,7 +684,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
             if varname not in wrfout.variables:
               logger.info("{:s} Variable {:s} missing in file '{:s}' - filling with NaN!".format(pidstr,varname,filelist[filecounter]))
               data[varname] *= np.NaN # turn everything into NaN, if variable is missing  
-	            # N.B.: this can happen, when an output stream was reconfigured between cycle steps
+              # N.B.: this can happen, when an output stream was reconfigured between cycle steps
             else:
               var = wrfout.variables[varname]
               tax = var.dimensions.index(wrftime) # index of time axis
