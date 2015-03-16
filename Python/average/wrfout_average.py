@@ -161,7 +161,7 @@ domains = domains or [1,2,3,4]
 # filetypes and domains can also be set in an semi-colon-separated environment variable (see above)
 # file pattern (WRF output and averaged files)
 # inputpattern = 'wrf{0:s}_d{1:02d}_{2:s}-{3:s}-{4:s}_\d\d:\d\d:\d\d.nc' # expanded with format(type,domain,year,month) 
-inputpattern = 'wrf{0:s}_d{1:02d}_{2:s}_\d\d[_:]\d\d[_:]\d\d.*' # expanded with format(type,domain,datestring)
+inputpattern = 'wrf{0:s}_d{1:s}_{2:s}_\d\d[_:]\d\d[_:]\d\d.*' # expanded with format(type,domain,datestring)
 constpattern = 'wrfconst_d{0:02d}.*' # expanded with format(domain), also WRF output
 outputpattern = 'wrf{0:s}_d{1:02d}_monthly.nc' # expanded with format(type,domain)
 # variable attributes
@@ -965,7 +965,8 @@ if __name__ == '__main__':
     # make list of files
     filelist = []
     for domain in domains:
-      typergx = re.compile(inputpattern.format(filetype, domain, datestr))
+      typergx = re.compile(inputpattern.format(filetype,"{:02d}".format(domain), datestr))
+      # N.B.: domain has to be inserted as string, because above it is replaced by a regex
       # regular expression to also match type and domain index
       filelist = [typergx.match(filename) for filename in masterlist] # list folder and match
       filelist = [match.group() for match in filelist if match is not None] # assemble valid file list
