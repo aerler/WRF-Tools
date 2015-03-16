@@ -161,8 +161,8 @@ domains = domains or [1,2,3,4]
 # filetypes and domains can also be set in an semi-colon-separated environment variable (see above)
 # file pattern (WRF output and averaged files)
 # inputpattern = 'wrf{0:s}_d{1:02d}_{2:s}-{3:s}-{4:s}_\d\d:\d\d:\d\d.nc' # expanded with format(type,domain,year,month)
-inputpattern = 'wrf{0:s}_d{1:02d}_{2:s}_\d\d:\d\d:\d\d.nc' # expanded with format(type,domain,datestring)
-constpattern = 'wrfconst_d{0:02d}.nc' # expanded with format(domain), also WRF output
+inputpattern = 'wrf{0:s}_d{1:02d}_{2:s}_\d\d[_:]\d\d[_:]\d\d.*' # expanded with format(type,domain,datestring)
+constpattern = 'wrfconst_d{0:02d}.*' # expanded with format(domain), also WRF output
 outputpattern = 'wrf{0:s}_d{1:02d}_monthly.nc' # expanded with format(type,domain)
 # variable attributes
 wrftime = 'Time' # time dim in wrfout files
