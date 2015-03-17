@@ -69,6 +69,11 @@ else: NP = None
 if os.environ.has_key('PYAVG_DERIVEDONLY'): 
   lderivedonly =  os.environ['PYAVG_DERIVEDONLY'] == 'DERIVEDONLY' 
 else: lderivedonly = False # i.e. all
+# scale dry-day threshold 
+if os.environ.has_key('PYAVG_DRYDAY'): 
+  dryday_correction =  float(os.environ['PYAVG_DRYDAY'])
+  dv.dryday_threshold = dv.dryday_threshold * dryday_correction # precip treshold for a dry day: 2.3e-7 mm/s
+  print("\n   ***   The dry-day threshold was increased by a factor of {:3.2f}   ***   \n".format(dryday_correction))
 # recompute last timestep and continue (usefule after a crash)  
 if os.environ.has_key('PYAVG_RECOVER'): 
   lrecover =  os.environ['PYAVG_RECOVER'] == 'RECOVER' 
@@ -184,12 +189,13 @@ bktpfx = 'I_' # prefix for bucket variables; these are processed together with t
 
 # derived variables
 derived_variables = {filetype:[] for filetype in filetypes} # derived variable lists by file type
-derived_variables['srfc']   = [dv.Rain(), dv.LiquidPrecipSR(), dv.SolidPrecipSR(), dv.WetDays(),
-                               dv.WetDayPrecip(), dv.NetPrecip_Srfc(), dv.WaterVapor(), 
-                               dv.OrographicIndex(), dv.CovOIP()]
+derived_variables['srfc']   = [dv.Rain(), dv.LiquidPrecipSR(), dv.SolidPrecipSR(), 
+                               dv.WetDays(), dv.WetDayRain(), dv.WetDayPrecip(), dv.NetPrecip_Srfc(), 
+                               dv.WaterVapor(), dv.OrographicIndex(), dv.CovOIP()]
 derived_variables['xtrm']   = [dv.RainMean(), dv.WetDaysMean(), dv.FrostDays(), dv.TimeOfConvection()]
-derived_variables['hydro']  = [dv.Rain(), dv.LiquidPrecip(), dv.SolidPrecip(), dv.WetDays(),                            
-                               dv.WetDayPrecip(), dv.NetPrecip_Hydro(), dv.NetWaterFlux()]
+derived_variables['hydro']  = [dv.Rain(), dv.LiquidPrecip(), dv.SolidPrecip(), 
+                               dv.WetDays(), dv.WetDayRain(), dv.WetDayPrecip(), 
+                               dv.NetPrecip_Hydro(), dv.NetWaterFlux()]
 derived_variables['lsm']    = [dv.RunOff()]
 derived_variables['plev3d'] = [dv.OrographicIndexPlev(), dv.Vorticity(), dv.WaterDensity(),
                                dv.WaterFlux_U(), dv.WaterFlux_V(), dv.ColumnWater(), 

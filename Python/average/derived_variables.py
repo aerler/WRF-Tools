@@ -567,6 +567,25 @@ class WetDays(DerivedVariable):
     return outdata
 
 
+class WetDayRain(DerivedVariable):
+  ''' DerivedVariable child for precipitation amounts exceeding the rainy day threshold. '''  
+  def __init__(self, ignoreNaN=False):
+    ''' Initialize with fixed values; constructor takes no arguments. '''
+    super(WetDayRain,self).__init__(name='WetDayRain', # name of the variable
+                              units='kg/m^2/s', # fraction of days 
+                              prerequisites=['RAIN','WetDays'], # above threshold 
+                              axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
+                              dtype=dv_float, atts=None, linear=False, ignoreNaN=ignoreNaN) 
+    
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+    ''' Count the number of events above a threshold. '''
+    super(WetDayRain,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
+    # just set precip to zero if it is below a threshold 
+    outdata = np.where(indata['WetDays'] == 0, 0., indata['RAIN'])
+    # N.B.: WetDays is actually the fraction of wet days in a month (i.e. not really days)      
+    return outdata
+
+
 class WetDayPrecip(DerivedVariable):
   ''' DerivedVariable child for precipitation amounts on rainy days for WRF output. '''
   
@@ -574,7 +593,7 @@ class WetDayPrecip(DerivedVariable):
     ''' Initialize with fixed values; constructor takes no arguments. '''
     super(WetDayPrecip,self).__init__(name='WetDayPrecip', # name of the variable
                               units='kg/m^2/s', # fraction of days 
-                              prerequisites=['RAIN','WetDays'], # above threshold 
+                              prerequisites=['WetDayRain','WetDays'], # above threshold 
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype=dv_float, atts=None, linear=True, ignoreNaN=ignoreNaN) 
     
