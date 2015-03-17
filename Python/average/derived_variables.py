@@ -601,7 +601,7 @@ class WetDayPrecip(DerivedVariable):
     ''' Count the number of events above a threshold. '''
     super(WetDayPrecip,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
     # compute monthly wet-day-precip as a quasi-linear operation at the end of each month 
-    outdata = np.where(indata['WetDays'] == 0, 0., indata['RAIN'] / indata['WetDays'])
+    outdata = np.where(indata['WetDays'] == 0, 0., indata['WetDayRain'] / indata['WetDays'])
     # N.B.: WetDays is actually the fraction of wet days in a month (i.e. not really days)      
     return outdata
 
