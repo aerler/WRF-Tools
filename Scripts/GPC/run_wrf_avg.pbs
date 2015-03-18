@@ -60,7 +60,8 @@ else
     module load udunits/2.1.11 nco/4.0.8-intel-nocxx
     ~/Scripts/addVariable.sh 'ACSNOW'
     ~/Scripts/addVariable.sh 'SR'
-
+    ~/Scripts/addVariable.sh 'T2MEAN' # this variable will be removed!
+    
     # launch actual averaging script
     time -p python "${SCRIPTDIR}/${PYAVG}"
     ERR=$? # capture exit code

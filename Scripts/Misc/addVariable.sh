@@ -4,7 +4,7 @@
 
 # load module
 # module load netcdf nco
-module list
+#module list
 
 # settings
 SRCDIR="${PWD}/wrfout/"
@@ -33,6 +33,14 @@ elif [[ "${VARNM}" == 'ACSNOW' ]]; then
 	DIM='' # same time intervall
 	SRCPFX='wrflsm'
 	DSTPFX='wrfhydro'
+#elif [[ "${VARNM}" == 'T2MEAN' ]]; then
+  #  DIM='' # same time intervall
+  #SRCPFX='wrfxtrm' # add variable to hydro (from xtrm)
+  #DSTPFX='wrfhydro'
+elif [[ "${VARNM}" == 'T2MEAN' ]]; then
+  DIM='' # same time intervall
+  SRCPFX='wrfhydro' # remove variable from hydro
+  DSTPFX='wrfhydro'
 else
   echo
   echo "No Settings found for Variable '${VARNM}' - aborting!"
@@ -59,23 +67,32 @@ for SRC in ${SRCPFX}*${NCSFX}
     # construct destination file name
     DST="${DSTPFX}${SRC#${SRCPFX}}" # swap prefix
     # skip if variable already present
-    if [[ -e "${DST}" ]] && [[ -z $( ncdump -h "${DST}" | grep "${VARNM}(" ) ]]
-      then
- 	#echo cp "${DST}" "${DSTDIR}/${DST}"
-	if [[ "${SRCDIR}" != "${DSTDIR}" ]]; then
-            cp "${DST}" "${DSTDIR}/${DST}"; fi
- 	#echo ncks -aA -d "${DIM}" -v "${VARNM}" "${SRC}" "${DSTDIR}/${DST}"
-  if [[ -n "${DIM}" ]]; 
-    then ncks -aA -d "${DIM}" -v "${VARNM}" "${SRC}" "${DSTDIR}/${DST}" # potentially different time spacing
-    else  ncks -aA -v "${VARNM}" "${SRC}" "${DSTDIR}/${DST}" # same time spacing
-  fi # if $DIM
-	# check exit code
-	if [[ $? == 0 ]] && [[ -n $(ncdump -h "${DSTDIR}/${DST}" | grep "${VARNM}(") ]]
-	  then echo " ...wrote ${DST} successfully"
-	  else
-	    echo "ERROR: problem with ${DST}"
-	    ERR=$(( ERR + 1 )) # count error
-	  fi
+    if [[ -e "${DST}" ]]; then
+    
+   		 	#echo cp "${DST}" "${DSTDIR}/${DST}"
+				if [[ "${SRCDIR}" != "${DSTDIR}" ]]; then
+			            cp "${DST}" "${DSTDIR}/${DST}"; fi
+			 	#echo ncks -aA -d "${DIM}" -v "${VARNM}" "${SRC}" "${DSTDIR}/${DST}"
+			  if [[ "${SRCPFX}" == "${DSTPFX}" ]] && [[ -z "${DIM}" ]] && \
+			     [[ -n $( ncdump -h "${SRC}" | grep "${VARNM}(" ) ]]; then
+            # REMOVE Variable        
+			      ncks -aO -x -v "${VARNM}" "${SRC}" "${DSTDIR}/${DST}" # this means remove the variable!
+        elif [[ "${SRCPFX}" != "${DSTPFX}" ]] && [[ -z $( ncdump -h "${DST}" | grep "${VARNM}(" ) ]]; then
+            # ADD Variable
+					  if [[ -n "${DIM}" ]]; then 
+					      ncks -aA -d "${DIM}" -v "${VARNM}" "${SRC}" "${DSTDIR}/${DST}" # potentially different time spacing
+					  else  
+					      ncks -aA -v "${VARNM}" "${SRC}" "${DSTDIR}/${DST}" # same time spacing
+					  fi # if $DIM
+        fi # mode (add or remove)
+	      # check exit code
+				if [[ $? == 0 ]]; then 
+				    echo " ...wrote ${DST} successfully"
+				else
+				    echo "ERROR: problem with ${DST}"
+				    ERR=$(( ERR + 1 )) # count error
+		    fi # if error
+    
     fi # if not already there
 done # loop over files
 echo
