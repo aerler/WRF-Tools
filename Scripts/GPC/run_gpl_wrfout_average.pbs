@@ -52,6 +52,7 @@ export PYAVG_RECOVER=${PYAVG_RECOVER:-'FALSE'} # recover after a crash (recomput
 export PYAVG_FILETYPES=${PYAVG_FILETYPES:-'srfc,plev3d,xtrm,hydro,lsm'} # all diags: 'srfc,plev3d,xtrm,hydro,lsm,rad'
 export PYAVG_DOMAINS=${PYAVG_DOMAINS:-'123'} # default: 1234; unfortunately not experiment-specific...
 export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
+export PYAVG_DRYDAY=${PYAVG_DRYDAY:-'1'} # dry-day correction factor
 
 
 # user settings
@@ -128,6 +129,7 @@ echo "          --env PYAVG_RECOVER      = $PYAVG_RECOVER   "
 echo "          --env PYAVG_FILETYPES    = $PYAVG_FILETYPES "
 echo "          --env PYAVG_DOMAINS      = $PYAVG_DOMAINS   "
 echo "          --env PYAVG_DEBUG        = $PYAVG_DEBUG     "
+echo "          --env PYAVG_DRYDAY       = $PYAVG_DRYDAY    "
 echo "         -j 8 --joblog \"${LOGFILE}\" < \"${CMDFILE}\" "
 if [[ "$TEST" != 'DRYRUN' ]]
   then
@@ -141,6 +143,7 @@ if [[ "$TEST" != 'DRYRUN' ]]
 							--env PYAVG_FILETYPES \
 							--env PYAVG_DOMAINS \
 							--env PYAVG_DEBUG \
+							--env PYAVG_DRYDAY \
 		         -j 8 --joblog "${LOGFILE}" < "${CMDFILE}"
 		ERR=$? # capture exit code
 else

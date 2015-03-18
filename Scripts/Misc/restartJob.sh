@@ -127,9 +127,9 @@ else # $SIMPLE != 1, i.e. change stability parameters
   elif [[ "$CUR_DELT" == '40' ]] || [[ "$CUR_DELT" == '45' ]]; then
     NEW_DELT='30'; NEW_EPSS='0.99'; NEW_DIFF='0.15'; NEW_DAMP='0.15'; NEW_SNDT='8'
   # just for high resolution runs
-  elif [[ "$CUR_DELT" == '30' ]] && [[ "$CUR_EPSS" < '.8' ]]; then  
-    NEW_DELT='20'; NEW_EPSS='0.9'; NEW_DIFF='0.06'; NEW_DAMP='0.06'; NEW_SNDT='6'
-  elif [[ "$CUR_DELT" == '20' ]] && [[ "$CUR_EPSS" < '.95' ]]; then 
+  elif [[ "$CUR_DELT" == '30' ]] && [[ "$CUR_EPSS" < '.95' ]]; then  
+    NEW_DELT='20'; NEW_EPSS='0.95'; NEW_DIFF='0.06'; NEW_DAMP='0.06'; NEW_SNDT='6'
+  elif [[ "$CUR_DELT" == '20' ]] && [[ "$CUR_EPSS" < '.97' ]]; then 
     NEW_DELT='15'; NEW_EPSS='0.99'; NEW_DIFF='0.15'; NEW_DAMP='0.15'; NEW_SNDT='8'
   elif [[ "$CUR_DELT" == '15' ]] && [[ "$CUR_EPSS" < '.99' ]]; then 
     NEW_DELT='10'; NEW_EPSS='1.00'; NEW_DIFF='0.15'; NEW_DAMP='0.15'; NEW_SNDT='8'
