@@ -71,9 +71,10 @@ if os.environ.has_key('PYAVG_DERIVEDONLY'):
 else: lderivedonly = False # i.e. all
 # scale dry-day threshold 
 if os.environ.has_key('PYAVG_DRYDAY'): 
-  dryday_correction =  float(os.environ['PYAVG_DRYDAY'])
+  dryday_correction =  float(os.environ['PYAVG_DRYDAY']) / 50. # relative to WMO recommendation
+  # N.B.: the default correction is already a factor of 50 over the WMO definition
   dv.dryday_threshold = dv.dryday_threshold * dryday_correction # precip treshold for a dry day: 2.3e-7 mm/s
-  print("\n   ***   The dry-day threshold was increased by a factor of {:3.2f}   ***   \n".format(dryday_correction))
+  print("\n   ***   The dry-day threshold was increased by a factor of {:3.2f} relative to WMO recommendation   ***   \n".format(dryday_correction))
 # recompute last timestep and continue (usefule after a crash)  
 if os.environ.has_key('PYAVG_RECOVER'): 
   lrecover =  os.environ['PYAVG_RECOVER'] == 'RECOVER' 
@@ -226,7 +227,7 @@ maximum_variables = {filetype:[] for filetype in filetypes} # maxima variable li
 maximum_variables['srfc']   = ['T2', 'U10', 'V10', 'RAIN', 'RAINC', 'NetPrecip']
 maximum_variables['xtrm']   = ['T2MEAN', 'T2MAX', 'SPDUV10MEAN', 'SPDUV10MAX', 
                                'RAINMEAN', 'RAINNCVMAX', 'RAINCVMAX']
-maximum_variables['hydro']  = ['T2MEAN', 'RAIN', 'RAINC', 'NetPrecip', 'NetWaterFlux']
+maximum_variables['hydro']  = ['RAIN', 'RAINC', 'NetPrecip', 'NetWaterFlux']
 maximum_variables['lsm']    = ['SFROFF']
 maximum_variables['plev3d'] = ['S_PL', 'GHT_PL', 'Vorticity']
 # daily (smoothed) maxima
@@ -237,17 +238,16 @@ daymin_variables  = {filetype:[] for filetype in filetypes} # mininma variable l
 daymin_variables['srfc']  = ['T2']
 # weekly (smoothed) maxima
 weekmax_variables  = {filetype:[] for filetype in filetypes} # maxima variable lists by file type
-weekmax_variables['hydro']  = ['T2MEAN', 'RAIN', 'ACSNOM', 'NetPrecip', 'NetWaterFlux']
+weekmax_variables['hydro']  = ['RAIN', 'ACSNOM', 'NetPrecip', 'NetWaterFlux']
 weekmax_variables['lsm']    = ['SFROFF','UDROFF','Runoff']
 # Maxima (just list base variables; derived variables will be created later)
 minimum_variables = {filetype:[] for filetype in filetypes} # minima variable lists by file type
 minimum_variables['srfc']   = ['T2']
 minimum_variables['xtrm']   = ['T2MEAN', 'T2MIN']
-minimum_variables['hydro']  = ['T2MEAN']
 minimum_variables['plev3d'] = ['GHT_PL', 'Vorticity']
 # weekly (smoothed) minima
 weekmin_variables  = {filetype:[] for filetype in filetypes} # mininma variable lists by file type
-weekmin_variables['hydro']  = ['T2MEAN', 'RAIN', 'ACSNOM', 'NetPrecip', 'NetWaterFlux']
+weekmin_variables['hydro']  = ['RAIN', 'ACSNOM', 'NetPrecip', 'NetWaterFlux']
 weekmin_variables['lsm']    = ['SFROFF','UDROFF','Runoff']
 # N.B.: it is important that the derived variables are listed in order of dependency! 
 # set of pre-requisites

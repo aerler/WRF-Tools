@@ -25,7 +25,8 @@ days_per_month_365 = np.array([31,28,31,30,31,30,31,31,30,31,30,31])
 # N.B.: importing from datasets.common causes problems with GDAL, if it is not installed
 dv_float = np.dtype('float32') # final precision used for derived floating point variables 
 dtype_float = dv_float # general floating point precision used for temporary arrays
-dryday_threshold = 2.3e-7 # precip treshold for a dry day
+dryday_threshold = 50. * 2.3e-7 # precip treshold for a dry day
+# N.B.: 50 * 2.3e-7 kg/m^2/s is about 1 mm/day
 
 def calcTimeDelta(timestamps, year=None, month=None):
   ''' function to calculate time deltas and subtract leap-days, if necessary '''
