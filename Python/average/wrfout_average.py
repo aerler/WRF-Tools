@@ -70,7 +70,7 @@ if os.environ.has_key('PYAVG_DERIVEDONLY'):
   lderivedonly =  os.environ['PYAVG_DERIVEDONLY'] == 'DERIVEDONLY' 
 else: lderivedonly = False # i.e. all
 # scale dry-day threshold 
-if os.environ.has_key('PYAVG_DRYDAY'): 
+if os.environ.has_key('PYAVG_DRYDAY') and bool(os.environ['PYAVG_DRYDAY']): # i.e. not empty and non-zero
   dryday_correction =  float(os.environ['PYAVG_DRYDAY']) / 50. # relative to WMO recommendation
   # N.B.: the default correction is already a factor of 50 over the WMO definition
   dv.dryday_threshold = dv.dryday_threshold * dryday_correction # precip treshold for a dry day: 2.3e-7 mm/s
@@ -103,7 +103,7 @@ else: loverwrite = False # i.e. append
 #       otherwise only the selected months are recomputed 
 # file types to process 
 if os.environ.has_key('PYAVG_FILETYPES'):
-  filetypes = os.environ['PYAVG_FILETYPES'].split(',') # semi-colon separated list
+  filetypes = os.environ['PYAVG_FILETYPES'].split() # space separated list (other characters cause problems...)
   if len(filetypes) == 1 and len(filetypes[0]) == 0: filetypes = None # empty string, substitute default 
 else: filetypes = None # defaults are set below
 # domains to process
