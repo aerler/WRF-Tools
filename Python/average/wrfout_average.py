@@ -366,6 +366,8 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
     # check time-stamps in old datasets
     if mean.end_date < begindate: assert t0 == len(mean.dimensions[time]) + 1 # another check
     else: assert t0 <= len(mean.dimensions[time]) + 1 # get time index where we start; in month beginning 1979
+    # update dry-day threshold (in case it was changed...)
+    mean.dryday_threshold = dv.dryday_threshold # threshold for dry days used in statistical computations
     # checks for new variables
     if laddnew or lrecalc: 
       if t0 != 1: raise DateError, "Have to start at the beginning to add new or recompute old variables!" # t0 starts with 1, not 0
