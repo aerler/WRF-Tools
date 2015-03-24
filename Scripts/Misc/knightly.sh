@@ -141,17 +141,7 @@ if [[ "${NOENSEMBLE}" != 'TRUE' ]]
 fi # if no-download
 
 if [[ "${NOCOMPUTE}" != 'TRUE' ]]
-  then
-    ## run regridding (all datasets)
-    # same settings as wrfavg...
-    export PYAVG_BATCH=${PYAVG_BATCH:-'BATCH'} # run in batch mode - this should not be changed
-    export PYAVG_THREADS=${PYAVG_THREADS:-4} # parallel execution
-    export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
-    export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
-	  nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/PyGeoData/src/processing/regrid.py" \
-	     &> ${ROOT}/regrid.log #2> ${ROOT}/regrid.err
-    REPORT $? 'Dataset Regridding'
-    
+  then    
     ## extract station data (all datasets)
     # same settings as wrfavg...
     export PYAVG_BATCH=${PYAVG_BATCH:-'BATCH'} # run in batch mode - this should not be changed
@@ -171,6 +161,16 @@ if [[ "${NOCOMPUTE}" != 'TRUE' ]]
 	  nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/PyGeoData/src/processing/shpavg.py" \
 	    &> ${ROOT}/shpavg.log #2> ${ROOT}/shpavg.err
     REPORT $? 'Regional/Shape Averaging'
+    
+    ## run regridding (all datasets)
+    # same settings as wrfavg...
+    export PYAVG_BATCH=${PYAVG_BATCH:-'BATCH'} # run in batch mode - this should not be changed
+    export PYAVG_THREADS=${PYAVG_THREADS:-4} # parallel execution
+    export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
+    export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
+    nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/PyGeoData/src/processing/regrid.py" \
+       &> ${ROOT}/regrid.log #2> ${ROOT}/regrid.err
+    REPORT $? 'Dataset Regridding'    
 fi # if no-compute
 
 # report
