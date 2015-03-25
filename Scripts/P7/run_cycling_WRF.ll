@@ -41,7 +41,7 @@
 
 ## machine specific job settings
 # WRF resource requirements (read by setup scripts)
-export WRFNODES=1 # number of nodes used by WRF
+# $WRFNODES will be inferred from host list
 # get LoadLeveler names (needed for folder names)
 export JOBNAME="${LOADL_JOB_NAME}"
 export INIDIR="${LOADL_STEP_INITDIR}" # experiment root (launch directory)

@@ -22,7 +22,7 @@
 
 ## machine specific job settings
 # WRF resource requirements (read by setup scripts)
-export WRFNODES=16 # number of nodes used by WRF
+# $WRFNODES will be inferred from PBS setting
 # get PBS names (needed for folder names)
 export JOBNAME="${PBS_JOBNAME}" # not the $RUNNAME
 export INIDIR="${PBS_O_WORKDIR}" # experiment root (launch directory)

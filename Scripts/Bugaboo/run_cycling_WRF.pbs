@@ -23,7 +23,7 @@
 
 ## machine specific job settings
 # WRF resource requirements (read by setup scripts)
-export WRFNODES=128 # total number of processes / MPI task
+# $WRFNODES will be inferred from PBS setting (total number of procs, in this case)
 export TASKS=1 # don't use hyperthreading
 # get PBS names (needed for folder names)
 export JOBNAME="${PBS_JOBNAME}" # not the $RUNNAME
