@@ -25,19 +25,27 @@ elif [[ "${VARNM}" == 'SNOW_ACC_NC' ]]; then
   DIM='Time,,,4' # dimension/hyperslab argument (only record dim supports stride)
   SRCPFX='wrfsrfc'
   DSTPFX='wrfhydro'
+#elif [[ "${VARNM}" == 'SR' ]]; then
+#	DIM='Time,,,4' # dimension/hyperslab argument (only record dim supports stride)
+#	SRCPFX='wrfsrfc'
+#	DSTPFX='wrfhydro'
 elif [[ "${VARNM}" == 'SR' ]]; then
-	DIM='Time,,,4' # dimension/hyperslab argument (only record dim supports stride)
-	SRCPFX='wrfsrfc'
+	DIM=''
+	SRCPFX='wrfhydro' # not used anymore...
 	DSTPFX='wrfhydro'
 elif [[ "${VARNM}" == 'ACSNOW' ]]; then
 	DIM='' # same time intervall
 	SRCPFX='wrflsm'
 	DSTPFX='wrfhydro'
 #elif [[ "${VARNM}" == 'T2MEAN' ]]; then
-  #  DIM='' # same time intervall
-  #SRCPFX='wrfxtrm' # add variable to hydro (from xtrm)
-  #DSTPFX='wrfhydro'
+# DIM='' # same time intervall
+# SRCPFX='wrfxtrm' # add variable to hydro (from xtrm)
+# DSTPFX='wrfhydro'
 elif [[ "${VARNM}" == 'T2MEAN' ]]; then
+  DIM='' # same time intervall
+  SRCPFX='wrfhydro' # remove variable from hydro
+  DSTPFX='wrfhydro'
+elif [[ "${VARNM}" == 'SNOWNC' ]]; then
   DIM='' # same time intervall
   SRCPFX='wrfhydro' # remove variable from hydro
   DSTPFX='wrfhydro'
