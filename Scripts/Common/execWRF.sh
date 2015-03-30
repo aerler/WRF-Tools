@@ -157,6 +157,8 @@ if [[ ${RUNWRF} == 1 ]]
     export OMP_NUM_THREADS=${THREADS} # set OpenMP environment
     echo
     echo "OMP_NUM_THREADS=${OMP_NUM_THREADS}"
+    echo "NODES=${NODES}"
+    echo "TASKS=${TASKS}"
     echo "${HYBRIDRUN} ./wrf.exe"
     echo
     # launch

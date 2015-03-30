@@ -24,6 +24,7 @@
 ## machine specific job settings
 # WRF resource requirements (read by setup scripts)
 # $WRFNODES will be inferred from PBS setting (total number of procs, in this case)
+export WRFNODES=${PBS_NP:-128} # PBS setting will override default (default is needed for setup)
 export TASKS=1 # don't use hyperthreading
 # get PBS names (needed for folder names)
 export JOBNAME="${PBS_JOBNAME}" # not the $RUNNAME
