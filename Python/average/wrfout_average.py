@@ -332,7 +332,8 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
   lastoutfile = infolder+filelist[-1]
   logger.debug("{0:s} Opening last input file '{1:s}'.".format(pidstr,lastoutfile))
   lastout = nc.Dataset(lastoutfile, 'r', format='NETCDF4')
-  enddate = str().join(lastout.variables[wrftimestamp][-1,:10]) # last timestamp in last file
+  lstidx = lastout.variables[wrftimestamp].shape[0]-1 # netcdf library has problems with negative indexing
+  enddate = str().join(lastout.variables[wrftimestamp][lstidx,:10]) # last timestamp in last file
   endyear, endmonth, endday = [int(tmp) for tmp in enddate.split('-')]; del endday # make warning go away...
   # the last timestamp should be the next month (i.e. that month is not included)
   if endmonth == 1: 
