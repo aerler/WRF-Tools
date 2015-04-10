@@ -127,6 +127,7 @@ if [[ "${NOKOMPUTER}" != 'TRUE' ]] && [[ "${NOWRF}" != 'TRUE' ]]; then
   export HOST='komputer'
   export FILETYPES='wrf*_d02_clim_*.nc wrf*_d02_arb2_d02_clim_*.nc'
   export REX='max-ctrl* max-ens-* max-ensemble* old-ctrl* new-ctrl* ctrl* max-seaice* erai-max max-1deg*'
+  export STATIC='STATIC'
   nice --adjustment=${NICENESS} "${SCRIPTS}/sync-wrf.sh" &>> ${WRFDATA}/sync-wrf.log #2> ${WRFDATA}/sync-wrf.err # 2>&1
   REPORT $? 'WRF Climatologies' 
 fi # if not $NOKOMPUTER
@@ -135,6 +136,7 @@ if [[ "${NOKOMPUTER}" != 'TRUE' ]] && [[ "${NOWRF}" != 'TRUE' ]]; then
   export HOST='komputer'
   export FILETYPES='wrf*_ec*_*.nc wrf*_shpavg_*.nc'
   export REX='*-*/'
+  export STATIC='FALSE'
   nice --adjustment=${NICENESS} "${SCRIPTS}/sync-wrf.sh" &>> ${WRFDATA}/sync-wrf.log #2> ${WRFDATA}/sync-wrf.err # 2>&1
   REPORT $? 'WRF Stations etc.' 
 fi # if not $NOKOMPUTER
