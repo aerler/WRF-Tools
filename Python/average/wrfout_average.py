@@ -103,7 +103,7 @@ else: loverwrite = False # i.e. append
 #       otherwise only the selected months are recomputed 
 # file types to process 
 if os.environ.has_key('PYAVG_FILETYPES'):
-  filetypes = os.environ['PYAVG_FILETYPES'].split() # space separated list (other characters cause problems...)
+  filetypes = os.environ['PYAVG_FILETYPES'].split(',') # space separated list (other characters cause problems...)
   if len(filetypes) == 1 and len(filetypes[0]) == 0: filetypes = None # empty string, substitute default 
 else: filetypes = None # defaults are set below
 # domains to process
