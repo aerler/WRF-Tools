@@ -564,7 +564,7 @@ class WetDayRain(DerivedVariable):
     atts = dict(threshold=threshold) # save threshold value in SI/Variable units
     super(WetDayRain,self).__init__(name=name, # name of the variable
                               units='kg/m^2/s', # fraction of days 
-                              prerequisites=['RAIN',wetdays], # above threshold 
+                              prerequisites=[rain,wetdays], # above threshold 
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype=dv_float, atts=atts, linear=False, ignoreNaN=ignoreNaN)
     self.rain = rain # name of the rain variable

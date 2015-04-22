@@ -226,7 +226,7 @@ consecutive_variables['hydro'] = {'CNWD' : ('NetPrecip', 'above', 0., 'Consecuti
 # add wet-day variables for different thresholds
 for threshold in precip_thresholds:
   for filetype,rain_var in zip(['srfc','hydro','xtrm'],['RAIN','RAIN','RAINMEAN']):
-    suffix = '_{:03d}'.format(int(10*threshold)); name_suffix = '{:3.1f})'.format(threshold)
+    suffix = '_{:03d}'.format(int(10*threshold)); name_suffix = '{:3.1f} mm/day)'.format(threshold)
     consecutive_variables[filetype]['CWD'+suffix] = (rain_var, 'above', threshold/86400., 
                                                      'Consecutive Wet Days (>'+name_suffix)
     consecutive_variables[filetype]['CDD'+suffix] = (rain_var, 'below', threshold/86400. , 
