@@ -69,11 +69,11 @@ else: NP = None
 if os.environ.has_key('PYAVG_DERIVEDONLY'): 
   lderivedonly =  os.environ['PYAVG_DERIVEDONLY'] == 'DERIVEDONLY' 
 else: lderivedonly = False # i.e. all
-# scale dry-day threshold 
-if os.environ.has_key('PYAVG_DRYDAY') and bool(os.environ['PYAVG_DRYDAY']): # i.e. not empty and non-zero
-  dryday_correction =  float(os.environ['PYAVG_DRYDAY']) # relative to WMO recommendation
-  dv.dryday_threshold = dv.dryday_threshold * dryday_correction # precip treshold for a dry day: 2.3e-7 mm/s
-  print("\n   ***   The dry-day threshold was increased by a factor of {:3.2f} relative to WMO recommendation   ***   \n".format(dryday_correction))
+# # scale dry-day threshold 
+# if os.environ.has_key('PYAVG_DRYDAY') and bool(os.environ['PYAVG_DRYDAY']): # i.e. not empty and non-zero
+#   dryday_correction =  float(os.environ['PYAVG_DRYDAY']) # relative to WMO recommendation
+#   dv.dryday_threshold = dv.dryday_threshold * dryday_correction # precip treshold for a dry day: 2.3e-7 mm/s
+#   print("\n   ***   The dry-day threshold was increased by a factor of {:3.2f} relative to WMO recommendation   ***   \n".format(dryday_correction))
 # recompute last timestep and continue (usefule after a crash)  
 if os.environ.has_key('PYAVG_RECOVER'): 
   lrecover =  os.environ['PYAVG_RECOVER'] == 'RECOVER' 
@@ -379,7 +379,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
     if mean.end_date < begindate: assert t0 == len(mean.dimensions[time]) + 1 # another check
     else: assert t0 <= len(mean.dimensions[time]) + 1 # get time index where we start; in month beginning 1979
     # update dry-day threshold (in case it was changed...)
-    mean.dryday_threshold = dv.dryday_threshold # threshold for dry days used in statistical computations
+#     mean.dryday_threshold = dv.dryday_threshold # threshold for dry days used in statistical computations
     # checks for new variables
     if laddnew or lrecalc: 
       if t0 != 1: raise DateError, "Have to start at the beginning to add new or recompute old variables!" # t0 starts with 1, not 0
@@ -491,7 +491,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
     mean.begin_date = begindate
     mean.experiment = exp
     mean.creator = 'Andre R. Erler'
-    mean.dryday_threshold = dv.dryday_threshold # threshold for dry days used in statistical computations
+#     mean.dryday_threshold = dv.dryday_threshold # threshold for dry days used in statistical computations
   # sync with file
   mean.sync()     
 
