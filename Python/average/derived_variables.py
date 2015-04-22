@@ -25,8 +25,8 @@ days_per_month_365 = np.array([31,28,31,30,31,30,31,31,30,31,30,31])
 # N.B.: importing from datasets.common causes problems with GDAL, if it is not installed
 dv_float = np.dtype('float32') # final precision used for derived floating point variables 
 dtype_float = dv_float # general floating point precision used for temporary arrays
-dryday_threshold = 50. * 2.3e-7 # precip treshold for a dry day
-# N.B.: 50 * 2.3e-7 kg/m^2/s is about 1 mm/day
+dryday_threshold = 0.2/86400. # precip treshold for a dry day 0.2 mm/day
+
 
 def calcTimeDelta(timestamps, year=None, month=None):
   ''' function to calculate time deltas and subtract leap-days, if necessary '''
@@ -518,36 +518,21 @@ class WaterVapor(DerivedVariable):
     return outdata
   
 
-class WetDaysMean(DerivedVariable):
-  ''' DerivedVariable child for counting the fraction of rainy days for WRF output. '''
-  
-  def __init__(self):
-    ''' Initialize with fixed values; constructor takes no arguments. '''
-    super(WetDaysMean,self).__init__(name='WetDays', # name of the variable
-                              units='', # fraction of days 
-                              prerequisites=['RAINMEAN'], # above threshold 
-                              axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
-                              dtype=dv_float, atts=None, linear=False) 
-    
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
-    ''' Count the number of events above a threshold (0 for now) '''
-    super(WetDaysMean,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
-    assert delta == 86400., 'WRF extreme values are suppposed to be daily; encountered delta={:f}'.format(delta)
-    outdata = indata['RAINMEAN'] > dryday_threshold # definition according to AMS Glossary: precip > 0.02 mm/day 
-    # N.B.: this is actually the fraction of wet days in a month (i.e. not really days)
-    return outdata
-
-
 class WetDays(DerivedVariable):
   ''' DerivedVariable child for counting the fraction of rainy days for WRF output. '''
   
-  def __init__(self, ignoreNaN=False):
-    ''' Initialize with fixed values; constructor takes no arguments. '''
-    super(WetDays,self).__init__(name='WetDays', # name of the variable
+  def __init__(self, threshold=1., rain='RAIN', ignoreNaN=False):
+    ''' Initialize with fixed values and selected dry-day threshold (defined by argument in mm/day). '''
+    name = 'WetDays_{:03d}'.format(int(10*threshold))
+    threshold /= 86400. # convert to SI units (argument assumed mm/day)
+    atts = dict(threshold=threshold) # save threshold value in SI/Variable units
+    super(WetDays,self).__init__(name=name, # name of the variable
                               units='', # fraction of days 
-                              prerequisites=['RAIN'], # above threshold 
+                              prerequisites=[rain], # above threshold 
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
-                              dtype=dv_float, atts=None, linear=False, ignoreNaN=ignoreNaN) 
+                              dtype=dv_float, atts=atts, linear=False, ignoreNaN=ignoreNaN)
+    self.threshold = threshold # store for computation
+    self.rain = rain # name of the rain variable
     
   def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
     ''' Count the number of events above a threshold. '''
@@ -560,29 +545,36 @@ class WetDays(DerivedVariable):
       else: tmp['WETDAYS_DELTA'] = delta # save and check next time
     # sampling does not have to be daily
     if self.ignoreNaN:
-      outdata = np.where(indata['RAIN'] > dryday_threshold, 1,0) # comparisons with NaN always yield False
-      outdata = np.where(np.isnan(indata['RAIN']), np.NaN,outdata)     
+      outdata = np.where(indata[self.rain] > self.threshold, 1,0) # comparisons with NaN always yield False
+      outdata = np.where(np.isnan(indata[self.rain]), np.NaN,outdata)     
     else:
-      outdata = indata['RAIN'] > dryday_threshold # definition according to AMS Glossary: precip > 0.02 mm/day
+      outdata = indata[self.rain] > self.threshold # definition according to AMS Glossary: precip > 0.02 mm/day
     # N.B.: this is actually the fraction of wet days in a month (i.e. not really days)      
     return outdata
 
 
 class WetDayRain(DerivedVariable):
-  ''' DerivedVariable child for precipitation amounts exceeding the rainy day threshold. '''  
-  def __init__(self, ignoreNaN=False):
-    ''' Initialize with fixed values; constructor takes no arguments. '''
-    super(WetDayRain,self).__init__(name='WetDayRain', # name of the variable
+  ''' DerivedVariable child for precipitation amounts exceeding the rainy day threshold. '''
+    
+  def __init__(self, threshold=1., rain='RAIN', ignoreNaN=False):
+    ''' Initialize with fixed values and selected dry-day threshold (defined by argument in mm/day). '''
+    name = 'WetDayRain_{:03d}'.format(int(10*threshold))
+    wetdays = 'WetDays_{:03d}'.format(int(10*threshold))
+    threshold /= 86400. # convert to SI units (argument assumed mm/day)
+    atts = dict(threshold=threshold) # save threshold value in SI/Variable units
+    super(WetDayRain,self).__init__(name=name, # name of the variable
                               units='kg/m^2/s', # fraction of days 
-                              prerequisites=['RAIN','WetDays'], # above threshold 
+                              prerequisites=['RAIN',wetdays], # above threshold 
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
-                              dtype=dv_float, atts=None, linear=False, ignoreNaN=ignoreNaN) 
+                              dtype=dv_float, atts=atts, linear=False, ignoreNaN=ignoreNaN)
+    self.rain = rain # name of the rain variable
+    self.wetdays = wetdays 
     
   def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
     ''' Count the number of events above a threshold. '''
     super(WetDayRain,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
     # just set precip to zero if it is below a threshold 
-    outdata = np.where(indata['WetDays'] == 0, 0., indata['RAIN'])
+    outdata = np.where(indata[self.wetdays] == 0, 0., indata[self.rain])
     # N.B.: WetDays is actually the fraction of wet days in a month (i.e. not really days)      
     return outdata
 
@@ -590,19 +582,26 @@ class WetDayRain(DerivedVariable):
 class WetDayPrecip(DerivedVariable):
   ''' DerivedVariable child for precipitation amounts on rainy days for WRF output. '''
   
-  def __init__(self, ignoreNaN=False):
-    ''' Initialize with fixed values; constructor takes no arguments. '''
-    super(WetDayPrecip,self).__init__(name='WetDayPrecip', # name of the variable
+  def __init__(self, threshold=1., rain='RAIN', ignoreNaN=False):
+    ''' Initialize with fixed values and selected dry-day threshold (defined by argument in mm/day). '''
+    name = 'WetDayPrecip_{:03d}'.format(int(10*threshold))
+    wetdays = 'WetDays_{:03d}'.format(int(10*threshold))
+    wetdayrain = 'WetDayRain_{:03d}'.format(int(10*threshold))
+    threshold /= 86400. # convert to SI units (argument assumed mm/day)
+    atts = dict(threshold=threshold) # save threshold value in SI/Variable units
+    super(WetDayPrecip,self).__init__(name=name, # name of the variable
                               units='kg/m^2/s', # fraction of days 
-                              prerequisites=['WetDayRain','WetDays'], # above threshold 
+                              prerequisites=[wetdayrain,wetdays], # above threshold 
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
-                              dtype=dv_float, atts=None, linear=True, ignoreNaN=ignoreNaN) 
+                              dtype=dv_float, atts=atts, linear=True, ignoreNaN=ignoreNaN)
+    self.wetdays = wetdays
+    self.wetdayrain = wetdayrain 
     
   def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
     ''' Count the number of events above a threshold. '''
     super(WetDayPrecip,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
     # compute monthly wet-day-precip as a quasi-linear operation at the end of each month 
-    outdata = np.where(indata['WetDays'] == 0, 0., indata['WetDayRain'] / indata['WetDays'])
+    outdata = np.where(indata[self.wetdays] == 0, 0., indata[self.wetdayrain] / indata[self.wetdays])
     # N.B.: WetDays is actually the fraction of wet days in a month (i.e. not really days)      
     return outdata
 
@@ -610,23 +609,27 @@ class WetDayPrecip(DerivedVariable):
 class FrostDays(DerivedVariable):
   ''' DerivedVariable child for counting the fraction of frost days for WRF output. '''
   
-  def __init__(self, ignoreNaN=False):
-    ''' Initialize with fixed values; constructor takes no arguments. '''
-    super(FrostDays,self).__init__(name='FrostDays', # name of the variable
+  def __init__(self, threshold=0., ignoreNaN=False):
+    ''' Initialize with fixed values and selected frost-day threshold (defined by argument in Celsius). '''
+    name = 'FrostDays_{:+02d}'.format(int(threshold))
+    threshold += 273.15 # convert to SI units (argument assumed Celsius)
+    atts = dict(threshold=threshold) # save threshold value in SI/Variable units
+    super(FrostDays,self).__init__(name=name, # name of the variable
                               units='', # fraction of days 
                               prerequisites=['T2MIN'], # below threshold
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
-                              dtype=dv_float, atts=None, linear=False, ignoreNaN=ignoreNaN) 
+                              dtype=dv_float, atts=atts, linear=False, ignoreNaN=ignoreNaN)
+    self.threshold = threshold 
 
   def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
     ''' Count the number of events below a threshold (0 Celsius) '''
     super(FrostDays,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks    
     if delta != 86400.: raise ValueError, 'WRF extreme values are suppposed to be daily; encountered delta={:f}'.format(delta)
     if self.ignoreNaN:
-      outdata = np.where(indata['T2MIN'] < 273.15, 1,0) # comparisons with NaN always yield False
+      outdata = np.where(indata['T2MIN'] < self.threshold, 1,0) # comparisons with NaN always yield False
       outdata = np.where(np.isnan(indata['T2MIN']), np.NaN,outdata)     
     else:
-      outdata = indata['T2MIN'] < 273.15 # event below threshold (0 deg. C., according to AMS Glossary)    
+      outdata = indata['T2MIN'] < self.threshold # event below threshold (default 0 deg. Celsius)    
     return outdata
 
 
@@ -1027,7 +1030,7 @@ class GHT_Var(DerivedVariable):
 class Extrema(DerivedVariable):
   ''' DerivedVariable child implementing computation of extrema in monthly WRF output. '''
   
-  def __init__(self, var, mode, name=None, longname=None, dimmap=None, ignoreNaN=False):
+  def __init__(self, var, mode, name=None, long_name=None, dimmap=None, ignoreNaN=False):
     ''' Constructor; takes variable object as argument and infers meta data. '''
     # construct name with prefix 'Max'/'Min' and camel-case
     if isinstance(var, DerivedVariable):
@@ -1040,7 +1043,7 @@ class Extrema(DerivedVariable):
       atts['Aggregation'] = 'Monthly Maximum'; prefix = 'Max'; exmode = 1
     elif mode.lower() == 'min':      
       atts['Aggregation'] = 'Monthly Minimum'; prefix = 'Min'; exmode = 0
-    if longname is not None: atts['long_name'] = longname
+    if long_name is not None: atts['long_name'] = long_name
     if isinstance(dimmap,dict): axes = [dimmap[dim] if dim in dimmap else dim for dim in axes]
     if name is None: name = '{0:s}{1:s}'.format(prefix,varname[0].upper() + varname[1:])
     # infer attributes of extreme variable
@@ -1090,7 +1093,7 @@ class Extrema(DerivedVariable):
 class ConsecutiveExtrema(Extrema):
   ''' Class of variables that tracks the period of exceedance of a threshold. '''
 
-  def __init__(self, var, mode, threshold=0, name=None, longname=None, dimmap=None, ignoreNaN=False):
+  def __init__(self, var, mode, threshold=0, name=None, long_name=None, dimmap=None, ignoreNaN=False):
     ''' Constructor; takes variable object as argument and infers meta data. '''
     # construct name with prefix 'Max'/'Min' and camel-case
     if isinstance(var, DerivedVariable):
@@ -1108,7 +1111,7 @@ class ConsecutiveExtrema(Extrema):
     else: raise ValueError, "Only 'above' and 'below' are valid modes."
     atts['Variable'] = '{0:s} {1:s} {2:s} {3:s}'.format(varname,prefix,str(threshold),var.units) 
     atts['ThresholdValue'] = str(threshold); atts['ThresholdVariable'] = varname 
-    if longname is not None: atts['long_name'] = longname 
+    if long_name is not None: atts['long_name'] = long_name 
     if isinstance(dimmap,dict): axes = [dimmap[dim] if dim in dimmap else dim for dim in axes]
     if name is None: name = '{0:s}{1:f}{2:s}'.format(prefix,threshold,varname[0].upper() + varname[1:])
     # infer attributes of consecutive extreme variable
@@ -1169,10 +1172,10 @@ class ConsecutiveExtrema(Extrema):
 class MeanExtrema(Extrema):
   ''' Extrema child implementing extrema of interval-averaged values in monthly WRF output. '''
   
-  def __init__(self, var, mode, interval=7, name=None, longname=None, dimmap=None, ignoreNaN=False):
+  def __init__(self, var, mode, interval=7, name=None, long_name=None, dimmap=None, ignoreNaN=False):
     ''' Constructor; takes variable object as argument and infers meta data. '''
     # infer attributes of Maximum variable
-    super(MeanExtrema,self).__init__(var, mode, name=name, longname=longname, dimmap=dimmap, ignoreNaN=ignoreNaN)
+    super(MeanExtrema,self).__init__(var, mode, name=name, long_name=long_name, dimmap=dimmap, ignoreNaN=ignoreNaN)
     if len(self.prerequisites) > 1: raise ValueError, "Extrema can only have one Prerquisite"
     self.atts['name'] = self.name = '{0:s}_{1:d}d'.format(self.name,interval)
     self.atts['Aggregation'] = 'Averaged ' + self.atts['Aggregation']

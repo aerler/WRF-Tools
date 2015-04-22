@@ -71,8 +71,7 @@ if os.environ.has_key('PYAVG_DERIVEDONLY'):
 else: lderivedonly = False # i.e. all
 # scale dry-day threshold 
 if os.environ.has_key('PYAVG_DRYDAY') and bool(os.environ['PYAVG_DRYDAY']): # i.e. not empty and non-zero
-  dryday_correction =  float(os.environ['PYAVG_DRYDAY']) / 50. # relative to WMO recommendation
-  # N.B.: the default correction is already a factor of 50 over the WMO definition
+  dryday_correction =  float(os.environ['PYAVG_DRYDAY']) # relative to WMO recommendation
   dv.dryday_threshold = dv.dryday_threshold * dryday_correction # precip treshold for a dry day: 2.3e-7 mm/s
   print("\n   ***   The dry-day threshold was increased by a factor of {:3.2f} relative to WMO recommendation   ***   \n".format(dryday_correction))
 # recompute last timestep and continue (usefule after a crash)  
@@ -192,12 +191,10 @@ bktpfx = 'I_' # prefix for bucket variables; these are processed together with t
 
 # derived variables
 derived_variables = {filetype:[] for filetype in filetypes} # derived variable lists by file type
-derived_variables['srfc']   = [dv.Rain(), dv.LiquidPrecipSR(), dv.SolidPrecipSR(), 
-                               dv.WetDays(), dv.WetDayRain(), dv.WetDayPrecip(), dv.NetPrecip_Srfc(), 
+derived_variables['srfc']   = [dv.Rain(), dv.LiquidPrecipSR(), dv.SolidPrecipSR(), dv.NetPrecip_Srfc(),  
                                dv.WaterVapor(), dv.OrographicIndex(), dv.CovOIP()]
-derived_variables['xtrm']   = [dv.RainMean(), dv.WetDaysMean(), dv.FrostDays(), dv.TimeOfConvection()]
+derived_variables['xtrm']   = [dv.RainMean(), dv.FrostDays(threshold=0.), dv.TimeOfConvection()]
 derived_variables['hydro']  = [dv.Rain(), dv.LiquidPrecip(), dv.SolidPrecip(), 
-                               dv.WetDays(), dv.WetDayRain(), dv.WetDayPrecip(), 
                                dv.NetPrecip_Hydro(), dv.NetWaterFlux()]
 derived_variables['lsm']    = [dv.RunOff()]
 derived_variables['plev3d'] = [dv.OrographicIndexPlev(), dv.Vorticity(), dv.WaterDensity(),
@@ -206,23 +203,33 @@ derived_variables['plev3d'] = [dv.OrographicIndexPlev(), dv.Vorticity(), dv.Wate
                                dv.HeatFlux_U(), dv.HeatFlux_V(), dv.ColumnHeat(), 
                                dv.HeatTransport_U(),dv.HeatTransport_V(),
                                dv.GHT_Var(), dv.Vorticity_Var()]
+# add wet-day variables for different thresholds
+precip_thresholds = [0.2, 1., 10., 20.]
+wetday_variables = [dv.WetDays, dv.WetDayRain, dv.WetDayPrecip] 
+for threshold in precip_thresholds:
+  for wetday_var in wetday_variables:
+    derived_variables['srfc'].append(wetday_var(threshold=threshold, rain='RAIN'))
+    derived_variables['hydro'].append(wetday_var(threshold=threshold, rain='RAIN'))
+    derived_variables['xtrm'].append(wetday_var(threshold=threshold, rain='RAINMEAN'))
+                               
 # N.B.: derived variables need to be listed in order of computation
 consecutive_variables = {filetype:None for filetype in filetypes} # consecutive variable lists by file type
 # Consecutive exceedance variables
 consecutive_variables['srfc']  = {'CFD'  : ('T2', 'below', 273.14, 'Consecutive Frost Days'),
-                                  'CWD'  : ('RAIN', 'above', dv.dryday_threshold, 'Consecutive Wet Days'),
-                                  'CDD'  : ('RAIN', 'below', dv.dryday_threshold, 'Consecutive Dry Days'),
                                   'CNWD' : ('NetPrecip', 'above', 0., 'Consecutive Net Wet Days'),
                                   'CNDD' : ('NetPrecip', 'below', 0., 'Consecutive Net Dry Days'),}
-consecutive_variables['xtrm']  = {'CFD'  : ('T2MEAN', 'below', 273.14, 'Consecutive Frost Days'),
-                                  'CWD'  : ('RAINMEAN', 'above', dv.dryday_threshold, 'Consecutive Wet Days'),
-                                  'CDD'  : ('RAINMEAN', 'below', dv.dryday_threshold, 'Consecutive Dry Days'),}
-consecutive_variables['hydro'] = {'CWD'  : ('RAIN', 'above', dv.dryday_threshold, 'Consecutive Wet Days'),
-                                  'CDD'  : ('RAIN', 'below', dv.dryday_threshold, 'Consecutive Dry Days'),
-                                  'CNWD' : ('NetPrecip', 'above', 0., 'Consecutive Net Wet Days'),
+consecutive_variables['xtrm']  = {'CFD'  : ('T2MEAN', 'below', 273.14, 'Consecutive Frost Days'),}
+consecutive_variables['hydro'] = {'CNWD' : ('NetPrecip', 'above', 0., 'Consecutive Net Wet Days'),
                                   'CNDD' : ('NetPrecip', 'below', 0., 'Consecutive Net Dry Days'),
                                   'CWGD' : ('NetWaterFlux', 'above', 0., 'Consecutive Water Gain Days'),
                                   'CWLD' : ('NetWaterFlux', 'below', 0., 'Consecutive Water Loss Days'),}
+# add wet-day variables for different thresholds
+for threshold in precip_thresholds:
+  for filetype,rain_var in zip(['srfc','hydro','xtrm'],['RAIN','RAIN','RAINMEAN']):
+    suffix = '_{:03d}'.format(int(10*threshold)); name_suffix = '{:3.1f})'.format(threshold)
+    consecutive_variables[filetype]['CWD'+suffix] = (rain_var, 'above', threshold, 'Consecutive Wet Days (>'+name_suffix)
+    consecutive_variables[filetype]['CDD'+suffix] = (rain_var, 'below', threshold, 'Consecutive Dry Days (<'+name_suffix)
+                                  
 #consecutive_variables['hydro'] = {}
 # Maxima (just list base variables; derived variables will be created later)
 maximum_variables = {filetype:[] for filetype in filetypes} # maxima variable lists by file type
@@ -292,10 +299,10 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
     for key,value in consecutive_variables[filetype].iteritems():
       if value[0] in derived_vars: 
         derived_vars[key] = dv.ConsecutiveExtrema(derived_vars[value[0]], value[1], threshold=value[2], 
-                                                  name=key, longname=value[3])
+                                                  name=key, long_name=value[3])
       else:
         derived_vars[key] = dv.ConsecutiveExtrema(wrfout.variables[value[0]], value[1], threshold=value[2], 
-                                                  name=key, longname=value[3], dimmap=midmap)
+                                                  name=key, long_name=value[3], dimmap=midmap)
   
   # method to create derived variables for extrema
   def addExtrema(new_variables, mode, interval=0):
@@ -314,8 +321,8 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
   addExtrema(minimum_variables, 'min')
   addExtrema(daymax_variables, 'max', interval=1)
   addExtrema(daymin_variables, 'min', interval=1)  
-  addExtrema(weekmax_variables, 'max', interval=7)
-  addExtrema(weekmin_variables, 'min', interval=7)  
+  addExtrema(weekmax_variables, 'max', interval=5) # 5 days is the preferred interval, according to
+  addExtrema(weekmin_variables, 'min', interval=5) # ETCCDI Climate Change Indices
 
   # if we are only computing derived variables, remove all non-prerequisites
   prepq = set().union(*[devar.prerequisites for devar in derived_vars.itervalues()])
@@ -792,6 +799,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
                 # N.B.: in-place operations with non-masked array destroy the mask, hence need to use this
                 if dename in pqset: pqdata[dename] = tmp
                 # N.B.: missing values should be handled implicitly, following missing values in pre-requisites            
+                del tmp # memory hygiene
             
           # increment counters
           ntime += wrfendidx - wrfstartidx
