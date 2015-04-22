@@ -227,9 +227,11 @@ consecutive_variables['hydro'] = {'CNWD' : ('NetPrecip', 'above', 0., 'Consecuti
 for threshold in precip_thresholds:
   for filetype,rain_var in zip(['srfc','hydro','xtrm'],['RAIN','RAIN','RAINMEAN']):
     suffix = '_{:03d}'.format(int(10*threshold)); name_suffix = '{:3.1f})'.format(threshold)
-    consecutive_variables[filetype]['CWD'+suffix] = (rain_var, 'above', threshold, 'Consecutive Wet Days (>'+name_suffix)
-    consecutive_variables[filetype]['CDD'+suffix] = (rain_var, 'below', threshold, 'Consecutive Dry Days (<'+name_suffix)
-                                  
+    consecutive_variables[filetype]['CWD'+suffix] = (rain_var, 'above', threshold/86400., 
+                                                     'Consecutive Wet Days (>'+name_suffix)
+    consecutive_variables[filetype]['CDD'+suffix] = (rain_var, 'below', threshold/86400. , 
+                                                     'Consecutive Dry Days (<'+name_suffix)
+print consecutive_variables['hydro']                                  
 #consecutive_variables['hydro'] = {}
 # Maxima (just list base variables; derived variables will be created later)
 maximum_variables = {filetype:[] for filetype in filetypes} # maxima variable lists by file type
