@@ -27,6 +27,9 @@ dv_float = np.dtype('float32') # final precision used for derived floating point
 dtype_float = dv_float # general floating point precision used for temporary arrays
 # dryday_threshold = 0.2/86400. # precip treshold for a dry day 0.2 mm/day
 
+# thresholds for wet-day variables (from AMS glossary and ETCCDI Climate Change Indices) 
+precip_thresholds = [0.2, 1., 10., 20.]
+# N.B.: importing from wrfout_average causes problems in ipython notebooks
 
 def calcTimeDelta(timestamps, year=None, month=None):
   ''' function to calculate time deltas and subtract leap-days, if necessary '''
@@ -266,6 +269,7 @@ class Rain(DerivedVariable):
     return outdata
 
 
+# N.B.: some other DerivedVariable's depend on RAINMEAN, so we are keepign it for now
 class RainMean(DerivedVariable):
   ''' DerivedVariable child implementing computation of total daily precipitation for WRF output. '''
   
@@ -425,40 +429,22 @@ class SolidPrecipSR(DerivedVariable):
     return outdata
 
 
-class NetPrecip_Hydro(DerivedVariable):
-  ''' DerivedVariable child implementing computation of net precipitation for WRF output.
-      This version can be computed in hydro files, and is more accurate. '''
+class NetPrecip(DerivedVariable):
+  ''' DerivedVariable child implementing computation of net precipitation for WRF output. '''  
   
-  def __init__(self):
-    ''' Initialize with fixed values; constructor takes no arguments. '''
-    super(NetPrecip_Hydro,self).__init__(name='NetPrecip', # name of the variable
+  def __init__(self, sfcevp='SFCEVP'): # 'SFCEVP' for hydro, 'QFC' for srfc files
+    ''' Initialize with fixed values and name of surface evaporation variable as argument. '''
+    super(NetPrecip,self).__init__(name='NetPrecip', # name of the variable
                               units='kg/m^2/s', # not accumulated anymore! 
-                              prerequisites=['RAIN', 'SFCEVP'], # it's the difference of these two 
+                              prerequisites=['RAIN', sfcevp], # it's the difference of these two 
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype=dv_float, atts=None, linear=True) # this computation is actually linear
+    self.sfcevp = sfcevp
 
   def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Compute net precipitation as the difference between total precipitation and evapo-transpiration. '''
-    super(NetPrecip_Hydro,self).computeValues(indata, const=None) # perform some type checks    
-    outdata = indata['RAIN'] - indata['SFCEVP'] # compute
-    return outdata
-
-class NetPrecip_Srfc(DerivedVariable):
-  ''' DerivedVariable child implementing computation of net precipitation for WRF output. 
-      This version can be computed in srfc files, but is less accurate. '''  
-  
-  def __init__(self):
-    ''' Initialize with fixed values; constructor takes no arguments. '''
-    super(NetPrecip_Srfc,self).__init__(name='NetPrecip', # name of the variable
-                              units='kg/m^2/s', # not accumulated anymore! 
-                              prerequisites=['RAIN', 'QFX'], # it's the difference of these two 
-                              axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
-                              dtype=dv_float, atts=None, linear=True) # this computation is actually linear
-
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
-    ''' Compute net precipitation as the difference between total precipitation and evapo-transpiration. '''
-    super(NetPrecip_Srfc,self).computeValues(indata, const=None) # perform some type checks    
-    outdata = indata['RAIN'] - indata['QFX'] # compute
+    super(NetPrecip,self).computeValues(indata, const=None) # perform some type checks    
+    outdata = indata['RAIN'] - indata[self.sfcevp] # compute
     return outdata
 
 
@@ -609,27 +595,56 @@ class WetDayPrecip(DerivedVariable):
 class FrostDays(DerivedVariable):
   ''' DerivedVariable child for counting the fraction of frost days for WRF output. '''
   
-  def __init__(self, threshold=0., ignoreNaN=False):
+  def __init__(self, threshold=0., temp='T2MIN', ignoreNaN=False):
     ''' Initialize with fixed values and selected frost-day threshold (defined by argument in Celsius). '''
     name = 'FrostDays_{:+02d}'.format(int(threshold))
     threshold += 273.15 # convert to SI units (argument assumed Celsius)
     atts = dict(threshold=threshold) # save threshold value in SI/Variable units
     super(FrostDays,self).__init__(name=name, # name of the variable
                               units='', # fraction of days 
-                              prerequisites=['T2MIN'], # below threshold
+                              prerequisites=[temp], # below threshold
                               axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
                               dtype=dv_float, atts=atts, linear=False, ignoreNaN=ignoreNaN)
     self.threshold = threshold 
-
+    self.temp = temp
+    
   def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
     ''' Count the number of events below a threshold (0 Celsius) '''
     super(FrostDays,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks    
     if delta != 86400.: raise ValueError, 'WRF extreme values are suppposed to be daily; encountered delta={:f}'.format(delta)
     if self.ignoreNaN:
-      outdata = np.where(indata['T2MIN'] < self.threshold, 1,0) # comparisons with NaN always yield False
-      outdata = np.where(np.isnan(indata['T2MIN']), np.NaN,outdata)     
+      outdata = np.where(indata[self.temp] < self.threshold, 1,0) # comparisons with NaN always yield False
+      outdata = np.where(np.isnan(indata[self.temp]), np.NaN,outdata)     
     else:
-      outdata = indata['T2MIN'] < self.threshold # event below threshold (default 0 deg. Celsius)    
+      outdata = indata[self.temp] < self.threshold # event below threshold (default 0 deg. Celsius)    
+    return outdata
+
+
+class SummerDays(DerivedVariable):
+  ''' DerivedVariable child for counting the fraction of summer days for WRF output. '''
+  
+  def __init__(self, threshold=25., temp='T2MAX', ignoreNaN=False):
+    ''' Initialize with fixed values and selected frost-day threshold (defined by argument in Celsius). '''
+    name = 'SummerDays_{:+02d}'.format(int(threshold))
+    threshold += 273.15 # convert to SI units (argument assumed Celsius)
+    atts = dict(threshold=threshold) # save threshold value in SI/Variable units
+    super(SummerDays,self).__init__(name=name, # name of the variable
+                              units='', # fraction of days 
+                              prerequisites=[temp], # below threshold
+                              axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
+                              dtype=dv_float, atts=atts, linear=False, ignoreNaN=ignoreNaN)
+    self.threshold = threshold 
+    self.temp = temp
+
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+    ''' Count the number of events above a threshold (25 Celsius) '''
+    super(SummerDays,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks    
+    if delta != 86400.: raise ValueError, 'WRF extreme values are suppposed to be daily; encountered delta={:f}'.format(delta)
+    if self.ignoreNaN:
+      outdata = np.where(indata[self.temp] > self.threshold, 1,0) # comparisons with NaN always yield False
+      outdata = np.where(np.isnan(indata[self.temp]), np.NaN,outdata)     
+    else:
+      outdata = indata[self.temp] > self.threshold # event below threshold (default 0 deg. Celsius)    
     return outdata
 
 

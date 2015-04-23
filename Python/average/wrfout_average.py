@@ -187,15 +187,18 @@ acclist = dict(RAINNC=100.,RAINC=100.,RAINSH=None,SNOWNC=None,GRAUPELNC=None,SFC
                ACSWUPT=1.e9,ACSWUPTC=1.e9,ACSWDNT=1.e9,ACSWDNTC=1.e9,ACSWUPB=1.e9,ACSWUPBC=1.e9,ACSWDNB=1.e9,ACSWDNBC=1.e9, # rad vars
                ACLWUPT=1.e9,ACLWUPTC=1.e9,ACLWDNT=1.e9,ACLWDNTC=1.e9,ACLWUPB=1.e9,ACLWUPBC=1.e9,ACLWDNB=1.e9,ACLWDNBC=1.e9) # rad vars
 # N.B.: keys = variables and values = bucket sizes; value = None or 0 means no bucket  
-bktpfx = 'I_' # prefix for bucket variables; these are processed together with their accumulated variables 
+bktpfx = 'I_' # prefix for bucket variables; these are processed together with their accumulated variables
 
 # derived variables
 derived_variables = {filetype:[] for filetype in filetypes} # derived variable lists by file type
-derived_variables['srfc']   = [dv.Rain(), dv.LiquidPrecipSR(), dv.SolidPrecipSR(), dv.NetPrecip_Srfc(),  
-                               dv.WaterVapor(), dv.OrographicIndex(), dv.CovOIP()]
-derived_variables['xtrm']   = [dv.RainMean(), dv.FrostDays(threshold=0.), dv.TimeOfConvection()]
+derived_variables['srfc']   = [dv.Rain(), dv.LiquidPrecipSR(), dv.SolidPrecipSR(), dv.NetPrecip(sfcevp='QFX'),  
+                               dv.WaterVapor(), dv.OrographicIndex(), dv.CovOIP(),
+                               dv.SummerDays(threshold=25., temp='T2'), dv.FrostDays(threshold=0., temp='T2')]
+                              # N.B.: measures the fraction of 6-hourly samples above/below the threshold (day and night)
+derived_variables['xtrm']   = [dv.RainMean(), dv.TimeOfConvection(),
+                               dv.SummerDays(threshold=25., temp='T2MAX'), dv.FrostDays(threshold=0., temp='T2MIN')]
 derived_variables['hydro']  = [dv.Rain(), dv.LiquidPrecip(), dv.SolidPrecip(), 
-                               dv.NetPrecip_Hydro(), dv.NetWaterFlux()]
+                               dv.NetPrecip(sfcevp='SFCEVP'), dv.NetWaterFlux()]
 derived_variables['lsm']    = [dv.RunOff()]
 derived_variables['plev3d'] = [dv.OrographicIndexPlev(), dv.Vorticity(), dv.WaterDensity(),
                                dv.WaterFlux_U(), dv.WaterFlux_V(), dv.ColumnWater(), 
@@ -204,9 +207,8 @@ derived_variables['plev3d'] = [dv.OrographicIndexPlev(), dv.Vorticity(), dv.Wate
                                dv.HeatTransport_U(),dv.HeatTransport_V(),
                                dv.GHT_Var(), dv.Vorticity_Var()]
 # add wet-day variables for different thresholds
-precip_thresholds = [0.2, 1., 10., 20.]
 wetday_variables = [dv.WetDays, dv.WetDayRain, dv.WetDayPrecip] 
-for threshold in precip_thresholds:
+for threshold in dv.precip_thresholds:
   for wetday_var in wetday_variables:
     derived_variables['srfc'].append(wetday_var(threshold=threshold, rain='RAIN'))
     derived_variables['hydro'].append(wetday_var(threshold=threshold, rain='RAIN'))
@@ -215,35 +217,36 @@ for threshold in precip_thresholds:
 # N.B.: derived variables need to be listed in order of computation
 consecutive_variables = {filetype:None for filetype in filetypes} # consecutive variable lists by file type
 # Consecutive exceedance variables
-consecutive_variables['srfc']  = {'CFD'  : ('T2', 'below', 273.14, 'Consecutive Frost Days'),
+consecutive_variables['srfc']  = {'CFD'  : ('T2', 'below', 273.14, 'Consecutive Frost Days (< 0C)'),
+                                  'CSD'  : ('T2', 'above', 273.14+25., 'Consecutive Summer Days (>25C)'), 
+                                  # N.B.: night temperatures >25C will rarely happen... so this will be very short
                                   'CNWD' : ('NetPrecip', 'above', 0., 'Consecutive Net Wet Days'),
                                   'CNDD' : ('NetPrecip', 'below', 0., 'Consecutive Net Dry Days'),}
-consecutive_variables['xtrm']  = {'CFD'  : ('T2MEAN', 'below', 273.14, 'Consecutive Frost Days'),}
+consecutive_variables['xtrm']  = {'CFD'  : ('T2MIN', 'below', 273.14, 'Consecutive Frost Days (< 0C)'),
+                                  'CSD'  : ('T2MAX', 'above', 273.14+25., 'Consecutive Summer Days (>25C)'),}
 consecutive_variables['hydro'] = {'CNWD' : ('NetPrecip', 'above', 0., 'Consecutive Net Wet Days'),
                                   'CNDD' : ('NetPrecip', 'below', 0., 'Consecutive Net Dry Days'),
                                   'CWGD' : ('NetWaterFlux', 'above', 0., 'Consecutive Water Gain Days'),
                                   'CWLD' : ('NetWaterFlux', 'below', 0., 'Consecutive Water Loss Days'),}
 # add wet-day variables for different thresholds
-for threshold in precip_thresholds:
+for threshold in dv.precip_thresholds:
   for filetype,rain_var in zip(['srfc','hydro','xtrm'],['RAIN','RAIN','RAINMEAN']):
     suffix = '_{:03d}'.format(int(10*threshold)); name_suffix = '{:3.1f} mm/day)'.format(threshold)
     consecutive_variables[filetype]['CWD'+suffix] = (rain_var, 'above', threshold/86400., 
                                                      'Consecutive Wet Days (>'+name_suffix)
     consecutive_variables[filetype]['CDD'+suffix] = (rain_var, 'below', threshold/86400. , 
                                                      'Consecutive Dry Days (<'+name_suffix)
-print consecutive_variables['hydro']                                  
-#consecutive_variables['hydro'] = {}
 # Maxima (just list base variables; derived variables will be created later)
 maximum_variables = {filetype:[] for filetype in filetypes} # maxima variable lists by file type
-maximum_variables['srfc']   = ['T2', 'U10', 'V10', 'RAIN', 'RAINC', 'NetPrecip']
+maximum_variables['srfc']   = ['T2', 'U10', 'V10', 'RAIN', 'RAINC', 'RAINNC', 'NetPrecip']
 maximum_variables['xtrm']   = ['T2MEAN', 'T2MAX', 'SPDUV10MEAN', 'SPDUV10MAX', 
                                'RAINMEAN', 'RAINNCVMAX', 'RAINCVMAX']
-maximum_variables['hydro']  = ['RAIN', 'RAINC', 'NetPrecip', 'NetWaterFlux']
+maximum_variables['hydro']  = ['RAIN', 'RAINC', 'RAINNC', 'NetPrecip', 'NetWaterFlux']
 maximum_variables['lsm']    = ['SFROFF']
 maximum_variables['plev3d'] = ['S_PL', 'GHT_PL', 'Vorticity']
 # daily (smoothed) maxima
 daymax_variables  = {filetype:[] for filetype in filetypes} # maxima variable lists by file type
-daymax_variables['srfc']  = ['T2','RAIN', 'RAINC', 'NetPrecip']
+daymax_variables['srfc']  = ['T2','RAIN', 'RAINC', 'RAINNC', 'NetPrecip']
 # daily (smoothed) minima
 daymin_variables  = {filetype:[] for filetype in filetypes} # mininma variable lists by file type
 daymin_variables['srfc']  = ['T2']
