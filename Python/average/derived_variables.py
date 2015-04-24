@@ -611,7 +611,8 @@ class FrostDays(DerivedVariable):
   def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
     ''' Count the number of events below a threshold (0 Celsius) '''
     super(FrostDays,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks    
-    if delta != 86400.: raise ValueError, 'WRF extreme values are suppposed to be daily; encountered delta={:f}'.format(delta)
+    if delta != 86400. and self.temp != 'T2': 
+      raise ValueError, 'WRF extreme values are suppposed to be daily; encountered delta={:f}'.format(delta)
     if self.ignoreNaN:
       outdata = np.where(indata[self.temp] < self.threshold, 1,0) # comparisons with NaN always yield False
       outdata = np.where(np.isnan(indata[self.temp]), np.NaN,outdata)     
@@ -639,7 +640,8 @@ class SummerDays(DerivedVariable):
   def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
     ''' Count the number of events above a threshold (25 Celsius) '''
     super(SummerDays,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks    
-    if delta != 86400.: raise ValueError, 'WRF extreme values are suppposed to be daily; encountered delta={:f}'.format(delta)
+    if delta != 86400. and self.temp != 'T2': 
+      raise ValueError, 'WRF extreme values are suppposed to be daily; encountered delta={:f}'.format(delta)
     if self.ignoreNaN:
       outdata = np.where(indata[self.temp] > self.threshold, 1,0) # comparisons with NaN always yield False
       outdata = np.where(np.isnan(indata[self.temp]), np.NaN,outdata)     
@@ -1187,7 +1189,7 @@ class ConsecutiveExtrema(Extrema):
 class MeanExtrema(Extrema):
   ''' Extrema child implementing extrema of interval-averaged values in monthly WRF output. '''
   
-  def __init__(self, var, mode, interval=7, name=None, long_name=None, dimmap=None, ignoreNaN=False):
+  def __init__(self, var, mode, interval=5, name=None, long_name=None, dimmap=None, ignoreNaN=False):
     ''' Constructor; takes variable object as argument and infers meta data. '''
     # infer attributes of Maximum variable
     super(MeanExtrema,self).__init__(var, mode, name=name, long_name=long_name, dimmap=dimmap, ignoreNaN=ignoreNaN)
@@ -1212,16 +1214,16 @@ class MeanExtrema(Extrema):
     # determine length of interval
     lt = data.shape[0] # available time steps
     pape = data.shape[1:] # remaining shape (must be preserved)
-    ilen = np.round( self.interval / delta )
-    nint = np.trunc( lt / ilen ) # number of intervals
+    ilen = int( self.interval / delta )
+    nint = int( lt / ilen ) # number of intervals
     if nint > 0:
       # truncate and reshape data
       ui = ilen*nint # usable interval: split data here
       data = data[:ui,:] # use this portion
       rest = data[ui:,:] # save the rest for next iteration
-      data = data.reshape((ilen,nint) + pape)
+      data = data.reshape((nint,ilen) + pape)
       # average interval
-      meandata = data.mean(axis=0) # average over interval dimension
+      meandata = data.mean(axis=1) # average over interval dimension
       datadict = {self.prerequisites[0]:meandata} # next method expects a dictionary...
       # find extrema as before (but aggregation axis was shifted to 0)
       outdata = super(MeanExtrema,self).computeValues(datadict, aggax=0, delta=delta, const=const, 
