@@ -7,7 +7,7 @@
 
 # pre-process arguments using getopt
 if [ -z $( getopt -T ) ]; then
-  TMP=$( getopt -o p:tsrdn:h --long processes:,test,highspeed,restore,debug,niceness:,from-home,overwrite,no-compute,no-download,no-ensemble,help -n "$0" -- "$@" ) # pre-process arguments
+  TMP=$( getopt -o e:a:tsrdn:h --long procs-exstns:,procs-avgreg:,test,highspeed,restore,debug,niceness:,from-home,overwrite,no-compute,no-download,no-ensemble,help -n "$0" -- "$@" ) # pre-process arguments
   [ $? != 0 ] && exit 1 # getopt already prints an error message
   eval set -- "$TMP" # reset positional parameters (arguments) to $TMP list
 fi # check if GNU getopt ("enhanced")
@@ -15,31 +15,33 @@ fi # check if GNU getopt ("enhanced")
 #while getopts 'fs' OPTION; do # getopts version... supports only short options
 while true; do
   case "$1" in
-    -p | --processes   )   PYAVG_THREADS=$2; shift 2;;
-    -t | --test        )   PYAVG_BATCH='FALSE'; shift;;    
-    -s | --highspeed   )   HISPD='HISPD';  shift;;
-    -r | --restore     )   RESTORE='RESTORE'; shift;;
-    -d | --debug       )   PYAVG_DEBUG=DEBUG; shift;;
-    -n | --niceness    )   NICENESS=$2; shift 2;;
-         --from-home   )   CODE="${HOME}/Code/"; shift;;
-         --overwrite   )   PYAVG_OVERWRITE='OVERWRITE';  shift;;
-         --no-compute  )   NOCOMPUTE='TRUE'; shift;;
-         --no-download )   NODOWNLOAD='TRUE'; shift;;
-         --no-ensemble )   NOENSEMBLE='TRUE'; shift;;
-    -h | --help        )   echo -e " \
+    -e | --procs-exstns )   PYAVG_EXTNP=$2; shift 2;;
+    -a | --procs-avgreg )   PYAVG_AVGNP=$2; shift 2;;
+    -t | --test         )   PYAVG_BATCH='FALSE'; shift;;    
+    -s | --highspeed    )   HISPD='HISPD';  shift;;
+    -r | --restore      )   RESTORE='RESTORE'; shift;;
+    -d | --debug        )   PYAVG_DEBUG=DEBUG; shift;;
+    -n | --niceness     )   NICENESS=$2; shift 2;;
+         --from-home    )   CODE="${HOME}/Code/"; shift;;
+         --overwrite    )   PYAVG_OVERWRITE='OVERWRITE';  shift;;
+         --no-compute   )   NOCOMPUTE='TRUE'; shift;;
+         --no-download  )   NODOWNLOAD='TRUE'; shift;;
+         --no-ensemble  )   NOENSEMBLE='TRUE'; shift;;
+    -h | --help         )   echo -e " \
                             \n\
-    -p | --processes     number of processes to use by Python multi-processing (default: 4)\n\
-    -t | --test          do not run Python modules in batch mode mode (default: Batch)\n\
-    -s | --highspeed     whether or not to use the high-speed datamover connection (default: False)\n\
-    -r | --restore       inverts local and remote for datasets, so that they are restored\n\
-    -d | --debug         print dataset information in Python modules and prefix results with 'test_' (default: False)\n\
-    -n | --niceness      nicesness of the sub-processes (default: +5)\n\
-         --from-home     use code from user $HOME instead of default (/home/data/Code)\n\
-         --overwrite     recompute all averages and regridding (default: False)\n\
-         --no-compute    skips the computation steps except the ensemble means (skips all Python scripts)\n\
-         --no-download   skips all downloads from SciNet\n\
-         --no-ensemble   skips computation of ensemble means\n\
-    -h | --help          print this help \n\
+    -e | --procs-exstns   number of processes to use for station extraction (concurrently to averaging/regridding; default: 2)\n\
+    -a | --procs-avgreg   number of processes to use for averaging and regridding (concurrently to stations; default: 2)\n\
+    -t | --test           do not run Python modules in batch mode mode (default: Batch)\n\
+    -s | --highspeed      whether or not to use the high-speed datamover connection (default: False)\n\
+    -r | --restore        inverts local and remote for datasets, so that they are restored\n\
+    -d | --debug          print dataset information in Python modules and prefix results with 'test_' (default: False)\n\
+    -n | --niceness       nicesness of the sub-processes (default: +5)\n\
+         --from-home      use code from user $HOME instead of default (/home/data/Code)\n\
+         --overwrite      recompute all averages and regridding (default: False)\n\
+         --no-compute     skips the computation steps except the ensemble means (skips all Python scripts)\n\
+         --no-download    skips all downloads from SciNet\n\
+         --no-ensemble    skips computation of ensemble means\n\
+    -h | --help           print this help \n\
                              "; exit 0;; # \n\ == 'line break, next line'; for syntax highlighting
     -- ) shift; break;; # this terminates the argument list, if GNU getopt is used
     * ) break;;
@@ -111,16 +113,30 @@ fi # if no-download
 
 if [[ "${NOCOMPUTE}" != 'TRUE' ]]
   then
+    
+    # N.B.: station extraction runs concurrently with averaging/regridding, because it is I/O limited,
+    #       while the other two are CPU limited - easy load balancing
+            
+    ## extract station data (all datasets)
+    export PYAVG_BATCH=${PYAVG_BATCH:-'BATCH'} # run in batch mode - this should not be changed
+    export PYAVG_THREADS=${PYAVG_EXTNP:-2} # parallel execution
+    export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
+    export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
+    nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/PyGeoData/src/processing/exstns.py" \
+      &> ${ROOT}/exstns.log & # 2> ${ROOT}/exstns.err
+    PID=$! # save PID of background process to use with wait 
+    
     ## run post-processing (update climatologies)
     # WRF
     export PYAVG_BATCH=${PYAVG_BATCH:-'BATCH'} # run in batch mode - this should not be changed
-    export PYAVG_THREADS=${PYAVG_THREADS:-4} # parallel execution
+    export PYAVG_THREADS=${PYAVG_AVGNP:-2} # parallel execution
     export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
     export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
     #"${PYTHON}/bin/python" -c "print 'OK'" 1> ${WRFDATA}/wrfavg.log 2> ${WRFDATA}/wrfavg.err # for debugging
 	  nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/PyGeoData/src/processing/wrfavg.py" \
 	    &> ${WRFDATA}/wrfavg.log #2> ${WRFDATA}/wrfavg.err
     REPORT $? 'WRF Post-processing'
+    
 fi # if no-compute
 
 if [[ "${NOENSEMBLE}" != 'TRUE' ]]
@@ -141,21 +157,15 @@ if [[ "${NOENSEMBLE}" != 'TRUE' ]]
 fi # if no-download
 
 if [[ "${NOCOMPUTE}" != 'TRUE' ]]
-  then    
-    ## extract station data (all datasets)
-    # same settings as wrfavg...
-    export PYAVG_BATCH=${PYAVG_BATCH:-'BATCH'} # run in batch mode - this should not be changed
-    export PYAVG_THREADS=${PYAVG_THREADS:-4} # parallel execution
-    export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
-    export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
-    nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/PyGeoData/src/processing/exstns.py" \
-      &> ${ROOT}/exstns.log #2> ${ROOT}/exstns.err
-    REPORT $? 'Station Data Extraction'
+  then
     
+    # N.B.: station extraction runs concurrently with averaging/regridding, because it is I/O limited,
+    #       while the other two are CPU limited - easy load balancing
+                
     ## average over regions (all datasets)
     # same settings as wrfavg...
     export PYAVG_BATCH=${PYAVG_BATCH:-'BATCH'} # run in batch mode - this should not be changed
-    export PYAVG_THREADS=${PYAVG_THREADS:-4} # parallel execution
+    export PYAVG_THREADS=${PYAVG_AVGNP:-2} # parallel execution
     export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
     export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
 	  nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/PyGeoData/src/processing/shpavg.py" \
@@ -165,12 +175,16 @@ if [[ "${NOCOMPUTE}" != 'TRUE' ]]
     ## run regridding (all datasets)
     # same settings as wrfavg...
     export PYAVG_BATCH=${PYAVG_BATCH:-'BATCH'} # run in batch mode - this should not be changed
-    export PYAVG_THREADS=${PYAVG_THREADS:-4} # parallel execution
+    export PYAVG_THREADS=${PYAVG_AVGNP:-2} # parallel execution
     export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
     export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
     nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/PyGeoData/src/processing/regrid.py" \
        &> ${ROOT}/regrid.log #2> ${ROOT}/regrid.err
-    REPORT $? 'Dataset Regridding'    
+    REPORT $? 'Dataset Regridding'
+    
+    wait $PID # wait for station extraction to finish
+    REPORT $? 'Station Data Extraction' # wait returns the exit status of the command it waited for
+         
 fi # if no-compute
 
 # report
