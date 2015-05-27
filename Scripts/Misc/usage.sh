@@ -22,9 +22,9 @@ $LLQ -f %o %nh| grep amashaye| awk '{ SUM += $2} END { print "Ali: " SUM }'
 #u7=`$LLQ -f %o %nh | grep amashaye| awk '{ SUM += $2} END { print SUM }'`
 $LLQ -f %o %nh| grep marcdo| awk '{ SUM += $2} END { print "Marc: " SUM }'
 #u8=`$LLQ -f %o %nh | grep marcdo| awk '{ SUM += $2} END { print SUM }'`
-$LLQ -f %o %nh| grep dchandan | awk '{ SUM += $2} END { print "Deepak: " SUM }'
-#u8=`$LLQ -f %o %nh | grep marcdo| awk '{ SUM += $2} END { print SUM }'`
+$LLQ -f %o %nh| grep dchandan| awk '{ SUM += $2} END { print "Deepak: " SUM }'
 $LLQ -f %o %nh| grep mkamal| awk '{ SUM += $2} END { print "Kamal: " SUM }'
+$LLQ -f %o %nh| grep mudryk| awk '{ SUM += $2} END { print "Lawrence: " SUM }'
 #u9=`$LLQ -f %o %nh | grep marcdo| awk '{ SUM += $2} END { print SUM }'`
 #$LLQ -f %o %nh| grep cdurbin| awk '{ SUM += $2} END { print "Cai: " SUM }'
 #u9=`$LLQ -f %o %nh | grep cdurbin| awk '{ SUM += $2} END { print SUM }'`

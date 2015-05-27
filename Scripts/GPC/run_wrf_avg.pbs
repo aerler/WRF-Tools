@@ -24,7 +24,7 @@ echo
 date
 echo
 module purge
-module load intel/13.1.1 gcc/4.8.1 python/2.7.3 hdf5/187-v18-serial-intel netcdf/4.1.3_hdf5_serial-intel
+module load intel/14.0.1 gcc/4.9.0 hdf5/1811-v18-serial-intel netcdf/4.2.1.1_serial-intel python/2.7.8
 module list
 echo
 
@@ -57,7 +57,6 @@ if [[ -n "${PERIOD}" ]]; then
 else
 
     # make sure, certain variables are there...
-    module load udunits/2.1.11 nco/4.0.8-intel-nocxx
     ~/Scripts/addVariable.sh 'ACSNOW'
     ~/Scripts/addVariable.sh 'SR'
     ~/Scripts/addVariable.sh 'T2MEAN' # this variable will be removed!

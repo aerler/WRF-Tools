@@ -19,9 +19,12 @@
 
 # load modules (we need to load the netcdf module in order to use it in Python)
 echo
+#module purge
+#module load intel/13.1.1 gcc/4.8.1 hdf5/187-v18-serial-intel netcdf/4.1.3_hdf5_serial-intel gnu-parallel/20130422  
+#module load python/2.7.3 gdal/1.9.2 extras/64_6.4 ncl/6.2.0 gsl/1.13-intel udunits/2.1.11 nco/4.3.2-intel
+#module list
 module purge
-module load intel/13.1.1 gcc/4.8.1 hdf5/187-v18-serial-intel netcdf/4.1.3_hdf5_serial-intel gnu-parallel/20130422  
-module load python/2.7.3 gdal/1.9.2 extras/64_6.4 ncl/6.2.0 gsl/1.13-intel udunits/2.1.11 nco/4.3.2-intel
+module load intel/14.0.1 gcc/4.9.0 hdf5/1811-v18-serial-intel netcdf/4.2.1.1_serial-intel python/2.7.8 gnu-parallel/20130422  
 module list
 echo
 

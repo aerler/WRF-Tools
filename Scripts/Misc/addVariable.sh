@@ -3,8 +3,10 @@
 # Andre R. Erler, 22/04/2013
 
 # load module
-# module load netcdf nco
-#module list
+module purge
+module load intel/13.1.1 gcc/4.8.1 hdf5/187-v18-serial-intel netcdf/4.1.3_hdf5_serial-intel udunits/2.1.11 nco/4.0.8-intel-nocxx
+module list
+# NCO only works with the older versions of NetCDF4/HDF5
 
 # settings
 SRCDIR="${PWD}/wrfout/"

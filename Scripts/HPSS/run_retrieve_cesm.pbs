@@ -12,11 +12,11 @@
 #PBS -M aerler@atmosp.physics.utoronto.ca
 #PBS -m ae
 # job name
-#PBS -N re_seaice-5r-hf
+#PBS -N retrieve_cesm-2100
 ## submit to queue (NB: this has to be the last PBS line!)
 #PBS -q archive
  
-echo "moving CESM output after completion of XXX years to hpss"
+echo "retrieving CESM output from HPSS"
  
 trap "echo 'Job script not completed';exit 129" TERM INT
 # Note that your initial directory in HPSS will be $ARCHIVE
@@ -32,11 +32,11 @@ trap "echo 'Job script not completed';exit 129" TERM INT
 #years="2045-2049"
 #list="seaice-5r"
 #years="2060-2085"
-list="seaice-5r-hf"
-years="2055-2064"
+#list="seaice-5r-hf"
+#years="2055-2064"
 #years="2055-2060"
-#list='hcbrcp85cn1x1d'
-#years='2085-2100'
+list='habrcp85cn1x1d hbbrcp85cn1x1d hcbrcp85cn1x1d'
+years='2085-2100'
 #direc="atm  cpl  dart	glc  ice  lnd  ocn  rest"
 direc="atm  ice  lnd"
 #direc="rest ocn"
