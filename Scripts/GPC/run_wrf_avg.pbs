@@ -60,6 +60,7 @@ else
     ~/Scripts/addVariable.sh 'ACSNOW'
     ~/Scripts/addVariable.sh 'SR'
     ~/Scripts/addVariable.sh 'T2MEAN' # this variable will be removed!
+    ~/Scripts/addVariable.sh 'TSLB' # this variable will be removed!
     
     # launch actual averaging script
     time -p python "${SCRIPTDIR}/${PYAVG}"
