@@ -13,6 +13,7 @@ exactly one output file.
 #TODO: add option to discard prerequisit variables
 #TODO: add base variables for correlation and standard deviation (and (co-)variance).
 #TODO: more variables: tropopause height, baroclinicity, PV, water flux (require full 3D fields)
+#TODO: add shape-averaged output stream (shapes based on a template file)
 
 
 ## imports
@@ -241,7 +242,7 @@ maximum_variables = {filetype:[] for filetype in filetypes} # maxima variable li
 maximum_variables['srfc']   = ['T2', 'U10', 'V10', 'RAIN', 'RAINC', 'RAINNC', 'NetPrecip']
 maximum_variables['xtrm']   = ['T2MEAN', 'T2MAX', 'SPDUV10MEAN', 'SPDUV10MAX', 
                                'RAINMEAN', 'RAINNCVMAX', 'RAINCVMAX']
-maximum_variables['hydro']  = ['RAIN', 'RAINC', 'RAINNC', 'NetPrecip', 'NetWaterFlux']
+maximum_variables['hydro']  = ['RAIN', 'RAINC', 'RAINNC', 'ACSNOW', 'ACSNOM', 'NetPrecip', 'NetWaterFlux']
 maximum_variables['lsm']    = ['SFROFF']
 maximum_variables['plev3d'] = ['S_PL', 'GHT_PL', 'Vorticity']
 # daily (smoothed) maxima
@@ -252,16 +253,19 @@ daymin_variables  = {filetype:[] for filetype in filetypes} # mininma variable l
 daymin_variables['srfc']  = ['T2']
 # weekly (smoothed) maxima
 weekmax_variables  = {filetype:[] for filetype in filetypes} # maxima variable lists by file type
-weekmax_variables['hydro']  = ['RAIN', 'ACSNOM', 'NetPrecip', 'NetWaterFlux']
+weekmax_variables['xtrm']   = ['T2MEAN', 'T2MAX', 'SPDUV10MEAN'] 
+weekmax_variables['hydro']  = ['RAIN', 'RAINC', 'RAINNC', 'ACSNOW', 'ACSNOM', 'NetPrecip', 'NetWaterFlux']
 weekmax_variables['lsm']    = ['SFROFF','UDROFF','Runoff']
 # Maxima (just list base variables; derived variables will be created later)
 minimum_variables = {filetype:[] for filetype in filetypes} # minima variable lists by file type
 minimum_variables['srfc']   = ['T2']
-minimum_variables['xtrm']   = ['T2MEAN', 'T2MIN']
+minimum_variables['xtrm']   = ['T2MEAN', 'T2MIN', 'SPDUV10MEAN']
+minimum_variables['hydro']  = ['RAIN', 'NetPrecip', 'NetWaterFlux']
 minimum_variables['plev3d'] = ['GHT_PL', 'Vorticity']
 # weekly (smoothed) minima
 weekmin_variables  = {filetype:[] for filetype in filetypes} # mininma variable lists by file type
-weekmin_variables['hydro']  = ['RAIN', 'ACSNOM', 'NetPrecip', 'NetWaterFlux']
+weekmin_variables['xtrm']   = ['T2MEAN', 'T2MIN', 'SPDUV10MEAN']
+weekmin_variables['hydro']  = ['RAIN', 'NetPrecip', 'NetWaterFlux']
 weekmin_variables['lsm']    = ['SFROFF','UDROFF','Runoff']
 # N.B.: it is important that the derived variables are listed in order of dependency! 
 # set of pre-requisites
