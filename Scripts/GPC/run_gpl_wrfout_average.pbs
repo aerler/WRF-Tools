@@ -1,0 +1,178 @@
+#!/bin/bash
+
+## queue/PBS settings
+#PBS -l nodes=1:ppn=8
+# batch queue: nodes=4:m32g:ppn=8
+# largemem queue: nodes=1:m128g:ppn=16
+#PBS -l walltime=48:00:00
+# merge standard error and output stream
+#PBS -j oe
+#PBS -o $PBS_JOBNAME.$PBS_JOBID.out
+# send email if abort (nbae)
+#PBS -M aerler@atmosp.physics.utoronto.ca
+#PBS -m ae
+# job name
+#PBS -N gpl_wrfavg_all
+## submit to queue (NB: this has to be the last PBS line!)
+# batch (default), debug, largemem
+#PBS -q batch
+
+# load modules (we need to load the netcdf module in order to use it in Python)
+echo
+#module purge
+#module load intel/13.1.1 gcc/4.8.1 hdf5/187-v18-serial-intel netcdf/4.1.3_hdf5_serial-intel gnu-parallel/20130422  
+#module load python/2.7.3 gdal/1.9.2 extras/64_6.4 ncl/6.2.0 gsl/1.13-intel udunits/2.1.11 nco/4.3.2-intel
+#module list
+module purge
+module load intel/14.0.1 gcc/4.9.0 hdf5/1811-v18-serial-intel netcdf/4.2.1.1_serial-intel python/2.7.8 gnu-parallel/20130422  
+module list
+echo
+
+#shopt -s extglob
+
+# default settings
+JOBNAME=${PBS_JOBNAME:-'test'}
+WORKDIR=${PBS_O_WORKDIR:-"${PWD}"}
+CMDFILE=${CMDFILE:-"${WORKDIR}/cmdfile.${JOBNAME}"}
+LOGFILE=${LOGFILE:-"${WORKDIR}/logfile.${JOBNAME}"}
+DR=${DR:-'/reserved1/p/peltier/aerler/Downscaling'}
+DS=${DS:-'/scratch/p/peltier/aerler/Downscaling'}
+NCOADD=${NCOADD:-'~/Scripts/addVariable.sh'} # NCO script to add variables (usually not in run folder)
+
+# options
+TEST=${TEST:-'FALSE'} # use TEST=DRYRUN to only generate command file
+ADDVAR=${ADDVAR:-'ACSNOW SR T2MEAN'} # add potentially missing variables from other files
+AVERAGE=${AVERAGE:-'AVERAGE'} # run python averaging script
+
+# environment variables for the averaging script
+export PYTHON_EGG_CACHE="${WORKDIR}" # not sure why this is necessary
+export PYAVG_THREADS=${PYAVG_THREADS:-1} # serial execution
+export PYAVG_RECALC=${PYAVG_RECALC:-''} # ;-separated list of variables to recompute
+# N.B.: to recompute all derived variables, set PYAVG_RECALC=DERIVEDONLY
+export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
+export PYAVG_ADDNEW=${PYAVG_ADDNEW:-'ADDNEW'} # default: add new variables 
+export PYAVG_RECOVER=${PYAVG_RECOVER:-'FALSE'} # recover after a crash (recompute last step and continue)
+export PYAVG_FILETYPES=${PYAVG_FILETYPES:-'srfc,plev3d,xtrm,hydro,lsm'} # all diags: 'srfc plev3d xtrm hydro lsm rad'
+export PYAVG_DOMAINS=${PYAVG_DOMAINS:-'1,2,3'} # default: 1234; unfortunately not experiment-specific...
+export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
+export PYAVG_DRYDAY=${PYAVG_DRYDAY:-''} # dry-day correction factor (empty string means 'default', i.e. 50. as of 18/03/15)
+
+
+# user settings
+#PERIOD='1979-1981' # extension to command and output files
+#DATASRC=${DATASRC:-"$DR/max-*/ $DR/new-*/"}
+#DATASRC=${DATASRC:-"$DR/*-*/ $DS/*-*/"}
+DATASRC=${DATASRC:-"$DR/*-*/"}
+
+# more settings
+if [[ -n "${PERIOD}" ]]
+  then 
+    AVGPRD="_${PERIOD}"
+    FIRST="wrfout/wrfrst_d01_${PERIOD%%-*}-02-01_00:00:00" # use first restart file as indicator
+    LAST="wrfout/wrfrst_d01_${PERIOD##*-}-12-01_00:00:00" # use last restart file as indicator
+  else 
+    AVGPRD=""
+    FIRST=""
+    LAST=""
+fi # if $PERIOD
+
+# root directory
+cd "${WORKDIR}"
+
+# generate command file
+rm -f "${CMDFILE}" "${LOGFILE}"
+echo
+echo 'Generating command file; working folders:'
+for D in ${DATASRC}
+  do
+    # check if files are available (otherwise skip!)
+    if [[ -z "$PERIOD"  ]] || [[ -e "${D}/${FIRST}" && -e "${D}/${LAST}" ]]; then
+
+			echo "$D"
+	    COMMAND="cd ${D}" # full command is printed below
+
+	    # add potentially missing variables (this has to come first!)
+	    if [[ -n "$ADDVAR" ]]; then
+				for VAR in $ADDVAR; do
+				  # write command file entry
+				  COMMAND="${COMMAND}; ${NCOADD} ${VAR} &> ${D}/wrfavg/addVariable_${VAR}.log"
+				done # for $VAR  
+	    fi # if $ADDVAR
+    
+	    # run Python averaging script
+	    if [[ "$AVERAGE" == 'AVERAGE' ]]; then
+        # make sure folder is set up
+        mkdir -p "${D}/wrfavg/"
+        # remove degenerate files (i.e. less than about 1MB; will be recomputed)
+        ls ${D}/wrfavg/wrf*.nc &> /dev/null
+        if [ $? -eq 0 ]; then
+          for FILE in ${D}/wrfavg/wrf*.nc; do 
+            [ $( ls -la ${FILE} | awk '{ print $5}' ) -lt 1000000 ] && rm ${FILE} 
+          done
+        fi # if there are any files
+        # append to command
+        COMMAND="${COMMAND}; python scripts/wrfout_average.py ${PERIOD} &> ${D}/wrfavg/wrfout_average${AVGPRD}.log; EC=\$?; echo \"${D}:\"; ls -lh wrfavg/wrf*.nc; echo; exit \$EC"
+	    fi # if $AVERAGE
+
+    # print full command
+    echo "$COMMAND" >> "${CMDFILE}"
+    
+    fi # file check    
+done
+
+## execute GNU Parallel commands
+echo # print command
+echo "parallel --sshloginfile \"$PBS_NODEFILE\" --workdir \"$PWD\" "
+echo "          --env PYTHON_EGG_CACHE   = $PYTHON_EGG_CACHE"
+echo "          --env PYAVG_THREADS      = $PYAVG_THREADS   "
+echo "          --env PYAVG_RECALC       = $PYAVG_RECALC    "
+echo "          --env PYAVG_OVERWRITE    = $PYAVG_OVERWRITE "
+echo "          --env PYAVG_ADDNEW       = $PYAVG_ADDNEW    "
+echo "          --env PYAVG_RECOVER      = $PYAVG_RECOVER   "
+echo "          --env PYAVG_FILETYPES    = $PYAVG_FILETYPES "
+echo "          --env PYAVG_DOMAINS      = $PYAVG_DOMAINS   "
+echo "          --env PYAVG_DEBUG        = $PYAVG_DEBUG     "
+echo "          --env PYAVG_DRYDAY       = $PYAVG_DRYDAY    "
+echo "         -j 8 --joblog \"${LOGFILE}\" < \"${CMDFILE}\" "
+if [[ "$TEST" != 'DRYRUN' ]]
+  then
+		parallel --sshloginfile "$PBS_NODEFILE" --workdir "$PWD" \
+							--env PYTHON_EGG_CACHE \
+							--env PYAVG_THREADS \
+							--env PYAVG_RECALC \
+							--env PYAVG_OVERWRITE \
+							--env PYAVG_ADDNEW \
+							--env PYAVG_RECOVER \
+							--env PYAVG_FILETYPES \
+							--env PYAVG_DOMAINS \
+							--env PYAVG_DEBUG \
+							--env PYAVG_DRYDAY \
+		         -j 8 --joblog "${LOGFILE}" < "${CMDFILE}"
+		ERR=$? # capture exit code
+else
+    ERR=1
+fi # if DRYRUN
+echo
+
+# clean up
+echo
+if [[ 0 == ${ERR} ]]
+  then
+    echo '   ***   All Jobs Completed Successfully!!!   ***   '
+    rm "${CMDFILE}" "${LOGFILE}"
+elif [[ "$TEST" == 'DRYRUN' ]]
+  then
+    echo '   ===   This was a dry-run --- inspect the command file   ===   '
+    echo "   '${CMDFILE}'"
+else
+    echo "  >>>   ERRORS DETECTED - EXIT CODE ${ERR}   <<<   " 
+    echo "Inspect command and log files:"
+    echo "   '${CMDFILE}'"
+    echo "   '${LOGFILE}'"
+    echo 
+    cat "${LOGFILE}"
+fi # if $ERR
+echo
+
+# exit with gnuparallel exit code
+exit ${ERR}

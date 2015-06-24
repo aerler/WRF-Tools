@@ -1,0 +1,133 @@
+#!/bin/bash
+#MOAB/Torque archiving script for SciNet HPSS
+
+## queue/PBS settings
+# 72h is maximum for long queue, 1h for short
+#PBS -l walltime=1:00:00
+# merge standard error and output stream
+#PBS -j oe
+#PBS -o $PBS_JOBNAME.$PBS_JOBID.out
+##PBS -e $PBS_JOBNAME.$PBS_JOBID.err
+# send email if abort (nbae)
+#PBS -M aerler@atmosp.physics.utoronto.ca
+#PBS -m a
+# job name
+#PBS -N ar_test
+## submit to queue (NB: this has to be the last PBS line!)
+#PBS -q archive
+
+#set -o pipefail # through error (in exit code) if pipe fails
+trap "echo 'Job script not completed';exit 129" TERM INT
+# Note that your initial directory in HPSS will be /archive/$(id -gn)/$(whoami)/
+
+## definitions
+BACKUP=${BACKUP:-'NO'} # set to 'BACKUP'
+RMSRC=${RMSRC:-'NO'} # set to 'RMSRC'
+# N.B.: do not edit these variable; instead pass them as environment variables
+# data folder
+DST="${ARCHIVE}/Downscaling/${PBS_O_WORKDIR##*/}" # remove parent folder (= run name)
+SRC="${PBS_O_WORKDIR}/wrfout/"
+# if no dates given, process all datasets in current directory
+cd "${SRC}"
+if [[ -z "${DATES}" ]]; then DATES=$( ls ????-??_wrf.tgz ); fi # if no $DATES
+
+## function to verify the contents of an HTAR archive
+function VERIFYHTAR () {
+  local HTAR=${1} # archive file (absolute pass on HPSS)
+  local FILES=${2} #
+  local LIST=$( htar -vtf "${HTAR}" | awk '{print $7}' ) # column 7 are the file names
+  local MISS=0 # missing file counter
+  # loop over files in list and check presence in HTAR list
+  for FILE in ${FILES}; do
+    if [[ "${FILE}" == $( echo "${LIST}" | sed -n "/${FILE}/p" ) ]]; then
+      if [[ "${RMSRC}" == 'RMSRC' ]]; then
+        echo "   >>> removing ${FILE}"
+        rm "${FILE}"
+      fi
+    else
+      MISS=$(( ${MISS} + 1 ))
+      echo "WARNING: File ${FILE} missing in archive ${HTAR}"
+    fi
+  done
+  # return number of missing files
+  return ${MISS}
+}
+
+## function to to back up one output dataset
+function BACKUPDATASET () {
+  local DATE="${1}"
+  local ERR=0 # error counter
+  # files to be backed up
+  local LOGS=$( ls ${DATE}_*.tgz ) # "${1}_pyWPS.tgz ${1}_real.tgz ${1}_wrf.tgz"
+  local SMALL=$( ls wrfxtrm_d??_${DATE}* wrfflake_d??_${DATE}* )
+  local BIG=$( ls wrfout_d??_${DATE}* ) # $BIG filenames will get trimmed below ($NEWNAME)
+  echo
+  # check or backup?
+  if [[ ${BACKUP} == 'BACKUP' ]]
+    then echo "   ***   BACKUP ${DATE}   ***   "
+    else echo "   ***   CHECK ${DATE}   ***   "
+  fi
+  # delete source or not?
+  if [[ ${RMSRC} == 'RMSRC' ]]
+    then echo " + Removing source files after backup! + "
+    else echo "   (leaving source files on untouched)   "
+  fi
+  echo '  logs and smaller files:'
+  echo ${LOGS}
+  echo ${SMALL}
+  if [[ ${BACKUP} == 'BACKUP' ]]
+    then htar -cpf "${DST}/wrfextra_${DATE}.tar" -Hcrc -Hverify=1 ${LOGS} ${SMALL} # /scinet/gpc/bin/ish
+  fi
+  VERIFYHTAR "${DST}/wrfextra_${DATE}.tar" "${LOGS} ${SMALL}"
+  ERR=$(( ${ERR} + $? )) # VERIFYHTAR returns the number of missing files as exit code
+  echo '  big output files:'
+  echo ${BIG}
+  for FILE in ${BIG} # N.B.: need to expand regex (no quotes)
+    do
+      local NEWNAME="${FILE%${DATE}*}${DATE}" # cut off what does beyond $DATE
+      if [[ ${BACKUP} == 'BACKUP' ]]
+        then htar -cpf "${DST}/${NEWNAME}.tar" -Hcrc -Hverify=1 ${FILE} # /scinet/gpc/bin/ish
+      fi
+      VERIFYHTAR "${DST}/${NEWNAME}.tar" "${FILE}"
+      ERR=$(( ${ERR} + $? )) # VERIFYHTAR returns the number of missing files as exit code
+  done
+  # check for errors
+  if [ ! ${ERR} == 0 ]; then
+    echo "   >>>   WARNING: there were ${ERR} errors!   <<<   "
+    return 1
+  else
+    echo 'Backup OK!'
+    return 0
+  fi
+}
+
+## execution
+# set up directories
+hsi mkdir -p "${DST}"
+cd "${SRC}"
+
+# set counter
+ERRORS=0
+TRANSFERS=0
+# cycle over monthly output datasets
+for DATE in ${DATES} # use WRF log-files as indicator
+do
+  DATE=${DATE%_wrf.tgz} # extract date (no effect if only date)
+  time -p BACKUPDATASET ${DATE}
+  if [ $? == 0 ]; then TRANSFERS=$(( ${TRANSFERS} + 1 ))
+  else ERRORS=$(( ${ERRORS} + 1 )); fi
+done
+hsi -q ls "${DST}"
+
+trap - TERM INT
+
+if [ ! ${ERRORS} == 0 ]; then
+  echo
+  echo "   >>>   WARNING: THERE WERE ${ERRORS} ERRORS!   <<<   "
+  echo "   >>>        ${TRANSFERS} TRANSFERS OK   <<<   "
+  # /scinet/gpc/bin/exit2msg ${ERRORS} # translate exit codes to human-readable messages
+  exit ${ERRORS}
+else
+  echo
+  echo "   <<<   ALL ${TRANSFERS} TRANSFERS OK   >>>   "
+fi

@@ -3,8 +3,14 @@
 	<name>WRF Tools</name>
 	<comment></comment>
 	<projects>
+		<project>PyGeoData</project>
 	</projects>
 	<buildSpec>
+		<buildCommand>
+			<name>org.eclipse.dltk.core.scriptbuilder</name>
+			<arguments>
+			</arguments>
+		</buildCommand>
 		<buildCommand>
 			<name>org.eclipse.cdt.managedbuilder.core.genmakebuilder</name>
 			<triggers>clean,full,incremental,</triggers>
@@ -23,7 +29,7 @@
 				</dictionary>
 				<dictionary>
 					<key>org.eclipse.cdt.make.core.buildArguments</key>
-					<value>-j1</value>
+					<value></value>
 				</dictionary>
 				<dictionary>
 					<key>org.eclipse.cdt.make.core.buildCommand</key>
@@ -76,16 +82,6 @@
 		<nature>org.eclipse.cdt.managedbuilder.core.managedBuildNature</nature>
 		<nature>org.eclipse.cdt.managedbuilder.core.ScannerConfigNature</nature>
 		<nature>org.python.pydev.pythonNature</nature>
+		<nature>net.sourceforge.shelled.core.nature</nature>
 	</natures>
-	<filteredResources>
-		<filter>
-			<id>1341949108258</id>
-			<name>test</name>
-			<type>26</type>
-			<matcher>
-				<id>org.eclipse.ui.ide.multiFilter</id>
-				<arguments>1.0-name-matches-true-false-test</arguments>
-			</matcher>
-		</filter>
-	</filteredResources>
 </projectDescription>

@@ -1,0 +1,64 @@
+&physics
+ mp_physics                          = 8,   8,   8, ! Thompson 2-moment micro-physics
+! radiation
+ ra_lw_physics                       = 4,   4,   4, ! RRTMG
+ ra_sw_physics                       = 4,   4,   4, ! RRTMG
+ radt                                = 15,  15,  15,! every 15 min.
+ swint_opt                           = 0 ! interpolate solar zenit angle (unstable)
+ o3input                             = 2 ! CAM ozone data (2D) for RRTMG
+ aer_opt                             = 1 ! Tegen climatology for RRTMG
+ slope_rad                           = 1, 1, 1, ! slope effects in SW radiation
+ topo_shading                        = 1, 1, 1, ! shadows (shadlen = 25000m)
+ icloud                              = 1 ! cloud effects on radiation (RRTMG)
+! cumulus scheme
+ cu_physics                          = 5,   5,   0, ! Grell-3 scheme
+ cu_rad_feedback                     = .true., .true., .false. ! sub-grid cloud effect on radiation
+ cudt                                = 0,   0,   0, ! every time-step
+ cu_diag                             = 1 ! required for cu_rad_feedback
+ cugd_avedx                          = 1, ! G3 subsidence spreading
+ ishallow                            = 1 ! shallow convection (G3)
+ shcu_physics                        = 0, 0, 0 ! no independent shallow cumulus
+ kfeta_trigger                       = 1 ! trigger scheme for KF scheme (default = 1)
+! surface/boundary layer
+ sf_sfclay_physics                   = 5,   5,   5, ! MYNN
+ bl_pbl_physics                      = 6,   6,   6, ! MYNN 3. TKE
+ bldt                                = 0,   0,   0, ! every time-step
+ grav_settling                       = 2, 2, 2,! vegetation dependent gravitational settling
+ iz0tlnd                             = 1 ! vegetation dependent thermal roguhness length
+ isfflx                              = 1 ! surface heat and moisture fluxes with PBL
+! land model  
+ sf_surface_physics                  = 4,   4,   4, ! Noah-MP
+ num_soil_layers                     = 4, ! for Noah(-MP) LSM
+ ua_phys                             = .true. ! improved canopy snow (Noah LSM only)
+ sf_surface_mosaic                   = 0 ! sub-grid land mosaic does not work (Noah LSM only)
+ mosaic_cat                          = 3 ! number of sub-grid land categories
+ sf_urban_physics                    = 0,   0,   0, ! does not work with Noah(-MP)
+! CLM lake model
+ sf_lake_physics                     = 0,   0,   0, ! lake model does not seem to work
+ use_lakedepth                       = 1 ! lake depth from geogrid
+ lakedepth_default                   = 50 ! default depth if data is missin (50m)
+! FLake lake model
+ flake_update                        = 1, ! use FLake online
+ tsk_flake                           = 1, ! use skin temperature in FLake
+ transparent                         = 0, ! optical properties of lake water: 0=opaque, 1=transparent
+ lake_depth_limit                    = 70, ! maximum lake depth
+! sea ice and SST
+ fractional_seaice                   = 1, ! from CESM; XICE in Vtable (does not work with Noah LSM)
+ seaice_albedo_opt                   = 1, ! varies with temperature etc.
+ !seaice_albedo_opt                   = 2, ! read seaice albedo from ALBSI (metgrid input) 
+ !seaice_snowdepth_opt                = 1, ! read snow on seaice from SNOWSI (metgrid input) 
+ sst_update                          = 1, ! applies to all lower input variables
+ sst_skin                            = 1, ! compute diurnal cycle for SST
+! surface input and climate options
+ surface_input_source                = 1, ! from WPS or geogrid (#1); could use CESM input for VEGCAT & SOILCAT (#2)
+ num_land_cat                        = 28, ! USGS and lake
+ num_soil_cat                        = 16, ! only option?
+ usemonalb                           = .true., ! use geogrid values
+ rdmaxalb                            = .true., ! snow albedo from geogrid
+ rdlai2d                             = .true., ! use from input (CESM?)
+ tmn_update                          = 1, ! deep soil temperature update
+ lagday                              = 150, ! time-scale for tmn
+ bucket_mm                           = 100.0, ! precip
+ bucket_J                            = 1.e9, ! rad flx
+ prec_acc_dt                         = 1440 ! accumulation period in minutes: daily 
+/ 

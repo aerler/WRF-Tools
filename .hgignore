@@ -29,3 +29,5 @@ syntax: regexp
 ^Python/dataset/test\.txt$
 syntax: regexp
 ^Python/queue-test\.txt$
+syntax: regexp
+\.tgz$

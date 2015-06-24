@@ -1,9 +1,9 @@
 #!/bin/bash
-#MOAB/Torque submission script for SciNet GPC
+# MOAB/Torque submission script for SciNet GPC
 
 ## queue/PBS settings
 #PBS -l nodes=16:ppn=8
-#PBS -l walltime=6:00:00
+#PBS -l walltime=48:00:00
 # std and error output
 #PBS -j oe
 #PBS -o $PBS_JOBNAME.$PBS_JOBID.out
@@ -13,148 +13,24 @@
 # job name
 #PBS -N cycling_WRF
 # job dependency
-#PBS -W depend:afterok:cycling_WPS
+###PBS -W depend=afterok:cycling_WPS
 # N.B.: this ${PBS_JOBNAME%_WRF}_WPS does not work
 ## submit to queue (NB: this has to be the last PBS line!)
 # batch (default), debug, largemem
 #PBS -q batch
 
-# check if $NEXTSTEP is set, and exit, if not
-set -e # abort if anything goes wrong
-if [[ -z "${NEXTSTEP}" ]]; then exit 1; fi
-CURRENTSTEP="${NEXTSTEP}" # $NEXTSTEP will be overwritten
+
+## machine specific job settings
+# WRF resource requirements (read by setup scripts)
+export WRFNODES=${PBS_NUM_NODES:-16} # PBS setting will override default (default is needed for setup)
+# get PBS names (needed for folder names)
+export JOBNAME="${PBS_JOBNAME}" # not the $RUNNAME
+export INIDIR="${PBS_O_WORKDIR}" # experiment root (launch directory)
+# important scripts
+export WRFSCRIPT="run_cycling_WRF.pbs" # WRF suffix assumed
+export WPSSCRIPT="run_cycling_WPS.pbs" # WRF suffix assumed, WPS suffix substituted: ${JOBNAME%_WRF}_WPS
+# WRF and WPS wallclock  time limits (no way to query from queue system)
+export WRFWCT='10:00:00' # WRF wallclock time limit
+export WPSWCT='01:00:00' # WPS wallclock time limit
 
 
-## job settings
-export SCRIPTNAME="run_cycling_WRF.pbs" # WRF suffix assumed
-export DEPENDENCY="run_cycling_WPS.pbs" # WRF suffix assumed, WPS suffix substituted: ${JOBNAME%_WRF}_WPS
-export ARSCRIPT="" # archive script to be executed after WRF finishes
-export ARINTERVAL="" # default: every time
-export CLEARWDIR=0 # do not clear working director
-# run configuration
-export NODES=${PBS_NUM_NODES} # set in PBS section
-export TASKS=16 # number of MPI task per node (Hpyerthreading!)
-export THREADS=1 # number of OpenMP threads
-# directory setup
-export INIDIR="${PBS_O_WORKDIR}"
-export RUNNAME="${CURRENTSTEP}" # strip WRF suffix
-export WORKDIR="${INIDIR}/${RUNNAME}/"
-export RAMDISK="/dev/shm/aerler/"
-
-## real.exe settings
-# optional arguments: $RUNREAL, $RAMIN, $RAMOUT
-# folders: $REALIN, $REALOUT
-# N.B.: RAMIN/OUT only works within a single node!
-
-## WRF settings
-# optional arguments: $RUNWRF, $GHG ($RAD, $LSM)
-export GHG='' # GHG emission scenario
-export RAD='' # radiation scheme
-export LSM='' # land surface scheme
-# folders: $WRFIN, $WRFOUT, $TABLES
-export REALOUT="${WORKDIR}" # this should be default anyway
-export WRFIN="${WORKDIR}" # same as $REALOUT
-export WRFOUT="${INIDIR}/wrfout/" # output directory
-export RSTDIR="${WRFOUT}"
-
-
-## setup environment
-cd "${INIDIR}"
-source setup_GPC.sh # load machine-specific stuff
-
-
-## start execution
-# work in existing work dir, created by caller instance
-# N.B.: don't remove namelist files in working directory
-
-# read next step from stepfile
-NEXTSTEP=$(python cycling.py ${CURRENTSTEP})
-
-# launch WPS for next step (if $NEXTSTEP is not empty)
-if [[ -n "${NEXTSTEP}" ]] && [[ ! $NOWPS == 1 ]]
- then
-	# this is only for the first instance; unset for next
-	echo "   ***   Launching WPS for next step: ${NEXTSTEP}   ***   "
-	echo
-	# submitting independent WPS job
-	ssh gpc01 "cd ${INIDIR}; qsub ./${DEPENDENCY} -v NEXTSTEP=${NEXTSTEP}"
-else
-    echo '   >>>   Skipping WPS!   <<<'
-    echo
-fi
-# this is only for the first instance; unset for next
-unset NOWPS
-
-
-## run WRF for this step
-echo
-echo "   ***   Launching WRF for current step: ${CURRENTSTEP}   ***   "
-date
-echo
-
-# prepare directory
-cd "${INIDIR}"
-./prepWorkDir.sh # don't remove working directory ($CLEARWDIR=0)
-# run script
-./execWRF.sh
-# mock restart files for testing (correct linking)
-#if [[ -n "${NEXTSTEP}" ]]; then
-#	touch "${WORKDIR}/wrfrst_d01_${NEXTSTEP}_00"
-#	touch "${WORKDIR}/wrfrst_d01_${NEXTSTEP}_01"
-#fi
-ERR=$? # capture exit code
-if [[ $ERR != 0 ]]; then
-  # end timing
-  echo
-  echo "   ###   WARNING: WRF step ${CURRENTSTEP} failed   ###   "
-  date
-  echo
-  exit ${ERR}
-fi # if error
-
-# end timing
-echo
-echo "   ***   WRF step ${CURRENTSTEP} completed   ***   "
-date
-echo
-
-# copy driver script into work dir to signal completion
-cp "${INIDIR}/${SCRIPTNAME}" "${WORKDIR}"
-
-# launch archive script if specified
-if [[ -n "${ARSCRIPT}" ]]; then
-  # check trigger interval
-  ARTAG=''
-  if [[ "${ARINTERVAL}" == 'YEARLY' ]] && [[ "${CURRENTSTEP}" == ????-12 ]]; then
-    ARTAG="${CURRENTSTEP%'-12'}" # isolate interval, cut off rest
-  elif [[ "${ARINTERVAL}" == 'MONTHLY' ]] && [[ "${CURRENTSTEP}" == ????-?? ]]; then
-    ARTAG="${CURRENTSTEP}" # just the step tag
-  else
-    ARTAG="${CURRENTSTEP}"; fi
-  # decide to launch or not
-  if [[ -n "${ARTAG}" ]]; then
-    echo
-    echo "   ***   Launching archive script for WRF output: ${CURRENTSTEP}   ***   "
-    echo
-    ssh gpc-f104n084 "cd ${INIDIR}; qsub ./${ARSCRIPT} -v TAGS=${ARTAG},MODE=BACKUP,INTERVAL=${ARINTERVAL}"
-    # additional default options set in archive script: RMSRC, VERIFY, DATASET, DST, SRC
-fi; fi
-
-## launch WRF for next step (if $NEXTSTEP is not empty)
-if [[ -n "${NEXTSTEP}" ]]; then
-    RSTDATE=$(sed -n "/${NEXTSTEP}/ s/${NEXTSTEP}\s.\(.*\).\s.*$/\1/p" stepfile)
-    NEXTDIR="${INIDIR}/${NEXTSTEP}" # next $WORKDIR
-    cd "${NEXTDIR}"
-    # link restart files
-    echo
-    echo "Linking restart files to next working directory:"
-    echo "${NEXTDIR}"
-    for RESTART in "${RSTDIR}"/wrfrst_d??_"${RSTDATE}"; do
-	ln -sf "${RESTART}"; done
-    # start next cycle
-    cd "${INIDIR}"
-    echo
-    echo "   ***   Launching WRF for next step: ${NEXTSTEP}   ***   "
-    echo
-    ssh gpc01 "cd ${INIDIR}; qsub ./${SCRIPTNAME} -v NEXTSTEP=${NEXTSTEP}"
-fi

@@ -1,0 +1,32 @@
+
+active jobs------------------------
+JOBID              USERNAME      STATE PROCS   REMAINING            STARTTIME
+
+15835663            kmurray    Running    16    22:22:59  Thu Feb  7 11:28:53
+15835679            kmurray    Running    16  1:09:48:31  Thu Feb  7 22:54:25
+
+2 active jobs          32 of 32060 processors in use by local jobs (0.10%)
+                      3863 of 3937 nodes active      (98.12%)
+
+eligible jobs----------------------
+JOBID              USERNAME      STATE PROCS     WCLIMIT            QUEUETIME
+
+15842563             aerler       Idle    16     1:00:00  Fri Feb  8 03:01:16
+15844233             aerler       Idle    16     1:00:00  Fri Feb  8 07:18:30
+15843973             aerler       Idle    16     1:00:00  Fri Feb  8 07:02:10
+15845052             aerler       Idle    16     1:00:00  Fri Feb  8 09:20:01
+15842454             aerler       Idle    16     1:00:00  Fri Feb  8 02:42:23
+15844257             aerler       Idle    16     1:00:00  Fri Feb  8 07:21:14
+15844215             aerler       Idle    16     1:00:00  Fri Feb  8 07:17:27
+15843550             aerler       Idle    16     1:00:00  Fri Feb  8 05:42:11
+
+8 eligible jobs   
+
+blocked jobs-----------------------
+JOBID              USERNAME      STATE PROCS     WCLIMIT            QUEUETIME
+
+
+0 blocked jobs   
+
+Total jobs:  10
+

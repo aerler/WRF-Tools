@@ -1,183 +1,46 @@
 #!/bin/bash -l
+# LoadLeveler submission script for SciNet TCS
+##=====================================
 # @ job_name = test_4x64
-# @ wall_clock_limit = 06:00:00
+# @ wall_clock_limit = 48:00:00
 # @ node = 4
 # @ tasks_per_node = 64
 # @ notification = error
 # @ output = $(job_name).$(jobid).out
 # @ error = $(job_name).$(jobid).out
-# @ environment = $NEXTSTEP; $NOWPS; MEMORY_AFFINITY=MCM; MP_SYNC_QP=YES; \
+# @ environment = $NEXTSTEP; $NOWPS; $RSTCNT; MEMORY_AFFINITY=MCM; MP_SYNC_QP=YES; \
 #                MP_RFIFO_SIZE=16777216; MP_SHM_ATTACH_THRESH=500000; \
 #                MP_EUIDEVELOP=min; MP_USE_BULK_XFER=yes; \
 #                MP_RDMA_MTU=4K; MP_BULK_MIN_MSG_SIZE=64k; MP_RC_MAX_QP=8192; \
 #                PSALLOC=early; NODISCLAIM=true
-#=====================================
+##=====================================
 # @ job_type = parallel
 # @ class = verylong
 # @ node_usage = not_shared
 # Specifies the name of the shell to use for the job
 # @ shell = /bin/bash -l
-#=====================================
+##=====================================
 ## this is necessary in order to avoid core dumps for batch files
 ## which can cause the system to be overloaded
 # ulimits
 # @ core_limit = 0
 ## necessary to force use of infiniband network for MPI traffic
 # @ network.MPI = sn_all,not_shared,US,HIGH
-#=====================================
+##=====================================
 # @ queue
 
-# check if $NEXTSTEP is set, and exit, if not
-set -e # abort if anything goes wrong
-if [[ -z "${NEXTSTEP}" ]]; then
-  echo 'Environment variable $NEXTSTEP not set - aborting!'
-  exit 1
-fi
-CURRENTSTEP="${NEXTSTEP}" # $NEXTSTEP will be overwritten
+
+## machine specific job settings
+# WRF resource requirements (read by setup scripts)
+export WRFNODES=4 # number of nodes used by WRF (inference from host list doesn't seem to work)
+# get LoadLeveler names (needed for folder names)
+export JOBNAME="${LOADL_JOB_NAME}"
+export INIDIR="${LOADL_STEP_INITDIR}" # experiment root (launch directory)
+# important scripts
+export WRFSCRIPT="run_cycling_WRF.ll" # WRF suffix assumed
+export WPSSCRIPT="run_cycling_WPS.pbs" # WRF suffix assumed, WPS suffix substituted: ${JOBNAME%_WRF}_WPS
+# WRF and WPS wallclock  time limits (no way to query from queue system)
+export WRFWCT='10:00:00' # WRF wallclock time limit
+export WPSWCT='01:00:00' # WPS wallclock time limit
 
 
-## job settings
-export SCRIPTNAME="run_cycling_WRF.ll" # WRF suffix assumed
-export DEPENDENCY="run_cycling_WPS.pbs" # run WPS on GPC (WPS suffix substituted for WRF): ${LOADL_JOB_NAME%_WRF}_WPS
-export ARSCRIPT="" # archive script to be executed after WRF finishes
-export ARINTERVAL="" # default: every time
-export CLEARWDIR=0 # do not clear working director
-# run configuration
-export NODES=4 # also has to be set in LL section
-export TASKS=64 # number of MPI task per node (Hpyerthreading!)
-export THREADS=1 # number of OpenMP threads
-# directory setup
-export INIDIR="${LOADL_STEP_INITDIR}" # launch directory
-export RUNNAME="${CURRENTSTEP}" # step name, not job name!
-export WORKDIR="${INIDIR}/${RUNNAME}/"
-
-## real.exe settings
-# optional arguments: $RUNREAL, $RAMIN, $RAMOUT
-# folders: $REALIN, $REALOUT
-# N.B.: RAMIN/OUT only works within a single node!
-
-## WRF settings
-# optional arguments: $RUNWRF, $GHG ($RAD, $LSM)
-export GHG='' # GHG emission scenario
-export RAD='' # radiation scheme
-export LSM='' # land surface scheme
-# folders: $WRFIN, $WRFOUT, $TABLES
-export REALOUT="${WORKDIR}" # this should be default anyway
-export WRFIN="${WORKDIR}" # same as $REALOUT
-export WRFOUT="${INIDIR}/wrfout/" # output directory
-export RSTDIR="${WRFOUT}"
-
-
-## setup job environment
-cd "${INIDIR}"
-source setup_TCS.sh # load machine-specific stuff
-
-
-## start execution
-# work in existing work dir, created by caller instance
-# N.B.: don't remove namelist files in working directory
-
-# read next step from stepfile
-NEXTSTEP=$(python cycling.py "${CURRENTSTEP}")
-
-# launch WPS for next step (if $NEXTSTEP is not empty)
-if [[ -n "${NEXTSTEP}" ]] && [[ ! $NOWPS == 1 ]]
- then
-	echo "   ***   Launching WPS for next step: ${NEXTSTEP}   ***   "
-	echo
-	# submitting independent WPS job to GPC (not TCS!)
-	ssh gpc-f104n084 "cd \"${INIDIR}\"; qsub ./${DEPENDENCY} -v NEXTSTEP=${NEXTSTEP}"
-else
-	echo '   >>>   Skipping WPS!   <<<'
-    echo
-fi
-# this is only for the first instance; unset for next
-unset NOWPS
-
-
-## run WRF for this step
-echo
-echo "   ***   Launching WRF for current step: ${CURRENTSTEP}   ***   "
-date
-echo
-
-# prepare directory
-cd "${INIDIR}"
-./prepWorkDir.sh
-# run script
-./execWRF.sh
-# mock restart files for testing (correct linking)
-#if [[ -n "${NEXTSTEP}" ]]; then
-#	touch "${WORKDIR}/wrfrst_d01_${NEXTSTEP}_00"
-#	touch "${WORKDIR}/wrfrst_d01_${NEXTSTEP}_01"
-#fi
-ERR=$? # capture exit code
-if [[ $ERR != 0 ]]; then
-  # end timing
-  echo
-  echo "   ###   WARNING: WRF step ${CURRENTSTEP} failed   ###   "
-  date
-  echo
-  exit ${ERR}
-fi # if error
-
-# end timing
-echo
-echo "   ***   WRF step ${CURRENTSTEP} completed   ***   "
-date
-echo
-
-# copy driver script into work dir to signal completion
-cp "${INIDIR}/${SCRIPTNAME}" "${WORKDIR}"
-
-# launch archive script if specified
-if [[ -n "${ARSCRIPT}" ]]; then
-  # check trigger interval
-  ARTAG=''
-  if [[ "${ARINTERVAL}" == 'YEARLY' ]] && [[ "${CURRENTSTEP}" == ????-12 ]]; then
-    ARTAG="${CURRENTSTEP%'-12'}" # isolate interval, cut off rest
-  elif [[ "${ARINTERVAL}" == 'MONTHLY' ]] && [[ "${CURRENTSTEP}" == ????-?? ]]; then
-    ARTAG="${CURRENTSTEP}" # just the step tag
-  else
-    ARTAG="${CURRENTSTEP}"; fi
-  # decide to launch or not
-  if [[ -n "${ARTAG}" ]]; then
-    echo
-    echo "   ***   Launching archive script for WRF output: ${CURRENTSTEP}   ***   "
-    echo
-    ssh gpc-f104n084 "cd ${INIDIR}; qsub ./${ARSCRIPT} -v TAGS=${ARTAG},MODE=BACKUP,INTERVAL=${ARINTERVAL}"
-    # additional default options set in archive script: RMSRC, VERIFY, DATASET, DST, SRC
-fi; fi
-
-## launch WRF for next step (if $NEXTSTEP is not empty)
-if [[ -n "${NEXTSTEP}" ]]; then
-    RSTDATE=$(sed -n "/${NEXTSTEP}/ s/${NEXTSTEP}\s.\(.*\).\s.*$/\1/p" stepfile)
-    NEXTDIR="${INIDIR}/${NEXTSTEP}" # next $WORKDIR
-    cd "${NEXTDIR}"
-    # link restart files
-    echo
-    echo "Linking restart files to next working directory:"
-    echo "${NEXTDIR}"
-    for RESTART in "${RSTDIR}"/wrfrst_d??_"${RSTDATE}"; do
-	ln -sf "${RESTART}"; done
-    # check for WRF input files (in next working directory)
-    #if [[ ! -e "${INIDIR}/${NEXTSTEP}/${DEPENDENCY}" ]]
-    #  then
-    #	echo
-    #	echo "   ***   Waiting for WPS to complete...   ***"
-    #	echo
-    #	while [[ ! -e "${INIDIR}/${NEXTSTEP}/${DEPENDENCY}" ]]; do
-    #		sleep 5 # need faster turnover to submit next step
-    #	done
-    #fi
-    # start next cycle
-    cd "${INIDIR}"
-    echo
-    echo "   ***   Launching WRF for next step: ${NEXTSTEP}   ***   "
-    date
-    echo
-    # submit next job to LoadLeveler (TCS)
-    #ssh tcs-f11n06 "cd \"${INIDIR}\"; export NEXTSTEP=${NEXTSTEP}; llsubmit ./${SCRIPTNAME}"
-    export NEXTSTEP=${NEXTSTEP}
-    llsubmit ./${SCRIPTNAME}
-fi

@@ -1,0 +1,32 @@
+#!/bin/bash
+# MOAB/Torque submission script for Bugaboo (WestGrid)
+
+## queue/PBS settings
+#PBS -l nodes=2:ppn=6
+##PBS -l procs=12
+#PBS -l pmem=3000MB
+#PBS -l feature=x5650
+#PBS -l walltime=24:00:00
+# merge standard error and output stream
+#PBS -j oe
+#PBS -o $PBS_JOBNAME.$PBS_JOBID.out
+# send email if abort (nbae)
+#PBS -M aerler@atmosp.physics.utoronto.ca
+#PBS -m a
+# job name
+#PBS -N erai-wc2_WPS
+## submit to queue (NB: on Bugaboo the queue is selected automatically)
+
+
+## machine specific settings
+# WPS resource requirements (read by setup scripts)
+export WPSNODES=2 # 4 # number of WPS nodes (only used by real.exe)
+export TASKS=6 # 6 # number of on-node tasks used in Python
+# get PBS names (needed for folder names)
+export JOBNAME="${PBS_JOBNAME}" # not the $RUNNAME
+export INIDIR="${PBS_O_WORKDIR}" # experiment root (launch directory)
+export WPSSCRIPT='run_cycling_WPS.pbs' # WPS run-scripts
+# WRF and WPS wallclock  time limits (no way to query from queue system)
+export WRFWCT='120:00:00' # WRF wallclock time
+export WPSWCT='24:00:00' # WPS wallclock time
+

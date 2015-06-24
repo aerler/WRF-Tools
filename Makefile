@@ -18,11 +18,11 @@ endif
 #MODE = Debug
 
 ## Load Build Environment
-# Standard Intel 
+# Standard Intel
 ifeq ($(SYSTEM), Intel)
 include config/Intel # Intel Compiler
 endif
-# Standard GFortran 
+# Standard GFortran
 ifeq ($(SYSTEM), GFortran)
 include config/GFortran # GFortran Compiler
 endif
@@ -43,14 +43,15 @@ FCFLAGS = $(OPTFLAGS) -DDIAG
 endif
 
 # this gets build before other scripts are executed
-all: 
+all: unccsm read_wrf_nc
 
 ## build unccsm.exe program to convert CCSM netcdf output to WRF intermediate files
 unccsm: unccsm.exe
 
 unccsm.exe: bin/nc2im.o
 	$(FC) $(FCFLAGS) -o bin/$@ $^ $(NC_LIB)
-	
+	mv bin/unccsm.exe bin/$(SYSTEM)/
+
 bin/nc2im.o: Fortran/nc2im.f90
 	$(FC) $(FCFLAGS) $(NC_INC) -c $^
 	mv nc2im.o bin/
@@ -64,11 +65,23 @@ convert_spectra: bin/gribSpectra.o
 
 bin/gribSpectra.o: Fortran/gribSpectra.f90
 	$(FC) $(FCFLAGS) $(INCLUDE) -c $^
-	mv gribSpectra.o bin/ 
+	mv gribSpectra.o bin/
+
+## build read_wrf_nc to change landuse parameters in geogrid
+#read_wrf_nc: read_wrf_nc
+
+read_wrf_nc: bin/read_wrf_nc.o
+	$(FC) $(FCFLAGS) -o bin/$@ $^ $(NC_LIB)
+	mv bin/read_wrf_nc bin/$(SYSTEM)/
+
+bin/read_wrf_nc.o: Fortran/read_wrf_nc.f90
+	$(FC) $(FCFLAGS) $(NC_INC) -c $^
+	mv read_wrf_nc.o bin/
+
 
 clean:
 	rm -f bin/*.exe bin/*.mod bin/*.o bin/*.so bin/*.a
-	
+
 ### F2Py Flags (for reference)
 #F2PYCC = intelem
 #F2PYFC = intelem

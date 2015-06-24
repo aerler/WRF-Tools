@@ -1,0 +1,65 @@
+#!/bin/bash
+#PBS -l walltime=24:00:00
+#PBS -q archive
+#PBS -N ar_benchmark
+#PBS -j oe
+#PBS -m a
+
+set -o pipefail
+
+SRC="${SCRATCH}/HPSS-test"
+cd "${SRC}"
+
+echo
+echo
+echo '***   HPSS Benchmark   ***'
+echo
+hsi -q rm ${ARCHIVE}/test.*
+hsi -q ls -l ${ARCHIVE}
+
+echo '***   HSI (plain)   ***'
+time -p hsi -q cput "${SRC}/original.nc" : "${ARCHIVE}/test.plain"
+echo
+echo '***   TAR (only)   ***'
+time -p tar -ch original.nc | hsi -q cput - : "${ARCHIVE}/test.tar"
+echo
+echo '***   GZIP   ***'
+time -p tar -chhz original.nc | hsi -q cput - : "${ARCHIVE}/test.tar.gz"
+echo
+echo '***   BZIP   ***'
+time -p tar -chj original.nc | hsi -q cput - : "${ARCHIVE}/test.tar.bz2"
+echo
+echo '***   LZMA   ***'
+time -p tar -ch --lzma original.nc | hsi -q cput - : "${ARCHIVE}/test.tar.lzma"
+echo
+echo '***   ZIP   ***'
+time -p tar -ch original.nc | zip | hsi -q cput - : "${ARCHIVE}/test.tar.zip"
+echo
+hsi -q ls -l ${ARCHIVE}
+
+
+echo
+echo
+echo '***   GPFS Benchmark   ***'
+echo
+rm "${SRC}/test.*"
+
+echo '***   copy (plain)   ***'
+time -p cp original.nc "${SRC}/test.plain"
+echo
+echo '***   TAR (only)   ***'
+time -p tar -chf "${SRC}/test.tar" original.nc
+echo
+echo '***   GZIP   ***'
+time -p tar -chzf "${SRC}/test.tar.gz" original.nc
+echo
+echo '***   BZIP   ***'
+time -p tar -chjf "${SRC}/test.tar.bz2" original.nc
+echo
+echo '***   LZMA   ***'
+time -p tar --lzma -chf "${SRC}/test.tar.lzma" original.nc
+echo
+echo '***   ZIP   ***'
+time -p zip "${SRC}/test.tar.zip" original.nc
+echo
+ls -lhL "${SRC}"

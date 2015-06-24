@@ -1,0 +1,132 @@
+#!/bin/bash
+###                                                                                     ##
+###   ***   Everything below this line was inserted from run_cycling_WRF.common   ***   ##
+###                                                                                     ##
+
+# see run_cycling.environment script for environment variables
+
+# set -e # abort if anything goes wrong
+ERR=0 # initialize Error counter
+
+# launch feedback
+echo
+hostname
+uname
+echo
+echo "   ***   ${JOBNAME}   ***   "
+echo
+
+# check if $NEXTSTEP is set, and exit, if not
+if [[ -z "${NEXTSTEP}" ]]; then
+  echo 'Environment variable $NEXTSTEP not set - aborting!'
+  exit 1
+fi
+CURRENTSTEP="${NEXTSTEP}" # $NEXTSTEP will be overwritten
+export NEXTSTEP
+export CURRENTSTEP
+
+# more WRF settings (before machine setup!)
+export NODES=${WRFNODES} # number of nodes or processes (depending on system)
+export RUNWRF=1 # more options: $WRFIN, $WRFOUT, $TABLES
+export RUNREAL=0 # more options: $RUNREAL, $RAMIN, $RAMOUT, $REALIN, $REALOUT
+
+# setup job environment
+cd "${INIDIR}"
+source "${SCRIPTDIR}/setup_WRF.sh" # load machine-specific stuff
+
+## run WPS/pre-processing for next step
+# read next step from stepfile
+NEXTSTEP=$(python "${SCRIPTDIR}/cycling.py" "${CURRENTSTEP}")
+
+# launch pre-processing for next step
+eval "${SCRIPTDIR}/launchPreP.sh" # primarily for WPS and real.exe
+ERR=$(( ${ERR} + $? )) # capture exit code
+# need to unset $NOWPS, so the next WRF step will submit a WPS job again
+export NOWPS=''
+
+
+## run WRF for this step
+# start timing
+echo
+echo "   ***   Launching WRF for current step: ${CURRENTSTEP}   ***   "
+date
+echo
+
+# N.B.: work in existing working folder, created by caller instance;
+# i.e. don't remove namelist files in working directory!
+
+# run execution script
+eval "${SCRIPTDIR}/execWRF.sh"
+ERR=$(( ${ERR} + $? )) # capture exit code
+# mock restart files for testing (correct linking)
+# ERR=0 # pretend execution was successful
+#if [[ -n "${NEXTSTEP}" ]]; then
+#	touch "${WORKDIR}/wrfrst_d01_${NEXTSTEP}_00"
+#	touch "${WORKDIR}/wrfrst_d01_${NEXTSTEP}_01"
+#fi
+
+
+## reload machine setup (might have changed in the meantime)
+cd "${INIDIR}"
+# reset variables that pertain to starting the next job
+# (do not change archive and averaging settings)
+unset WAITFORWPS RESUBJOB SLEEPERJOB
+source "${SCRIPTDIR}/setup_WRF.sh" # load machine-specific stuff
+# N.B.: this is basically to allow seamless machine switching between steps
+
+
+## check exit code and abort if error occurred
+if [[ $ERR != 0 ]]; then
+
+  # end timing
+  echo
+  echo "   ###   WARNING: WRF step ${CURRENTSTEP} failed   ###   "
+  echo "   (Leaving Working Directory ${WORKDIR} intact.)"
+  date
+  echo  
+  
+  # launch crash handler script (mostly for auto-restart)
+  export RSTCNT # export restart counter 
+  eval "${SCRIPTDIR}/crashHandler.sh" # restart job with smaller time-step
+  ERR=$(( ${ERR} + $? )) # capture exit code
+  
+else # only if WRF completed successfully
+
+  # end timing
+  echo
+  echo "   ***   WRF step ${CURRENTSTEP} completed   ***   "
+  date
+  echo
+
+
+  ## launch post-processing
+  eval "${SCRIPTDIR}/launchPostP.sh" # mainly archiving, but may include actual post-processing
+  ERR=$(( ${ERR} + $? )) # capture exit code
+
+
+  ## resubmit job for next step
+  export RSTCNT=0 # reset restart counter
+  eval "${SCRIPTDIR}/resubJob.sh" # requires submission command from setup script
+  ERR=$(( ${ERR} + $? )) # capture exit code
+
+
+  # # copy driver script into work dir to signal completion
+  # cp "${INIDIR}/${WRFSCRIPT}" "${WORKDIR}"
+
+  # remove working directory if everything was successful
+  echo
+  cd "${INIDIR}"
+  if [[ $ERR == 0 ]]; then
+    # the check is probably unnecessary here, but it doesn't hurt
+    echo "Removing Working Directory: ${WORKDIR}"
+    rm -rf "${WORKDIR}"
+    echo
+  else
+    echo "WARNING: ${ERR} Error(s) encountered after WRF completed!!!"
+    echo "(Leaving Working Directory ${WORKDIR} intact.)"
+    echo
+  fi # if no $ERR
+
+fi # if error
+
+exit ${ERR} # exit with number of errors as exit code

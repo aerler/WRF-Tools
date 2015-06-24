@@ -1,0 +1,97 @@
+#!/bin/bash
+#MOAB/Torque archiving script for SciNet HPSS
+
+## queue/PBS settings
+# 72h is maximum for long queue, 1h for short
+#PBS -l walltime=72:00:00
+# merge standard error and output stream
+#PBS -j oe
+#PBS -o $PBS_JOBNAME.$PBS_JOBID.out
+##PBS -e $PBS_JOBNAME.$PBS_JOBID.err
+# send email if abort (nbae)
+#PBS -M aerler@atmosp.physics.utoronto.ca
+#PBS -m a
+# job name
+#PBS -N ar_test
+## submit to queue (NB: this has to be the last PBS line!)
+#PBS -q archive
+
+set -o pipefail # through error (in exit code) if pipe fails
+trap "echo 'Job script not completed';exit 129" TERM INT
+# Note that your initial directory in HPSS will be /archive/$(id -gn)/$(whoami)/
+
+## definitions
+# data folder
+DST="${ARCHIVE}/test/${PBS_O_WORKDIR##*/}" # remove parent folder (= run name)
+SRC="${PBS_O_WORKDIR}/wrfout/"
+
+## function to to back up one output dataset
+function BACKUPDATASET () {
+  ERR=0 # error counter
+  # files to be backed up
+  LOGS="${1}_*.tgz" # "${1}_pyWPS.tgz ${1}_real.tgz ${1}_wrf.tgz"
+  SMALL="wrfxtrm_d??_${DATE}* wrfflake_d??_${1}*"
+  BIG="wrfout_d??_${1}*" # $BIG filenames will get trimmed below ($NEWNAME)
+  echo
+  echo "   ***   BACKUP ${1}   ***   "
+  echo '  compressing and archiving logs and smaller files:'
+  echo ${LOGS}
+  echo ${SMALL}
+  tar -c ${LOGS} ${SMALL} | hsi -q cput - : "${DST}/wrfextra_${1}.tar"
+  ERR=$(( ${ERR} + $? ))
+  echo '  compressing and moving big output files:'
+  echo ${BIG}
+  for FILE in ${BIG} # N.B.: need to expand regex (no quotes)
+    do
+      NEWNAME="${FILE%${1}*}${1}" # cut off what does beyond $DATE
+      gzip -c ${FILE} | hsi -q cput - : "${DST}/${NEWNAME}.gz"
+      ERR=$(( ${ERR} + $? ))
+  done
+  # check for errors
+  if [ ! ${ERR} == 0 ]; then
+    echo "   >>>   WARNING: there were ${ERR} errors!   <<<   "
+  else
+    echo 'Transfer Successful!'
+  fi
+}
+
+## execution
+# set up directories
+hsi mkdir -p "${DST}"
+cd "${SRC}"
+# set counter
+ERRORS=0
+TRANSFERS=0
+
+# decide what to do: process one (given) dataset, or all?
+if [[ -n "${DATE}" ]]
+ then
+ # treat only one run
+  time -p BACKUPDATASET ${DATE}
+  if [ $? == 0 ]; then TRANSFERS=$(( ${TRANSFERS} + 1 ))
+  else ERRORS=$(( ${ERRORS} + 1 )); fi
+  hsi -q ls "${DST}"
+ else
+ # cycle over monthly output datasets
+  for DATE in ????-??_wrf.tgz # use WRF log-files as indicator
+  do
+    DATE=${DATE%_wrf.tgz} # extract date
+    time -p BACKUPDATASET ${DATE}
+    if [ $? == 0 ]; then TRANSFERS=$(( ${TRANSFERS} + 1 ))
+    else ERRORS=$(( ${ERRORS} + 1 )); fi
+  done
+  hsi -q ls "${DST}"
+fi # if $DATE
+
+trap - TERM INT
+
+if [ ! ${ERRORS} == 0 ]; then
+  echo
+  echo "   >>>   WARNING: THERE WERE ${ERRORS} ERRORS!   <<<   "
+  echo "   >>>        ${TRANSFERS} TRANSFERS COMPLETED   <<<   "
+  # /scinet/gpc/bin/exit2msg ${ERRORS} # translate exit codes to human-readable messages
+  exit ${ERRORS}
+else
+  echo
+  echo "   <<<   ALL ${TRANSFERS} TRANSFERS COMPLETED   >>>   "
+fi

@@ -2,8 +2,10 @@
 #MOAB/Torque submission script for SciNet GPC
 
 ## queue/PBS settings
-#PBS -l nodes=1:m32g:ppn=8
-#PBS -l walltime=1:00:00
+#PBS -l nodes=1:m128g:ppn=16
+# batch queue: nodes=1:m32g:ppn=8
+# largemem queue: nodes=1:m128g:ppn=16
+#PBS -l walltime=2:00:00
 # merge standard error and output stream
 #PBS -j oe
 #PBS -o $PBS_JOBNAME.$PBS_JOBID.out
@@ -14,61 +16,19 @@
 #PBS -N cycling_WPS
 ## submit to queue (NB: this has to be the last PBS line!)
 # batch (default), debug, largemem
-#PBS -q batch
-
-# check if $NEXTSTEP is set, and exit, if not
-set -e # abort if anything goes wrong
-if [[ -z "${NEXTSTEP}" ]]; then exit 1; fi
-CURRENTSTEP="${NEXTSTEP}" # $NEXTSTEP will be overwritten
-
-## job settings
-export SCRIPTNAME="run_cycling_WPS.pbs" # WPS suffix assumed
-export CLEARWDIR=0 # do not clear working director
-# run configuration
-export NODES=1 # only one for WPS!
-export TASKS=16 # number of MPI task per node (Hpyerthreading?)
-export THREADS=1 # number of OpenMP threads
-# directory setup
-export INIDIR="${PBS_O_WORKDIR}"
-export RUNNAME="${CURRENTSTEP}" # step name, not job name! 
-export WORKDIR="${INIDIR}/${RUNNAME}/"
-
-# optional arguments $RUNPYWPS, $RUNREAL, $RAMIN, $RAMOUT
-export RUNPYWPS=1
-export RUNREAL=1
-export RAMIN=1
-export RAMOUT=0
-# folders: $METDATA, $REALIN, $REALOUT
-export METDATA="" # to output metgrid data set "ldisk = True" in meta/namelist.py
-export REALOUT="${WORKDIR}" # this should be default anyway
+#PBS -q largemem
+# N.B.: the queue setting may have been changed by the last submitting instance
 
 
-## setup environment
-cd "${INIDIR}"
-source setup_GPC.sh # load machine-specific stuff
+## machine specific job settings
+# WPS resource requirements (read by setup scripts)
+export WPSNODES=1 # number of nodes used by WPS
+# get PBS names (needed for folder names)
+export JOBNAME="${PBS_JOBNAME}" # not the $RUNNAME
+export INIDIR="${PBS_O_WORKDIR}" # experiment root (launch directory)
+export WPSSCRIPT="run_cycling_WPS.pbs" # WRF suffix assumed, WPS suffix substituted: ${JOBNAME%_WRF}_WPS
+# WRF and WPS wallclock  time limits (no way to query from queue system)
+export WRFWCT='10:00:00' # WRF wallclock time limit
+export WPSWCT='01:00:00' # WPS wallclock time limit
 
 
-## begin job
-
-# start timing
-echo
-echo '   ***   Start Time    ***   '
-date
-echo 
-
-# prepare directory
-cd "${INIDIR}"
-./prepWorkDir.sh # don't remove working directory ($CLEARWDIR=0)
-
-# run WPS driver script
-cd "${INIDIR}"
-./execWPS.sh
-
-# copy driver script into work dir to signal completion
-cp "${INIDIR}/${SCRIPTNAME}" "${WORKDIR}"
-
-# end timing
-echo
-echo '    ***    End Time    *** '
-date
-echo

@@ -228,7 +228,7 @@ do i = 1,28
     write(*,*)
     write(*,*) ' *** Variable ', fieldnetcdf(i), ' (',field,')', ' not found in source file *** '
   endif
-  
+
   ! if meta data and source data are present, continue
   Check: &
   if ( .not. lskip) then

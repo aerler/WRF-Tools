@@ -4,11 +4,17 @@
 
 # settings
 set -e # abort if anything goes wrong
-NEXTSTEP=$1 # step name/folder as first argument
-NOWPS=$2 # to run or not to run WPS
-INIDIR="${PWD}" # current directory
-WPSSCRIPT="run_cycling_WPS.pbs"
-WRFSCRIPT="run_cycling_WRF.ll"
+export NEXTSTEP="$1" # step name/folder as first argument
+export NOWPS="$2" # to run or not to run WPS
+export INIDIR=${INIDIR:-"${PWD}"} # current directory
+export SCRIPTDIR="${INIDIR}/scripts/"
+export WPSSCRIPT="run_cycling_WPS.pbs"
+export WPSWCT=''
+export WRFSCRIPT="run_cycling_WRF.ll"
+export WRFWCT=''
+
+# source launch commands
+source "${SCRIPTDIR}/setup_WRF.sh"
 
 # launch feedback
 echo
@@ -20,8 +26,10 @@ echo
 echo
 if [[ "$NOWPS" != 'NOWPS' ]]
   then
-    echo "   Submitting first WPS job to GPC queue:"
-    ssh gpc-f104n084 "cd \"${INIDIR}\"; qsub ./${WPSSCRIPT} -v NEXTSTEP=${NEXTSTEP}"
+    echo "   Submitting first WPS job to queue:"
+    echo "Command: "${SUBMITWPS} # print command
+    echo "Variables: INIDIR=${INIDIR}, NEXTSTEP=${NEXTSTEP}, DEPENDENCY=${WPSSCRIPT}"
+    eval "${SUBMITWPS}" # using variables: $INIDIR, $DEPENDENCY, $NEXTSTEP
 else
   echo "   WARNING: not running WPS! (make sure WPS was started manually)"
 fi
@@ -41,5 +49,13 @@ echo
 echo
 echo "   Submitting first WRF job to TCS queue:"
 export NEXTSTEP # this is how env vars are passed to LL
-llsubmit ./${WRFSCRIPT}
+export NOWPS
+echo "Command: " ${RESUBJOB} # print command
+echo "Variables: INIDIR=${INIDIR}, NEXTSTEP=${NEXTSTEP}, SCRIPTNAME=${WRFSCRIPT}"
+if [[ "${SYSTEM}" == 'TCS' ]]
+ then 
+   eval "${RESUBJOB}" # execute command
+else
+   ssh tcs02 "cd ${PWD}; export NEXTSTEP=${NEXTSTEP}; export NOWPS=${NOWPS}; llsubmit run_cycling_WRF.ll"
+fi
 echo

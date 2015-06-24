@@ -1,0 +1,10 @@
+[Dolphin]
+HeaderColumnWidths=329,58,102,74,128,72,58
+PreviewsShown=true
+Timestamp=2013,3,4,12,45,13
+Version=3
+ViewMode=1
+VisibleRoles=CustomizedDetails,Details_text,Details_size,Details_date,Details_type,Details_destination,Details_imageSize,Details_duration
+
+[Settings]
+HiddenFilesShown=true
