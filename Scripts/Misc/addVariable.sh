@@ -39,6 +39,10 @@ elif [[ "${VARNM}" == 'ACSNOW' ]]; then
 	DIM='' # same time intervall
 	SRCPFX='wrflsm'
 	DSTPFX='wrfhydro'
+elif [[ "${VARNM}" == 'PBLH' ]]; then
+	DIM='' # same time intervall
+	SRCPFX='wrfsrfc'
+	DSTPFX='wrfplev3d'
 #elif [[ "${VARNM}" == 'T2MEAN' ]]; then
 # DIM='' # same time intervall
 # SRCPFX='wrfxtrm' # add variable to hydro (from xtrm)
