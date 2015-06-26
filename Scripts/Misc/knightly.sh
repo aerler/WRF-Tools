@@ -59,7 +59,7 @@ fi # if already running, exit
 # environment
 export GDAL_DATA='/usr/local/share/gdal' # for GDAL API
 CODE="${CODE:-/home/data/Code/}" # code root
-export PYTHONPATH="${CODE}/PyGeoData/src/:${CODE}/WRF Tools/Python/" # my own modules...
+export PYTHONPATH="${CODE}/GeoPy/src/:${CODE}/WRF Tools/Python/" # my own modules...
 # scripts/executables
 PYTHON='/home/data/Enthought/EPD/' # path to Python home (do not export!)
 SCRIPTS="${CODE}/WRF Tools/Scripts/Misc/" # folder with all the scripts
@@ -122,7 +122,7 @@ if [[ "${NOCOMPUTE}" != 'TRUE' ]]
     export PYAVG_THREADS=${PYAVG_EXTNP:-2} # parallel execution
     export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
     export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
-    nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/PyGeoData/src/processing/exstns.py" \
+    nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/GeoPy/src/processing/exstns.py" \
       &> ${ROOT}/exstns.log & # 2> ${ROOT}/exstns.err
     PID=$! # save PID of background process to use with wait 
     
@@ -133,7 +133,7 @@ if [[ "${NOCOMPUTE}" != 'TRUE' ]]
     export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
     export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
     #"${PYTHON}/bin/python" -c "print 'OK'" 1> ${WRFDATA}/wrfavg.log 2> ${WRFDATA}/wrfavg.err # for debugging
-	  nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/PyGeoData/src/processing/wrfavg.py" \
+	  nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/GeoPy/src/processing/wrfavg.py" \
 	    &> ${WRFDATA}/wrfavg.log #2> ${WRFDATA}/wrfavg.err
     REPORT $? 'WRF Post-processing'
     
@@ -168,7 +168,7 @@ if [[ "${NOCOMPUTE}" != 'TRUE' ]]
     export PYAVG_THREADS=${PYAVG_AVGNP:-2} # parallel execution
     export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
     export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
-	  nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/PyGeoData/src/processing/shpavg.py" \
+	  nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/GeoPy/src/processing/shpavg.py" \
 	    &> ${ROOT}/shpavg.log #2> ${ROOT}/shpavg.err
     REPORT $? 'Regional/Shape Averaging'
     
@@ -178,7 +178,7 @@ if [[ "${NOCOMPUTE}" != 'TRUE' ]]
     export PYAVG_THREADS=${PYAVG_AVGNP:-2} # parallel execution
     export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
     export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
-    nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/PyGeoData/src/processing/regrid.py" \
+    nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/GeoPy/src/processing/regrid.py" \
        &> ${ROOT}/regrid.log #2> ${ROOT}/regrid.err
     REPORT $? 'Dataset Regridding'
     
