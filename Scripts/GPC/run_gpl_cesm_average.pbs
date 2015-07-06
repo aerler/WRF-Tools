@@ -194,7 +194,7 @@ function RUNCMDS {
         if [[ "${AVERAGE}" == 'AVERAGE' ]] && [[ "${MODE}" == 'RUN' ]]
           then
             mkdir -p "${AVGDIR}" # make sure destination folder exists
-            ln -sf "${MODEL_ROOT}/WRF Tools/Python/average/cesm_average.py" # link averaging script
+            ln -sf "${MODEL_ROOT}/WRF Tools/Python/wrfavg/cesm_average.py" # link averaging script
             # loop over averaging periods
             for PERIOD in $PRDS
               do
