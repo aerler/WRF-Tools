@@ -27,14 +27,14 @@ elif [[ "${VARNM}" == 'SNOW_ACC_NC' ]]; then
   DIM='Time,,,4' # dimension/hyperslab argument (only record dim supports stride)
   SRCPFX='wrfsrfc'
   DSTPFX='wrfhydro'
-#elif [[ "${VARNM}" == 'SR' ]]; then
-#	DIM='Time,,,4' # dimension/hyperslab argument (only record dim supports stride)
-#	SRCPFX='wrfsrfc'
-#	DSTPFX='wrfhydro'
 elif [[ "${VARNM}" == 'SR' ]]; then
-	DIM=''
-	SRCPFX='wrfhydro' # not used anymore...
+	DIM='Time,,,4' # dimension/hyperslab argument (only record dim supports stride)
+	SRCPFX='wrfsrfc'
 	DSTPFX='wrfhydro'
+#elif [[ "${VARNM}" == 'SR' ]]; then
+#	DIM=''
+#	SRCPFX='wrfhydro' # not used anymore...
+#	DSTPFX='wrfhydro'
 elif [[ "${VARNM}" == 'ACSNOW' ]]; then
 	DIM='' # same time intervall
 	SRCPFX='wrflsm'
@@ -53,12 +53,16 @@ elif [[ "${VARNM}" == 'TSLB' ]]; then
   DSTPFX='wrfsrfc'
 elif [[ "${VARNM}" == 'T2MEAN' ]]; then
   DIM='' # same time intervall
-  SRCPFX='wrfhydro' # remove variable from hydro
+  SRCPFX='wrfxtrm' # ass variable from xtrm
   DSTPFX='wrfhydro'
 elif [[ "${VARNM}" == 'SNOWNC' ]]; then
-  DIM='' # same time intervall
-  SRCPFX='wrfhydro' # remove variable from hydro
-  DSTPFX='wrfhydro'
+	DIM='Time,,,4' # dimension/hyperslab argument (only record dim supports stride)
+	SRCPFX='wrfsrfc'
+	DSTPFX='wrfhydro'
+#elif [[ "${VARNM}" == 'SNOWNC' ]]; then
+#  DIM='' # same time intervall
+#  SRCPFX='wrfhydro' # remove variable from hydro
+#  DSTPFX='wrfhydro'
 else
   echo
   echo "No Settings found for Variable '${VARNM}' - aborting!"

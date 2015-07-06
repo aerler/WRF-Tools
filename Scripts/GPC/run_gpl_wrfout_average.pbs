@@ -41,7 +41,7 @@ NCOADD=${NCOADD:-'~/Scripts/addVariable.sh'} # NCO script to add variables (usua
 
 # options
 TEST=${TEST:-'FALSE'} # use TEST=DRYRUN to only generate command file
-ADDVAR=${ADDVAR:-'ACSNOW SR T2MEAN PBLH'} # add potentially missing variables from other files
+ADDVAR=${ADDVAR:-'ACSNOW SNOWNC SR T2MEAN TSLB PBLH'} # add potentially missing variables from other files
 AVERAGE=${AVERAGE:-'AVERAGE'} # run python averaging script
 
 # environment variables for the averaging script
