@@ -469,7 +469,7 @@ fi # $ARSCRIPT
 # prepare averaging script
 if [[ -n "${AVGSCRIPT}" ]]; then
     # copy script and change job name
-    ln -s "${WRFTOOLS}/Python/average/wrfout_average.py" "./scripts/"
+    ln -s "${WRFTOOLS}/Python/wrfavg/wrfout_average.py" "./scripts/"
     cp -f "${WRFTOOLS}/Scripts/${WPSSYS}/${AVGSCRIPT}" .
     mkdir -p 'wrfavg' # folder for averaged output
     sed -i "/#PBS -N/ s/#PBS -N\ .*$/#PBS -N ${NAME}_avg/" "${AVGSCRIPT}"

@@ -26,7 +26,7 @@ import netCDF4 as nc
 from utils.nctools import add_coord, copy_dims, copy_ncatts, copy_vars
 from processing.multiprocess import asyncPoolEC
 # import module providing derived variable classes
-import average.derived_variables as dv
+import wrfavg.derived_variables as dv
 # aliases 
 days_per_month_365 = dv.days_per_month_365
 dtype_float = dv.dtype_float 
