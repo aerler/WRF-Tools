@@ -756,9 +756,11 @@ class WaterDensity(DerivedVariable):
     ''' Compute mass denisty of water vapor using the Magnus formula. '''
     super(WaterDensity,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
     # compute water vapor content from dew point (using magnus formula)
-    MP = self.MR; Td = indata['TD_PL']; T = indata['T_PL'] # for use in expression
+    MR = self.MR; Td = indata['TD_PL']; T = indata['T_PL'] # for use in expression
     # compute partial pressure using Magnus formula (Wikipedia) and mass per volume "density"
-    outdata = evaluate('MP * 6.1094 * exp( 17.625 * (Td - 273.15) / (Td - 30.11) ) / T')
+    # based on: pV = m T (R/M) -> m/V = M/R * p/T
+    outdata = evaluate('MR * 100. * 6.1094 * exp( 17.625 * (Td - 273.15) / (Td - 273.15 + 243.04) ) / T')
+    # N.B.: the Magnus formula uses Celsius and returns hecto-Pascale: need to convert to/from SI
     # N.B.: outer dimensions (i.e. the first and second) are broadcast automatically, which is what we want here 
     return outdata
 
