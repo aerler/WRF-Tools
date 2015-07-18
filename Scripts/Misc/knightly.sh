@@ -119,7 +119,7 @@ if [[ "${NOCOMPUTE}" != 'TRUE' ]]
             
     ## extract station data (all datasets)
     export PYAVG_BATCH=${PYAVG_BATCH:-'BATCH'} # run in batch mode - this should not be changed
-    export PYAVG_THREADS=${PYAVG_EXTNP:-2} # parallel execution
+    export PYAVG_THREADS=${PYAVG_EXTNP:-1} # parallel execution
     export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
     export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
     nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/GeoPy/src/processing/exstns.py" \
@@ -129,7 +129,7 @@ if [[ "${NOCOMPUTE}" != 'TRUE' ]]
     ## run post-processing (update climatologies)
     # WRF
     export PYAVG_BATCH=${PYAVG_BATCH:-'BATCH'} # run in batch mode - this should not be changed
-    export PYAVG_THREADS=${PYAVG_AVGNP:-2} # parallel execution
+    export PYAVG_THREADS=${PYAVG_AVGNP:-3} # parallel execution
     export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
     export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
     #"${PYTHON}/bin/python" -c "print 'OK'" 1> ${WRFDATA}/wrfavg.log 2> ${WRFDATA}/wrfavg.err # for debugging
@@ -165,7 +165,7 @@ if [[ "${NOCOMPUTE}" != 'TRUE' ]]
     ## average over regions (all datasets)
     # same settings as wrfavg...
     export PYAVG_BATCH=${PYAVG_BATCH:-'BATCH'} # run in batch mode - this should not be changed
-    export PYAVG_THREADS=${PYAVG_AVGNP:-2} # parallel execution
+    export PYAVG_THREADS=${PYAVG_AVGNP:-3} # parallel execution
     export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
     export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
 	  nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/GeoPy/src/processing/shpavg.py" \
@@ -175,7 +175,7 @@ if [[ "${NOCOMPUTE}" != 'TRUE' ]]
     ## run regridding (all datasets)
     # same settings as wrfavg...
     export PYAVG_BATCH=${PYAVG_BATCH:-'BATCH'} # run in batch mode - this should not be changed
-    export PYAVG_THREADS=${PYAVG_AVGNP:-2} # parallel execution
+    export PYAVG_THREADS=${PYAVG_AVGNP:-3} # parallel execution
     export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
     export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
     nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/GeoPy/src/processing/regrid.py" \
