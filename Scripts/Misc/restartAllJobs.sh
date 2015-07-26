@@ -32,11 +32,11 @@ function CHECK {
               rm -rf ${CURRENTSTEP}/rsl.* ${CURRENTSTEP}/wrf*.nc
   	          # restart job (this is a bit hackish and not as general as I would like it...)
   	          if [[ "$MAC" == 'GPC' ]]; then 
-  	            ssh gpc04 "cd \"${INIDIR}\"; qsub ./run_cycling_WRF.pbs -v NOWPS=${NOWPS},NEXTSTEP=${CURRENTSTEP}"
+  	            ssh gpc-f102n084-ib0 "cd \"${INIDIR}\"; qsub ./run_cycling_WRF.pbs -v NOWPS=${NOWPS},NEXTSTEP=${CURRENTSTEP}"
   	          elif [[ "$MAC" == 'TCS' ]]; then
-  	            ssh tcs02 "cd \"${INIDIR}\"; export NEXTSTEP=${CURRENTSTEP}; export NOWPS=${NOWPS}; llsubmit ./run_cycling_WRF.ll"
+  	            ssh tcs-f11n06-ib0 "cd \"${INIDIR}\"; export NEXTSTEP=${CURRENTSTEP}; export NOWPS=${NOWPS}; llsubmit ./run_cycling_WRF.ll"
   	          elif [[ "$MAC" == 'P7' ]]; then
-  	            ssh p701 "cd \"${INIDIR}\"; export NEXTSTEP=${CURRENTSTEP}; export NOWPS=${NOWPS}; llsubmit ./run_cycling_WRF.ll"
+  	            ssh p7n01-ib0 "cd \"${INIDIR}\"; export NEXTSTEP=${CURRENTSTEP}; export NOWPS=${NOWPS}; llsubmit ./run_cycling_WRF.ll"
   	          fi # if MAC
               MIA=$(( $MIA + 1 )) # modifies global counter!
             else
@@ -73,7 +73,7 @@ GPC_LIST=$( ssh gpc01 'showq -nu aerler | grep aerler' )
 CHECK "${GPC_JOBS}" "${GPC_LIST}" 'GPC'
 
 # TCS
-TCS_LIST=$( ssh tcs01 'llq -l | grep -B 3 '\''Owner: aerler'\''' )
+TCS_LIST=$( ssh tcs-f11n06-ib0 'llq -l | grep -B 3 '\''Owner: aerler'\''' )
 CHECK "${TCS_JOBS}" "${TCS_LIST}" 'TCS'
 
 # P7

@@ -58,7 +58,7 @@ MIA=0 # counter for crashed jobs
 # GPC
 if [ $LGPC == 1 ]; then
   # query queue for my jobs
-	GPC_QUEUE=$( ssh gpc01 'qstat -u ${USER} | grep ${USER}' )
+	GPC_QUEUE=$( ssh gpc-f102n084-ib0 'qstat -u ${USER} | grep ${USER}' )
   # check showq output against "registered" jobs
 	CHECK "${GPC_JOBS}" "${GPC_QUEUE}" 'GPC'
   # count entries in job list
@@ -67,14 +67,14 @@ fi # if $LGPC
 
 # TCS
 if [ $LTCS == 1 ]; then
-	TCS_QUEUE=$( ssh tcs01 'llq -l -u ${USER} | grep '\''Job Name'\''' )
+	TCS_QUEUE=$( ssh tcs-f11n06-ib0 'llq -l -u ${USER} | grep '\''Job Name'\''' )
 	CHECK "${TCS_JOBS}" "${TCS_QUEUE}" 'TCS'
   N=$(( $N + $( echo $TCS_JOBS | wc -w ) ))
 fi # if $LTCS
 
 # P7
 if [ $LP7 == 1 ]; then
-	P7_QUEUE=$( ssh p701 'llq -m -u ${USER} | grep '\''Job Name'\''' )
+	P7_QUEUE=$( ssh p7n01-ib0 'llq -m -u ${USER} | grep '\''Job Name'\''' )
 	CHECK "${P7_JOBS}" "${P7_QUEUE}" 'P7'
   N=$(( $N + $( echo $P7_JOBS | wc -w ) ))
 fi # if $LP7
