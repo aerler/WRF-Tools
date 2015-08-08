@@ -57,6 +57,7 @@ ERR=0
 #shopt -s extglob
 
 # generate list of experiments
+cd "${CESMDATA}/cesmavg/" # go to data folder to expand regular expression
 D=''; for R in ${REX}; do D="${D} ${CCA}/${R}"; done # assemble list of source folders
 # loop over all relevant experiments
 for E in $( ssh ${SSH} ${HOST} "ls -d ${D}" ) # get folder listing from scinet
@@ -145,6 +146,7 @@ for E in $( ssh ${SSH} ${HOST} "ls -d ${D}" ) # get folder listing from scinet
 done # for experiments
 
 # generate list of additional CVDP folders (ensembles)
+cd "${CESMDATA}/cvdp/" # go to data folder to expand regular expression
 D=''; for R in ${CVDP}; do D="${D} ${CCA}/${R}"; done # assemble list of source folders
 # loop over all relevant folders
 for E in $( ssh ${SSH} ${HOST} "ls -d ${D}" ) # get folder listing from scinet
