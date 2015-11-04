@@ -7,9 +7,44 @@ syntax: glob
 *.pyc
 *.kate-swp
 
+syntax: glob
+*.aux
+*.log
+*.out
+*.toc
+*.lof
+*.fff
+*.ttt
+*.nav
+*.snm
+*.bbl
+*.blg
+*.backup
+
+syntax: glob
+*.eps
+*.ps
+*.pdf
+*.jpg
+*.tif
+*.tiff
+*.png
+*.zip
+*.gz
+*.bz2
+*.bz
+*.tgz
+*.tar
+
+syntax: glob
+*.nc
+
 syntax: regexp
-^.settings$
+^Articles$
 ^archive$
+^data$
+^figures$
+^.settings$
 ^bin$
 ^test$
 ^gmon\.out$
