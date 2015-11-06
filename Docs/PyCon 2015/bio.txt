@@ -1,0 +1,19 @@
+Andre R. Erler
+
+A.R.Erler@gmail.com
+
+4163585979
+
+60 Harbord St, #972B
+
+Toronto
+
+Ontario
+
+Canada
+
+https://github.com/
+
+Andre is a young researcher and climate modeler; he runs regional and global climate models at the  SciNet High Performance Computing facility and analyses their output. He uses Python and its scientific software stack for data handling (or "data plumbing"), analysis and visualization, and develops tools for these tasks.
+Andre is also interested in machine learning and the use of data science techniques in and outside of climate science, and is somewhat concerned about the state of software development in science.
+He cares deeply about open source software, open science, the environment and sustainable global development.
