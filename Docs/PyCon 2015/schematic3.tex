@@ -1,0 +1,32 @@
+\documentclass{beamer}
+
+\usepackage[latin1]{inputenc}
+\usepackage{times}
+\usepackage{tikz}
+
+\usepackage{verbatim}
+\usetikzlibrary{arrows,shapes}
+
+
+\begin{document}
+\begin{frame}{WPS Tool Chain}
+
+\tikzstyle{format} = [draw, thin, fill=blue!20, rounded corners, align=center]
+\tikzstyle{medium} = [ellipse, draw, thin, fill=green!20, minimum height=2.5em]
+
+\begin{figure}
+  \begin{tikzpicture}[auto,>=latex']
+    %     \draw[help lines] (0,0) grid (5,5);
+    \scriptsize
+    \node[format] at (0,0) (cesm) {CESM\\output};
+    \node[format] at (3.5,0) (wrfim) {WRF inter-\\mediate file};
+    \draw[->,red,ultra thick] (cesm) edge node [align=above] {ungrib.exe} (wrfim);
+    \node[format] at (7,0) (metgrid) {metgrid\\file};
+    \draw[->,blue,ultra thick] (wrfim) edge node [align=above] {metgrid.exe} (metgrid);
+    \node[format] at (10,0) (real) {wrfinput};
+    \draw[->,violet,ultra thick] (metgrid) edge node [align=above] {real.exe} (real);
+  \end{tikzpicture}
+\end{figure}
+
+\end{frame}
+\end{document}

@@ -1,0 +1,688 @@
+\documentclass[hyperref={pdfpagelabels=false},compress,final]{beamer}
+% \documentclass[hyperref={pdfpagelabels=false},compress,draft]{beamer}
+%\let\Tiny=\tiny % get rid of some useless warnings...
+\usepackage{lmodern} % also does the trick
+\usepackage{default}
+\usepackage[english]{babel}
+% some standard options
+% \usepackage{verbatim}
+\usepackage{graphicx} %If you want to include postscript graphics
+\usepackage{graphics}
+\usepackage{color}
+\usepackage{epsfig}
+\usepackage{minted}
+\usepackage{url}
+\usepackage{float}
+%\usepackage{subfigure}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{longtable}
+\usepackage{lipsum}
+% \usepackage[latin1]{inputenc}
+% \usepackage{times}
+\usepackage{tikz}
+\usetikzlibrary{arrows,shapes}
+%\usepackage{lineno}
+%\usepackage[bf,nooneline,format=plain,indention=.3cm]{caption}
+%\setlength{\captionmargin}{10pt}
+%\usepackage[letterpaper,hmargin=1in,vmargin=1.25in]{geometry}
+%\frenchspacing
+
+% some tweaking for bibliography
+\usepackage{natbib}
+\renewcommand{\bibsection}{\subsubsection*{\bibname }}
+\def\newblock{}
+
+% local definitions
+\newcommand{\foreign}[1]{{\it #1}}
+\renewcommand{\emph}[1]{{\it #1}}
+
+\newcommand{\myhw}{0.5\textwidth}
+\newcommand{\myfigw}{0.9\textwidth}
+\newcommand{\myw}{0.49\textwidth}
+\newcommand{\lc}{life--cycle~}
+
+% Equation references
+\renewcommand{\eqref}[1]{Eq.~(\ref{#1})}
+%\renewcommand{\vec}[1]{{\bf #1}}
+% Abbreviations
+\newcommand{\nn}{$N^2$}
+\newcommand{\nnm}{$N^2_{max}$}
+\newcommand{\zet}{$\zeta$}
+\newcommand{\zetp}{$\zeta_{TP}$}
+\newcommand{\dze}{$\Delta\zeta_{TP}$}
+\newcommand{\htp}{$h_{TP}$}
+\newcommand{\dttp}{$\Delta T_{TP}$}
+\newcommand{\p}{$p$}
+\renewcommand{\t}{$T$}
+\renewcommand{\theta}{$\theta$}
+% Directions
+\newcommand{\degN}{\ensuremath{^\circ}N}
+\newcommand{\degS}{\ensuremath{^\circ}S}
+\newcommand{\degE}{\ensuremath{^\circ}E}
+\newcommand{\degW}{\ensuremath{^\circ}W}
+\newcommand{\degC}{\ensuremath{^\circ}C}
+% other
+\renewcommand{\deg}{\ensuremath{^\circ}} % use for degree in math mode
+\newcommand{\st}{\ensuremath{^{st}}}
+\newcommand{\nd}{\ensuremath{^{nd}}}
+\newcommand{\rd}{\ensuremath{^{rd}}}
+\renewcommand{\th}{\ensuremath{^{th}}}
+\usepackage{verbatim} % the comment environment is in the verbatim package
+% \renewenvironment{comment}{\begin{itemize}}{\end{itemize}}
+\newcommand{\inlinecomment}[1]{{\noindent\sl#1}}
+% \newcommand{\app}[1]{Appendix~\ref{#1}}
+\newcommand{\app}[1]{Appendix~#1}
+% Units (math environment)
+\newcommand{\GB}{\ensuremath{\,\mbox{GB}}}
+\newcommand{\ms}{\ensuremath{\,\mbox{m\;s}^{-1}}}
+\newcommand{\mmday}{\ensuremath{\,\mbox{mm\;day}^{-1}}}
+\newcommand{\kgmmday}{\ensuremath{\,\mbox{kg\;m}^{-2}\,\mbox{day}^{-1}}}
+\newcommand{\kgmms}{\ensuremath{\,\mbox{kg\;m}^{-2}\,\mbox{s}^{-1}}}
+\newcommand{\kgms}{\ensuremath{\,\mbox{kg\;m}^{-1}\,\mbox{s}^{-1}}}
+\newcommand{\mss}{\ensuremath{\,\mbox{m\;s}^{-2}}}
+\newcommand{\pvu}{\ensuremath{\,\mbox{PVU}}}
+\newcommand{\kkm}{\ensuremath{\,\mbox{K\;km}^{-1}}}
+\newcommand{\m}{\ensuremath{\,\mbox{m}}}
+\newcommand{\s}{\ensuremath{\,\mbox{s}}}
+\newcommand{\Kkm}{\ensuremath{\,\mbox{K\;km}^{-1}}}
+\newcommand{\km}{\ensuremath{\,\mbox{km}}}
+\newcommand{\K}{\ensuremath{\,\mbox{K}}}
+\newcommand{\hPa}{\ensuremath{\,\mbox{hPa}}}
+\newcommand{\mssq}{\ensuremath{\,\mbox{m\;s}^2}}
+\newcommand{\JKmol}{\ensuremath{\,\mbox{J\;K}^{-1}\,\mbox{mol}^{-1}}}
+\newcommand{\kgmol}{\ensuremath{\,\mbox{kg\;mol}^{-1}}}
+\newcommand{\ssq}{\ensuremath{\times{}10^{-4}\,\mbox{s}^{-2}}}
+% math-environment abbreviations
+\newcommand{\ddz}[1]{\ensuremath{\frac{\partial #1}{\partial z}}}
+\newcommand{\ddp}[1]{\ensuremath{\frac{\partial #1}{\partial p}}}
+
+%
+% New Environments
+%
+\newenvironment{myBox}[3][shadow=true]%
+{\begin{center} \begin{minipage}{#2} \begin{beamerboxesrounded}[#1]{#3} \smallskip}%
+{\smallskip \end{beamerboxesrounded} \end{minipage} \end{center}}
+%
+% Hyphenation
+\hyphenation{tro-po-pau-se}
+\hyphenation{tro-po-pau-ses}
+\hyphenation{pa-ra-me-ter-i-za-ti-ons}
+\hyphenation{ra-di-o-son-de}
+\hyphenation{me-ri-di-o-nal}
+\hyphenation{a-na-ly-sis}
+\hyphenation{ba-ro-cli-nic}
+\hyphenation{geo-stro-phic}
+
+%\DeclareMathOperator{\ln}{ln}
+% increase line spacing by a factor of 1.5
+%\renewcommand{\baselinestretch}{1.5}
+
+\mode<presentation>{
+\usetheme{Malmoe} % Malmoe Frankfurt
+\usecolortheme{whale}
+\usecolortheme{orchid}
+\setbeamertemplate{bibliography item}[text]
+\setbeamercovered{transparent}
+}
+
+\DeclareGraphicsExtensions{.png,.pdf,.jpg} %.pdf,.png,.jpg
+\graphicspath{{figures/fullsize/}}
+% \graphicspath{{figures/small/}}
+
+\title[Orchestrating a Climate Modeling Pipeline]{Orchestrating a Climate Modeling Data Pipeline using Python and RAM Disk}
+\subtitle{A Brief Overview of the WRF~Tools Package}
+\author[\href{http://www.physics.utoronto.ca/~aerler/}{Andre R. Erler} (\href{mailto:A.R.Erler@gmail.com}{A.R.Erler@gmail.com})]{Andre R. Erler}
+\institute{PyCon Canada}
+\date{November $7^{th}$, 2015}
+%\logo{\includegraphics[scale=0.15]{HD3}}
+
+% \AtBeginSection[]
+% {
+%    \begin{frame}{Outline}
+%        \tableofcontents[currentsection]
+%    \end{frame}
+% }
+
+% *************************************************************************************************
+\providecommand\thispdfpagelabel[1]{}
+
+\begin{document}
+
+% \section*{\ }
+
+\begin{frame}
+\titlepage
+\end{frame}
+
+\begin{frame}{Outline}
+\tableofcontents%[pausesections]
+\end{frame}
+
+\section[Introduction]{Introduction: Climate Modeling}
+% \begin{frame}{Outline}
+% \tableofcontents[currentsection]
+% \end{frame}
+
+
+% ################################################################################################
+
+
+\subsection*{Global Models}
+
+\begin{frame}{\hspace*{0.5\textwidth}Global Climate Models}
+ \begin{columns}
+   \begin{column}{0.4\textwidth}
+     \vspace*{-1cm}\\%\hspace*{-0.5cm}
+     \includegraphics[width=\textwidth]{AR41projection}\\
+     {\footnotesize IPCC AR4 (2007) projections for global surface temperature udner different scenarios.} \\ \smallskip
+   \begin{myBox}[shadow=true]{0.85\textwidth}{}
+     \small Global Climate Models are the main tool to predict climate change.
+   \end{myBox}
+   \end{column}
+   \begin{column}{0.7\textwidth}
+%      \vspace*{0.0cm}\\%\hspace*{-2cm}
+     {\footnotesize Climate models compute energy, mass, and momentum fluxes on a relatively coarse grid. \smallskip \\
+     Schematic of a Global Climate Model (GCM):} \smallskip \\
+     \includegraphics[width=\textwidth]{climateSystem2}\\
+     {\tiny Center for Multiscale Modeling of Atmospheric Processes, CSU}
+   \end{column}
+ \end{columns}
+\end{frame}
+
+\subsection{Regional Models}
+
+\begin{frame}{Regional Climate Models}
+  \begin{columns}
+    \begin{column}{0.5\textwidth}
+      \vspace*{0.2cm}\\%\hspace*{-0.5cm}
+      {\small GCM resolution is coarse and many regional details are not resolved (e.g. the Rocky Mountains and the Great Lakes).}
+      \includegraphics[width=2\textwidth]{giorgi_rcm}\\
+      \vspace{-0.25cm}{\tiny Giorgi (2006)}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+      \vspace*{-1.25cm}\\%\hspace*{-0.5cm}
+      \onslide<2->{
+      \begin{myBox}[shadow=true]{0.85\textwidth}{Regional Impacts}
+        \small Regional impacts of Climate Change are modeled with high-resolution regional climate models (RCM).
+      \end{myBox}}
+      \vspace*{4cm}
+      {\footnotesize Regional models simulate a small area at much higher resolution ($\times 10$).}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{}
+  \begin{columns}
+    \begin{column}{0.5\textwidth}
+      \small
+      \begin{myBox}[shadow=true]{0.92\textwidth}{Global Model: CESM}
+        \small The Community Earth System Model is used as driving model.
+      \end{myBox}
+%       \\ \vspace*{.25cm}
+      \includegraphics[width=\textwidth]{Ts_annual_ortho_ndl} \\
+      {\footnotesize Average Surface Temperature and Outline of the WRF Domain}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+      %\vspace*{-1cm}
+      \small
+      \includegraphics[width=\textwidth]{zs_hidef_noWRF} \\ \smallskip
+      {\footnotesize Topography of Western Canada.\\
+      Left: CESM at $\sim$80\km{}\\
+      Right: WRF (inner domain) at 10\km{} }
+      \begin{myBox}[shadow=true]{0.96\textwidth}{Regional Model: WRF}
+        \small The Weather Research and Forecast model is the regional model.
+      \end{myBox}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}
+  \begin{columns}
+    \begin{column}{0.55\textwidth}
+      \includegraphics[width=\textwidth]{worf.jpg}
+    \end{column}
+    \begin{column}{0.35\textwidth}
+      {WRF is actually pronounced ``Worf'',\\ like Lt. Worf in \\\textit{Star Trek: The Next Generation} (left)}
+      \\ \bigskip \medskip
+      {\small The WRF model is a limited-area numerical weather prediction model developed by the National Center for Atmospheric Research}
+%       \underline{\bf \large The WRF Model} \\ \bigskip \medskip
+    \end{column}
+  \end{columns}
+\end{frame}
+
+
+% ################################################################################################
+
+
+\section[\ The Pipeline]{The Pre-processing Pipeline}
+
+\begin{frame}{\hspace*{0.3cm} Running the Regional \\\hspace*{0.3cm} Climate Model}
+  \begin{columns}
+    \begin{column}{0.5\textwidth}
+      \begin{itemize}
+        \item<2-> The coupling process between GCM and RCM is ``off-line'' \smallskip
+        \item<2-> A pre-processing system converts GCM output into RCM input files \bigskip
+        \item<3-> An RCM simulation is split into $\sim200$ separate jobs \smallskip
+        \item<3-> The RCM runs continuously, each job submitting the next \bigskip
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+      \vspace*{-1.5cm}
+      \begin{myBox}{0.9\textwidth}{The WRF Tools Package}
+        {\color{teal}Python}
+        \begin{itemize}
+          \item<2> Run pre-processing\\ tool chain (WPS)
+          \item<3> Initialize RCM jobs
+          \item<4> Run post-processing \smallskip
+        \end{itemize}
+        {\color{purple}Shell Script}
+        \begin{itemize}
+          \item<2> Submit pre-processing
+          \item<3> Run the RCM job,\\ submit next job
+          \item<4> Archiving to tape \medskip
+        \end{itemize}
+        WRF Tools enables continuous and autonomous operation
+      \end{myBox}
+      %   WRF restarts from its own state, so the initialization from CESM is relatively irrelevant
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{The Data Pipeline}
+  \tikzstyle{format} = [draw, fill=blue!20, rounded corners]
+  \tikzstyle{medium} = [ellipse, draw, thin, fill=green!20, minimum height=2.5em]
+  \begin{figure}
+    \begin{tikzpicture}[node distance=2cm, auto,>=latex', thick]
+      % We need to set at bounding box first. Otherwise the diagram
+      % will change position for each frame.
+      %     \path[use as bounding box] (-1,0) rectangle (10,-2);
+      %     \draw[help lines] (0,0) grid (5,5);
+      \scriptsize
+      % CESM
+      \uncover<1->{
+        \node[format] at (0,0) (cesm1) {CESM};
+        \draw[->, blue, ultra thick] (cesm1) -- (8,0);
+        \draw[->, red, ultra thick] (cesm1) -- (0,-0.5) |- (8,-0.5);
+        \path[red] (1,-0.5) edge node {asynchronous/archived output} (7,-0.5);
+        \node[format, align=left] at (7,-2) (ar) {Analysis,\\long-term\\Archive};
+        \draw[<-, blue, ultra thick] (ar) -- (7,0);
+      }
+      % WPS/WRF 1
+      \uncover<1->{
+        \path[->] node[format, below of=cesm1] (wps1) {WPS};
+        \draw[->,red,ultra thick](cesm1) edge node {offline} (wps1);
+        \path[->] node[format, right of=wps1] (wrf1) {WRF};
+        \draw[->,violet,ultra thick] (wps1) edge node {wrfinput} (wrf1);
+        \draw[->,blue,ultra thick] (wrf1) edge node {wrfout} (ar);
+      }
+      % WPS/WRF 2
+      \uncover<2->{
+        \path[->] node[format, below of=wrf1] (wps2) {WPS};
+        \draw[<-,red,ultra thick] (wps2) -- +(-0.5,0) -| (1,-0.5);
+        \path[->] node[format, right of=wps2] (wrf2) {WRF};
+        \draw[->,violet,ultra thick] (wps2) edge node {wrfinput} (wrf2);
+        \draw[->,blue,ultra thick] (wrf2) edge node {wrfout} (ar);
+        \draw[->] (wrf1) edge node {launch} (wps2);
+        \draw[->] (wrf1) -- (wrf2);
+      }
+      % WPS/WRF 3
+      \uncover<3->{
+        \path[->] node[format, below of=wrf2] (wps3) {WPS};
+        \draw[<-,red,ultra thick] (wps3) -- +(-0.5,0) -| (3,-0.5);
+        \path[->] node[format, right of=wps3] (wrf3) {WRF};
+        \draw[->,violet,ultra thick] (wps3) edge node {wrfinput} (wrf3);
+        \draw[->,blue,ultra thick] (wrf3) edge node {wrfout} (ar);
+        \draw[->] (wrf2) edge node {launch} (wps3);
+        \draw[->] (wrf2) -- (wrf3);
+      }
+      % geogrid
+      \uncover<4->{
+        \node[format] at (0.,-6) (geo) {geogrid};
+        \draw[->,teal,thick] (geo) -- (wps1);
+        \draw[->,teal,thick] (geo) edge node [align=left,above left] {static\\ data} (wps2);
+        \draw[->,teal,thick] (geo) -- (wps3);
+      }
+    \end{tikzpicture}
+  \end{figure}
+\end{frame}
+
+
+% ################################################################################################
+
+\subsection{The WRF Pre-processing System (WPS)}
+
+% \begin{frame}{\hspace*{0.8cm} WPS: \textsc{\huge \color{purple} Fortran} \\\hspace*{0.8cm} Legacy Tools}
+\begin{frame}{\hspace*{0.5cm} WPS: A Collection of \textsc{\huge \color{purple} Fortran} Legacy Tools}
+  \begin{columns}
+    \begin{column}{0.4\textwidth}
+      \begin{myBox}{\textwidth}{WPS Components}
+        \small
+        \begin{enumerate}
+          \item {\color{teal} \tt geogrid.exe} \\ static\,/\,geographic data
+          \item {\color{red} \tt ungrib.exe / unccsm.exe} \\
+          convert driving data to WRF IM Format
+          \item {\color{blue} \tt metgrid.exe} \\ interpolate to WRF grid
+          \item {\color{violet} \tt real.exe} \\ generate boundary condition files
+        \end{enumerate}
+      \end{myBox}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+      \textsc{\Large\color{purple} Fortran} legacy tools read from and write to temporary files:
+      \begin{itemize}
+        \item Strongly I/O limited in a HPC cluster environment
+      \end{itemize}
+      \medskip
+      \onslide<2->{\begin{myBox}{0.8\textwidth}{The Solution (on Linux)}
+        Run on RAM-disk!
+        \begin{itemize}
+          \item speedup $\sim\times10$
+          \item requires 64\,GB RAM
+        \end{itemize}
+        Using Python driver script
+      \end{myBox}}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\section[PyWPS]{Using Python to Drive the Pipeline}
+
+\subsection*{Overview} % and parallelization
+\definecolor{lightgray}{rgb}{0.85,0.9,0.9}
+\definecolor{darkgreen}{rgb}{0.0,0.4,0.2}
+\setbeamercolor{upcol}{fg=white,bg=darkgreen}
+\setbeamercolor{lowcol}{fg=black,bg=lightgray}
+
+\begin{frame}{\hspace*{2.5cm}{\color{teal}PyWPS}: A Driver Module for WPS}
+  \begin{columns}
+    \begin{column}{0.6\textwidth}
+      \begin{itemize}
+        \item Collect required input data from GCM archive \smallskip
+        \item Run applicable pre-processing tools on RAM disk \smallskip
+        \item Assemble WRF input files
+      \end{itemize}
+      \medskip
+      \onslide<2->{\begin{myBox}[upper=upcol,lower=lowcol,shadow=true]{0.8\textwidth}{Why Python?}
+          \begin{itemize}
+            \item Easy parallelization\smallskip
+            \item Classes for different datasets/GCMs
+          \end{itemize}
+        \end{myBox}}
+    \end{column}
+    \begin{column}{0.4\textwidth}
+      \begin{myBox}{\textwidth}{PyWPS Imports}
+        \small
+        \begin{itemize}
+          \item \texttt{multiprocessing} for parallelization
+          \item \texttt{re} to find input files
+          \item \texttt{fileinput}, \texttt{sys} to edit configurations files
+          \item \texttt{subprocess} to launch \textsc{Fortran} tools
+          \item \texttt{shutils}, \texttt{os} to handle temporary files
+        \end{itemize}
+      \end{myBox}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\subsection{The Tool Chain}
+
+\begin{frame}{\hspace*{.7cm}{\color{teal}PyWPS}: The Program Flow}
+  \begin{figure}
+    \hspace*{-1.1cm}
+    \tikzstyle{core} = [draw, thin, fill=blue!40, rounded corners, align=left]
+    \tikzstyle{allfiles} = [draw, thin, fill=purple!20, rounded corners, align=left]
+    \tikzstyle{regex} = [draw, thin, fill=teal, fill opacity=0.15, rounded corners, align=center]
+    \tikzstyle{jobfiles} = [draw, thin, fill=red!20, rounded corners, align=left]
+    \tikzstyle{wps} = [draw, thin, fill=purple, fill opacity=0.15, rounded corners, align=center]
+    \tikzstyle{wrfinput} = [draw, thin, fill=violet!20, rounded corners, align=center]
+    \begin{tikzpicture}[auto,>=latex']
+      % We need to set at bounding box first. Otherwise the diagram
+      % will change position for each frame.
+      %     \path[use as bounding box] (-1,0) rectangle (10,-2);
+      %     \draw[help lines] (0,0) grid (5,5);
+      \scriptsize
+      % select files
+      \uncover<1->{
+        \node[allfiles] at (0.25,1.5) (allfiles) {All CESM\\Output files:\\...};
+        \node[jobfiles] at (5,1.5) (jobfiles) {Selected CESM\\Output files:\\only current job};
+        \node[core] at (2.5,3) (core10) {core 0}; \draw[->,black,thick] (allfiles) -- (core10); \draw[->,black,thick] (core10) -- (jobfiles);
+        \node[core] at (2.5,2) (core11) {core 1}; \draw[->,black,thick] (allfiles) -- (core11); \draw[->,black,thick] (core11) -- (jobfiles);
+        \node[core] at (2.5,1) (core12) {core 2}; \draw[->,black,thick] (allfiles) -- (core12); \draw[->,black,thick] (core12) -- (jobfiles);
+        \node[core] at (2.5,0) (core13) {core 3}; \draw[->,black,thick] (allfiles) -- (core13); \draw[->,black,thick] (core13) -- (jobfiles);
+        \node[]     at (2.5,3.5) (regex) {Select Files};
+        \node[regex,fit=(regex) (core10) (core11) (core12) (core13)] {}; }
+      % process files
+      \uncover<2->{
+        \node[wrfinput] at (10.5,1.5) (wrfinput) {WRF input\\ files};
+        \node[core] at (8.0,3) (core20) {core 0}; \draw[->,black,thick] (jobfiles) -- (core20); \draw[->,black,thick] (core20) -- (wrfinput);
+        \node[core] at (8.0,2) (core21) {core 1}; \draw[->,black,thick] (jobfiles) -- (core21); \draw[->,black,thick] (core21) -- (wrfinput);
+        \node[core] at (8.0,1) (core22) {core 2}; \draw[->,black,thick] (jobfiles) -- (core22); \draw[->,black,thick] (core22) -- (wrfinput);
+        \node[core] at (8.0,0) (core23) {core 3}; \draw[->,black,thick] (jobfiles) -- (core23); \draw[->,black,thick] (core23) -- (wrfinput);
+        \node[]     at (8.0,3.5) (wps) {WPS Tool Chain};
+        \node[wps,fit=(wps) (core20) (core21) (core22) (core23)] {};}
+    \end{tikzpicture}
+  \end{figure}
+  \bigskip
+%   \hspace*{-0.5cm}
+  {\Large \usebeamercolor[fg]{frametitle} The {\color{purple}WPS Tool Chain}:}
+  \begin{figure}
+    \tikzstyle{format} = [draw, thin, fill=blue!20, rounded corners, align=center]
+    \hspace*{-0.25cm}\vspace*{-0.25cm}
+    \begin{tikzpicture}[auto,>=latex']
+      \scriptsize
+      \node[format] at (0,0) (cesm) {CESM\\output};
+      \node[format] at (3.5,0) (wrfim) {WRF inter-\\mediate file};
+      \draw[->,red,ultra thick] (cesm) edge node [align=above] {ungrib.exe} (wrfim);
+      \node[format] at (7,0) (metgrid) {metgrid\\file};
+      \draw[->,blue,ultra thick] (wrfim) edge node [align=above] {metgrid.exe} (metgrid);
+      \node[format] at (10,0) (real) {wrfinput};
+      \draw[->,violet,ultra thick] (metgrid) edge node [align=above] {real.exe} (real);
+    \end{tikzpicture}
+  \end{figure}
+\end{frame}
+
+\subsection{The Class Structure}
+
+\begin{frame}[fragile=singleslide]{The Class Structure}
+  \begin{columns}
+    \begin{column}{0.5\textwidth}
+      Dataset/GCM specific parameters: \smallskip
+      \begin{itemize}
+        \item Input file types/names\smallskip
+        \item Interpolation tables/grid \smallskip
+        \item Variables / frequency \smallskip
+      \end{itemize}
+      \onslide<2->{
+      \begin{myBox}{0.9\textwidth}{Multiple Datasets}
+        \begin{itemize}
+          \item \textit{\color{purple} Inheritance} for common procedures \smallskip
+          \item \textit{\color{teal} Polymorphism} for different procedures
+        \end{itemize}
+      \end{myBox}}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+      \vspace*{-1.25cm}
+      \begin{myBox}{1.0\textwidth}{}
+%         \renewcommand{\theFancyVerbLine}{\sffamily\textcolor[rgb]{0.5,0.5,0.5}{\scriptsize\arabic{FancyVerbLine}}}
+        \footnotesize
+        \begin{minted}{python}
+class Dataset(object):
+  prefix = ''  # file prefix
+  vtable = 'Vtable'
+  gribname = 'GRIBFILE' # input
+  ungrib_exe = 'ungrib.exe'
+  ungrib_log = 'ungrib.exe.log'
+  ...
+  def __init__(self, ...):
+    # type checking
+    ...
+  def setup(self, src, ...):
+    ...
+  def cleanup(self, tgt):
+    ...
+  def extractDate(self, fname):
+    # match valid filenames
+    ...
+  def ungrib(self, date, mytag):
+    # generate file for metgrid
+    ...
+        \end{minted}
+      \end{myBox}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+
+\section[Conclusion]{Concluding Remarks}
+
+\begin{frame}{Summary \& Conclusion}
+
+  {\Large \color{teal} \textbf{Python} }\smallskip
+  \begin{itemize}
+    \item Use Python for flow control (manage legacy tools) \medskip
+    \item Parallelization relatively easy (on node) \medskip
+    \item Class structure is versatile and makes maintenance easier \medskip
+  \end{itemize}
+  \bigskip
+  {\Large \color{purple} {RAM}-disk }\smallskip
+  \begin{itemize}
+    \item Scientific Programming: dealing with legacy tools\\
+          Often in \textsc{Fortran}, often relying on disk I/O \medskip
+    \item Use RAM-disk to avoid unnecessary disk I/O \medskip
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+ \vfill
+ \begin{center}
+ \LARGE
+ Thank You!\hspace{1.5cm}  $\sim$ \hspace{1.5cm} Questions?
+ \end{center}
+ \vfill
+\end{frame}
+
+% ################################################################################################
+
+\begin{frame}{\Large List of Publications using WRF~Tools}
+  \medskip
+  \begin{itemize}
+    \scriptsize
+    \item \textbf{Erler, Andre R.}, W. Richard Peltier, Marc d'Orgeville (submitted),
+    Projected Changes in Hydro-Climatic Extremes for Western Canada,
+    Journal of Climate. \bigskip
+
+    \item Marc d'Orgeville, W. Richard Peltier, \textbf{Andre R. Erler} (under review),
+    Uncertainty in Future Summer Precipitation on the Great Lakes Basin due to Drought in the South-Western US,
+    Journal of Geophysical Research. \bigskip
+
+    \item \href{http://journals.ametsoc.org/doi/abs/10.1175/JCLI-D-14-00174.1}
+    {\textbf{Erler, Andre R.}, W. Richard Peltier, Marc d'Orgeville, 2015,
+      Dynamically Downscaled High Resolution Hydro-Climate Projections for Western Canada,
+      Journal of Climate.} \bigskip
+
+    \item \href{http://onlinelibrary.wiley.com/enhanced/doi/10.1002/2014JD021855/}
+    {Marc d'Orgeville, W. Richard Peltier, \textbf{Andre R. Erler}, Jonathan Gula, 2014,
+      Climate change impacts on Great Lakes Basin precipitation extremes,
+      Journal of Geophysical Research.} \bigskip
+  \end{itemize}
+  %   \smallskip
+
+\end{frame}
+
+
+% *************************************************************************************************
+%  -----------------------------------------------------------------------------------------------
+% *************************************************************************************************
+
+\begin{comment}
+
+\appendix
+
+\subsection{Experimental Setup}
+
+\begin{frame}{Regional Climate Projections}
+  \begin{columns}[T]
+    \begin{column}{0.6\textwidth}
+      \underline{\Large Experimental Setup}\medskip
+      \small
+      \begin{itemize}
+        \item GCM \& RCM run for 15\,years \\ (model time) \smallskip
+        \begin{itemize}
+          \item Historical (1979\,-\,1994) \smallskip
+          \item Mid-21\st-Century (2045-2060) \smallskip
+          \item End-21\st-Century (2085-2100)
+        \end{itemize} \smallskip %\pause
+        \item GCM \& RCM use RCP\,8.5 GHG concentration scenarios
+        \item RCM runs with different physical parameterizations \smallskip %\pause
+        \item Both models run in an initial condition ensemble with 4 members each
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.4\textwidth}
+      \vspace*{-.8cm} \hspace*{-.8cm}
+      \includegraphics[width=1.3\textwidth]{AR41projection.png}
+      \begin{myBox}{\textwidth}{}
+        {\footnotesize \mbox{IPCC AR4 climate projections} based on different scenarios; %  GHG emission
+          the RCP\,8.5 is very similar to the older A2 scenario}
+      \end{myBox}
+      %   \begin{myBox}{\textwidth}{}
+      %   \end{myBox}
+      %   \includegraphics[width=1.1\textwidth]{ARB.png}\\ \medskip \small
+      %   The Athabasca River Basin hydrological modeling project is one application for our data.
+      %   Groundwater (top) and surface water (bottom).
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% large domain map
+\begin{frame}
+  \begin{center}
+    \vspace*{-0.75cm}
+%     \includegraphics<1>[height=0.9\textheight]{zs_topo_arb2}
+    \includegraphics[height=0.9\textheight]{zs_topo_arb2_basins}
+  \end{center}
+\end{frame}
+
+
+\subsection*{Summary}
+
+\begin{frame}{\LARGE Summary of Results}
+  \begin{columns}[T]
+    \begin{column}{0.6\textwidth}
+      \smallskip
+      \begin{itemize}
+        %         \item<1-> WRF improves significantly over CESM, but are broadly consistent \smallskip
+        \item<1-> Significant increase in winter precipitation (extremes, $\sim$30\%) \medskip
+        \item<1-> Small increase in summer, but more increase in evaporation
+      \end{itemize}
+      %  \smallskip
+      {\small
+        \onslide<1->{
+          \begin{myBox}[shadow=true]{.9\textwidth}{Hydrological Impacts}
+            \begin{itemize}
+              \item Climate change impacts in ARB/Alberta likely benign\medskip
+              \item 50\% reduction in peak snow\-melt and spring runoff in FRB/BC...
+              \item ... but increased flood risk due to precipitation extremes in fall
+            \end{itemize}
+          \end{myBox}}}
+    \end{column}
+    \begin{column}{0.4\textwidth}
+      \vspace*{-1.2cm} \hspace*{-.6cm}
+      \includegraphics[width=5.5cm]{aSM_frac_jas_sum}\\ \smallskip
+      \parbox{1.\textwidth}{\small End-century soil moisture changes in late summer}
+      \smallskip
+      \begin{itemize}
+        \item<1-> Late summer drying west of Continental Divide, but not east
+      \end{itemize}
+    \end{column}
+  \end{columns} %\small
+\end{frame}
+
+\end{comment}
+
+
+% *************************************************************************************************
+%  -----------------------------------------------------------------------------------------------
+% *************************************************************************************************
+
+\end{document}

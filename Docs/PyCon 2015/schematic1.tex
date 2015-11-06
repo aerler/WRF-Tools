@@ -1,0 +1,72 @@
+\documentclass{beamer}
+
+\usepackage[latin1]{inputenc}
+\usepackage{times}
+\usepackage{tikz}
+
+\usepackage{verbatim}
+\usetikzlibrary{arrows,shapes}
+
+
+\begin{document}
+\begin{frame}
+\frametitle{Dynamical Downscaling Data-flow}
+
+
+\tikzstyle{format} = [draw, thin, fill=blue!20, rounded corners]
+\tikzstyle{medium} = [ellipse, draw, thin, fill=green!20, minimum height=2.5em]
+
+\begin{figure}
+\begin{tikzpicture}[node distance=2cm, auto,>=latex', thick]
+    % We need to set at bounding box first. Otherwise the diagram
+    % will change position for each frame.
+%     \path[use as bounding box] (-1,0) rectangle (10,-2);
+%     \draw[help lines] (0,0) grid (5,5);
+    \scriptsize
+    % CESM
+    \uncover<1->{
+    \node[format] at (0,0) (cesm1) {CESM};
+    \draw[->, blue, ultra thick] (cesm1) -- (8,0);
+    \draw[->, red, ultra thick] (cesm1) -- (0,-0.5) |- (8,-0.5);
+    \path[red] (1,-0.5) edge node {high frequency output} (7,-0.5);
+    \node[format, align=left] at (7,-2) (ar) {Analysis,\\long-term\\Archive};
+    \draw[<-, blue, ultra thick] (ar) -- +(0,2);
+    }
+    % WPS/WRF 1
+    \uncover<1->{
+    \path[->] node[format, below of=cesm1] (wps1) {WPS};
+    \draw[->,red,ultra thick](cesm1) edge node {offline} (wps1);
+    \path[->] node[format, right of=wps1] (wrf1) {WRF};
+    \draw[->,violet,ultra thick] (wps1) edge node {wrfinput} (wrf1);
+    \draw[->,blue,ultra thick] (wrf1) edge node {wrfout} (ar);
+    }
+    % WPS/WRF 2
+    \uncover<2->{
+    \path[->] node[format, below of=wrf1] (wps2) {WPS};
+    \draw[<-,red,ultra thick] (wps2) -- +(-0.5,0) -| (1,-0.5);
+    \path[->] node[format, right of=wps2] (wrf2) {WRF};
+    \draw[->,violet,ultra thick] (wps2) edge node {wrfinput} (wrf2);
+    \draw[->,blue,ultra thick] (wrf2) edge node {wrfout} (ar);
+    \draw[->] (wrf1) edge node {launch} (wps2);
+    \draw[->] (wrf1) -- (wrf2);
+    }
+    % WPS/WRF 3
+    \uncover<3->{
+    \path[->] node[format, below of=wrf2] (wps3) {WPS};
+    \draw[<-,red,ultra thick] (wps3) -- +(-0.5,0) -| (3,-0.5);
+    \path[->] node[format, right of=wps3] (wrf3) {WRF};
+    \draw[->,violet,ultra thick] (wps3) edge node {wrfinput} (wrf3);
+    \draw[->,blue,ultra thick] (wrf3) edge node {wrfout} (ar);
+    \draw[->] (wrf2) edge node {launch} (wps3);
+    \draw[->] (wrf2) -- (wrf3);
+    }
+    % geogrid
+    \uncover<4->{
+    \node[format] at (0.,-6) (geo) {geogrid};
+    \draw[->,teal,thick] (geo) -- (wps1);
+    \draw[->,teal,thick] (geo) edge node [align=left,above left] {static\\ data} (wps2);
+    \draw[->,teal,thick] (geo) -- (wps3);
+    }
+\end{tikzpicture}
+\end{figure}\end{frame}
+\end{document}
