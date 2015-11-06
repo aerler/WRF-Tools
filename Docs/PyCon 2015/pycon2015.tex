@@ -556,26 +556,26 @@ class Dataset(object):
         %         \renewcommand{\theFancyVerbLine}{\sffamily\textcolor[rgb]{0.5,0.5,0.5}{\scriptsize\arabic{FancyVerbLine}}}
         \footnotesize
         \begin{minted}{python}
-          class Dataset(object):
-          prefix = ''  # file prefix
-          vtable = 'Vtable'
-          gribname = 'GRIBFILE' # input
-          ungrib_exe = 'ungrib.exe'
-          ungrib_log = 'ungrib.exe.log'
-          ...
-          def __init__(self, ...):
-          # type checking
-          ...
-          def setup(self, src, ...):
-          ...
-          def cleanup(self, tgt):
-          ...
-          def extractDate(self, fname):
-          # match valid filenames
-          ...
-          def ungrib(self, date, mytag):
-          # generate file for metgrid
-          ...
+class Dataset(object):
+  prefix = ''  # file prefix
+  vtable = 'Vtable'
+  gribname = 'GRIBFILE' # input
+  ungrib_exe = 'ungrib.exe'
+  ungrib_log = 'ungrib.exe.log'
+  ...
+  def __init__(self, ...):
+    # type checking
+    ...
+  def setup(self, src, ...):
+    ...
+  def cleanup(self, tgt):
+    ...
+  def extractDate(self, fname):
+    # match valid filenames
+    ...
+  def ungrib(self, date, mytag):
+    # generate file for metgrid
+    ...
         \end{minted}
       \end{myBox}
     \end{column}
