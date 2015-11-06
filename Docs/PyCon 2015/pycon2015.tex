@@ -22,7 +22,7 @@
 % \usepackage[latin1]{inputenc}
 % \usepackage{times}
 \usepackage{tikz}
-\usetikzlibrary{arrows,shapes}
+\usetikzlibrary{arrows,shapes,fit}
 %\usepackage{lineno}
 %\usepackage[bf,nooneline,format=plain,indention=.3cm]{caption}
 %\setlength{\captionmargin}{10pt}
@@ -176,14 +176,14 @@
    \begin{column}{0.4\textwidth}
      \vspace*{-1cm}\\%\hspace*{-0.5cm}
      \includegraphics[width=\textwidth]{AR41projection}\\
-     {\footnotesize IPCC AR4 (2007) projections for global surface temperature udner different scenarios.} \\ \smallskip
+     {\footnotesize IPCC AR4 (2007) projections for global surface temperature under different scenarios.} \\ \smallskip
    \begin{myBox}[shadow=true]{0.85\textwidth}{}
      \small Global Climate Models are the main tool to predict climate change.
    \end{myBox}
    \end{column}
    \begin{column}{0.7\textwidth}
 %      \vspace*{0.0cm}\\%\hspace*{-2cm}
-     {\footnotesize Climate models compute energy, mass, and momentum fluxes on a relatively coarse grid. \smallskip \\
+     {\footnotesize Climate models compute energy, mass, and momentum fluxes on a relatively coarse computational grid. \smallskip \\
      Schematic of a Global Climate Model (GCM):} \smallskip \\
      \includegraphics[width=\textwidth]{climateSystem2}\\
      {\tiny Center for Multiscale Modeling of Atmospheric Processes, CSU}
@@ -202,13 +202,13 @@
       \vspace{-0.25cm}{\tiny Giorgi (2006)}
     \end{column}
     \begin{column}{0.5\textwidth}
-      \vspace*{-1.25cm}\\%\hspace*{-0.5cm}
+      \vspace*{-1.cm}\\%\hspace*{-0.5cm}
       \onslide<2->{
       \begin{myBox}[shadow=true]{0.85\textwidth}{Regional Impacts}
         \small Regional impacts of Climate Change are modeled with high-resolution regional climate models (RCM).
       \end{myBox}}
       \vspace*{4cm}
-      {\footnotesize Regional models simulate a small area at much higher resolution ($\times 10$).}
+      {\small Regional models simulate a small area at much higher resolution ($\times 10$).}
     \end{column}
   \end{columns}
 \end{frame}
@@ -230,9 +230,9 @@
       \includegraphics[width=\textwidth]{zs_hidef_noWRF} \\ \smallskip
       {\footnotesize Topography of Western Canada.\\
       Left: CESM at $\sim$80\km{}\\
-      Right: WRF (inner domain) at 10\km{} }
+      Right: WRF at 10\km{} }
       \begin{myBox}[shadow=true]{0.96\textwidth}{Regional Model: WRF}
-        \small The Weather Research and Forecast model is the regional model.
+        \small The Weather Research and Forecast model is our regional model.
       \end{myBox}
     \end{column}
   \end{columns}
@@ -258,29 +258,29 @@
 
 \section[\ The Pipeline]{The Pre-processing Pipeline}
 
-\begin{frame}{\hspace*{0.3cm} Running the Regional \\\hspace*{0.3cm} Climate Model}
+\begin{frame}{\hspace*{0.3cm} Running the Regional \\\hspace*{0.3cm} Climate Model (WRF)}
   \begin{columns}
     \begin{column}{0.5\textwidth}
       \begin{itemize}
-        \item<2-> The coupling process between GCM and RCM is ``off-line'' \smallskip
-        \item<2-> A pre-processing system converts GCM output into RCM input files \bigskip
-        \item<3-> An RCM simulation is split into $\sim200$ separate jobs \smallskip
+        \item<2-> The coupling process between GCM and RCM is ``off-line'' (asynchronous) \smallskip
+        \item<2-> A pre-processing system converts GCM output into RCM (wrf-)input files \bigskip
+        \item<3-> A RCM simulation is split into $\sim200$ separate jobs \smallskip
         \item<3-> The RCM runs continuously, each job submitting the next \bigskip
       \end{itemize}
     \end{column}
     \begin{column}{0.5\textwidth}
       \vspace*{-1.5cm}
       \begin{myBox}{0.9\textwidth}{The WRF Tools Package}
-        {\color{teal}Python}
+        \textbf{\color{teal}Python}
         \begin{itemize}
           \item<2> Run pre-processing\\ tool chain (WPS)
-          \item<3> Initialize RCM jobs
+          \item<3> Initialize WRF jobs
           \item<4> Run post-processing \smallskip
         \end{itemize}
         {\color{purple}Shell Script}
         \begin{itemize}
           \item<2> Submit pre-processing
-          \item<3> Run the RCM job,\\ submit next job
+          \item<3> Run the WRF job,\\ submit next job
           \item<4> Archiving to tape \medskip
         \end{itemize}
         WRF Tools enables continuous and autonomous operation
@@ -302,11 +302,11 @@
       \scriptsize
       % CESM
       \uncover<1->{
-        \node[format] at (0,0) (cesm1) {CESM};
+        \node[format] at (0,0) (cesm1) {Global Model (CESM)};
         \draw[->, blue, ultra thick] (cesm1) -- (8,0);
         \draw[->, red, ultra thick] (cesm1) -- (0,-0.5) |- (8,-0.5);
         \path[red] (1,-0.5) edge node {asynchronous/archived output} (7,-0.5);
-        \node[format, align=left] at (7,-2) (ar) {Analysis,\\long-term\\Archive};
+        \node[format, align=left] at (7,-2) (ar) {Long-term\\Archive,\\Post-\\processing,\\Analysis};
         \draw[<-, blue, ultra thick] (ar) -- (7,0);
       }
       % WPS/WRF 1
@@ -351,7 +351,7 @@
 
 % ################################################################################################
 
-\subsection{The WRF Pre-processing System (WPS)}
+\subsection{The WRF Tools Package}
 
 % \begin{frame}{\hspace*{0.8cm} WPS: \textsc{\huge \color{purple} Fortran} \\\hspace*{0.8cm} Legacy Tools}
 \begin{frame}{\hspace*{0.5cm} WPS: A Collection of \textsc{\huge \color{purple} Fortran} Legacy Tools}
@@ -405,7 +405,7 @@
       \medskip
       \onslide<2->{\begin{myBox}[upper=upcol,lower=lowcol,shadow=true]{0.8\textwidth}{Why Python?}
           \begin{itemize}
-            \item Easy parallelization\smallskip
+            \item Easier with complex logic \smallskip
             \item Classes for different datasets/GCMs
           \end{itemize}
         \end{myBox}}
@@ -414,10 +414,10 @@
       \begin{myBox}{\textwidth}{PyWPS Imports}
         \small
         \begin{itemize}
-          \item \texttt{multiprocessing} for parallelization
+          \item \texttt{\color{purple} multiprocessing} for parallelization
           \item \texttt{re} to find input files
           \item \texttt{fileinput}, \texttt{sys} to edit configurations files
-          \item \texttt{subprocess} to launch \textsc{Fortran} tools
+          \item \texttt{\color{purple} subprocess} to launch \textsc{Fortran} tools
           \item \texttt{shutils}, \texttt{os} to handle temporary files
         \end{itemize}
       \end{myBox}
@@ -427,7 +427,7 @@
 
 \subsection{The Tool Chain}
 
-\begin{frame}{\hspace*{.7cm}{\color{teal}PyWPS}: The Program Flow}
+\begin{frame}{\hspace*{.7cm}{\color{teal}PyWPS}: The Program Flow \& Parallelization}
   \begin{figure}
     \hspace*{-1.1cm}
     \tikzstyle{core} = [draw, thin, fill=blue!40, rounded corners, align=left]
@@ -465,6 +465,7 @@
   \end{figure}
   \bigskip
 %   \hspace*{-0.5cm}
+  \onslide<3->{
   {\Large \usebeamercolor[fg]{frametitle} The {\color{purple}WPS Tool Chain}:}
   \begin{figure}
     \tikzstyle{format} = [draw, thin, fill=blue!20, rounded corners, align=center]
@@ -479,7 +480,7 @@
       \node[format] at (10,0) (real) {wrfinput};
       \draw[->,violet,ultra thick] (metgrid) edge node [align=above] {real.exe} (real);
     \end{tikzpicture}
-  \end{figure}
+  \end{figure}}
 \end{frame}
 
 \subsection{The Class Structure}
@@ -533,6 +534,53 @@ class Dataset(object):
   \end{columns}
 \end{frame}
 
+\begin{frame}[fragile=singleslide]{The Class Structure}
+  \begin{columns}
+    \begin{column}{0.5\textwidth}
+      Dataset/GCM specific parameters: \smallskip
+      \begin{itemize}
+        \item Input file types/names\smallskip
+        \item Interpolation tables/grid \smallskip
+        \item Variables / frequency \smallskip
+      \end{itemize}
+        \begin{myBox}{0.9\textwidth}{Multiple Datasets}
+          \begin{itemize}
+            \item \textit{\color{purple} Inheritance} for common procedures \smallskip
+            \item \textit{\color{teal} Polymorphism} for different procedures
+          \end{itemize}
+        \end{myBox}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+      \vspace*{-1.25cm}
+      \begin{myBox}{1.0\textwidth}{}
+        %         \renewcommand{\theFancyVerbLine}{\sffamily\textcolor[rgb]{0.5,0.5,0.5}{\scriptsize\arabic{FancyVerbLine}}}
+        \footnotesize
+        \begin{minted}{python}
+          class Dataset(object):
+          prefix = ''  # file prefix
+          vtable = 'Vtable'
+          gribname = 'GRIBFILE' # input
+          ungrib_exe = 'ungrib.exe'
+          ungrib_log = 'ungrib.exe.log'
+          ...
+          def __init__(self, ...):
+          # type checking
+          ...
+          def setup(self, src, ...):
+          ...
+          def cleanup(self, tgt):
+          ...
+          def extractDate(self, fname):
+          # match valid filenames
+          ...
+          def ungrib(self, date, mytag):
+          # generate file for metgrid
+          ...
+        \end{minted}
+      \end{myBox}
+    \end{column}
+  \end{columns}
+\end{frame}
 
 \section[Conclusion]{Concluding Remarks}
 
@@ -541,7 +589,7 @@ class Dataset(object):
   {\Large \color{teal} \textbf{Python} }\smallskip
   \begin{itemize}
     \item Use Python for flow control (manage legacy tools) \medskip
-    \item Parallelization relatively easy (on node) \medskip
+    \item Parallelization relatively easy (within one node) \medskip
     \item Class structure is versatile and makes maintenance easier \medskip
   \end{itemize}
   \bigskip
@@ -568,11 +616,11 @@ class Dataset(object):
   \medskip
   \begin{itemize}
     \scriptsize
-    \item \textbf{Erler, Andre R.}, W. Richard Peltier, Marc d'Orgeville (submitted),
+    \item \textbf{Erler, Andre R.}, W. Richard Peltier, Marc d'Orgeville (under review),
     Projected Changes in Hydro-Climatic Extremes for Western Canada,
     Journal of Climate. \bigskip
 
-    \item Marc d'Orgeville, W. Richard Peltier, \textbf{Andre R. Erler} (under review),
+    \item Marc d'Orgeville, W. Richard Peltier, \textbf{Andre R. Erler} (accepted),
     Uncertainty in Future Summer Precipitation on the Great Lakes Basin due to Drought in the South-Western US,
     Journal of Geophysical Research. \bigskip
 
@@ -595,11 +643,11 @@ class Dataset(object):
 %  -----------------------------------------------------------------------------------------------
 % *************************************************************************************************
 
-\begin{comment}
+% \begin{comment}
 
 \appendix
 
-\subsection{Experimental Setup}
+\subsection*{Experimental Setup}
 
 \begin{frame}{Regional Climate Projections}
   \begin{columns}[T]
@@ -644,7 +692,7 @@ class Dataset(object):
 \end{frame}
 
 
-\subsection*{Summary}
+\subsection*{Summary of Results}
 
 \begin{frame}{\LARGE Summary of Results}
   \begin{columns}[T]
@@ -678,11 +726,6 @@ class Dataset(object):
   \end{columns} %\small
 \end{frame}
 
-\end{comment}
-
-
-% *************************************************************************************************
-%  -----------------------------------------------------------------------------------------------
-% *************************************************************************************************
+% \end{comment}
 
 \end{document}
