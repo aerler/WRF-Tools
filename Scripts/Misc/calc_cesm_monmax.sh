@@ -165,7 +165,8 @@ do
 		mftime=$(expr $mftime - 2)
 		#echo $mstime $mftime
 		outyearmonth=${case}.${modpp}.${i4d}-${mm}_minmax.nc # name of the yearly-month min/max file
-	          # Check that the file has not been created in a previous run
+		modelmonth=${case}.${monpre}.${i4d}-${mm}.nc # model monthly averaged file
+	    # Check that the file has not been created in a previous run
 		if [ ! -f $outyearmonth ] ; then
 			# extract minmax variables 
 			ncks -O -d time,${mstime},${mftime} -v PRECTMX,TREFHTMN,TREFHTMX,TSMN,TSMX ${case}.${ddpre}.${i4d}-01-02-00000.nc ${case}.${ddpre}.${i4d}-${mm}_dd.nc
@@ -181,16 +182,17 @@ do
 			done
 			mv ${case}.${ddpre}.${i4d}-PRECTMX.nc $outyearmonth
 			# take time and time bounds off of monthly average files then replace/append to minmax file
-			ncks -v time,time_bnds ${case}.${monpre}.${i4d}-${mm}.nc montime.nc
-			ncks -A montime.nc $outyearmonth
-			\rm montime.nc
+			#ncks -v time,time_bnds ${case}.${monpre}.${i4d}-${mm}.nc montime.nc
+			#ncks -A montime.nc $outyearmonth
+			#rm montime.nc
+			ncks -A -v time,time_bnds $modelmonth $outyearmonth
 			# append onto original monthly file
-			ncks -A ${case}.${modpp}.${i4d}-${mm}_minmax.nc ${case}.${monpre}.${i4d}-${mm}.nc
+			ncks -A $outyearmonth $modelmonth
 			# remove temp files
 			for minmaxvar in TREFHTMN TREFHTMX TSMN TSMX; do
-				\rm ${case}.${ddpre}.${i4d}-${minmaxvar}.nc
+				rm ${case}.${ddpre}.${i4d}-${minmaxvar}.nc
 			done
-			\rm ${case}.${ddpre}.${i4d}-${mm}_dd.nc 
+			rm ${case}.${ddpre}.${i4d}-${mm}_dd.nc 
 		else
 			echo "Found file: " $outyearmonth
 		fi
