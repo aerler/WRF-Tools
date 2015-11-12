@@ -1,0 +1,1 @@
+calc_cesm_monmax.sh -z "" -d $RES/CESM/archive/hcbrcp85cn1x1/atm/hist -c hcbrcp85cn1x1 -s 2050 -e 2051
