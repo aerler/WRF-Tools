@@ -17,13 +17,12 @@ for arg in sys.argv[1:]:
   if arg == '-q': lverbose = False
   elif arg == '-n': lnoclobber = True
   elif arg == '-h' or arg == '--help':
-    print ''
-    print "usage: "+sys.argv[0]+" [-q] [-n] [-h] password_on_RDA_webserver begin-date end-date"
-    print ''
-    print "  -q   suppresses the progress message for each file that is downloaded"
-    print "  -n   skips existing files (no-clobber)"
-    print "  -h   print this message"
-    print ''
+    print('''
+usage: "+sys.argv[0]+" [-q] [-n] [-h] password_on_RDA_webserver begin-date end-date\n
+       -q   suppresses the progress message for each file that is downloaded
+       -n   skips existing files (no-clobber)
+       -h   print this message
+       ''')
     sys.exit(1)    
   else: args.append(arg)
 # assign arguments
@@ -34,18 +33,18 @@ if (len(sys.argv) == 3 and sys.argv[1] == "-q"):
   passwd_idx=2
   verbose=False
 #
-cj=cookielib.MozillaCookieJar()
-opener=urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
+cj = cookielib.MozillaCookieJar()
+opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
 #
 # check for existing cookies file and authenticate if necessary
 do_authentication=False
 if (os.path.isfile("auth.rda.ucar.edu")):
-  cj.load("auth.rda.ucar.edu",False,True)
-  for cookie in cj:
-    if (cookie.name == "sess" and cookie.is_expired()):
-      do_authentication=True
-else:
-  do_authentication=True
+  os.remove("auth.rda.ucar.edu") # old cookies cause problems    
+#  cj.load("auth.rda.ucar.edu",False,True)
+#  for cookie in cj:
+#    if (cookie.name == "sess" and cookie.is_expired()):
+#      do_authentication=True
+do_authentication=True
 if (do_authentication):
   login=opener.open("https://rda.ucar.edu/cgi-bin/login","email=aerler@atmosp.physics.utoronto.ca&password="+passwd+"&action=login")
 #
@@ -106,3 +105,6 @@ for date in datelist:
     
 if lverbose:
   sys.stdout.write("done.\n")
+
+# clean up old cookies
+os.remove("auth.rda.ucar.edu")
