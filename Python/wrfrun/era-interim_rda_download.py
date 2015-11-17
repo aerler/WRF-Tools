@@ -18,11 +18,11 @@ for arg in sys.argv[1:]:
   elif arg == '-n': lnoclobber = True
   elif arg == '-h' or arg == '--help':
     print('''
-usage: "+sys.argv[0]+" [-q] [-n] [-h] password_on_RDA_webserver begin-date end-date\n
+usage: {:s} [-q] [-n] [-h] password_on_RDA_webserver begin-date end-date\n
        -q   suppresses the progress message for each file that is downloaded
        -n   skips existing files (no-clobber)
        -h   print this message
-       ''')
+       '''.format(sys.argv[0]))
     sys.exit(1)    
   else: args.append(arg)
 # assign arguments
