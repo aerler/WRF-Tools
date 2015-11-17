@@ -35,16 +35,16 @@ order=-1
 
 [item:pycon2015.tex]
 archive=true
-column=27
+column=0
 encoding=UTF-8
 highlight=LaTeX
-line=142
+line=509
 mode=LaTeX
-open=true
+open=false
 order=0
 
 [view-settings,view=0,item:pycon2015.tex]
-CursorColumn=27
-CursorLine=142
+CursorColumn=0
+CursorLine=509
 JumpList=
-ViMarks=.,577,0,[,577,0,],577,3
+ViMarks=.,487,21,[,487,21,],487,32
