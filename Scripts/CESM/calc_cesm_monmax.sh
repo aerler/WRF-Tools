@@ -173,8 +173,7 @@ do
 			for minvar in TREFHTMN ; do # ,TSMN,TSMX
 				ncra -O -v $minvar -y min ${case}.${ddpre}.${i4d}-${mm}_dd.nc ${case}.${ddpre}.${i4d}-${minvar}.nc
 			done
-			for maxvar in PREC
-This job step was dispatched to run 1 time(s).TMX TREFHTMX ; do #  TSMX
+			for maxvar in PRECTMX TREFHTMX ; do #  TSMX
 				ncra -O -v $maxvar -y max ${case}.${ddpre}.${i4d}-${mm}_dd.nc ${case}.${ddpre}.${i4d}-${maxvar}.nc
 			done
 			# append into file with monthly min-max

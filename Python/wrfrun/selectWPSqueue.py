@@ -36,7 +36,7 @@ if ('gpc' in hostname):
   #submitPrimary = 'qsub %s -v NEXTSTEP=%s -l nodes=1:m128g:ppn=16 -q sandy '%(WPSSCRIPT,NEXTSTEP)
   #submitSecondary = 'qsub %s -v NEXTSTEP=%s -l nodes=1:m128g:ppn=16 -q sandy'%(WPSSCRIPT,NEXTSTEP)
   # use largemem as primary
-  nodes = 1 # number of nodes
+  nodes = 2 # number of nodes
   ppn = 16 # processes per node
   showq = 'showq -w class=largemem' # queue query command
   submitPrimary = 'qsub %s -v NEXTSTEP=%s -l nodes=1:ppn=16 -q largemem '%(WPSSCRIPT,NEXTSTEP)
