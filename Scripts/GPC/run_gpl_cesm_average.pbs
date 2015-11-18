@@ -80,10 +80,10 @@ echo
 ## function to generate GNU Parallel commands for a given run
 function RUNCMDS {
     # translate arguments
-    RUN=$1 # name of the run (folder)
-    MODE=$2 # whether individual run or ensemble
-    FILETYPES=$3 # list of file types 
-    PERIODS=$4 # list of periods
+    local RUN=$1 # name of the run (folder)
+    local MODE=$2 # whether individual run or ensemble
+    local FILETYPES=$3 # list of file types 
+    local PERIODS=$4 # list of periods
     # set up folders
     RUN=${RUN%/} # remove trailing slash, if any
     RUNDIR="${WORKDIR}/${RUN}/" # extract highest order folder name as run name
