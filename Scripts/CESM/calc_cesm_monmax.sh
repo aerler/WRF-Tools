@@ -110,11 +110,11 @@ echo
 
 
 # Machine specific load modules
-if [ $MACH = "tcs" ] ; then
+if [[ $MACH == "tcs" ]] ; then
   module purge
   module load ncl nco cdo/1.6.1
 fi
-if [ $MACH = "gpc" ] ; then
+if [[ $MACH == "gpc" ]] ; then
   module purge
   module load intel/13.1.1 gcc/4.6.1 udunits/2.1.11 gsl/1.13-intel hdf5/187-v18-serial-intel  netcdf/4.1.3_hdf5_serial-intel python/2.7.5  
   module load extras/64_6.4 cdo/1.6.1-intel nco/4.3.2-intel
@@ -173,7 +173,8 @@ do
 			for minvar in TREFHTMN ; do # ,TSMN,TSMX
 				ncra -O -v $minvar -y min ${case}.${ddpre}.${i4d}-${mm}_dd.nc ${case}.${ddpre}.${i4d}-${minvar}.nc
 			done
-			for maxvar in PRECTMX TREFHTMX ; do #  TSMX
+			for maxvar in PREC
+This job step was dispatched to run 1 time(s).TMX TREFHTMX ; do #  TSMX
 				ncra -O -v $maxvar -y max ${case}.${ddpre}.${i4d}-${mm}_dd.nc ${case}.${ddpre}.${i4d}-${maxvar}.nc
 			done
 			# append into file with monthly min-max
