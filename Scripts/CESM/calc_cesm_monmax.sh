@@ -169,15 +169,15 @@ do
 	    # Check that the file has not been created in a previous run
 		if [ ! -f $outyearmonth ] ; then
 			# extract minmax variables 
-			ncks -O -d time,${mstime},${mftime} -v PRECTMX,TREFHTMN,TREFHTMX,TSMN,TSMX ${case}.${ddpre}.${i4d}-01-02-00000.nc ${case}.${ddpre}.${i4d}-${mm}_dd.nc
-			for minvar in TREFHTMN TSMN ; do
+			ncks -O -d time,${mstime},${mftime} -v PRECTMX,TREFHTMN,TREFHTMX ${case}.${ddpre}.${i4d}-01-02-00000.nc ${case}.${ddpre}.${i4d}-${mm}_dd.nc # TSMN,TSMX not present in all
+			for minvar in TREFHTMN ; do # ,TSMN,TSMX
 				ncra -O -v $minvar -y min ${case}.${ddpre}.${i4d}-${mm}_dd.nc ${case}.${ddpre}.${i4d}-${minvar}.nc
 			done
-			for maxvar in PRECTMX TREFHTMX TSMX; do
+			for maxvar in PRECTMX TREFHTMX ; do #  TSMX
 				ncra -O -v $maxvar -y max ${case}.${ddpre}.${i4d}-${mm}_dd.nc ${case}.${ddpre}.${i4d}-${maxvar}.nc
 			done
 			# append into file with monthly min-max
-			for minmaxvar in TREFHTMN TREFHTMX TSMN TSMX; do
+			for minmaxvar in TREFHTMN TREFHTMX ; do # TSMN TSMX
 				ncks -A ${case}.${ddpre}.${i4d}-${minmaxvar}.nc ${case}.${ddpre}.${i4d}-PRECTMX.nc
 			done
 			mv ${case}.${ddpre}.${i4d}-PRECTMX.nc $outyearmonth
@@ -189,7 +189,7 @@ do
 			# append onto original monthly file
 			ncks -A $outyearmonth $modelmonth
 			# remove temp files
-			for minmaxvar in TREFHTMN TREFHTMX TSMN TSMX; do
+			for minmaxvar in TREFHTMN TREFHTMX ; do # TSMN TSMX
 				rm ${case}.${ddpre}.${i4d}-${minmaxvar}.nc
 			done
 			rm ${case}.${ddpre}.${i4d}-${mm}_dd.nc 
