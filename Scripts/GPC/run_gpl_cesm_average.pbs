@@ -41,6 +41,8 @@ THREADS=${THREADS:-4} # GNU Parallel threads
 #SRCR='/scratch/p/peltier/marcdo/archive/' # Marc's folder on scratch
 export CCA=${CAA:-"/reserved1/p/peltier/aerler//CESM/archive/"} # my CESM archive folder as source; used in several scripts
 
+export PYTHON_EGG_CACHE="${WORKDIR}" # not sure why this is necessary
+
 # just for tests
 TEST=${TEST:-'FALSE'} # CVDP run script expects FALSE; use TEST=DRYRUN to only generate command file
 #RUNS='seaice-3r-hf/'
