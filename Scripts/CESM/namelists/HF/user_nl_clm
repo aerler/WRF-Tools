@@ -1,0 +1,5 @@
+&clm_inparm
+ hist_nhtfrq      =  0,-6
+ hist_mfilt       =  12,1
+ hist_fincl2      = 'TSOI:I','TG:I','H2OSOI:I','H2OSNO:I','TLAKE:I'
+/

@@ -1,0 +1,10 @@
+&cam_inparm
+ fincl1		= 'cb_ozone_c', 'cb_sulf_c', 'MSKtem', 'VTH2d', 'UV2d', 'UW2d', 'U2d', 'V2d', 'TH2d', 'W2d', 'UTGWORO', 'TREFHTMX:X','TREFHTMN:M', 'TSMX:X','TSMN:M', 'WGUSTD:A','UBOT:A','VBOT:A','PRECT:A','PRECTMX:X','PRECC:A','PS:A'
+ fincl2 	= 'T:I','U:I','V:I','Z3:I','Q:I','RELHUM:I','PS:I','PSL:I','TS:I','PHIS:I','ICEFRAC:I','LANDFRAC:I','TREFHT:I','QREFHT:I'
+ fincl3   = 'TREFHT:A','TREFHTMX:X','TREFHTMN:M','QREFHT:A','TS:A','TSMX:X','TSMN:M','U10:A','WGUSTD:A','UBOT:A','VBOT:A','PRECT:A','PRECTMX:X','PRECC:A','PS:A'
+ fincl4   = 'TREFHT:X','QREFHT:X','TS:X','U10:X','WGUSTD:X','UBOT:X','VBOT:X','PRECT:X','PRECC:X','PRECL:X'
+ fincl5   = 'TREFHT:M','QREFHT:M','TS:M','UBOT:M','VBOT:M'
+ mfilt    = 12,1,365,365,365
+ nhtfrq   = 0,-6,-24,-24,-24
+ avgflag_pertape = 'A','I','A','M','X'
+/
