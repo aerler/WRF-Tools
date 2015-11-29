@@ -7,7 +7,7 @@ module list
 echo
 
 ## define environment variables (used outside this script!)
-export HFOUT='FALSE' # whether or not to write with HF output
+export HFOUT='HFOUT' # whether or not to write with HF output
 # case dependent variables
 export REFCASE='abrcp85cn1x1'
 export CASE="h${REFCASE}d" # standard naming scheme for ensemble members
@@ -35,9 +35,10 @@ echo Copying additional configuration files...
 cp ../setup_$CASE-rerun.sh .
 cp ../changeXML.sh .
 # copy namelists for High-frequency (HF) output
-if [[ "$HFOUT" == 'HFOUT' ]]; then
-    cp ${NML}/HF/user_nl_* .
-# N.B.: also need to change CICE namelist!
+if [[ "$HFOUT" == 'HFOUT' ]]
+  then cp ${NML}/HF/user_nl_* . 
+  # N.B.: also need to change CICE namelist!
+  else cp ${NML}/Default/user_nl_* .
 fi # if HFOUT
 # now change CICE namelist (special case for sea-ice experiment) 
 if [[ -f ${NML}/cice/cice.buildnml.csh.$CASE ]]
@@ -84,14 +85,18 @@ echo
 ls "$RUNDIR"
 echo
 # create a preambel for the build script
-echo '#! /bin/csh -f
+echo '#! /bin/bash
 
 # preambel: we need to purge modules and remove GNU tools from the PATH
 module purge
 export PATH=${PATH#/usr/linux/bin/:}
-' > tmp1
-mv $CASE.$MACH.build tmp2 && cat tmp1 tmp2 > $CASE.$MACH.build && rm tmp1 tmp2
-echo "Build model with ./$CASE.$MACH.build"
+' > $CASE.$MACH.bash_build
+echo "# launch actual build script in C shell
+csh -f $CASE.$MACH.build
+" >> $CASE.$MACH.bash_build
+chmod u+x $CASE.$MACH.bash_build
+echo "Navigate to simulation folder: cd $CASE/"
+echo "Build model with ./$CASE.$MACH.bash_build ($CASE.$MACH.bash_build requires clean environment)"
 sed -i "/llsubmit/ s/llsubmit ${CASE}.${MACH}.run/ssh tcs02 \"cd \${PWD}; export CCSMSRC=\${CCSMSRC}; llsubmit ${CASE}.${MACH}.run\"/g" $CASE.$MACH.submit
 echo "Run (from any node): ./$CASE.$MACH.submit"
 echo
