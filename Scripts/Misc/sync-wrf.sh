@@ -15,7 +15,7 @@ if [[ "${HISPD}" == 'HISPD' ]]
     # high-speed transfer: special identity/ssh key, batch mode, and connection sharing
     SSH="-o BatchMode=yes -o ControlPath=${CESMDATA}/hispd-master-%l-%r@%h:%p -o ControlMaster=auto -o ControlPersist=1"
     HOST='datamover' # defined in .ssh/config
-    CCA='/reserved1/p/peltier/aerler/Downscaling /scratch/p/peltier/aerler/Downscaling'
+    CCA='/reserved1/p/peltier/aerler/WesternCanada /reserved1/p/peltier/aerler/GreatLakes'
     INVERT='FALSE' # source has name first then folder type (like on SciNet)
 elif [[ "${HOST}" == 'komputer' ]]
   then
@@ -28,7 +28,7 @@ else
     # ssh settings for unattended nightly update: special identity/ssh key, batch mode, and connection sharing
     SSH="-i /home/me/.ssh/rsync -o BatchMode=yes -o ControlPath=${CESMDATA}/master-%l-%r@%h:%p -o ControlMaster=auto -o ControlPersist=1"
     HOST='aerler@login.scinet.utoronto.ca'
-    CCA='/reserved1/p/peltier/aerler/Downscaling /scratch/p/peltier/aerler/Downscaling'
+    CCA='/reserved1/p/peltier/aerler/WesternCanada /reserved1/p/peltier/aerler/GreatLakes'
     INVERT='FALSE' # source has name first then folder type (like on SciNet)
 fi # if high-speed
 
