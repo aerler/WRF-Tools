@@ -9,7 +9,7 @@ CVDP=${CVDP:-"${ENS} grand-ensemble"}
 if [[ "${CVDP}" == 'NONE' ]]; then CVDP=''; fi
 CESMDATA=${CESMDATA:-/data/CESM/} # can be supplied by caller
 # data selection
-FILETYPES=${FILETYPES:-'cesm[ali][tnc][mde]_monthly.nc'}
+FILETYPES=${FILETYPES:-'cesm[ali][tnc][mde]_*.nc'}
 if [[ "${FILETYPES}" == 'NONE' ]]; then FILETYPES=''; fi
 DIAGS=${DIAGS:-'diag cvdp'}
 if [[ "${DIAGS}" == 'NONE' ]]; then DIAGS=''; fi
