@@ -52,6 +52,9 @@ done # while getopts
 if [ $( ps -A | grep -c ${0##*/} ) -gt 2 ]; then
   echo
   echo "An instance of '${0##*/}' already appears to be running --- aborting!"
+  echo
+  echo "Running Instances:"
+  echo $( ps -A | grep ${0##*/} )
   echo 
   exit 1
 fi # if already running, exit
