@@ -76,6 +76,10 @@ if os.environ.has_key('RAMDISK'): Ram = os.environ['RAMDISK']
 if os.environ.has_key('PYWPS_KEEP_DATA'):
   ldata = bool(int(os.environ['PYWPS_KEEP_DATA'])) # expects 0 or 1
 else: ldata = True
+# discover data based on available files
+if os.environ.has_key('PYWPS_DISCOVER'):
+  ldiscover = bool(int(os.environ['PYWPS_DISCOVER'])) # expects 0 or 1
+else: ldiscover = False
 # save metgrid data
 if os.environ.has_key('PYWPS_MET_DATA') and os.environ['PYWPS_MET_DATA']:
   Disk = os.environ['PYWPS_MET_DATA']
@@ -87,7 +91,8 @@ if os.environ.has_key('PYWPS_THREADS'): NP = int(os.environ['PYWPS_THREADS'])
 # dataset specific stuff
 if os.environ.has_key('PYWPS_DATA_TYPE'): 
   dataset = os.environ['PYWPS_DATA_TYPE']
-else: dataset = None
+else: 
+  raise ValueError, 'Unknown dataset type ($PYWPS_DATA_TYPE not defined)'
 
 
 ## dataset manager parent class
@@ -106,7 +111,8 @@ class Dataset():
   grbstrs = None # list of source files; filename including date string; has to be defined in child
   dateform = '\d\d\d\d\d\d\d\d\d\d' # YYYYMMDDHHMM (for matching regex)
   datestr = '{:04d}{:02d}{:02d}{:02d}' # year, month, day, hour (for printing)
-
+  interval = 6 # data interval in hours (6-hourly data is most common)
+  
   ## these functions are dataset specific and may have to be implemented in the child class
   def __init__(self, folder=None):
     # type checking
@@ -159,7 +165,7 @@ class Dataset():
     os.chdir(cwd)
   
   def extractDate(self, filename):
-    # method to generate date tuple from date string in filename
+    ''' method to generate date tuple from date string in filename '''
     # match valid filenames
     match = self.mainrgx.match(filename) # return match object
     if match is None:
@@ -173,6 +179,26 @@ class Dataset():
       day = int(datestr[6:8])
       hour = int(datestr[8:10])
       return (year, month, day, hour)
+
+  def constructDateList(self, start, end):    
+    ''' construct a list of dates where data should be available '''
+    import datetime as dt
+#     # Pandas implementation
+#     import pandas as pd
+#     dates = pd.date_range(dt.datetime(*start), 
+#                           dt.datetime(*end), 
+#                           freq='{:d}H'.format(dataset.interval)) # generate datelist
+#     # convert to the year-month-day-hour tuple
+#     dates = [(date.year, date.month, date.day, date.hour) for date in dates]
+    # datetime implementation
+    curd = dt.datetime(*start); endd = dt.datetime(*end) # datetime objects
+    delta = dt.timedelta(hours=self.interval) # usually an integer in hours...
+    dates = [] # create date list
+    while curd <= endd:
+      dates.append((curd.year, curd.month, curd.day, curd.hour)) # format: year, month, days, hours
+      curd += delta # increment date by interval
+    # return properly formated list
+    return dates
 
   def checkSubDir(self, *args):
     # method to determine whether data is stored in subfolders and can be processed recursively
@@ -225,6 +251,7 @@ class NARR(Dataset):
   grbstrs = ['merged_AWIP32.{:s}.3D','merged_AWIP32.{:s}.RS.flx','merged_AWIP32.{:s}.RS.sfc']
   dateform = '\d\d\d\d\d\d\d\d\d\d' # YYYYMMDDHH (for matching regex)
   datestr = '{:04d}{:02d}{:02d}{:02d}' # year, month, day, hour (for printing)
+  interval = 3 # NARR has 3-hourly data
   # all other variables have default values
 
 ## CFSR
@@ -440,6 +467,9 @@ class CESM(Dataset):
       month = int(month); day = int(day)
       hour = int(second)/3600 
       return (year, month, day, hour)
+    
+  def constructDateList(self):
+    raise NotImplementedError
   
   def setup(self, src, dst, lsymlink=False):          
     # method to copy dataset specific files and folders working directory
@@ -731,10 +761,13 @@ if __name__ == '__main__':
     # create dataset instance
     if dataset  == 'CESM': 
       dataset = CESM(folder=Root)
+      ldiscover = True # temporary, until the CESM part is implemented
     elif dataset  == 'CFSR': 
       dataset = CFSR(folder=Root)
     elif dataset  == 'ERA-I': 
       dataset = ERAI(folder=Root)    
+    elif dataset  == 'NARR': 
+      dataset = NARR(folder=Root)    
     else:
       raise ValueError, 'Unknown dataset type: {}'.format(dataset)
       #dataset = CESM(folder=Root) # for backwards compatibility
@@ -745,22 +778,27 @@ if __name__ == '__main__':
     
     ## multiprocessing
     
-    # search for files and check dates for validity
-    listoffilelists = divideList(os.listdir(DataDir), NP)
-    # divide file processing among processes
-    procs = []; queues = []
-    for n in xrange(NP):
-      pid = n + 1 # start from 1, not 0!
-      q = multiprocessing.Queue()
-      queues.append(q)
-      p = multiprocessing.Process(name=pname.format(pid), target=processFiles, args=(listoffilelists[n], DataDir, q))
-      procs.append(p)
-      p.start() 
-    # terminate sub-processes and collect results    
-    dates = [] # new date list with valid dates only
-    for n in xrange(NP):
-      dates += queues[n].get()
-      procs[n].join()
+    # get date list
+    if ldiscover: 
+      # search for files and check dates for validity
+      listoffilelists = divideList(os.listdir(DataDir), NP)
+      # divide file processing among processes
+      procs = []; queues = []
+      for n in xrange(NP):
+        pid = n + 1 # start from 1, not 0!
+        q = multiprocessing.Queue()
+        queues.append(q)
+        p = multiprocessing.Process(name=pname.format(pid), target=processFiles, args=(listoffilelists[n], DataDir, q))
+        procs.append(p)
+        p.start() 
+      # terminate sub-processes and collect results    
+      dates = [] # new date list with valid dates only
+      for n in xrange(NP):
+        dates += queues[n].get()
+        procs[n].join()
+    else:
+      # construct date list based on dataset
+      dates = dataset.constructDateList(starts[0],ends[0])
       
     # report suspicious behaviour
     if len(dates) == 0: raise IOError, "No matching input files found for regex '{:s}' ".format(dataset.mainfiles)
