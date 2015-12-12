@@ -35,8 +35,8 @@ JOBNAME=${PBS_JOBNAME:-'test'}
 WORKDIR=${PBS_O_WORKDIR:-"${PWD}"}
 CMDFILE=${CMDFILE:-"${WORKDIR}/cmdfile.${JOBNAME}"}
 LOGFILE=${LOGFILE:-"${WORKDIR}/logfile.${JOBNAME}"}
-DR=${DR:-'/reserved1/p/peltier/aerler/Downscaling'}
-DS=${DS:-'/scratch/p/peltier/aerler/Downscaling'}
+WC=${WC:-'/reserved1/p/peltier/aerler/WesternCanada/'}
+GL=${GL:-'/reserved1/p/peltier/aerler/GreatLakes/'}
 NCOADD=${NCOADD:-'~/Scripts/addVariable.sh'} # NCO script to add variables (usually not in run folder)
 
 # options
@@ -60,9 +60,9 @@ export PYAVG_DRYDAY=${PYAVG_DRYDAY:-''} # dry-day correction factor (empty strin
 
 # user settings
 #PERIOD='1979-1981' # extension to command and output files
-#DATASRC=${DATASRC:-"$DR/max-*/ $DR/new-*/"}
-#DATASRC=${DATASRC:-"$DR/*-*/ $DS/*-*/"}
-DATASRC=${DATASRC:-"$DR/*-*/"}
+#DATASRC=${DATASRC:-"$WC/max-*/ $WC/new-*/"}
+#DATASRC=${DATASRC:-"$WC/*-*/ $GL/*-*/"}
+DATASRC=${DATASRC:-"$GL/*-*/"}
 
 # more settings
 if [[ -n "${PERIOD}" ]]
