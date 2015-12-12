@@ -468,8 +468,20 @@ class CESM(Dataset):
       hour = int(second)/3600 
       return (year, month, day, hour)
     
-  def constructDateList(self):
-    raise NotImplementedError
+  def constructDateList(self, start, end):
+    import datetime as dt
+    curd = dt.datetime(*start); endd = dt.datetime(*end) # datetime objects
+    delta = dt.timedelta(hours=self.interval) # usually an integer in hours...
+    dates = [] # create date list
+    while curd <= endd:
+        if curd.month != 2:
+            dates.append((curd.year, curd.month, curd.day, curd.hour*3600)) # format: year, month, days, hours
+        else:
+            if curd.day != 29:
+                dates.append((curd.year, curd.month, curd.day, curd.hour*3600)) # format: year, month, days, hours
+        curd += delta # increment date by interval
+    # return properly formated list
+    return dates
   
   def setup(self, src, dst, lsymlink=False):          
     # method to copy dataset specific files and folders working directory
