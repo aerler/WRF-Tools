@@ -19,6 +19,7 @@ import multiprocessing # parallelization
 import string # to iterate over alphabet...
 # my modules
 from namelist import time
+import datetime as dt
 
 ##  Default Settings (may be overwritten by in meta/namelist.py)
 Alphabet = string.ascii_uppercase
@@ -469,16 +470,12 @@ class CESM(Dataset):
       return (year, month, day, hour)
     
   def constructDateList(self, start, end):
-    import datetime as dt
     curd = dt.datetime(*start); endd = dt.datetime(*end) # datetime objects
     delta = dt.timedelta(hours=self.interval) # usually an integer in hours...
     dates = [] # create date list
     while curd <= endd:
-        if curd.month != 2:
-            dates.append((curd.year, curd.month, curd.day, curd.hour*3600)) # format: year, month, days, hours
-        else:
-            if curd.day != 29:
-                dates.append((curd.year, curd.month, curd.day, curd.hour*3600)) # format: year, month, days, hours
+        if not (curd.month == 2 and curd.day == 29):
+            dates.append((curd.year, curd.month, curd.day, curd.hour*3600))
         curd += delta # increment date by interval
     # return properly formated list
     return dates
