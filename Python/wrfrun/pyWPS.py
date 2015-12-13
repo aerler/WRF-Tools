@@ -475,7 +475,7 @@ class CESM(Dataset):
     dates = [] # create date list
     while curd <= endd:
         if not (curd.month == 2 and curd.day == 29):
-            dates.append((curd.year, curd.month, curd.day, curd.hour*3600))
+            dates.append((curd.year, curd.month, curd.day, curd.hour))
         curd += delta # increment date by interval
     # return properly formated list
     return dates
