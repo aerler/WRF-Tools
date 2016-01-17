@@ -192,13 +192,13 @@ do
 			#rm montime.nc
 			ncks -A -v time,time_bnds $modelmonth $outyearmonth
 			# rename regular precipt variables (avoid name conflict)
-      ncrename -v PRECT,MaxPRECT_1d -v PRECC,MaxPRECC_1d $outyearmonth
       ncatted -O -a long_name,PRECT,a,c,", monthly maximum of daily average\n" \
                  -a long_name,PRECC,a,c,", monthly maximum of daily average\n" $outyearmonth
+      ncrename -v PRECT,MaxPRECT_1d -v PRECC,MaxPRECC_1d $outyearmonth
       # append onto original monthly file
 			ncks -A $outyearmonth $modelmonth
 			# remove temp files
-			for minmaxvar in TREFHTMN TREFHTMX PRECT PRECC PRECL PRECSL ; do # TSMN TSMX
+			for minmaxvar in TREFHTMN TREFHTMX PRECT PRECC ; do # TSMN TSMX
 				rm ${case}.${ddpre}.${i4d}-${minmaxvar}.nc
 			done
 			rm ${case}.${ddpre}.${i4d}-${mm}_dd.nc 
