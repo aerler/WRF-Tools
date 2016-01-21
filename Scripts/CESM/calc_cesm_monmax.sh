@@ -168,28 +168,37 @@ do
 		modelmonth=${case}.${monpre}.${i4d}-${mm}.nc # model monthly averaged file
 	    # Check that the file has not been created in a previous run
 		if [ ! -f $outyearmonth ] ; then
+		  ## extract extremes for current year-month and compute min/max as appropriate (store in temporary file)
 			# extract minmax variables 
-			ncks -O -d time,${mstime},${mftime} -v PRECTMX,TREFHTMN,TREFHTMX ${case}.${ddpre}.${i4d}-01-02-00000.nc ${case}.${ddpre}.${i4d}-${mm}_dd.nc # TSMN,TSMX not present in all
+  		ncks -O -d time,${mstime},${mftime} -v PRECTMX,TREFHTMN,TREFHTMX,PRECT,PRECC \
+          ${case}.${ddpre}.${i4d}-01-02-00000.nc ${case}.${ddpre}.${i4d}-${mm}_dd.nc # TSMN,TSMX not present in all
 			for minvar in TREFHTMN ; do # ,TSMN,TSMX
 				ncra -O -v $minvar -y min ${case}.${ddpre}.${i4d}-${mm}_dd.nc ${case}.${ddpre}.${i4d}-${minvar}.nc
 			done
-			for maxvar in PRECTMX TREFHTMX ; do #  TSMX
+			for maxvar in PRECTMX TREFHTMX PRECT PRECC ; do #  TSMX
 				ncra -O -v $maxvar -y max ${case}.${ddpre}.${i4d}-${mm}_dd.nc ${case}.${ddpre}.${i4d}-${maxvar}.nc
 			done
-			# append into file with monthly min-max
-			for minmaxvar in TREFHTMN TREFHTMX ; do # TSMN TSMX
+			## combine all temporary extreme files into one file per year-month (add to PRECTMX file)
+			# append all but PRECTMx to file with monthly min-max
+			for minmaxvar in TREFHTMN TREFHTMX PRECT PRECC ; do # TSMN TSMX
 				ncks -A ${case}.${ddpre}.${i4d}-${minmaxvar}.nc ${case}.${ddpre}.${i4d}-PRECTMX.nc
 			done
+			# use PRECTMX-file as xtrm file for this month
 			mv ${case}.${ddpre}.${i4d}-PRECTMX.nc $outyearmonth
+      ## add extremes to regular monthly (year-month) output file (monthly averages, "h0")
 			# take time and time bounds off of monthly average files then replace/append to minmax file
 			#ncks -v time,time_bnds ${case}.${monpre}.${i4d}-${mm}.nc montime.nc
 			#ncks -A montime.nc $outyearmonth
 			#rm montime.nc
 			ncks -A -v time,time_bnds $modelmonth $outyearmonth
-			# append onto original monthly file
+			# rename regular precipt variables (avoid name conflict)
+      ncatted -O -a long_name,PRECT,a,c,", monthly maximum of daily average\n" \
+                 -a long_name,PRECC,a,c,", monthly maximum of daily average\n" $outyearmonth
+      ncrename -v PRECT,MaxPRECT_1d -v PRECC,MaxPRECC_1d $outyearmonth
+      # append onto original monthly file
 			ncks -A $outyearmonth $modelmonth
 			# remove temp files
-			for minmaxvar in TREFHTMN TREFHTMX ; do # TSMN TSMX
+			for minmaxvar in TREFHTMN TREFHTMX PRECT PRECC ; do # TSMN TSMX
 				rm ${case}.${ddpre}.${i4d}-${minmaxvar}.nc
 			done
 			rm ${case}.${ddpre}.${i4d}-${mm}_dd.nc 

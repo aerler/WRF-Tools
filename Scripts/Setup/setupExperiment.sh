@@ -101,7 +101,7 @@ METDATA='' # folder to collect output data from metgrid
 # GHG emission scenario
 GHG='RCP8.5' # CAMtr_volume_mixing_ratio.* file to be used
 # time period and cycling interval
-CYCLING="monthly.1979-2009" # stepfile to be used (leave empty if not cycling)
+CYCLING="1979:2009:1M" # stepfile to be used (leave empty if not cycling)
 AUTORST='RESTART' # whether or not to restart job after a numerical instability (used by crashHandler.sh)
 DELT='DEFAULT' # time decrement for auto restart (DEFAULT: select according to timestep) 
 # boundary data
@@ -110,6 +110,7 @@ DATATYPE='CESM' # boundary forcing type
 ## run configuration
 WRFROOT="${MODEL_ROOT}/WRFV3.4/"
 WRFTOOLS="${MODEL_ROOT}/WRF Tools/"
+GENSTEPS="${WRFTOOLS}/Python/wrfrun/generateStepfile.py" # Python script to generate stepfiles
 # I/O, archiving, and averaging 
 IO='fineIO' # this is used for namelist construction and archiving
 ARSCRIPT='DEFAULT' # this is a dummy name...
@@ -186,6 +187,7 @@ if [[ -z "$WRFBLD" ]]; then
   # GCM or reanalysis with current I/O version
   if [[ "${DATATYPE}" == 'CESM' ]] || [[ "${DATATYPE}" == 'CCSM' ]]; then
     WRFBLD="Clim-${IO}" # variable GHG scenarios and no leap-years
+    LLEAP='--noleap' # option for Python script to omit leap days
   elif [[ "${DATATYPE}" == 'ERA-I' ]] || [[ "${DATATYPE}" == 'CFSR' ]] || [[ "${DATATYPE}" == 'NARR' ]]; then
     WRFBLD="ReA-${IO}" # variable GHG scenarios with leap-years
   else
@@ -407,10 +409,22 @@ echo "  system: ${WRFSYS}, queue: ${WRFQ}"
 # user scripts (go into root folder)
 cd "${RUNDIR}"
 if [[ -n "${CYCLING}" ]]; then
+  if [[ -f "${WRFTOOLS}/misc/stepfiles/stepfile.${CYCLING}" ]]; then
+    # use existing step file in archive (works without pandas)
     cp "${WRFTOOLS}/misc/stepfiles/stepfile.${CYCLING}" 'stepfile'
-    # concatenate start_cycle script
-    cp "${WRFTOOLS}/Scripts/Common/startCycle.sh" .
-    RENAME "startCycle.sh"
+  else
+    # interprete step definition string: begin:end:int
+    BEGIN=${CYCLING%:*:*}
+    INT=${CYCLING#*:*:}
+    END=${CYCLING%:*}; END=${END#*:}
+    # generate stepfile on-the-fly
+    echo "creating new stepfile: begin=${BEGIN}, end=${END}, interval=${INT}"    
+    python "${GENSTEPS}" ${LLEAP} --interval="${INT}" "${BEGIN}" "${END}" 
+    # LLEAP is defined above; don't quote option, because it may no be defined
+  fi
+  # concatenate start_cycle script
+  cp "${WRFTOOLS}/Scripts/Common/startCycle.sh" .
+  RENAME "startCycle.sh"
 fi # if cycling
 #if [[ "${WRFQ}" == "ll" ]]; then # because LL does not support dependencies
 #    cp "${WRFTOOLS}/Scripts/${WRFSYS}/sleepCycle.sh" .
