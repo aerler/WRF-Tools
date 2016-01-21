@@ -632,4 +632,25 @@ if [ $CNT -gt 0 ]; then
 fi
 echo
 
+# this is the part that specifies user email settings.
+if [[ "${USER}" == "huoyilin" ]]; then
+  for fl in *.pbs; do
+      mv $fl $fl.old
+      sed 's/aerler@atmosp\./yhuo@/g' $fl.old > $fl
+      rm -f $fl.old
+      done
+    echo "Current User is" ${USER} # username check
+elif [[ "${USER}" == "fengyi" ]]; then
+    for fl in *.pbs; do
+      mv $fl $fl.old
+      sed 's/aerler@atmosp\.physics/fengyi\.xie@mail/g' $fl.old > $fl
+      rm -f $fl.old
+      done
+    echo "Current User is" ${USER} # username check
+elif [[ "${USER}" == "aerler" ]]; then
+    echo "Current User is" ${USER} # This is the default user
+else
+    echo "  >>>  WARNING: user email address for the job scripts needs to be set  <<<  "
+fi
+
 exit ${CNT} # return number of broken links as error code
