@@ -1,10 +1,4 @@
 &geogrid
- parent_id         =   1,   1,   2,   2,   2,
- parent_grid_ratio =   1,   3,  3,   5, 5,
- i_parent_start    =   1,  155,  92, 80, 36,
- j_parent_start    =   1,  120,  19,  170, 200,
- e_we              =  260, 181,  211, 201, 81,
- e_sn              =  260,  181,  181, 301, 81,
  geog_data_res = 'usgs_lakes+10m', 'usgs_lakes+30s', 'usgs_lakes+30s', 'usgs_lakes+30s', 'usgs_lakes+30s',
  dx = 30000,
  dy = 30000,
