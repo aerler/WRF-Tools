@@ -28,12 +28,17 @@ module load intel/14.0.1 gcc/4.9.0 hdf5/1811-v18-serial-intel netcdf/4.2.1.1_ser
 module list
 echo
 
-# general settings
+## general settings
 INIDIR="${PBS_O_WORKDIR}"
 SCRIPTDIR="${INIDIR}/scripts/" # default location of averaging script
 AVGSCRIPT='run_wrf_avg.pbs' # name of this script...
 PYAVG='wrfout_average.py' # name of Python averaging script
 DOMAINS='1234' # string of single-digit domain indices
+## shuffle some variables
+ADDVARIABLE="addVariable.sh" # an NCKS script
+# default (run AddVar or not) based on $PERIOD
+if [[ -n "${PERIOD}" ]]; then ADDVAR=${ADDVAR:-"FALSE"}
+else ADDVAR=${ADDVAR:-"ADDVAR"}; fi
 
 # return to original working directory
 cd "${INIDIR}"
@@ -49,21 +54,25 @@ export PYAVG_RECOVER=${PYAVG_RECOVER:-'FALSE'}
 export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
 
 
-# launch script
+# shuffle variables
+echo
+if [[ "${ADDVAR}" == 'ADDVAR' ]]; then
+    # make sure, certain variables are there...
+    for VAR in 'ACSNOW' 'SNOWNC' 'SR' 'T2MEAN' 'TSLB' 'PBLH'; do
+      echo
+      echo "Moving Variable '${VAR}' (in wrfout folder)"
+        "${SCRIPTDIR}/${ADDVARIABLE}" "${VAR}" # launch NCKS script for all variables
+      echo
+    done
+fi
+echo
+
+# launch averaging script (Python)
 echo
 if [[ -n "${PERIOD}" ]]; then
     time -p python "${SCRIPTDIR}/${PYAVG}" "${PERIOD}"
     ERR=$? # capture exit code      
 else
-
-    # make sure, certain variables are there...
-    ~/Scripts/addVariable.sh 'ACSNOW'
-    ~/Scripts/addVariable.sh 'SNOWNC'
-    ~/Scripts/addVariable.sh 'SR'
-    ~/Scripts/addVariable.sh 'T2MEAN'
-    ~/Scripts/addVariable.sh 'TSLB' # this variable will be removed!
-    ~/Scripts/addVariable.sh 'PBLH'
-    
     # launch actual averaging script
     time -p python "${SCRIPTDIR}/${PYAVG}"
     ERR=$? # capture exit code
