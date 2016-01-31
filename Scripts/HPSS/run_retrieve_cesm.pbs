@@ -16,78 +16,77 @@
 ## submit to queue (NB: this has to be the last PBS line!)
 #PBS -q archive
  
+echo
 echo "retrieving CESM output from HPSS"
- 
+echo
+
 trap "echo 'Job script not completed';exit 129" TERM INT
 # Note that your initial directory in HPSS will be $ARCHIVE
  
-
-#list="htbrcp85cn1x1"
-#years="2045-2059"
-#list="htbrcp85cn1x1b"
-#years="2095-2104"
-#list="zbrcp85cn1x1"
-#years="2006-2019"
-#list="hcbrcp85cn1x1"
-#years="2045-2049"
-#list="seaice-5r"
-#years="2060-2085"
-#list="seaice-5r-hf"
-#years="2055-2064"
-#years="2055-2060"
-list='habrcp85cn1x1d hbbrcp85cn1x1d hcbrcp85cn1x1d'
-years='2085-2100'
-#direc="atm  cpl  dart	glc  ice  lnd  ocn  rest"
-direc="atm  ice  lnd"
-#direc="rest ocn"
-
+## list of experiments, valid periods, and file types
+#EXPS="htbrcp85cn1x1 htbrcp85cn1x1b zbrcp85cn1x1 hcbrcp85cn1x1 seaice-5r seaice-5r-hf"
+EXPS=${EXPS:-'habrcp85cn1x1d hbbrcp85cn1x1d hcbrcp85cn1x1d'}
+echo "Experiments: $EXPS"
+#PERIODS: 2006-2019 2045-2059 2045-2049 2055-2060 2055-2064 2060-2085 2095-2104
+PERIOD=${PERIOD:-'2085-2100'}
+echo "Period: $PERIOD"
+#FILES="atm  cpl  dart	glc  ice  lnd  ocn  rest"
+FILES=${FILES:-"atm  ice  lnd"}
+echo "Filetypes: $FILES"
+echo
 # regex definingwhat should be retrieved
 REGEX=${REGEX:-"*/*/hist/????/*.nc"}
+echo "Search Term: $REGEX"
+echo
 # folder pattern: $run_name/$filetype/hist/$year/file.nc
 
-#CCA='/reserved1/p/peltier/aerler/CESM/archive/'
-CCA="${PBS_O_WORKDIR}" # use current directory as archive root
-echo DST $CCA
-cd $CCA
+#WDIR='/reserved1/p/peltier/aerler/CESM/archive/'
+WDIR=${WDIR:-"${PBS_O_WORKDIR}"} # use current directory as archive root
+echo "Destination: $WDIR"
+cd $WDIR
+echo
 
-for run in $list
-do
-
-echo $run
-
-for dd in $direc
-do
-
-SRC=$ARCHIVE/CESM/${run}/${dd}_${years}.tar
-echo SRC $DEST
-
-hsi ls $SRC
-status=$?
-
-if [ $status != 0 ]; then
-  echo "HSI returned non-zero code. $SRC does not exist. Nothing to do."
-   exit 999    
-else
-   echo 'TRANSFER WILL BE DONE'
-fi
-
-
-htar -xpf $SRC "$REGEX"
-status=$?
-
-
-if [ ! $status == 0 ]; then
-   echo 'HTAR returned non-zero code.'
-   /scinet/gpc/bin/exit2msg $status
-   exit $status
-else
-   echo 'TRANSFER SUCCESSFUL'
-fi
-
-
-done # direc
-done # list run
-
+for EXP in $EXPS
+  do
+    
+    echo
+	  echo $EXP
+	
+		for FILE in $FILES
+			do
+			
+				SRC=$ARCHIVE/CESM/${EXP}/${FILE}_${PERIOD}.tar
+				echo "Source: $SRC"
+				
+				hsi ls $SRC
+				EC=$?
+				
+				if [ $EC != 0 ]; then
+				  echo "HSI returned non-zero code. $SRC does not exist. Nothing to do."
+				   exit 999    
+				else
+				   echo '   starting transfer...'
+				fi
+				
+		    # EXP HTAR (extract)
+				htar -xpf "$SRC" "$REGEX"
+				EC=$?
+				
+				
+				if [ ! $EC == 0 ]; then
+				   echo 'HTAR returned non-zero code.'
+				   /scinet/gpc/bin/exit2msg $EC
+				   exit $EC
+				else
+				   echo '   TRANSFER SUCCESSFUL'
+				fi
+				echo
+			
+		done # FILES
+    echo
+    
+done # EXPS EXP
+echo "All Transfers Completed"
 
 trap - TERM INT
 
