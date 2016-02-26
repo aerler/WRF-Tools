@@ -1387,14 +1387,14 @@ if ($web_pages == 0) then
     cd $WEBDIR
     $HTML_HOME/setup_obs $test_casename $image
     cd $test_path_diag
-    set tarfile = ${test_casename}-obs.tar
+    set tarfile = ${test_casename}-obs.tgz
   else          # model-to-model 
     setenv WEBDIR ${test_path_diag}$test_casename-$cntl_casename
     if (! -e $WEBDIR) mkdir $WEBDIR
     cd $WEBDIR
     $HTML_HOME/setup_2models $test_casename $cntl_casename $image
     cd $test_path_diag
-    set tarfile = $test_casename-${cntl_casename}.tar
+    set tarfile = $test_casename-${cntl_casename}.tgz
   endif
 endif
 
@@ -2345,14 +2345,14 @@ if ($web_pages == 0) then
     cd $WEBDIR
     $HTML_HOME/setup_obs $test_casename $image
     cd $test_path_diag
-    set tarfile = ${test_casename}-obs.tar
+    set tarfile = ${test_casename}-obs.tgz
   else          # model-to-model 
     setenv WEBDIR ${test_path_diag}$test_casename-$cntl_casename
     if (! -e $WEBDIR) mkdir $WEBDIR
     cd $WEBDIR
     $HTML_HOME/setup_2models $test_casename $cntl_casename $image
     cd $test_path_diag
-    set tarfile = $test_casename-${cntl_casename}.tar
+    set tarfile = $test_casename-${cntl_casename}.tgz
   endif
 endif
 
@@ -2655,14 +2655,14 @@ if ($web_pages == 0) then
     cd $WEBDIR
     $HTML_HOME/setup_obs $test_casename $image
     cd $WKDIR
-    set tarfile = ${test_casename}-obs.tar
+    set tarfile = ${test_casename}-obs.tgz
   else          # model-to-model 
     setenv WEBDIR ${WKDIR}$test_casename-$cntl_casename
     if (! -e $WEBDIR) mkdir $WEBDIR
     cd $WEBDIR
     $HTML_HOME/setup_2models $test_casename $cntl_casename $image 
     cd $WKDIR
-    set tarfile = $test_casename-${cntl_casename}.tar
+    set tarfile = $test_casename-${cntl_casename}.tgz
   endif
 endif
 
@@ -2768,7 +2768,7 @@ cd $mydir
    set test_in = $test_out
 
    rm -rf _concurrent
-   rm -f $test_path_diag/*.tar
+   rm -f $test_path_diag/*.tgz
    rm -f $test_path_climo/dummy*
 
    if ($set_1 == 0) then
@@ -2792,7 +2792,7 @@ if ($web_pages == 0) then
   set tardir = $tarfile:r
   echo MAKING TAR FILE OF DIRECTORY $tardir
   cd ${test_path_diag}
-  tar -cf $tarfile  $tardir/
+  tar -czf $tarfile  $tardir/
   \rm -fr $WEBDIR #/*
 endif
 # send email message

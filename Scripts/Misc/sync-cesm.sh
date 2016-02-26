@@ -119,7 +119,7 @@ for E in $( ssh ${SSH} ${HOST} "ls -d ${D}" ) # get folder listing from scinet
             # N.B.: with connection sharing, repeating connection attempts is not really necessary
             # extract tarball, if file was updated
             ls "${M}"/*.tgz &> /dev/null # make sure tarball is there
-            if [ $? -eq 0 ] # puttign the globex into the bracket fails if there is no tarball!
+            if [ $? -eq 0 ] # putting the globex into the bracket fails if there is no tarball!
               then
                 cd "${M}" # tar extracts into the current directory
                 for TB in "${M}"/*.tgz; do
@@ -139,8 +139,14 @@ for E in $( ssh ${SSH} ${HOST} "ls -d ${D}" ) # get folder listing from scinet
                         echo "${T} diagnostics are up-to-date (${ANA})"
                     fi # if $T/
                 done # for *.tar
+            else
+                echo "No diagnostics tarball found on local system (${ANA})"
+                ERR=$(( $ERR + 1 )) # register as error
             fi # if ${M}/*.tar
             echo
+        else
+            echo "No diagnostics tarball found on remote system (${ANA})"
+            ERR=$(( $ERR + 1 )) # register as error
         fi # if ls scinet
     done # for amwg & cvdp
 done # for experiments
