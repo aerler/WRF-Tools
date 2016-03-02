@@ -1,36 +1,42 @@
 #!/bin/bash
-# script to synchronize monthly means with SciNet
+# script to synchronize WRF data with SciNet or other sources
 
-# WRF downscaling roots
-WRFDATA="${WRFDATA:-/data/WRF/}" # should be supplied by caller
-WRFAVG="${WRFDATA}/wrfavg/"
-# data selection
-STATIC=${STATIC:-'STATIC'} # transfer static/constant data
-REX=${REX:-'*-*'} # regex defining experiments
-FILETYPES=${FILETYPES:-'wrf*_d0?_monthly.nc'} # regex defining averaged files
-if [[ "${FILETYPES}" == 'NONE' ]]; then FILETYPES=''; fi
+## user specific settings
+SSHMASTER="${SSHMASTER:-${HOME}}" # should be supplied by caller
 # connection settings
 if [[ "${HISPD}" == 'HISPD' ]]
   then
     # high-speed transfer: special identity/ssh key, batch mode, and connection sharing
-    SSH="-o BatchMode=yes -o ControlPath=${CESMDATA}/hispd-master-%l-%r@%h:%p -o ControlMaster=auto -o ControlPersist=1"
+    SSH="-o BatchMode=yes -o ControlPath=${SSHMASTER}/hispd-master-%l-%r@%h:%p -o ControlMaster=auto -o ControlPersist=1"
     HOST='datamover' # defined in .ssh/config
-    CCA='/reserved1/p/peltier/aerler/WesternCanada /reserved1/p/peltier/aerler/GreatLakes'
+    SRC='/reserved1/p/peltier/aerler/'
+    SUB='WesternCanada GreatLakes'
     INVERT='FALSE' # source has name first then folder type (like on SciNet)
 elif [[ "${HOST}" == 'komputer' ]]
   then
     # download from komputer instead of SciNet using sshfs connection
     SSH="-o BatchMode=yes"
     HOST='fskomputer' # defined in .ssh/config
-    CCA='/data/WRF/wrfavg/' # archives with my own cesmavg files
+    SRC='/data/WRF/wrfavg/' # archives with my own wrfavg files
+    SUB='WesternCanada GreatLakes'
     INVERT='INVERT' # invert name/folder order in source (i.e. like in target folder)
 else
     # ssh settings for unattended nightly update: special identity/ssh key, batch mode, and connection sharing
-    SSH="-i /home/me/.ssh/rsync -o BatchMode=yes -o ControlPath=${CESMDATA}/master-%l-%r@%h:%p -o ControlMaster=auto -o ControlPersist=1"
+    SSH="-i /home/me/.ssh/rsync -o BatchMode=yes -o ControlPath=${SSHMASTER}/master-%l-%r@%h:%p -o ControlMaster=auto -o ControlPersist=1"
     HOST='aerler@login.scinet.utoronto.ca'
-    CCA='/reserved1/p/peltier/aerler/WesternCanada /reserved1/p/peltier/aerler/GreatLakes'
+    SRC='/reserved1/p/peltier/aerler/'
+    SUB='WesternCanada GreatLakes'
     INVERT='FALSE' # source has name first then folder type (like on SciNet)
 fi # if high-speed
+## settings with sensible defaults
+# WRF downscaling roots
+WRFDATA="${WRFDATA:-/data/WRF/}" # should be supplied by caller
+DST="${WRFDATA}/wrfavg/"
+# data selection
+STATIC=${STATIC:-'STATIC'} # transfer static/constant data
+REX=${REX:-'*-*'} # regex defining experiments
+FILETYPES=${FILETYPES:-'wrf*_d0?_monthly.nc'} # regex defining averaged files
+if [[ "${FILETYPES}" == 'NONE' ]]; then FILETYPES=''; fi
 
 echo
 echo
@@ -48,10 +54,11 @@ echo
 
 # stuff on reserved and scratch
 ERR=0
-for DD in ${CCA}
+for DD in ${SUB}
   do
+    WRFAVG="${DST}/${DD}/" # recreate first level subfolder structure from source
     cd "${WRFAVG}" # go to local data folder to expand regular expression (experiment list)
-    D=''; for R in ${REX}; do D="${D} ${DD}/${R}"; done # assemble list of source folders
+    D=''; for R in "${REX}"; do D="${D} ${SRC}/${DD}/${R}"; done # assemble list of source folders
     for E in $( ssh $SSH $HOST "ls -d $D" ) # get folder listing from scinet
       do 
         E=${E%/} # necessary for subsequent step (see below)
