@@ -116,8 +116,8 @@ rm -f ${WRFDATA}/sync-wrf.log
 # monthly files from SciNet
 if [[ "${NOSCINET}" != 'TRUE' ]] && [[ "${NOWRF}" != 'TRUE' ]]; then
   export HOST='scinet' 
-  export REX='max-ctrl*'
-  export FILETYPES='wrf*_d0?_monthly.nc'
+  export REX='g-ctrl*'
+  export FILETYPES='wrfplev3d_d01_clim_*.nc wrfsrfc_d01_clim_*.nc wrfhydro_d02_clim_*.nc wrfxtrm_d02_clim_*.nc wrflsm_d02_clim_*.nc wrfsrfc_d02_clim_*.nc'
   export STATIC='FALSE'
   nice --adjustment=${NICENESS} "${SCRIPTS}/sync-wrf.sh" &>> ${WRFDATA}/sync-wrf.log #2> ${WRFDATA}/sync-wrf.err # 2>&1
   REPORT $? 'WRF Monthly from SciNet' 
@@ -125,8 +125,8 @@ fi # if not $NOSCINET
 # climatologies etc. from komputer
 if [[ "${NOKOMPUTER}" != 'TRUE' ]] && [[ "${NOWRF}" != 'TRUE' ]]; then
   export HOST='komputer'
-  export FILETYPES='wrf*_d02_clim_*.nc wrf*_d02_arb2_d02_clim_*.nc'
-  export REX='max-ctrl* max-ens-* max-ensemble* old-ctrl* new-ctrl* ctrl* max-seaice* erai-max max-1deg*'
+  export FILETYPES='wrfplev3d_d01_clim_*.nc wrfsrfc_d01_clim_*.nc wrfhydro_d02_clim_*.nc wrfxtrm_d02_clim_*.nc wrflsm_d02_clim_*.nc wrfsrfc_d02_clim_*.nc'
+  export REX='*-ensemble* max-ctrl* max-ens* ctrl-* ctrl-ens* max-3km erai-* [gtm]-* [gm][gm]-*'
   export STATIC='STATIC'
   nice --adjustment=${NICENESS} "${SCRIPTS}/sync-wrf.sh" &>> ${WRFDATA}/sync-wrf.log #2> ${WRFDATA}/sync-wrf.err # 2>&1
   REPORT $? 'WRF Climatologies' 

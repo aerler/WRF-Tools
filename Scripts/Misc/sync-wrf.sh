@@ -58,7 +58,7 @@ for DD in ${SUB}
   do
     WRFAVG="${DST}/${DD}/" # recreate first level subfolder structure from source
     cd "${WRFAVG}" # go to local data folder to expand regular expression (experiment list)
-    D=''; for R in "${REX}"; do D="${D} ${SRC}/${DD}/${R}"; done # assemble list of source folders
+    D=''; for R in "${REX}"; do D="${D} ${SRC}/${DD}/${R}/"; done # assemble list of source folders
     for E in $( ssh $SSH $HOST "ls -d $D" ) # get folder listing from scinet
       do 
         E=${E%/} # necessary for subsequent step (see below)
