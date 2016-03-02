@@ -179,7 +179,7 @@ function VERIFYHTAR () {
 	MISS=$?
       fi # $GLOB
     else
-      # verify without verification...
+      # check contents without verification...
       echo "Warning: verification is switched off - checking contents instead."
       CHECKARCHIVE "${1}" "${2}" # check contents
       MISS=$?
@@ -213,6 +213,11 @@ function REMOVEHTAR () {
     if [[ "${VERIFY}" == 'VERIFY' ]]; then
       # verify archive contents
       VERIFYHTAR "${1}" "${2}" 'QUIET'
+      MISS=$?
+    else
+      # check contents without verification...
+      echo "Warning: verification is switched off - checking contents instead."
+      CHECKARCHIVE "${1}" "${2}" # check contents
       MISS=$?
     fi # $VERIFY
     if [[ $MISS == 0 ]]; then
