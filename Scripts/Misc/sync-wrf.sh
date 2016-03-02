@@ -51,7 +51,7 @@ ERR=0
 for DD in ${CCA}
   do
     cd "${WRFAVG}" # go to local data folder to expand regular expression (experiment list)
-    D=''; for R in ${REX}; do D="${D} ${DD}/${R}"; done # assemble list of source folders
+    D=''; for R in ${REX}; do D="${D} ${DD}/${R}/"; done # assemble list of source folder regex
     for E in $( ssh $SSH $HOST "ls -d $D" ) # get folder listing from scinet
       do 
         E=${E%/} # necessary for subsequent step (see below)
