@@ -126,7 +126,7 @@ fi # if not $NOSCINET
 if [[ "${NOKOMPUTER}" != 'TRUE' ]] && [[ "${NOWRF}" != 'TRUE' ]]; then
   export HOST='komputer'
   export FILETYPES='wrfplev3d_d01_clim_*.nc wrfsrfc_d01_clim_*.nc wrfhydro_d02_clim_*.nc wrfxtrm_d02_clim_*.nc wrflsm_d02_clim_*.nc wrfsrfc_d02_clim_*.nc'
-  export REX='*-ensemble* max-ctrl* max-ens* ctrl-* ctrl-ens* max-3km erai-* [gtm]-* [gm][gm]-*'
+  export REX='*-ensemble* max-ctrl* max-ens* ctrl-* ctrl-ens* *-3km erai-max erai-ctrl erai-[gt] [gtm]-* [gm][gm]-*'
   export STATIC='STATIC'
   nice --adjustment=${NICENESS} "${SCRIPTS}/sync-wrf.sh" &>> ${WRFDATA}/sync-wrf.log #2> ${WRFDATA}/sync-wrf.err # 2>&1
   REPORT $? 'WRF Climatologies' 
@@ -135,7 +135,7 @@ fi # if not $NOKOMPUTER
 if [[ "${NOKOMPUTER}" != 'TRUE' ]] && [[ "${NOWRF}" != 'TRUE' ]]; then
   export HOST='komputer'
   export FILETYPES='wrf*_ec*_*.nc wrf*_shpavg_*.nc'
-  export REX='*-*/'
+  export REX='*-*'
   export STATIC='FALSE'
   nice --adjustment=${NICENESS} "${SCRIPTS}/sync-wrf.sh" &>> ${WRFDATA}/sync-wrf.log #2> ${WRFDATA}/sync-wrf.err # 2>&1
   REPORT $? 'WRF Stations etc.' 

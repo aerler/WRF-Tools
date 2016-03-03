@@ -4,15 +4,7 @@
 ## user specific settings
 SSHMASTER="${SSHMASTER:-${HOME}}" # should be supplied by caller
 # connection settings
-if [[ "${HISPD}" == 'HISPD' ]]
-  then
-    # high-speed transfer: special identity/ssh key, batch mode, and connection sharing
-    SSH="-o BatchMode=yes -o ControlPath=${SSHMASTER}/hispd-master-%l-%r@%h:%p -o ControlMaster=auto -o ControlPersist=1"
-    HOST='datamover' # defined in .ssh/config
-    SRC='/reserved1/p/peltier/aerler/'
-    SUB='WesternCanada GreatLakes'
-    INVERT='FALSE' # source has name first then folder type (like on SciNet)
-elif [[ "${HOST}" == 'komputer' ]]
+if [[ "${HOST}" == 'komputer' ]]
   then
     # download from komputer instead of SciNet using sshfs connection
     SSH="-o BatchMode=yes"
@@ -20,6 +12,14 @@ elif [[ "${HOST}" == 'komputer' ]]
     SRC='/data/WRF/wrfavg/' # archives with my own wrfavg files
     SUB='WesternCanada GreatLakes'
     INVERT='INVERT' # invert name/folder order in source (i.e. like in target folder)
+elif [[ "${HISPD}" == 'HISPD' ]]
+  then
+    # high-speed transfer: special identity/ssh key, batch mode, and connection sharing
+    SSH="-o BatchMode=yes -o ControlPath=${SSHMASTER}/hispd-master-%l-%r@%h:%p -o ControlMaster=auto -o ControlPersist=1"
+    HOST='datamover' # defined in .ssh/config
+    SRC='/reserved1/p/peltier/aerler/'
+    SUB='WesternCanada GreatLakes'
+    INVERT='FALSE' # source has name first then folder type (like on SciNet)
 else
     # ssh settings for unattended nightly update: special identity/ssh key, batch mode, and connection sharing
     SSH="-i /home/me/.ssh/rsync -o BatchMode=yes -o ControlPath=${SSHMASTER}/master-%l-%r@%h:%p -o ControlMaster=auto -o ControlPersist=1"
@@ -54,20 +54,23 @@ echo
 
 # stuff on reserved and scratch
 ERR=0
-for DD in ${SUB}
+for S in ${SUB}
   do
-    WRFAVG="${DST}/${DD}/" # recreate first level subfolder structure from source
-    cd "${WRFAVG}" # go to local data folder to expand regular expression (experiment list)
-    D=''; for R in "${REX}"; do D="${D} ${SRC}/${DD}/${R}/"; done # assemble list of source folders
-    for E in $( ssh $SSH $HOST "ls -d $D" ) # get folder listing from scinet
+    WRFAVG="${DST}/${S}/" # recreate first level subfolder structure from source
+    #cd "${WRFAVG}" # go to local data folder to expand regular expression (experiment list)
+    cd "${HOME}" # prevent shell expansion
+    D=''; for R in ${REX}; do D="${D} ${SRC}/${S}/${R}/"; done # assemble list of source folders
+    echo "$D"
+    for E in $( ssh ${SSH} ${HOST} "ls -d ${D}" ) # get folder listing from scinet
       do 
         E=${E%/} # necessary for subsequent step (see below)
         N=${E##*/} # isolate folder name (local folder name)
         echo
 		    echo "   ***   ${N}   ***   "
+        echo "   ('${E}')"
 		    echo
         if [[ "${INVERT}" == 'INVERT' ]]
-          then E=${E%/wrfavg/*}; DIRAVG="wrfavg/${N}"; DIROUT="wrfavg/${N}" # komputer
+          then E=${E%/wrfavg/*}; DIRAVG="wrfavg/${S}/${N}"; DIROUT="wrfavg/${S}/${N}" # komputer
           else E=${E%/${N}}; DIRAVG="${N}/wrfavg"; DIROUT="${N}/wrfout" # SciNet
         fi # if $INVERT
         # loop over file types
@@ -75,7 +78,8 @@ for DD in ${SUB}
           do
             F="${E}/${DIRAVG}/${FILETYPE}" # monthly means
             # check if experiment has any data
-            ssh $SSH $HOST "ls $F" &> /dev/null
+            echo "${F}"
+            ssh ${SSH} ${HOST} "ls ${F}" &> /dev/null
             if [ $? == 0 ]; then # check exit code 
               M="${WRFAVG}/${N}" # absolute path
               mkdir -p "$M" # make sure directory is there
