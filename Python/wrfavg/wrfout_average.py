@@ -89,7 +89,7 @@ if os.environ.has_key('PYAVG_RECALC'):
     # recalculate all derived variables and leave others in place
     lrecalc = True; lderivedonly = True; recalcvars = []
   else:
-    recalcvars = os.environ['PYAVG_RECALC'].split(',') # colon separated list of variables to recompute
+    recalcvars = os.environ['PYAVG_RECALC'].split() # space separated list (other characters cause problems...)
     if len(recalcvars) > 0 and len(recalcvars[0]) > 0: lrecalc = True # if there is a variable to recompute
     else: lrecalc = False
   # lrecalc uses the same pathway, but they can operate independently
@@ -103,12 +103,12 @@ else: loverwrite = False # i.e. append
 #       otherwise only the selected months are recomputed 
 # file types to process 
 if os.environ.has_key('PYAVG_FILETYPES'):
-  filetypes = os.environ['PYAVG_FILETYPES'].split(',') # space separated list (other characters cause problems...)
+  filetypes = os.environ['PYAVG_FILETYPES'].split() # space separated list (other characters cause problems...)
   if len(filetypes) == 1 and len(filetypes[0]) == 0: filetypes = None # empty string, substitute default 
 else: filetypes = None # defaults are set below
 # domains to process
 if os.environ.has_key('PYAVG_DOMAINS'):
-  domains = os.environ['PYAVG_DOMAINS'].split(',')
+  domains = os.environ['PYAVG_DOMAINS'].split() # space separated list (other characters cause problems...)
   if len(domains) == 1: domains = [int(i) for i in domains[0]] # string of single-digit indices
   else: domains = [int(i) for i in domains] # semi-colon separated list
 else: domains = None # defaults are set below 

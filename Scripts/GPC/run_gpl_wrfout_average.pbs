@@ -52,10 +52,10 @@ export PYAVG_RECALC=${PYAVG_RECALC:-''} # ;-separated list of variables to recom
 export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
 export PYAVG_ADDNEW=${PYAVG_ADDNEW:-'ADDNEW'} # default: add new variables 
 export PYAVG_RECOVER=${PYAVG_RECOVER:-'FALSE'} # recover after a crash (recompute last step and continue)
-export PYAVG_FILETYPES=${PYAVG_FILETYPES:-'srfc,plev3d,xtrm,hydro,lsm'} # all diags: 'srfc plev3d xtrm hydro lsm rad'
-export PYAVG_DOMAINS=${PYAVG_DOMAINS:-'1,2,3'} # default: 1234; unfortunately not experiment-specific...
+export PYAVG_FILETYPES=${PYAVG_FILETYPES:-'srfc plev3d xtrm hydro lsm'} # all diags: 'srfc plev3d xtrm hydro lsm rad'
+export PYAVG_DOMAINS=${PYAVG_DOMAINS:-'1 2 3'} # default: 1234; unfortunately not experiment-specific...
 export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
-export PYAVG_DRYDAY=${PYAVG_DRYDAY:-''} # dry-day correction factor (empty string means 'default', i.e. 50. as of 18/03/15)
+#export PYAVG_DRYDAY=${PYAVG_DRYDAY:-''} # dry-day correction factor (for experimental use only)
 
 
 # user settings
