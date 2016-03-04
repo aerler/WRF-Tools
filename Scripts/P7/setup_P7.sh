@@ -94,7 +94,9 @@ export SUBMITAR=${SUBMITAR:-'ssh gpc-f102n084-ib0 "cd \"${INIDIR}\"; qsub ./${AR
 # N.B.: requires $ARTAG to be set in the launch script
 
 # averaging submission command (for last step in the interval)
-export SUBMITAVG=${SUBMITAVG:-'ssh gpc-f102n084-ib0 "cd \"${INIDIR}\"; qsub ./${AVGSCRIPT} -v PERIOD=${AVGTAG}"'} # evaluated by launchPostP
+export SUBMITAR=${SUBMITAR:-'ssh gpc-f104n084-ib0 "cd \"${INIDIR}\"; echo \"${ARTAG}\" >> HPSS_backlog.txt"; echo "Logging archive tag \"${ARTAG}\" in 'HPSS_backlog.txt' for later archiving."'} # evaluated by launchPostP
+# N.B.: instead of archviing, just log the year to be archived; this is temporarily necessary,  because HPSS is full
+#export SUBMITAVG=${SUBMITAVG:-'ssh gpc-f102n084-ib0 "cd \"${INIDIR}\"; qsub ./${AVGSCRIPT} -v PERIOD=${AVGTAG}"'} # evaluated by launchPostP
 # N.B.: requires $AVGTAG to be set in the launch script
 
 # job submission command (for next step)

@@ -38,6 +38,7 @@ LOGFILE=${LOGFILE:-"${WORKDIR}/logfile.${JOBNAME}"}
 WC=${WC:-'/reserved1/p/peltier/aerler/WesternCanada/'}
 GL=${GL:-'/reserved1/p/peltier/aerler/GreatLakes/'}
 NCOADD=${NCOADD:-'~/Scripts/addVariable.sh'} # NCO script to add variables (usually not in run folder)
+THREADS=${THREADS:-8} # GNU Parallel threads
 
 # options
 TEST=${TEST:-'FALSE'} # use TEST=DRYRUN to only generate command file
@@ -133,7 +134,7 @@ echo "          --env PYAVG_FILETYPES    = $PYAVG_FILETYPES "
 echo "          --env PYAVG_DOMAINS      = $PYAVG_DOMAINS   "
 echo "          --env PYAVG_DEBUG        = $PYAVG_DEBUG     "
 echo "          --env PYAVG_DRYDAY       = $PYAVG_DRYDAY    "
-echo "         -j 8 --joblog \"${LOGFILE}\" < \"${CMDFILE}\" "
+echo "         -j ${THREADS} --joblog \"${LOGFILE}\" < \"${CMDFILE}\" "
 if [[ "$TEST" != 'DRYRUN' ]]
   then
 		parallel --sshloginfile "$PBS_NODEFILE" --workdir "$PWD" \
@@ -147,7 +148,7 @@ if [[ "$TEST" != 'DRYRUN' ]]
 							--env PYAVG_DOMAINS \
 							--env PYAVG_DEBUG \
 							--env PYAVG_DRYDAY \
-		         -j 8 --joblog "${LOGFILE}" < "${CMDFILE}"
+		         -j ${THREADS} --joblog "${LOGFILE}" < "${CMDFILE}"
 		ERR=$? # capture exit code
 else
     ERR=1

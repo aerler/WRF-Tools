@@ -282,7 +282,7 @@ if [[ "$TEST" != 'DRYRUN' ]]
               --env PYTHON_EGG_CACHE \
               --env CCA \
               --env TEST \
-             -j ${THREADS}--joblog "${LOGFILE}" < "${CMDFILE}"
+             -j ${THREADS} --joblog "${LOGFILE}" < "${CMDFILE}"
     ERR=$? # capture exit code
 else
     ERR=1
