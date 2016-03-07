@@ -33,22 +33,23 @@ if ('gpc' in hostname):
   #nodes = 76 # number of nodes
   #ppn = 16 # processes per node
   #showq = 'showq -w class=sandy' # queue query command
-  #submitPrimary = 'qsub %s -v NEXTSTEP=%s -l nodes=1:m128g:ppn=16 -q sandy '%(WPSSCRIPT,NEXTSTEP)
-  #submitSecondary = 'qsub %s -v NEXTSTEP=%s -l nodes=1:m128g:ppn=16 -q sandy'%(WPSSCRIPT,NEXTSTEP)
+  #submitPrimary = 'qsub {:s} -v NEXTSTEP={:s} -l nodes=1:m128g:ppn=16 -q sandy '.format(WPSSCRIPT,NEXTSTEP)
+  #submitSecondary = 'qsub {:s} -v NEXTSTEP={:s} -l nodes=1:m128g:ppn=16 -q sandy'.format(WPSSCRIPT,NEXTSTEP)
   # use largemem as primary
-  nodes = 2 # number of nodes
+  nodes = 4 # number of nodes
   ppn = 16 # processes per node
   showq = 'showq -w class=largemem' # queue query command
-  submitPrimary = 'qsub %s -v NEXTSTEP=%s -l nodes=1:ppn=16 -q largemem '%(WPSSCRIPT,NEXTSTEP)
-  submitSecondary = 'qsub %s -v NEXTSTEP=%s -l nodes=1:m128g:ppn=16 -q sandy'%(WPSSCRIPT,NEXTSTEP)
+  submitPrimary = 'qsub {:s} -v NEXTSTEP={:s} -l nodes=1 -q largemem '.format(WPSSCRIPT,NEXTSTEP)
+  submitSecondary = 'qsub {:s} -v NEXTSTEP={:s} -l nodes=1:m128g:ppn=16 -q sandy'.format(WPSSCRIPT,NEXTSTEP)
   #submitPrimary = submitSecondary # temporarily disabled
 else:
   # this is for test purpose only; read file 'queue-test.txt' in same directory
   nodes = 2 # number of nodes
-  ppn = 16 # processes per node
+  npps = (16,20) # possible processes per node
+  npp = max(npps) # maximum (assuming all are similar)
   showq = 'cat queue-test.txt' # test dummy
-  submitPrimary = 'echo qsub %s -v NEXTSTEP=%s -l nodes=1:m128g:ppn=16 -q largemem'%(WPSSCRIPT,NEXTSTEP)
-  submitSecondary = 'echo qsub %s -v NEXTSTEP=%s -l nodes=1:m32g:ppn=8 -q batch'%(WPSSCRIPT,NEXTSTEP)
+  submitPrimary = 'echo qsub {:s} -v NEXTSTEP={:s} -l nodes=1:m128g:ppn=16 -q largemem'.format(WPSSCRIPT,NEXTSTEP)
+  submitSecondary = 'echo qsub {:s} -v NEXTSTEP={:s} -l nodes=1:m32g:ppn=8 -q batch'.format(WPSSCRIPT,NEXTSTEP)
 
 ## functions
 
@@ -62,7 +63,7 @@ def convertTime(timeString):
   elif len(tmp) == 4: # days:hours:minutes:seconds
     time = int(tmp[0])*86400 + int(tmp[1])*3600 + int(tmp[2])*60 + int(tmp[3])
   else: # unknown
-    warnings.warn('WARNING: invalid time format encountered: %s'%time)
+    warnings.warn('WARNING: invalid time format encountered: {:s}'.format(time))
     time = 0
   # return value in seconds (integer)
   return time
@@ -98,26 +99,26 @@ if __name__ == '__main__':
     # process time
     if lrun or lidl:
       np =  float(linesplit[3]) # ensure floating point division below: np / ppn
-      if np != 16 and np != 32: print('WARNING: strange number of processes: %i --- rounding up.'%np)
-      np = math.ceil(np / ppn) # next full multiple of ppn
+      if np not in ppns: print('WARNING: large number of processes: {:d} --- possibly multi-node jobs.'.format(np))
+      nn = math.ceil(nn / ppn) # next full multiple of ppn: number of nodes
       time = linesplit[4]
 #      # print times
-#      if lrun: print 'Running: %s'%time
-#      elif lidl: print 'Idle: %s'%time
+#      if lrun: print 'Running: {:s}'.format(time)
+#      elif lidl: print 'Idle: {:s}'.format(time)
       # convert time string to integer seconds
       time = convertTime(time)
       # save timings
-      while np > 0:
+      while nn > 0:
         if lrun: running.append(time)
         elif lidl: idle.append(time)
-        np = np - 1
+        nn = nn - 1
 
   ## estimate total wait time
   # one time slot for each running process
   #slots = numpy.zeros(nodes,dtype=int) # integer seconds
   slots = [int(0) for x in xrange(nodes)]
   # distribute running jobs to nodes
-  if len(running) > len(slots): warnings.warn('WARNING: number of nodes and number of running jobs inconsistent: %s'%len(running))
+  if len(running) > len(slots): warnings.warn('WARNING: number of nodes and number of running jobs not equal: {:s} jobs on {:d} nodes.'.format(len(running),nodes))
   for i in xrange(min(len(running),len(slots))):
     slots[i] = running[i]
 #  print slots
@@ -135,7 +136,7 @@ if __name__ == '__main__':
   waittime = vmin
   #waittime = slots.min()
   #  print waittime
-  print('\nEstimated queue wait time is %3.2f hours\n'%(waittime/3600))
+  print('\nEstimated queue wait time is {:3.2f} hours\n'.format(waittime/3600))
   # determine acceptable wait time
   if WRFWCT:
     timelimit = convertTime(WRFWCT) # basic time limit from WRF execution time
