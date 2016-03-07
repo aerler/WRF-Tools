@@ -54,7 +54,7 @@ esac # check MODE
 case "${DATASET}" in
   FULL | MISC3D | DYN3D | DIAGS )   # datasets that correspond to archive files   
     MODEOK='MODEOK';; # everything is OK
-  DEL3D | HYDRO | MISCDIAG | LOGS | FINAL )   # only REMOVE/RETRIEVE options   
+  DEL3D | HYDRO | MISCDIAG | LOGS | FINAL | MarcIO )   # only REMOVE/RETRIEVE options   
     if [[ "${MODE}" == 'BACKUP' ]]; then MODEOK='FALSE'; else MODEOK='MODEOK'; fi;; # everythin except backup
   * )   MODEOK='UNKNOWN';;
 esac #  vs. 
@@ -93,6 +93,7 @@ function CHECKARCHIVE () {
   local HTAR="${DST}/${1}" # archive file (absolute path on HPSS)
   local FILES=${2} # list of files that should be in the archive
   local LIST=$( htar -tf "${HTAR}" | awk '{print $7}' | head -n -2 ) # column 7 are the file names, except last two lines
+  # N.B.: can't capture exit code of htar because of $()
   local MISS=0 # missing file counter
   # evaluate globbing expression
   if [[ "${GLOB}" == 'GLOB' ]]; then
@@ -115,18 +116,19 @@ function CHECKDISK () {
   local HTAR="${DST}/${1}" # archive file (absolute path on HPSS)
   local MODE="${2}" # report missing files or present files
   local LIST=$( htar -tf "${HTAR}" | awk '{print $7}' | head -n -2 ) # column 7 are the file names, except last two lines
-  local ERR=0 # missing file counter
+  # N.B.: can't capture exit code of htar because of $()
+  local MISS=0 # missing file counter
   # check which files exist in source folder and report missing/present
   for FILE in ${LIST}; do # no quotes! white space delimited list!
     if [[ ! -e "${FILE}" ]] && [[ "${MODE}" == 'MISSING' ]]; then 
       echo "WARNING: File ${FILE} missing in source folder!"
-      ERR=$(( ${ERR} + 1 ))
+      MISS=$(( ${MISS} + 1 ))
     elif [[ -e "${FILE}" ]] && [[ "${MODE}" == 'PRESENT' ]]; then 
       echo "WARNING: File ${FILE} present in source folder!"
-      ERR=$(( ${ERR} + 1 ))
+      MISS=$(( ${MISS} + 1 ))
     fi # if -e $FILE
   done # for $LIST
-  return ${ERR}
+  return ${MISS}
 } # CHECKDISK
 
 ## function to list contents of HTAR archive
@@ -137,12 +139,12 @@ function LISTHTAR () {
   # check if archive exists
   hsi -q ls "${HTAR}" &> /dev/null # quiet mode
   if [[ $? != 0 ]]; then
-	echo "Warning: archive ${HTAR} does not exist."
+	echo "Warning: archive ${HTAR} does not exist (or HSI failed)."
 	ERR=1
   else
     # list archive contents
 	htar -tvf "${HTAR}" -Hcrc -Hverify=1
-	ERR=$?
+	ERR=$? # capture exit code
 	CHECKDISK "${1}" 'MISSING'
   fi
   # return exit code
@@ -165,24 +167,24 @@ function VERIFYHTAR () {
   # check if archive exists
   hsi -q ls "${HTAR}" &> /dev/null # quiet mode
   if [[ $? != 0 ]]; then
-	echo "Warning: archive ${HTAR} does not exist."
+	echo "Warning: archive ${HTAR} does not exist (or HSI failed)."
 	MISS=1
   else
     # verify archive contents
     if [[ "${VERIFY}" == 'VERIFY' ]]; then
       # evaluate globbing expression
       if [[ "${GLOB}" == 'GLOB' ]]; then
-	htar -Kvf "${HTAR}" -Hcrc -Hverify=1 # verifying all files
-	MISS=$?
+		htar -Kvf "${HTAR}" -Hcrc -Hverify=1 # verifying all files
+		MISS=$?
       else
-	htar -Kvf "${HTAR}" -Hcrc -Hverify=1 ${FILES}
-	MISS=$?
+		htar -Kvf "${HTAR}" -Hcrc -Hverify=1 ${FILES}
+		MISS=$?
       fi # $GLOB
     else
       # check contents without verification...
       echo "Warning: verification is switched off - checking contents instead."
       CHECKARCHIVE "${1}" "${2}" # check contents
-      MISS=$?
+      MISS=$? # number of missing files
     fi # $VERIFY
   fi
   # return exit code
@@ -270,7 +272,7 @@ function BACKUPHTAR () {
       echo 'Archive contents are different: need to check, if all files are present on source file system.'
       CHECKDISK "${1}" 'MISSING'
       if [[ $? == 0 ]]; then 
-	echo "   All archive contents are present - removing old archive and creating new."
+	echo "   WARNING: All archive contents are present - removing old archive and creating new."
 	hsi -q rm "${HTAR}"
       else
 	echo "   WARNING: Some archive contents are missing on source file system - cannot replace archive."
@@ -281,20 +283,25 @@ function BACKUPHTAR () {
   fi # archive already exists
   # create archive
   htar -cpf "${HTAR}" -Humask=0137 -Hcrc -Hverify=1 ${FILES}
-  # verify contents
-  if [[ "${VERIFY}" == 'VERIFY' ]]; then
+  ERR=$? # capture exit code
+  # verify contents/completion
+  if [[ $ERR != 0 ]]; then
+	# report error
+	echo "   ERROR: HTAR did not complete successfully; exit code ${ERR}"
+	MISS=$ERR # use as exit code below
+  elif [[ "${VERIFY}" == 'VERIFY' ]]; then
     # verify archive contents
     echo "Verifying contents (not sure if this is necessary, but doesn't hurt.)"
     VERIFYHTAR "${1}" "${2}" 'QUIET'
-    MISS=$?
+    MISS=$? # capture exit code: number of missing files
   else
     # verify without verification...
     echo "Warning: verification is switched off - checking contents instead."
     CHECKARCHIVE "${1}" "${2}" # check contents
-    MISS=$?
+    MISS=$? # capture exit code: number of missing files
   fi # $VERIFY
   # return results of verification
-  return $?
+  return $MISS
 }
 
 ## function to create a new HTAR archive
@@ -331,16 +338,17 @@ function RETRIEVEHTAR () {
       if [[ $? != 0 ]]; then echo "WARNING: Clobbering existing files!"; fi      
       # extract archive
       htar -xpmf "${HTAR}" -Hcrc -Hverify=1 # all files: globbing and clobbering
+	  MISS=$?
     else
       # check which files already exist, and skip them (don't clobber)
       NFS=''; for F in ${FILES}; do # no quotes! white space delimited list!
-	if [[ ! -e "${F}" ]]; then NFS="${NFS} ${F}"; fi; done
+		if [[ ! -e "${F}" ]]; then NFS="${NFS} ${F}"; fi; done
       if [[ -n "${NFS}" ]]; then
-	echo "Skipping existing files; retrieving ${NFS}"	
-	htar -xpmf "${HTAR}" -Hcrc -Hverify=1 ${NFS} # extract archive
-	MISS=$?
+		echo "Skipping existing files; retrieving ${NFS}"	
+		htar -xpmf "${HTAR}" -Hcrc -Hverify=1 ${NFS} # extract archive
+		MISS=$?
       else
-	echo 'Files already exist in destination folder; run with $RMSRC=RMSRC to overwrite.'
+		echo 'Files already exist in destination folder; run with $RMSRC=RMSRC to overwrite.'
       fi # $NFS
       echo
     fi # $CLOBBER    
@@ -379,6 +387,13 @@ function PROCESSDATASET () {
     for D in $( echo "${DOMAINS}" | fold --width=1 ); do
       FINAL="${FINAL} wrfconst_d0${D}.nc wrfrst_d0${D}_${DATESTR} wrfconst_d0${D}"
     done # $DOMAINS
+  elif [[ "${DATASET}" == 'MarcIO' ]] && [[ "${MODE}" == 'RETRIEVE' ]]; then      
+	# Marc's special archvie stream (MarcIO) (all domains in one file)
+	local MARCIO='' # construct file list using a loop over domain indicies
+	for D in $( echo "${DOMAINS}" | fold --width=1 ); do
+	  MARCIO="${MARCIO} wrfxtrm_d0${D}_${DATESTR}_??[:_]??[:_]??*"
+	  # N.B.: restart files were omitted, because thei are large and are usually retrieved individually (manually)
+	done # $DOMAINS
   else
     ## select datasets and logs
     # logs and static data
@@ -393,33 +408,33 @@ function PROCESSDATASET () {
     fi; if [[ "${DATASET}" == 'DIAGS' ]] || [[ "${DATASET}" == 'MISCDIAG' ]] || [[ "${DATASET}" == 'FULL' ]]; then      
       local DIAGS='' # construct file list using a loop over domain indicies
       for D in $( echo "${DOMAINS}" | fold --width=1 ); do
-	      DIAGS="${DIAGS} wrfxtrm_d0${D}_${DATESTR}_00:00:00.nc wrfsrfc_d0${D}_${DATESTR}_00:00:00.nc wrfplev3d_d0${D}_${DATESTR}_00:00:00.nc"
+	      DIAGS="${DIAGS} wrfxtrm_d0${D}_${DATESTR}_??[:_]??[:_]??* wrfsrfc_d0${D}_${DATESTR}_??[:_]??[:_]??* wrfplev3d_d0${D}_${DATESTR}_??[:_]??[:_]??*"
       done # $DOMAINS
     ## select domain-wise datasets
     # misc 3D fields (one file per domain)
     fi; if [[ "${DATASET}" == 'MISC3D' ]] || [[ "${DATASET}" == 'DEL3D' ]] || [[ "${DATASET}" == 'FULL' ]]; then
-      local MISC_D1="wrfmoist3d_d01_${DATESTR}_00:00:00.nc wrfrad_d01_${DATESTR}_00:00:00.nc wrffdda_d01_${DATESTR}_00:00:00.nc"
-      local MISC_D2="wrfmoist3d_d02_${DATESTR}_00:00:00.nc wrfrad_d02_${DATESTR}_00:00:00.nc"
-      local MISC_D3="wrfmoist3d_d03_${DATESTR}_00:00:00.nc wrfrad_d03_${DATESTR}_00:00:00.nc"
-      local MISC_D4="wrfmoist3d_d04_${DATESTR}_00:00:00.nc wrfrad_d04_${DATESTR}_00:00:00.nc"
+      local MISC_D1="wrfmoist3d_d01_${DATESTR}_??[:_]??[:_]??* wrfrad_d01_${DATESTR}_??[:_]??[:_]??* wrffdda_d01_${DATESTR}_??[:_]??[:_]??*"
+      local MISC_D2="wrfmoist3d_d02_${DATESTR}_??[:_]??[:_]??* wrfrad_d02_${DATESTR}_??[:_]??[:_]??*"
+      local MISC_D3="wrfmoist3d_d03_${DATESTR}_??[:_]??[:_]??* wrfrad_d03_${DATESTR}_??[:_]??[:_]??*"
+      local MISC_D4="wrfmoist3d_d04_${DATESTR}_??[:_]??[:_]??* wrfrad_d04_${DATESTR}_??[:_]??[:_]??*"
     # some more misc 3D fields that are added separately (they are not in DEL3D, but in HYDRO)
     fi; if [[ "${DATASET}" == 'MISC3D' ]] || [[ "${DATASET}" == 'HYDRO' ]] || [[ "${DATASET}" == 'FULL' ]]; then # not part of DEL3D!
-      local MISC_D1="${MISC_D1} wrflsm_d01_${DATESTR}_00:00:00.nc wrfhydro_d01_${DATESTR}_00:00:00.nc"
-      local MISC_D2="${MISC_D2} wrflsm_d02_${DATESTR}_00:00:00.nc wrfhydro_d02_${DATESTR}_00:00:00.nc"
-      local MISC_D3="${MISC_D3} wrflsm_d03_${DATESTR}_00:00:00.nc wrfhydro_d03_${DATESTR}_00:00:00.nc"
-      local MISC_D4="${MISC_D4} wrflsm_d04_${DATESTR}_00:00:00.nc wrfhydro_d04_${DATESTR}_00:00:00.nc"
+      local MISC_D1="${MISC_D1} wrflsm_d01_${DATESTR}_??[:_]??[:_]??* wrfhydro_d01_${DATESTR}_??[:_]??[:_]??*"
+      local MISC_D2="${MISC_D2} wrflsm_d02_${DATESTR}_??[:_]??[:_]??* wrfhydro_d02_${DATESTR}_??[:_]??[:_]??*"
+      local MISC_D3="${MISC_D3} wrflsm_d03_${DATESTR}_??[:_]??[:_]??* wrfhydro_d03_${DATESTR}_??[:_]??[:_]??*"
+      local MISC_D4="${MISC_D4} wrflsm_d04_${DATESTR}_??[:_]??[:_]??* wrfhydro_d04_${DATESTR}_??[:_]??[:_]??*"
     # 3D dry dynamics (one file per domain)
     fi; if [[ "${DATASET}" == 'DYN3D' ]] || [[ "${DATASET}" == 'DEL3D' ]] || [[ "${DATASET}" == 'FULL' ]]; then
-      local DYN_D1="wrfdrydyn3d_d01_${DATESTR}_00:00:00.nc"
-      local DYN_D2="wrfdrydyn3d_d02_${DATESTR}_00:00:00.nc"
-      local DYN_D3="wrfdrydyn3d_d03_${DATESTR}_00:00:00.nc"
-      local DYN_D4="wrfdrydyn3d_d04_${DATESTR}_00:00:00.nc"
+      local DYN_D1="wrfdrydyn3d_d01_${DATESTR}_??[:_]??[:_]??*"
+      local DYN_D2="wrfdrydyn3d_d02_${DATESTR}_??[:_]??[:_]??*"
+      local DYN_D3="wrfdrydyn3d_d03_${DATESTR}_??[:_]??[:_]??*"
+      local DYN_D4="wrfdrydyn3d_d04_${DATESTR}_??[:_]??[:_]??*"
     # small files in misc 3D fields
     fi; if [[ "${DATASET}" == 'MISCDIAG' ]]; then
-      local MISC_D1="wrflsm_d01_${DATESTR}_00:00:00.nc wrfrad_d01_${DATESTR}_00:00:00.nc wrfhydro_d01_${DATESTR}_00:00:00.nc"
-      local MISC_D2="wrflsm_d02_${DATESTR}_00:00:00.nc wrfrad_d02_${DATESTR}_00:00:00.nc wrfhydro_d02_${DATESTR}_00:00:00.nc"
-      local MISC_D3="wrflsm_d03_${DATESTR}_00:00:00.nc wrfrad_d03_${DATESTR}_00:00:00.nc wrfhydro_d03_${DATESTR}_00:00:00.nc"
-      local MISC_D4="wrflsm_d04_${DATESTR}_00:00:00.nc wrfrad_d04_${DATESTR}_00:00:00.nc wrfhydro_d04_${DATESTR}_00:00:00.nc"
+      local MISC_D1="wrflsm_d01_${DATESTR}_??[:_]??[:_]??* wrfrad_d01_${DATESTR}_??[:_]??[:_]??* wrfhydro_d01_${DATESTR}_??[:_]??[:_]??*"
+      local MISC_D2="wrflsm_d02_${DATESTR}_??[:_]??[:_]??* wrfrad_d02_${DATESTR}_??[:_]??[:_]??* wrfhydro_d02_${DATESTR}_??[:_]??[:_]??*"
+      local MISC_D3="wrflsm_d03_${DATESTR}_??[:_]??[:_]??* wrfrad_d03_${DATESTR}_??[:_]??[:_]??* wrfhydro_d03_${DATESTR}_??[:_]??[:_]??*"
+      local MISC_D4="wrflsm_d04_${DATESTR}_??[:_]??[:_]??* wrfrad_d04_${DATESTR}_??[:_]??[:_]??* wrfhydro_d04_${DATESTR}_??[:_]??[:_]??*"
     fi # MISCDIAG
     # return error if dataset not found
     if [[ -z "${FINAL}" ]] && [[ -z "${DIAGS}" ]] && [[ -z "${MISC_D1}" ]] && [[ -z "${MISC_D2}" ]] && [[ -z "${MISC_D3}" ]] && [[ -z "${MISC_D4}" ]] && [[ -z "${DYN_D1}" ]] && [[ -z "${DYN_D2}" ]] && [[ -z "${DYN_D3}" ]] && [[ -z "${DYN_D4}" ]]; then
@@ -438,10 +453,10 @@ function PROCESSDATASET () {
   ls "${SRC}"/wrfrst_d??_${DATESTR}_"00:00:00" >& /dev/null # this only works with globbing expressions, if they are not quoted
   if [[ $? == 0  ]]; then
     # restart run: backup restart file
-    if [[ -n "${MISC_D1}" ]]; then MISC_D1="${MISC_D1} wrfrst_d01_${DATESTR}_00:00:00"; fi
-    if [[ -n "${MISC_D2}" ]]; then MISC_D2="${MISC_D2} wrfrst_d02_${DATESTR}_00:00:00"; fi
-    if [[ -n "${MISC_D3}" ]]; then MISC_D3="${MISC_D3} wrfrst_d03_${DATESTR}_00:00:00"; fi
-    if [[ -n "${MISC_D4}" ]]; then MISC_D4="${MISC_D4} wrfrst_d04_${DATESTR}_00:00:00"; fi
+    if [[ -n "${MISC_D1}" ]]; then MISC_D1="${MISC_D1} wrfrst_d01_${DATESTR}_??[:_]??[:_]??*"; fi
+    if [[ -n "${MISC_D2}" ]]; then MISC_D2="${MISC_D2} wrfrst_d02_${DATESTR}_??[:_]??[:_]??*"; fi
+    if [[ -n "${MISC_D3}" ]]; then MISC_D3="${MISC_D3} wrfrst_d03_${DATESTR}_??[:_]??[:_]??*"; fi
+    if [[ -n "${MISC_D4}" ]]; then MISC_D4="${MISC_D4} wrfrst_d04_${DATESTR}_??[:_]??[:_]??*"; fi
     if [[ "${GLOB}" != 'GLOB' ]]; then
       unset STATIC; fi # skip this step, if no globbing is used
     # cold start: backup data tables, constants, and geogrid files
@@ -466,12 +481,16 @@ function PROCESSDATASET () {
     ERR=$(( ${ERR} + $? ))
   fi; if [[ -n "${STATIC}" ]]; then
     # only execute this for the first step/date (cold start)
-    echo '  Static data, WRF constants, and geogrid files (both domains):'
+    echo '  Static data, WRF constants, and geogrid files (all domains):'
     "${MODE}HTAR" "wrfstatic.tar" "${STATIC}"
     ERR=$(( ${ERR} + $? ))
   fi; if [[ -n "${DIAGS}" ]] || [[ -n "${LOGS}" ]]; then
-	echo '  Pressure level and surface fields, log files (both domains):' # short description of archive
+	echo '  Pressure level and surface fields, log files (all domains):' # short description of archive
 	"${MODE}HTAR" "wrfdiags_${DATENAME}.tar" "${DIAGS} ${LOGS}"
+	ERR=$(( ${ERR} + $? )) # returns the number of missing files as exit code
+  fi; if [[ -n "${MarcIO}" ]] ]]; then
+	echo " Marc's special archive files (MarcIO) (all domains):" # short description of archive
+	"${MODE}HTAR" "wrfmarcIO_${DATENAME}.tar" "${MARCIO}"
 	ERR=$(( ${ERR} + $? )) # returns the number of missing files as exit code
   fi; if [[ -n "${MISC_D1}" ]] && [[ "${DOMAINS}" == *1* ]]; then
 	echo '  Miscellaneous field, including 3D moisture (1st domain):'
