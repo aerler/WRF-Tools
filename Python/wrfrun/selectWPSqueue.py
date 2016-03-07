@@ -37,7 +37,8 @@ if ('gpc' in hostname):
   #submitSecondary = 'qsub {:s} -v NEXTSTEP={:s} -l nodes=1:m128g:ppn=16 -q sandy'.format(WPSSCRIPT,NEXTSTEP)
   # use largemem as primary
   nodes = 4 # number of nodes
-  ppn = 16 # processes per node
+  npps = (16,20) # possible processes per node
+  ppn = max(npps) # maximum (assuming all are similar)
   showq = 'showq -w class=largemem' # queue query command
   submitPrimary = 'qsub {:s} -v NEXTSTEP={:s} -l nodes=1 -q largemem '.format(WPSSCRIPT,NEXTSTEP)
   submitSecondary = 'qsub {:s} -v NEXTSTEP={:s} -l nodes=1:m128g:ppn=16 -q sandy'.format(WPSSCRIPT,NEXTSTEP)
@@ -46,7 +47,7 @@ else:
   # this is for test purpose only; read file 'queue-test.txt' in same directory
   nodes = 2 # number of nodes
   npps = (16,20) # possible processes per node
-  npp = max(npps) # maximum (assuming all are similar)
+  ppn = max(npps) # maximum (assuming all are similar)
   showq = 'cat queue-test.txt' # test dummy
   submitPrimary = 'echo qsub {:s} -v NEXTSTEP={:s} -l nodes=1:m128g:ppn=16 -q largemem'.format(WPSSCRIPT,NEXTSTEP)
   submitSecondary = 'echo qsub {:s} -v NEXTSTEP={:s} -l nodes=1:m32g:ppn=8 -q batch'.format(WPSSCRIPT,NEXTSTEP)
@@ -99,8 +100,8 @@ if __name__ == '__main__':
     # process time
     if lrun or lidl:
       np =  float(linesplit[3]) # ensure floating point division below: np / ppn
-      if np not in ppns: print('WARNING: large number of processes: {:d} --- possibly multi-node jobs.'.format(np))
-      nn = math.ceil(nn / ppn) # next full multiple of ppn: number of nodes
+      if np not in npps: print('WARNING: large number of processes: {:d} --- possibly multi-node jobs.'.format(np))
+      nn = math.ceil(np / ppn) # next full multiple of ppn: number of nodes
       time = linesplit[4]
 #      # print times
 #      if lrun: print 'Running: {:s}'.format(time)
