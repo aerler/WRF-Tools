@@ -100,7 +100,8 @@ if __name__ == '__main__':
     # process time
     if lrun or lidl:
       np =  float(linesplit[3]) # ensure floating point division below: np / ppn
-      if np not in npps: print('WARNING: large number of processes: {:d} --- possibly multi-node jobs.'.format(np))
+      if np == 1 and lidl: np = 20 # if no specific number is requested, idle jobs just show '1'
+      if np not in npps: print('WARNING: large number of processes: {:d} --- possibly multi-node jobs.'.format(int(np)))
       nn = math.ceil(np / ppn) # next full multiple of ppn: number of nodes
       time = linesplit[4]
 #      # print times

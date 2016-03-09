@@ -488,7 +488,7 @@ function PROCESSDATASET () {
 	echo '  Pressure level and surface fields, log files (all domains):' # short description of archive
 	"${MODE}HTAR" "wrfdiags_${DATENAME}.tar" "${DIAGS} ${LOGS}"
 	ERR=$(( ${ERR} + $? )) # returns the number of missing files as exit code
-  fi; if [[ -n "${MarcIO}" ]] ]]; then
+  fi; if [[ -n "${MarcIO}" ]]; then
 	echo " Marc's special archive files (MarcIO) (all domains):" # short description of archive
 	"${MODE}HTAR" "wrfmarcIO_${DATENAME}.tar" "${MARCIO}"
 	ERR=$(( ${ERR} + $? )) # returns the number of missing files as exit code
