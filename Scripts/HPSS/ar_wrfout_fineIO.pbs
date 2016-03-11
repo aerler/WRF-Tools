@@ -370,7 +370,7 @@ function PROCESSDATASET () {
     then DATESTR="${DATE}${TAGGLOB}"
     else DATESTR="${DATE}"  # used in output data file names
   fi # GLOB
-  unset FINAL DIAGS MISC_D1 DYN_D1 MISC_D2 DYN_D2 MISC_D3 DYN_D3 STATIC LOGS
+  unset FINAL DIAGS MARCIO MISC_D1 DYN_D1 MISC_D2 DYN_D2 MISC_D3 DYN_D3 STATIC LOGS
   # special case, if TAG/DATE is FINAL
   if [[ "${DATE}" == 'FINAL_ALL' ]] &&  [[ "${MODE}" == 'BACKUP' ]]; then # all domains, all time steps
     local FINAL="static.tgz wrfconst_d??.nc wrfrst_d??_* *_pyWPS.tgz *_real.tgz *_wrf.tgz *_logs.tgz" # put configuration files, all logs, and restart files into one archive
@@ -388,12 +388,12 @@ function PROCESSDATASET () {
       FINAL="${FINAL} wrfconst_d0${D}.nc wrfrst_d0${D}_${DATESTR} wrfconst_d0${D}"
     done # $DOMAINS
   elif [[ "${DATASET}" == 'MarcIO' ]] && [[ "${MODE}" == 'RETRIEVE' ]]; then      
-	# Marc's special archvie stream (MarcIO) (all domains in one file)
-	local MARCIO='' # construct file list using a loop over domain indicies
-	for D in $( echo "${DOMAINS}" | fold --width=1 ); do
-	  MARCIO="${MARCIO} wrfxtrm_d0${D}_${DATESTR}_??[:_]??[:_]??*"
-	  # N.B.: restart files were omitted, because thei are large and are usually retrieved individually (manually)
-	done # $DOMAINS
+  	# Marc's special archvie stream (MarcIO) (all domains in one file)
+  	local MARCIO='' # construct file list using a loop over domain indicies
+  	for D in $( echo "${DOMAINS}" | fold --width=1 ); do
+  	  MARCIO="${MARCIO} wrfxtrm_d0${D}_${DATESTR}_??[:_]??[:_]??*"
+  	  # N.B.: restart files were omitted, because thei are large and are usually retrieved individually (manually)
+  	done # $DOMAINS
   else
     ## select datasets and logs
     # logs and static data
@@ -488,7 +488,7 @@ function PROCESSDATASET () {
 	echo '  Pressure level and surface fields, log files (all domains):' # short description of archive
 	"${MODE}HTAR" "wrfdiags_${DATENAME}.tar" "${DIAGS} ${LOGS}"
 	ERR=$(( ${ERR} + $? )) # returns the number of missing files as exit code
-  fi; if [[ -n "${MarcIO}" ]]; then
+  fi; if [[ -n "${MARCIO}" ]]; then
 	echo " Marc's special archive files (MarcIO) (all domains):" # short description of archive
 	"${MODE}HTAR" "wrfmarcIO_${DATENAME}.tar" "${MARCIO}"
 	ERR=$(( ${ERR} + $? )) # returns the number of missing files as exit code
