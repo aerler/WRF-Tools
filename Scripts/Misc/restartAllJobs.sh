@@ -30,9 +30,19 @@ function CHECK {
             if [[ -f "${INIDIR}/${NEXTSTEP}/run_cycling_WPS.pbs" ]]; then NOWPS='NOWPS' 
             else NOWPS='FALSE'; fi          
             # check, if experiment is active (if some run folder exist)
-            if [[ -n "${CURRENTSTEP}" ]]; then
+            if [[ ! -f "${MAC}" ]]; then
+              echo "Experiment ${E} in this folder does not appear to run on machine ${MAC} - not restarting."
+            elif [[ -n "${CURRENTSTEP}" ]]; then
               # check, if we need to run WPS and start sleeper job
               if [[ -f "${INIDIR}/${CURRENTSTEP}/run_cycling_WPS.pbs" ]]; then
+                # put in restart links
+                for DOM in {1..9}; do
+                  RST="${INIDIR}/wrfout/wrfrst_d0${DOM}_${CURRENTSTEP}"
+                  ls "${RST}"*  &> /dev/null
+                  if [ $? == 0 ] # check if restart file for DOM exists
+                  then ln -sf $( ls "${RST}"* | head -n 1 ) "${INIDIR}/${CURRENTSTEP}/"; fi
+                  # N.B.: creates a link to the first restart file that matches
+                done # loop over domains
 				        echo "Restarting ${E} on ${MAC}!"				  
                 echo "   NEXTSTEP=${CURRENTSTEP}; NOWPS=${NOWPS}"
                 # clean up a bit
