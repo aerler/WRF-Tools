@@ -78,7 +78,7 @@ if [[ "${RESTART}" == 'RESTART' ]]; then # restart
   # link restart files
   [ $VERBOSITY -gt 0 ] && echo "Linking restart files to next working directory:"
   [ $VERBOSITY -gt 0 ] && echo "${NEXTDIR}"
-  for RST in "${WRFOUT}"/wrfrst_d??_"${RSTDATE}"; do
+  for RST in "${WRFOUT}"/wrfrst_d??_"${RSTDATE//:/[_:]}"; do # match hh:mm:ss and hh_mm_ss
     ln -sf "${RST}" 
     [ $VERBOSITY -gt 0 ] && echo  "${RST}"
   done

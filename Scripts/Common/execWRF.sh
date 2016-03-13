@@ -200,15 +200,15 @@ if [[ ${RUNWRF} == 1 ]]
     # copy/move data to output directory (hard disk) if necessary
     if [[ ! "${WRFDIR}" == "${WRFOUT}" ]]; then
 	# move new restart files as well
-	for RESTART in "${WORKDIR}"/wrfrst_d??_????-??-??_??:??:??; do
+	for RESTART in "${WORKDIR}"/wrfrst_d??_????-??-??_??[_:]??[_:]??; do
 	    if [[ ! -h "${RESTART}" ]]; then
-		mv "${RESTART}" "${RSTDIR}" # defaults to $WRFOUT
+		    mv "${RESTART}" "${RSTDIR}" # defaults to $WRFOUT
 	    fi # if not a link itself
 	done
 	echo "Moving data (*.nc) and log-files (*.tgz) to ${WRFOUT}"
 	# time -p mv wrfout_d??_* "${WRFOUT}"}"
 	mv wrfconst_d??.nc "${WRFOUT}" # this one doesn't have a date string
-	mv wrf*_d??_????-??-??_??:??:??.nc "${WRFOUT}" # otherwise identify output files by date string
+	mv wrf*_d??_????-??-??_??[_:]??[_:]??.nc "${WRFOUT}" # otherwise identify output files by date string
 	# N.B.: I don't know how to avoid the error message cause by the restart-symlinks...
 	# copy all log files (including WPS) to wrf output
 	mv "${WORKDIR}"/*.tgz "${WRFOUT}"
