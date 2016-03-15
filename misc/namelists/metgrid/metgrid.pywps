@@ -1,5 +1,6 @@
 &metgrid
- fg_name = 'FILE'
- io_form_metgrid = 2, 
- opt_metgrid_tbl_path = 'meta/'
+ fg_name = 'FILE' ! pyWPS convention
+ io_form_metgrid = 2, ! NetCDF
+ opt_metgrid_tbl_path = 'meta/', ! pyWPS convention
+ process_only_bdy = 10, ! has to be the same as spec_bdy_width in namelsit.input
 / 

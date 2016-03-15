@@ -146,32 +146,40 @@ if [[ ${RUNREAL} == 1 ]]
     echo
 
     # copy namelist and link to real.exe into working directory
+    cd "${WORKDIR}"
     cp -P "${BINDIR}/real.exe" "${WORKDIR}" # link to executable real.exe
     cp ${NOCLOBBER} "${INIDIR}/namelist.input" "${WORKDIR}" # copy namelists
     # N.B.: this is necessary so that already existing files in $WORKDIR are used
 
     # resolve working directory for real.exe
     if [[ ${RAMOUT} == 1 ]]; then
-	REALDIR="${RAMDATA}" # write data to RAM and copy to HD later
+	    REALDIR="${RAMDATA}" # write data to RAM and copy to HD later
     else
-	REALDIR="${REALOUT}" # write data directly to hard disk
+	    REALDIR="${REALOUT}" # write data directly to hard disk
     fi
     # specific environment for real.exe
     mkdir -p "${REALOUT}" # make sure data destination folder exists
     # copy namelist and link to real.exe into actual working directory
-    if [[ ! "${REALDIR}" == "${WORKDIR}" ]]; then
-	cp -P "${WORKDIR}/real.exe" "${REALDIR}" # link to executable real.exe
-	cp "${WORKDIR}/namelist.input" "${REALDIR}" # copy namelists
+    if [[ "${REALDIR}" == "${WORKDIR}" ]]; then
+	    cp "${WORKDIR}/namelist.input" "${WORKDIR}/namelist.input.backup" # backup-copy of namelists
+      # N.B.: the namelist for real is modified in-palce, hence the backup is necessary
+     else
+	    cp -P "${WORKDIR}/real.exe" "${REALDIR}" # link to executable real.exe
+	    cp "${WORKDIR}/namelist.input" "${REALDIR}" # copy namelists
     fi
 
     # change input directory in namelist.input
     cd "${REALDIR}" # so that output is written here
-    sed -i '/.*auxinput1_inname.*/d' namelist.input # remove and input directories
+    if [[ -n "$( grep 'nocolon' namelist.input )" ]]; then
+      echo "\nNamelist option 'nocolon' is not supported by PyWPS - removing option for real.exe.\n" 
+      sed -i '/.*nocolon.*/d' namelist.input # remove from temporary namelist
+    fi # if nocolon
+    sed -i '/.*auxinput1_inname.*/d' namelist.input # remove from namelist and add actual input directory
     if [[ ${RAMIN} == 1 ]]; then
-	sed -i '/\&time_control/ a\ auxinput1_inname = "'"${RAMDATA}"'/met_em.d<domain>.<date>"' namelist.input
+	    sed -i '/\&time_control/ a\ auxinput1_inname = "'"${RAMDATA}"'/met_em.d<domain>.<date>"' namelist.input
     else
-        ln -sf "${REALIN}" "${REALTMP}" # temporary link to metgrid data, if path is too long for real.exe
-	sed -i '/\&time_control/ a\ auxinput1_inname = "'"${REALTMP}"'/met_em.d<domain>.<date>"' namelist.input
+      ln -sf "${REALIN}" "${REALTMP}" # temporary link to metgrid data, if path is too long for real.exe
+	    sed -i '/\&time_control/ a\ auxinput1_inname = "'"${REALTMP}"'/met_em.d<domain>.<date>"' namelist.input
     fi
 
     ## run and time hybrid (mpi/openmp) job
@@ -194,17 +202,19 @@ if [[ ${RUNREAL} == 1 ]]
     fi
 
     # clean-up and move output to hard disk
-    if [[ "${REALDIR}" == "${WORKDIR}" ]]; then rm -rf "${WORKDIR}/${REALLOG}"; fi # remove existing logs, just in case
     if [[ ${RAMIN} != 1 ]]; then rm "${REALTMP}"; fi # remove temporary link to metgrid data
+    rm -rf "${WORKDIR}/${REALLOG}" # remove existing logs, just in case
     mkdir -p "${REALLOG}" # make folder for log files locally
-    #cd "${REALDIR}"
+    #cd "${REALDIR}" # still in $REALDIR
     # save log files and meta data
     mv rsl.*.???? namelist.output "${REALLOG}"
     cp -P namelist.input real.exe "${REALLOG}" # leave namelist in place
     tar cf - "${REALLOG}" | gzip > ${REALTGZ} # archive logs with data (pipe necessary for AIX compatibility)
-    if [[ "${REALDIR}" != "${WORKDIR}" ]]; then
-	rm -rf "${WORKDIR}/${REALLOG}" # remove existing logs, just in case
-	mv "${REALLOG}" "${WORKDIR}" # move log folder to working directory
+    if [[ "${REALDIR}" == "${WORKDIR}" ]]; then
+	    cp "${WORKDIR}/namelist.input.backup" "${WORKDIR}/namelist.input" # restore original namelist
+      # N.B.: the namelist for real is modified in-palce, hence the backup is necessary
+    else
+    	mv "${REALLOG}" "${WORKDIR}" # move log folder to working directory
     fi
     # copy/move date to output directory (hard disk) if necessary
     if [[ ! "${REALDIR}" == "${REALOUT}" ]]; then

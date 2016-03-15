@@ -167,7 +167,8 @@ domains = domains or [1,2,3,4]
 # filetypes and domains can also be set in an semi-colon-separated environment variable (see above)
 # file pattern (WRF output and averaged files)
 # inputpattern = 'wrf{0:s}_d{1:02d}_{2:s}-{3:s}-{4:s}_\d\d:\d\d:\d\d.nc' # expanded with format(type,domain,year,month) 
-inputpattern = '^wrf{0:s}_d{1:s}_{2:s}_\d\d[_:]\d\d[_:]\d\d(?:\.nc$|$)' # expanded with format(type,domain,datestring)
+#inputpattern = '^wrf{0:s}_d{1:s}_{2:s}_\d\d[_:]\d\d[_:]\d\d(?:\.nc$|$)' # expanded with format(type,domain,datestring)
+inputpattern = '^wrf{0:s}_d{1:s}_{2:s}_\d\d[_:]\d\d[_:]\d\d.*$' # expanded with format(type,domain,datestring)
 # N.B.: the last section (?:\.nc$|$) matches either .nc at the end or just the end of the string;
 #       ?: just means that the group defined by () can not be retrieved (it is just to hold "|") 
 constpattern = 'wrfconst_d{0:02d}' # expanded with format(domain), also WRF output
