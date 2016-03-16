@@ -18,8 +18,11 @@ elif [[ "${MODE}" == 'NOSTAT'* ]]; then
 elif [[ "${MODE}" == 'RESTART' ]]; then
   # restart run (no geogrid)
   RESTART='RESTART' # restart previously terminated run
-  NOGEO='NOGEO' # run without geogrid
   NOTAR='FALSE' # star static
+  # check if geogrid file for first domain is present
+  # (checking all is too complicated, because we don't know which)
+  if [ -f "${INIDIR}/geo_em.d01.nc" ]; then NOGEO='NOGEO' # run without geogrid
+  else NOGEO='FALSE'; fi # run with geogrid
 elif [[ "${MODE}" == 'CLEAN' ]] || [[ "${MODE}" == '' ]]; then
   # cold start with geogrid
   NOGEO='FALSE' # run with geogrid
