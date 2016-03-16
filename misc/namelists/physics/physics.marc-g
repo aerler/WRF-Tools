@@ -1,0 +1,32 @@
+&physics
+ mp_physics                          = 10, 10, 10,  
+ ra_lw_physics                       = 4,   4,   4, 
+ ra_sw_physics                       = 4,   4,   4,  
+ radt                                = 30,  30,  30,
+ sf_sfclay_physics                   = 5,   5,   5, 
+ sf_surface_physics                  = 2,   2,   2, 
+ sf_urban_physics                    = 0,   0,   0, 
+ bl_pbl_physics                      = 5,   5,   5, 
+ bldt                                = 0,   0,   0, 
+ cu_physics                          = 5,   5,   5, 
+ cudt                                = 0,   0,   0,
+ surface_input_source                = 1, ! could use CESM input
+ num_soil_layers                     = 4,
+ num_land_cat                        = 28, ! USGS+lake
+ num_soil_cat                        = 16,
+ usemonalb                           = .false., ! geogrid?
+ rdmaxalb                            = .false., ! geogrid?
+ rdlai2d                             = .false., ! CESM data could be used
+ seaice_threshold                    = 0.0,
+ sst_update                          = 1,
+ sst_skin                            = 1,
+ tmn_update                          = 1,
+ flake_update                        = 1,
+ tsk_flake                           = 1,
+ lake_depth_limit                    = 70,
+ lagday                              = 150,
+ fractional_seaice                   = 1,
+ bucket_mm                           = 100.,
+ bucket_J                            = 1e9,
+ seaice_thickness                    = 1,
+/
