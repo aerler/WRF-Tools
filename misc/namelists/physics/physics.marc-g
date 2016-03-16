@@ -28,5 +28,5 @@
  fractional_seaice                   = 1,
  bucket_mm                           = 100.,
  bucket_J                            = 1e9,
- seaice_thickness                    = 1,
+! seaice_thickness                    = 1,
 /

@@ -171,7 +171,7 @@ if [[ ${RUNREAL} == 1 ]]
     # change input directory in namelist.input
     cd "${REALDIR}" # so that output is written here
     if [[ -n "$( grep 'nocolon' namelist.input )" ]]; then
-      echo "\nNamelist option 'nocolon' is not supported by PyWPS - removing option for real.exe.\n" 
+      echo "Namelist option 'nocolon' is not supported by PyWPS - removing option for real.exe." 
       sed -i '/.*nocolon.*/d' namelist.input # remove from temporary namelist
     fi # if nocolon
     sed -i '/.*auxinput1_inname.*/d' namelist.input # remove from namelist and add actual input directory
