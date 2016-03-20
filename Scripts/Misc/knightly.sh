@@ -48,6 +48,14 @@ while true; do
   esac # case $@
 done # while getopts  
 
+
+## load configuration file
+echo "Sourcing experimental setup file (kconfig.sh)"
+source kconfig.sh
+
+#NODOWNLOAD='TRUE'
+#NOENSEMBLE='TRUE'
+
 ## check if we are already running
 if [ $( ps -A | grep -c ${0##*/} ) -gt 2 ]; then
   echo
@@ -60,16 +68,18 @@ if [ $( ps -A | grep -c ${0##*/} ) -gt 2 ]; then
 fi # if already running, exit
 
 # environment
-export GDAL_DATA='/usr/local/share/gdal' # for GDAL API
-CODE="${CODE:-/home/data/Code/}" # code root
-export PYTHONPATH="${CODE}/GeoPy/src/:${CODE}/WRF Tools/Python/" # my own modules...
+#export GDAL_DATA='/home/fengyi/codes/gdal/share/gdal' # for GDAL API
+#CODE="/home/fengyi/codes/" # code root
+#export PYTHONPATH="${CODE}/GeoPy/src/:${CODE}/WRF Tools/Python/"
+#export PYTHONPATH="${CODE}/gdal/lib/python2.7/site-packages/:$PYTHONPATH" # my own modules...
+#export PYTHONPATH="$/home/fengyi/anaconda2/:$PYTHONPATH"
 # scripts/executables
-PYTHON='/home/data/Enthought/EPD/' # path to Python home (do not export!)
-SCRIPTS="${CODE}/WRF Tools/Scripts/Misc/" # folder with all the scripts
-# data root directories
-export ROOT='/data-3/'
-export WRFDATA="${ROOT}/WRF/" # local WRF data root
-export CESMDATA="${ROOT}/CESM/" # local CESM data root
+#PYTHON='/home/fengyi/anaconda2' # path to Python home (do not export!)
+#SCRIPTS="${CODE}/WRF Tools/Scripts/Misc/" # folder with all the scripts
+## data root directories
+#export ROOT="/scratch/fengyi/data/"
+#export WRFDATA="${ROOT}/WRF/" # local WRF data root
+#export CESMDATA="${ROOT}/CESM/" # local CESM data root
 # general settings
 PYAVG_THREADS=${PYAVG_THREADS:-3} # prevent excessive heat...
 NICENESS=${NICENESS:-10}
@@ -104,40 +114,65 @@ if [[ "${NODOWNLOAD}" != 'TRUE' ]]
     # N.B.: the datamover connection needs to be established manually beforehand
     # Datasets
     export RESTORE=${RESTORE:-'FALSE'} # whether or not to invert dataset download
-    nice --adjustment=${NICENESS} "${SCRIPTS}/sync-datasets.sh" &> ${ROOT}/sync-datasets.log #2> ${ROOT}/sync-datasets.err # 2>&1
+    if [[ "${NOLOGGING}" != 'TRUE' ]]
+      then
+        nice --adjustment=${NICENESS} "${SCRIPTS}/sync-datasets.sh" &> ${ROOT}/sync-datasets.log #2> ${ROOT}/sync-datasets.err # 2>&1
+      else
+        nice --adjustment=${NICENESS} "${SCRIPTS}/sync-datasets.sh"
+    fi
     REPORT $? 'Dataset/Obs Synchronization' 
     # WRF
-    nice --adjustment=${NICENESS} "${SCRIPTS}/sync-wrf.sh" &> ${WRFDATA}/sync-wrf.log #2> ${WRFDATA}/sync-wrf.err # 2>&1
+    if [[ "${NOLOGGING}" != 'TRUE' ]]
+      then
+        nice --adjustment=${NICENESS} "${SCRIPTS}/sync-wrf.sh" &> ${WRFDATA}/sync-wrf.log #2> ${WRFDATA}/sync-wrf.err # 2>&1
+      else
+        nice --adjustment=${NICENESS} "${SCRIPTS}/sync-wrf.sh"
+    fi
     REPORT $? 'WRF Synchronization'  
     # CESM
-    nice --adjustment=${NICENESS} "${SCRIPTS}/sync-cesm.sh" &> ${CESMDATA}/sync-cesm.log #2> ${CESMDATA}/sync-cesm.err # 2>&1
+    if [[ "${NOLOGGING}" != 'TRUE' ]]
+      then
+        nice --adjustment=${NICENESS} "${SCRIPTS}/sync-cesm.sh" &> ${CESMDATA}/sync-cesm.log #2> ${CESMDATA}/sync-cesm.err # 2>&1
+      else
+        nice --adjustment=${NICENESS} "${SCRIPTS}/sync-cesm.sh"
+    fi
     REPORT $? 'CESM Synchronization' 
 fi # if no-download
 
 if [[ "${NOCOMPUTE}" != 'TRUE' ]]
   then
-    
+    # echo 'skipping exsts.py and wrfavg.py' 
     # N.B.: station extraction runs concurrently with averaging/regridding, because it is I/O limited,
     #       while the other two are CPU limited - easy load balancing
             
-    ## extract station data (all datasets)
+    # extract station data (all datasets)
     export PYAVG_BATCH=${PYAVG_BATCH:-'BATCH'} # run in batch mode - this should not be changed
     export PYAVG_THREADS=${PYAVG_EXTNP:-1} # parallel execution
     export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
     export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
-    nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/GeoPy/src/processing/exstns.py" \
-      &> ${ROOT}/exstns.log & # 2> ${ROOT}/exstns.err
-    PID=$! # save PID of background process to use with wait 
+    if [[ "${NOLOGGING}" != 'TRUE' ]]
+      then
+        nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/GeoPy/src/processing/exstns.py" \
+          &> ${ROOT}/exstns.log & # 2> ${ROOT}/exstns.err
+      else
+        nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/GeoPy/src/processing/exstns.py"
+    fi
+    #PID=$! # save PID of background process to use with wait 
     
-    ## run post-processing (update climatologies)
+    # run post-processing (update climatologies)
     # WRF
     export PYAVG_BATCH=${PYAVG_BATCH:-'BATCH'} # run in batch mode - this should not be changed
     export PYAVG_THREADS=${PYAVG_AVGNP:-3} # parallel execution
     export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
     export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
     #"${PYTHON}/bin/python" -c "print 'OK'" 1> ${WRFDATA}/wrfavg.log 2> ${WRFDATA}/wrfavg.err # for debugging
-	  nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/GeoPy/src/processing/wrfavg.py" \
-	    &> ${WRFDATA}/wrfavg.log #2> ${WRFDATA}/wrfavg.err
+    if [[ "${NOLOGGING}" != 'TRUE' ]]
+      then
+        nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/GeoPy/src/processing/wrfavg.py" \
+          &> ${WRFDATA}/wrfavg.log #2> ${WRFDATA}/wrfavg.err
+      else
+        nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/GeoPy/src/processing/wrfavg.py"
+    fi
     REPORT $? 'WRF Post-processing'
     
 fi # if no-compute
@@ -148,13 +183,23 @@ if [[ "${NOENSEMBLE}" != 'TRUE' ]]
     # WRF
     cd "${WRFDATA}/wrfavg/"
     for E in *ensemble*/; do 
-      nice --adjustment=${NICENESS} "${SCRIPTS}/ensembleAverage.sh" ${E} &> ${E}/ensembleAverage.log #2> ${E}/ensembleAverage.err
+      if [[ "${NOLOGGING}" != 'TRUE' ]]
+        then
+          nice --adjustment=${NICENESS} "${SCRIPTS}/ensembleAverage.sh" ${E} &> ${E}/ensembleAverage.log #2> ${E}/ensembleAverage.err
+        else
+          nice --adjustment=${NICENESS} "${SCRIPTS}/ensembleAverage.sh" ${E} 
+      fi
       REPORT $? "WRF Ensemble Average '${E}'"
     done
     # CESM
     cd "${CESMDATA}/cesmavg/"
     for E in ens*/; do 
-      nice --adjustment=${NICENESS} "${SCRIPTS}/ensembleAverage.sh" ${E} &> ${E}/ensembleAverage.log #2> ${E}/ensembleAverage.err
+      if [[ "${NOLOGGING}" != 'TRUE' ]]
+        then
+          nice --adjustment=${NICENESS} "${SCRIPTS}/ensembleAverage.sh" ${E} &> ${E}/ensembleAverage.log #2> ${E}/ensembleAverage.err
+        else
+          nice --adjustment=${NICENESS} "${SCRIPTS}/ensembleAverage.sh" ${E} 
+      fi
       REPORT $? "CESM Ensemble Average '${E}'"
     done
 fi # if no-download
@@ -171,20 +216,30 @@ if [[ "${NOCOMPUTE}" != 'TRUE' ]]
     export PYAVG_THREADS=${PYAVG_AVGNP:-3} # parallel execution
     export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
     export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
-	  nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/GeoPy/src/processing/shpavg.py" \
-	    &> ${ROOT}/shpavg.log #2> ${ROOT}/shpavg.err
+    if [[ "${NOLOGGING}" != 'TRUE' ]]
+      then
+        nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/GeoPy/src/processing/shpavg.py" \
+        &> ${ROOT}/shpavg.log #2> ${ROOT}/shpavg.err
+      else
+        nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/GeoPy/src/processing/shpavg.py" 
+    fi
     REPORT $? 'Regional/Shape Averaging'
     
-    ## run regridding (all datasets)
+    # run regridding (all datasets)
     # same settings as wrfavg...
     export PYAVG_BATCH=${PYAVG_BATCH:-'BATCH'} # run in batch mode - this should not be changed
     export PYAVG_THREADS=${PYAVG_AVGNP:-3} # parallel execution
     export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
     export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
-    nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/GeoPy/src/processing/regrid.py" \
-       &> ${ROOT}/regrid.log #2> ${ROOT}/regrid.err
+    if [[ "${NOLOGGING}" != 'TRUE' ]]
+      then
+        nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/GeoPy/src/processing/regrid.py" \
+        &> ${ROOT}/regrid.log #2> ${ROOT}/regrid.err
+      else
+        nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/GeoPy/src/processing/regrid.py"
+    fi
     REPORT $? 'Dataset Regridding'
-    
+     
     wait $PID # wait for station extraction to finish
     REPORT $? 'Station Data Extraction' # wait returns the exit status of the command it waited for
          

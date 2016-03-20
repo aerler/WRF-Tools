@@ -1,36 +1,40 @@
 #!/bin/bash
 # script to synchronize monthly means with SciNet
 
-# WRF downscaling roots
-WRFDATA="${WRFDATA:-/data/WRF/}" # should be supplied by caller
-WRFAVG="${WRFDATA}/wrfavg/"
+## load configuration file
+echo "Sourcing experimental setup file (xconfig.sh)"
+source kconfig.sh
+
+## WRF downscaling roots
+#WRFDATA="${WRFDATA:-/scratch/fengyi/data/WRF/}" # should be supplied by caller
+#WRFAVG="${WRFDATA}/wrfavg/"
 # data selection
 STATIC=${STATIC:-'STATIC'} # transfer static/constant data
 REX=${REX:-'*-*'} # regex defining experiments
 FILETYPES=${FILETYPES:-'wrf*_d0?_monthly.nc'} # regex defining averaged files
 if [[ "${FILETYPES}" == 'NONE' ]]; then FILETYPES=''; fi
-# connection settings
-if [[ "${HISPD}" == 'HISPD' ]]
-  then
-    # high-speed transfer: special identity/ssh key, batch mode, and connection sharing
-    SSH="-o BatchMode=yes -o ControlPath=${CESMDATA}/hispd-master-%l-%r@%h:%p -o ControlMaster=auto -o ControlPersist=1"
-    HOST='datamover' # defined in .ssh/config
-    CCA='/reserved1/p/peltier/aerler/WesternCanada /reserved1/p/peltier/aerler/GreatLakes'
-    INVERT='FALSE' # source has name first then folder type (like on SciNet)
-elif [[ "${HOST}" == 'komputer' ]]
-  then
-    # download from komputer instead of SciNet using sshfs connection
-    SSH="-o BatchMode=yes"
-    HOST='fskomputer' # defined in .ssh/config
-    CCA='/data/WRF/wrfavg/' # archives with my own cesmavg files
-    INVERT='INVERT' # invert name/folder order in source (i.e. like in target folder)
-else
-    # ssh settings for unattended nightly update: special identity/ssh key, batch mode, and connection sharing
-    SSH="-i /home/me/.ssh/rsync -o BatchMode=yes -o ControlPath=${CESMDATA}/master-%l-%r@%h:%p -o ControlMaster=auto -o ControlPersist=1"
-    HOST='aerler@login.scinet.utoronto.ca'
-    CCA='/reserved1/p/peltier/aerler/WesternCanada /reserved1/p/peltier/aerler/GreatLakes'
-    INVERT='FALSE' # source has name first then folder type (like on SciNet)
-fi # if high-speed
+## connection settings
+#if [[ "${HISPD}" == 'HISPD' ]]
+#  then
+#    # high-speed transfer: special identity/ssh key, batch mode, and connection sharing
+#    SSH="-o BatchMode=yes -o ControlPath=${CESMDATA}/hispd-master-%l-%r@%h:%p -o ControlMaster=auto -o ControlPersist=1"
+#    HOST='datamover' # defined in .ssh/config
+#    CCA='/reserved1/p/peltier/aerler/WesternCanada /reserved1/p/peltier/aerler/GreatLakes'
+#    INVERT='FALSE' # source has name first then folder type (like on SciNet)
+#elif [[ "${HOST}" == 'komputer' ]]
+#  then
+#    # download from komputer instead of SciNet using sshfs connection
+#    SSH="-o BatchMode=yes"
+#    HOST='fskomputer' # defined in .ssh/config
+#    CCA='/data/WRF/wrfavg/' # archives with my own cesmavg files
+#    INVERT='INVERT' # invert name/folder order in source (i.e. like in target folder)
+#else
+#    # ssh settings for unattended nightly update: special identity/ssh key, batch mode, and connection sharing
+#    SSH="-i /home/fengyi/.ssh/id_rsa -o BatchMode=yes" # -o ControlPath=${CESMDATA}/master-%l-%r@%h:%p -o ControlMaster=auto -o ControlPersist=1"
+#    HOST='fengyi@login.scinet.utoronto.ca'
+#    CCA='/scratch/p/peltier/fengyi/GLakes'
+#    INVERT='FALSE' # source has name first then folder type (like on SciNet)
+#fi # if high-speed
 
 echo
 echo
