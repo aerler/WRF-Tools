@@ -34,8 +34,8 @@ WRFDATA="${WRFDATA:-/data/WRF/}" # should be supplied by caller
 DST="${WRFDATA}/wrfavg/"
 # data selection
 STATIC=${STATIC:-'STATIC'} # transfer static/constant data
-REX=${REX:-'*-*'} # regex defining experiments
-FILETYPES=${FILETYPES:-'wrf*_d0?_monthly.nc'} # regex defining averaged files
+REX=${REX:-'*-*/'} # regex defining experiments
+FILETYPES=${FILETYPES:-'wrf*_d??_monthly.nc'} # regex defining averaged files
 if [[ "${FILETYPES}" == 'NONE' ]]; then FILETYPES=''; fi
 
 echo
@@ -58,7 +58,7 @@ for S in ${SUB}
   do
     WRFAVG="${DST}/${S}/" # recreate first level subfolder structure from source
     #cd "${WRFAVG}" # go to local data folder to expand regular expression (experiment list)
-    cd "${HOME}" # prevent shell expansion
+    cd "${HOME}" # prevent shell expansion of $REX (in for loop)
     D=''; for R in ${REX}; do D="${D} ${SRC}/${S}/${R}/"; done # assemble list of source folders
     echo "$D"
     for E in $( ssh ${SSH} ${HOST} "ls -d ${D}" ) # get folder listing from scinet
