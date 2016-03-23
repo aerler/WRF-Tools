@@ -124,17 +124,22 @@ if __name__ == '__main__':
   # load file
   ioconfig = fileinput.FileInput([ioconfigfile]) # apparently AIX doesn't like "mode='r'"
   # parse I/O config, define:
+  #  line      : line number in ioconfig file
   #  addrm     : operation (True: add, False: remove)
   #  iotype    : I/O stream type (i, r, h)
   #  ioid      : I/O stream ID (0-9, {10}-{23})
   #  variables : List of variables affected by the operation
+  #  counts    : Number of operations for each variable
   entryno = 0
   entrylist = []
+  lineno = 0
   for line in ioconfig:
+    lineno += 1
     # check that this is not a comment line
     if (line != '\n') and ('#' not in line):
       entryno += 1     
       tmpdict = dict() # dictionary of parameters 
+      tmpdict['line'] = lineno # with line number as first parameter
       if ldebug:
         print('') 
         print('Reading I/O config Entry # '+str(entryno))
@@ -186,13 +191,17 @@ if __name__ == '__main__':
       # save in dictionary
       tmpdict['ioid'] = ioid
       # list of variables
-      variables = tokens[3].lower().split(',')
+      variables = [var for var in tokens[3].lower().split(',') if len(var) > 0]
       if ldebug: 
         feedback = feedback + ':\n   ' + variables[0]
         for variable in variables[1:]:
           feedback += ', ' + variable
       # save in dictionary
       tmpdict['variables'] = variables
+      # dictionary with counters
+      counts = {var:0 for var in variables} # initialize with zero
+      # save in dictionary
+      tmpdict['counts'] = counts
       # print feedback (tell user what we are doing)
       if err == 0:
         if ldebug: print(feedback)
@@ -209,15 +218,17 @@ if __name__ == '__main__':
   print('      ***   ***   ***   ***   ***   ***   ***   ***   ')
   print('')
 
-#      # debugging output
-#      if ldebug:
-#        print
-#        print 'Debugging Info:'
-#        print addrm
-#        print iotype
-#        print ioid
-#        print variables
-#        print
+  # debugging output
+  #if ldebug:
+  #  print('')
+  #  print('Debugging Info:')
+  #  print(lineno)
+  #  print(addrm)
+  #  print(iotype)
+  #  print(ioid)
+  #  print(variables)
+  #  print(counts)
+  #  print('')
   
   ## make backup copy is not already there
   if not os.path.exists(oldregfolder):
@@ -247,16 +258,18 @@ if __name__ == '__main__':
         shutil.copy(oldregfolder+oldregfile, newregfolder+newregfile)
       
       ## loop over I/O config entries
-      entryno = 0 # list of changes per entry  
+      entryno = 0 # I/O entry counter
       for entry in entrylist:
         entryno += 1
         # open with fileinput for editing
         registry = fileinput.FileInput([newregfolder+newregfile], inplace=True) # apparently AIX doesn't like "mode='r'"
         # regurgitate parameter values
+        entryline = entry['line'] # line number of entry, for reference
         addrm = entry['addrm'] # operation (True: add, False: remove)
         iotype = entry['iotype'] # I/O stream type (i, r, h)
         ioid = entry['ioid'] # I/O stream ID (0-9, {10}-{23})
         variables = entry['variables'] # List of variables affected by the operation
+        counts = entry['counts'] # dict with counters for variables, initialized to 0
         # save list of changes
         if ldebug: changelog = []
         # loop over lines
@@ -291,6 +304,7 @@ if __name__ == '__main__':
                 for var in variables:
                   # search for variable name in 3rd field (all lower case)
                   if tokens[mode].lower() == var.lower():
+                    counts[var] += 1 # count operations per variables
                     oldiostr = tokens[7].lower()
                     ## here comes the editing of the actual I/O string
                     newiostr = processIOstream(oldiostr, addrm, iotype, ioid)
@@ -314,15 +328,32 @@ if __name__ == '__main__':
   
         # close WRF registry file
         fileinput.close()
+        entry['counts'] = counts # save updated counts
       
         # print debugging info / change-log
         if ldebug:
           print('')
-          print('Processed I/O config Entry # '+str(entryno))
+          print('Processed I/O config Entry #{:d} (line {:d})'.format(entryno,entryline))
           print('  Log of changes:')
           if len(changelog) == 0:
             print('   no changes')
           else:
             for line in changelog:
               print('   '+line)
+          print('')
+          for var,cnt in counts.iteritems():
+              if cnt == 0: print('    {:s} not found/used'.format(var))
       
+  # print summary
+  print('')
+  entryno = 0 # I/O entry counter
+  for entry in entrylist:
+    entryno += 1
+    #print('')
+    if entry['addrm']:
+      # loop over variables
+      for var,cnt in entry['counts'].iteritems():
+          if cnt == 0 : print('\n    {:s} not found/used in entry #{:d}, line {:d}'.format(var,entryno,entry['line']))
+  print('')
+
+
