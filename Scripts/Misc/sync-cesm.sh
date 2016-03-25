@@ -58,7 +58,10 @@ ERR=0
 
 # generate list of experiments
 cd "${CESMDATA}/cesmavg/" # go to data folder to expand regular expression
+set -f # deactivate shell expansion of globbing expressions for $REX in for loop
 D=''; for R in ${REX}; do D="${D} ${CCA}/${R}"; done # assemble list of source folders
+echo "$D"
+set +f # reactivate shell expansion of globbing expressions
 # loop over all relevant experiments
 for E in $( ssh ${SSH} ${HOST} "ls -d ${D}" ) # get folder listing from scinet
   do 

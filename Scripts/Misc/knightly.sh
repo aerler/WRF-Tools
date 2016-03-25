@@ -147,7 +147,7 @@ if [[ "${NOENSEMBLE}" != 'TRUE' ]]
     ## compute ensemble averages
     # WRF
     cd "${WRFDATA}/wrfavg/"
-    for E in *ensemble*/; do 
+    for E in */*ensemble*/; do 
       nice --adjustment=${NICENESS} "${SCRIPTS}/ensembleAverage.sh" ${E} &> ${E}/ensembleAverage.log #2> ${E}/ensembleAverage.err
       REPORT $? "WRF Ensemble Average '${E}'"
     done

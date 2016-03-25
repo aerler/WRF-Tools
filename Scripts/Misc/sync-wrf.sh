@@ -58,9 +58,10 @@ for S in ${SUB}
   do
     WRFAVG="${DST}/${S}/" # recreate first level subfolder structure from source
     #cd "${WRFAVG}" # go to local data folder to expand regular expression (experiment list)
-    cd "${HOME}" # prevent shell expansion of $REX (in for loop)
+    set -f # deactivate shell expansion of globbing expressions for $REX in for loop
     D=''; for R in ${REX}; do D="${D} ${SRC}/${S}/${R}/"; done # assemble list of source folders
     echo "$D"
+    set +f # reactivate shell expansion of globbing expressions
     for E in $( ssh ${SSH} ${HOST} "ls -d ${D}" ) # get folder listing from scinet
       do 
         E=${E%/} # necessary for subsequent step (see below)
