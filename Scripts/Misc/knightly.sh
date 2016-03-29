@@ -153,7 +153,7 @@ if [[ "${NOENSEMBLE}" != 'TRUE' ]]
     done
     # CESM
     cd "${CESMDATA}/cesmavg/"
-    for E in ens*/; do 
+    for E in *ens*/; do 
       nice --adjustment=${NICENESS} "${SCRIPTS}/ensembleAverage.sh" ${E} &> ${E}/ensembleAverage.log #2> ${E}/ensembleAverage.err
       REPORT $? "CESM Ensemble Average '${E}'"
     done

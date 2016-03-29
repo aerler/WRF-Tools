@@ -75,6 +75,7 @@ for S in ${SUB}
           else E=${E%/${N}}; DIRAVG="${N}/wrfavg"; DIROUT="${N}/wrfout" # SciNet
         fi # if $INVERT
         # loop over file types
+        set -f # deactivate shell expansion of globbing expressions for $FILETYPES in for loop
         for FILETYPE in ${FILETYPES}
           do
             F="${E}/${DIRAVG}/${FILETYPE}" # monthly means
@@ -91,6 +92,7 @@ for S in ${SUB}
               [ $? -gt 0 ] && ERR=$(( $ERR + 1 )) # capture exit code
             fi # if ls scinet
         done # for $FILETYPES
+        set +f # reactivate shell expansion of globbing expressions
         if [[ "${STATIC}" == 'STATIC' ]]; then
           # transfer constants files
           G="${E}/${DIROUT}/wrfconst_d0?.nc" # constants files

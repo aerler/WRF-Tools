@@ -80,6 +80,7 @@ for E in $( ssh ${SSH} ${HOST} "ls -d ${D}" ) # get folder listing from scinet
     if [[ "${INVERT}" == 'INVERT' ]]; then DIR="cesmavg/${N}" # komputer
     else DIR="${N}/cesmavg"; fi # SciNet
     # loop over file types
+    set -f # deactivate shell expansion of globbing expressions for $FILETYPES in for loop
     for FILETYPE in ${FILETYPES}
       do
         F="${E}/${DIR}/${FILETYPE}"
@@ -98,7 +99,8 @@ for E in $( ssh ${SSH} ${HOST} "ls -d ${D}" ) # get folder listing from scinet
             echo
         fi # if ls scinet
     done # loop over FILETYPES
-        
+    set +f # reactivate shell expansion of globbing expressions
+    
     ## synchronize AMWG & CVDP dignostic files
     # loop over all relevant experiments (same list of source folders)
     for ANA in ${DIAGS}
