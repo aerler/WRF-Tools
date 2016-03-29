@@ -13,8 +13,8 @@ CLIMFILES='*clim*.nc' # regular expression defining the files to be averaged
 # get ensemble name and folder, first argument
 TMP="$1"; TMP="${TMP%/}" # cut trailing slash
 # name of the ensemble average
-ENSAVG="${ENSAVG##*/}" # just the name, no folders
-ROOTDIR="${ENSAVG%%/*}/" # cut of ensemble name
+ENSAVG="${TMP##*/}" # just the name, no folders
+ROOTDIR="${TMP%%/*}/" # cut of ensemble name
 if [[ "$ROOTDIR" != '/'*  ]]; then ROOTDIR="$PWD/$ROOTDIR"; fi # add present working directory, if necessary
 ENSDIR="$ROOTDIR/$ENSAVG/" # destination folder
 MASTER=$(cat "$ENSDIR/members.txt" | head -n 1) # to get file list
