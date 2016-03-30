@@ -93,7 +93,7 @@ for E in $( ssh ${SSH} ${HOST} "ls -d ${D}" ) # get folder listing from scinet
             mkdir -p "${M}" # make sure directory is there
             echo "${N}" # feedback
             # use rsync for the transfer; verbose, archive, update (gzip is probably not necessary)
-            rsync -vau -e "ssh ${SSH}" "${HOST}:${F}" ${M}/ 
+            rsync -vau --copy-unsafe-links -e "ssh ${SSH}" "${HOST}:${F}" ${M}/ 
             [ $? -gt 0 ] && ERR=$(( $ERR + 1 )) # capture exit code
             # N.B.: with connection sharing, repeating connection attempts is not really necessary
             echo
@@ -119,7 +119,7 @@ for E in $( ssh ${SSH} ${HOST} "ls -d ${D}" ) # get folder listing from scinet
             mkdir -p "${M}" # make sure directory is there
             #echo "${N}" # feedback
             # use rsync for the transfer; verbose, archive, update (gzip is probably not necessary)
-            rsync -vau -e "ssh ${SSH}" "${HOST}:${F}" "${M}/"
+            rsync -vau --copy-unsafe-links -e "ssh ${SSH}" "${HOST}:${F}" "${M}/"
             [ $? -gt 0 ] && ERR=$(( $ERR + 1 )) # capture exit code
             # N.B.: with connection sharing, repeating connection attempts is not really necessary
             # extract tarball, if file was updated
@@ -185,7 +185,7 @@ for E in $( ssh ${SSH} ${HOST} "ls -d ${D}" ) # get folder listing from scinet
         mkdir -p "${M}" # make sure directory is there
         echo "${N}" # feedback
         # use rsync for the transfer; verbose, archive, update (gzip is probably not necessary)
-        rsync -vau -e "ssh ${SSH}" "${HOST}:${F}" "${M}/"
+        rsync -vau --copy-unsafe-links -e "ssh ${SSH}" "${HOST}:${F}" "${M}/"
         [ $? -gt 0 ] && ERR=$(( $ERR + 1 )) # capture exit code
         # N.B.: with connection sharing, repeating connection attempts is not really necessary
         # extract tarball, if file was updated
@@ -240,7 +240,7 @@ if [[ "${INVERT}" != 'INVERT' ]] # only update to SciNet
                 echo "${E}/" # feedback
                 M="${E}/"
                 # use rsync for the transfer; verbose, archive, update (gzip is probably not necessary)
-                rsync -vau -e "ssh ${SSH}" "${HOST}:${F}" "${M}/" # from here to SciNet 
+                rsync -vau --copy-unsafe-links -e "ssh ${SSH}" "${HOST}:${F}" "${M}/" # from here to SciNet 
                 [ $? -gt 0 ] && ERR=$(( $ERR + 1 )) # capture exit code
                 # N.B.: with connection sharing, repeating connection attempts is not really necessary
                 echo
@@ -255,7 +255,7 @@ if [[ "${INVERT}" != 'INVERT' ]] # only update to SciNet
                 ssh ${SSH} ${HOST} "mkdir -p '${M}'" # make sure remote directory exists
                 echo "${E}/" # feedback
                 # use rsync for the transfer; verbose, archive, update (gzip is probably not necessary)
-                rsync -vau -e "ssh ${SSH}" ${F} "${HOST}:${M}/" # from here to SciNet 
+                rsync -vau --copy-unsafe-links -e "ssh ${SSH}" ${F} "${HOST}:${M}/" # from here to SciNet 
                 [ $? -gt 0 ] && ERR=$(( $ERR + 1 )) # capture exit code
                 # N.B.: with connection sharing, repeating connection attempts is not really necessary
                 echo
