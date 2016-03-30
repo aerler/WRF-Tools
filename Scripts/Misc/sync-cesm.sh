@@ -128,7 +128,7 @@ for E in $( ssh ${SSH} ${HOST} "ls -d ${D}" ) # get folder listing from scinet
               then
                 cd "${M}" # tar extracts into the current directory
                 for TB in "${M}"/*.tgz; do
-                    T=${TB%.tar} # get folder name (no .tar)
+                    T=${TB%.tgz} # get folder name (no extension)
                     if [[ ! -e "${T}/" ]]; then
                         echo "Extracting diagnostic tarball (${ANA}): ${TB}"
                         tar xzf "${TB}"
