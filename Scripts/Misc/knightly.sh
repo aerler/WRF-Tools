@@ -8,7 +8,7 @@
 
 # pre-process arguments using getopt
 if [ -z $( getopt -T ) ]; then
-  TMP=$( getopt -o e:a:tsrdn:h --long procs-exstns:,procs-avgreg:,test,highspeed,restore,debug,niceness:,from-home,overwrite,no-compute,no-download,no-ensemble,help -n "$0" -- "$@" ) # pre-process arguments
+  TMP=$( getopt -o e:a:tsrdn:h --long procs-exstns:,procs-avgreg:,test,highspeed,restore,debug,niceness:,config:,code-root:,data-root:,from-home,python:,overwrite,no-compute,no-download,no-ensemble,help -n "$0" -- "$@" ) # pre-process arguments
   [ $? != 0 ] && exit 1 # getopt already prints an error message
   eval set -- "$TMP" # reset positional parameters (arguments) to $TMP list
 fi # check if GNU getopt ("enhanced")
@@ -114,7 +114,7 @@ echo
 #       SSHMASTER, SSH, HOST, SRC, SUBDIR
 # some defaults for optional variables
 export WRFDATA="${WRFDATA:-"${DATA}/WRF/"}" # local WRF data root
-export CESMDATA="${WRFDATA:-"${DATA}/CESM/"}" # local CESM data root
+export CESMDATA="${CESMDATA:-"${DATA}/CESM/"}" # local CESM data root
 export HISPD="${HISPD:-'FALSE'}" # whether or not to use the high-speed datamover connection
 # N.B.: the datamover connection needs to be established manually beforehand
 export SSH="${SSH:-"-o BatchMode=yes -o ControlPath=${HOME}/master-%l-%r@%h:%p -o ControlMaster=auto -o ControlPersist=1"}" # default SSH options
@@ -128,7 +128,7 @@ if [[ "${NODOWNLOAD}" != 'TRUE' ]]
     # Datasets
     if [[ "${NOLOGGING}" != 'TRUE' ]]
       then
-        nice --adjustment=${NICENESS} "${SCRIPTS}/sync-datasets.sh" &> ${DATA}/sync-datasets.log #2> ${DATA}/sync-datasets.err # 2>&1
+        nice --adjustment=${NICENESS} "${SCRIPTS}/sync-datasets.sh" &> "${DATA}/sync-datasets.log" #2> ${DATA}/sync-datasets.err # 2>&1
       else
         nice --adjustment=${NICENESS} "${SCRIPTS}/sync-datasets.sh"
     fi # if logging

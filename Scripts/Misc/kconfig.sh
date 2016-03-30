@@ -9,8 +9,9 @@ NOENSEMBLE=''
 NOLOGGING=''
 
 # essential variables
-export CODE="${CODE:-"${HOME}/Code/"}" # code root (makes things easier)
-export DATA="${DATA:-'/data/'}" # root folder of data repository
+export CODE="${CODE:-${HOME}/Code/}" # code root (makes things easier)
+export DATA="${DATA:-/data/}" # root folder of data repository
+# N.B.: these two variables need to respect defaults, otherwise the variables can not be changed from the command line
 
 # some sensible defaults for Linux systems
 export GDAL_DATA='/usr/local/share/gdal' # for GDAL API
