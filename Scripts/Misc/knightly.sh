@@ -4,6 +4,7 @@
 # - compute/update and regrid climatologies
 # this script runs as a cron job every night
 # Andre R. Erler, July 2013, GPL v3
+# revised by Fengyi Xie and Andre R. Erler, March 2016, GPL v3
 
 # pre-process arguments using getopt
 if [ -z $( getopt -T ) ]; then

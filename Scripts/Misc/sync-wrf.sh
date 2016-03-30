@@ -1,5 +1,7 @@
 #!/bin/bash
 # script to synchronize WRF data with SciNet or other sources
+# Andre R. Erler, July 2013, GPL v3
+# revised by Fengyi Xie and Andre R. Erler, March 2016, GPL v3
 
 ## load settings
 echo

@@ -1,5 +1,6 @@
 #!/bin/bash
 # this is a sample configuration file for knightly.sh and associated scripts
+# Fengyi Xie and Andre R. Erler, March 2016, GPL v3
 
 # Environmental variable used by knightly.sh are defined here
 NODOWNLOAD=''
