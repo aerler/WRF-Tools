@@ -22,7 +22,11 @@ while true; do
     -r | --restore      )   RESTORE='RESTORE'; shift;;
     -d | --debug        )   PYAVG_DEBUG=DEBUG; shift;;
     -n | --niceness     )   NICENESS=$2; shift 2;;
+         --config       )   KCFG="$2"; shift 2;;
+         --code-root    )   CODE="$2"; shift 2;;
+         --data-root    )   DATA="$2"; shift 2;;
          --from-home    )   CODE="${HOME}/Code/"; shift;;
+         --python       )   PYTHON="$2"; shift 2;;
          --overwrite    )   PYAVG_OVERWRITE='OVERWRITE';  shift;;
          --no-compute   )   NOCOMPUTE='TRUE'; shift;;
          --no-download  )   NODOWNLOAD='TRUE'; shift;;
@@ -36,7 +40,12 @@ while true; do
     -r | --restore        inverts local and remote for datasets, so that they are restored\n\
     -d | --debug          print dataset information in Python modules and prefix results with 'test_' (default: False)\n\
     -n | --niceness       nicesness of the sub-processes (default: +5)\n\
-         --from-home      use code from user $HOME instead of default (/home/data/Code)\n\
+         --config         an alternative configuration file to source instead of kconfig.sh\n\
+                          (set to 'NONE' to inherit settings from parent environment)\n\
+         --code-root      alternative root folder for code base (WRF Tools & GeoPy)\n\
+         --data-root      root folder for data repository\n\
+         --from-home      use home directory as code root\n\
+         --python         use alternative Python executable\n\
          --overwrite      recompute all averages and regridding (default: False)\n\
          --no-compute     skips the computation steps except the ensemble means (skips all Python scripts)\n\
          --no-download    skips all downloads from SciNet\n\
@@ -49,6 +58,9 @@ while true; do
 done # while getopts  
 
 ## check if we are already running
+echo
+date
+echo
 if [ $( ps -A | grep -c ${0##*/} ) -gt 2 ]; then
   echo
   echo "An instance of '${0##*/}' already appears to be running --- aborting!"
@@ -59,27 +71,12 @@ if [ $( ps -A | grep -c ${0##*/} ) -gt 2 ]; then
   exit 1
 fi # if already running, exit
 
-# environment
-export GDAL_DATA='/usr/local/share/gdal' # for GDAL API
-CODE="${CODE:-/home/data/Code/}" # code root
-export PYTHONPATH="${CODE}/GeoPy/src/:${CODE}/WRF Tools/Python/" # my own modules...
-# scripts/executables
-PYTHON='/home/data/Enthought/EPD/' # path to Python home (do not export!)
-SCRIPTS="${CODE}/WRF Tools/Scripts/Misc/" # folder with all the scripts
-# data root directories
-export ROOT='/data-3/'
-export WRFDATA="${ROOT}/WRF/" # local WRF data root
-export CESMDATA="${ROOT}/CESM/" # local CESM data root
-# general settings
-PYAVG_THREADS=${PYAVG_THREADS:-3} # prevent excessive heat...
-NICENESS=${NICENESS:-10}
-
 ## error reporting
 ERR=0 # error counter
 # reporting function
 function REPORT {
   # function to record the number of errors and print feedback, 
-  # including exit codes when errors occured 
+  # including exit codes when errors occurred 
   EC=$1 # reported exit code
   CMD=$2 # command/operation that was executed
   # print feedback, depending on exit code
@@ -92,52 +89,100 @@ function REPORT {
   fi # if $EC == 0
 } # function REPORT 
 
-# start
+
+## set environment variables
+# N.B.: defaults and command line options will be overwritten by custom settings in config file
+# load custom configuration from file
+
 echo
-date
+if [[ "$KCFG" == "NONE" ]]; then
+    echo "Using configuration from parent environment (not sourcing)."
+elif [[ -z "$KCFG" ]]; then
+    echo "Sourcing configuration from default file: $PWD/kconfig.sh"
+    source kconfig.sh # default config file (in local directory)
+elif [[ -f "$KCFG" ]]; then 
+    echo "Sourcing configuration from alternative file: $KCFG"
+    source "$KCFG" # alternative config file
+else
+    echo "ERROR: no configuration file '$KCFG'"
+fi # if config file
+KFCG='NONE' # suppress sourcing in child processes
 echo
+# N.B.: The following variables need to be set:
+#       CODE, DATA, GDAL_DATA, SCRIPTS, PYTHON, PYTHONPATH, 
+#       SSHMASTER, SSH, HOST, SRC, SUBDIR
+# some defaults for optional variables
+export WRFDATA="${WRFDATA:-"${DATA}/WRF/"}" # local WRF data root
+export CESMDATA="${WRFDATA:-"${DATA}/CESM/"}" # local CESM data root
+export HISPD="${HISPD:-'FALSE'}" # whether or not to use the high-speed datamover connection
+# N.B.: the datamover connection needs to be established manually beforehand
+export SSH="${SSH:-"-o BatchMode=yes -o ControlPath=${HOME}/master-%l-%r@%h:%p -o ControlMaster=auto -o ControlPersist=1"}" # default SSH options
+export INVERT="${INVERT:-'FALSE'}" # source has experiment name first then folder type
+export RESTORE="${RESTORE:-'FALSE'}" # restore CESM data and other datasets from local repository (currently not implemented for WRF)
+NICENESS=${NICENESS:-10} # low priority, but not lowest
 
 if [[ "${NODOWNLOAD}" != 'TRUE' ]]
   then
     ## synchronize data with SciNet
-    export HISPD=${HISPD:-'FALSE'} # whether or not to use the high-speed datamover connection
-    # N.B.: the datamover connection needs to be established manually beforehand
     # Datasets
-    export RESTORE=${RESTORE:-'FALSE'} # whether or not to invert dataset download
-    nice --adjustment=${NICENESS} "${SCRIPTS}/sync-datasets.sh" &> ${ROOT}/sync-datasets.log #2> ${ROOT}/sync-datasets.err # 2>&1
+    if [[ "${NOLOGGING}" != 'TRUE' ]]
+      then
+        nice --adjustment=${NICENESS} "${SCRIPTS}/sync-datasets.sh" &> ${DATA}/sync-datasets.log #2> ${DATA}/sync-datasets.err # 2>&1
+      else
+        nice --adjustment=${NICENESS} "${SCRIPTS}/sync-datasets.sh"
+    fi # if logging
     REPORT $? 'Dataset/Obs Synchronization' 
     # WRF
-    nice --adjustment=${NICENESS} "${SCRIPTS}/sync-wrf.sh" &> ${WRFDATA}/sync-wrf.log #2> ${WRFDATA}/sync-wrf.err # 2>&1
+    if [[ "${NOLOGGING}" != 'TRUE' ]]
+      then
+        nice --adjustment=${NICENESS} "${SCRIPTS}/sync-wrf.sh" &> ${WRFDATA}/sync-wrf.log #2> ${WRFDATA}/sync-wrf.err # 2>&1
+      else
+        nice --adjustment=${NICENESS} "${SCRIPTS}/sync-wrf.sh"
+    fi # if logging
     REPORT $? 'WRF Synchronization'  
     # CESM
-    nice --adjustment=${NICENESS} "${SCRIPTS}/sync-cesm.sh" &> ${CESMDATA}/sync-cesm.log #2> ${CESMDATA}/sync-cesm.err # 2>&1
+    if [[ "${NOLOGGING}" != 'TRUE' ]]
+      then
+        nice --adjustment=${NICENESS} "${SCRIPTS}/sync-cesm.sh" &> ${CESMDATA}/sync-cesm.log #2> ${CESMDATA}/sync-cesm.err # 2>&1
+      else
+        nice --adjustment=${NICENESS} "${SCRIPTS}/sync-cesm.sh"
+    fi # if logging
     REPORT $? 'CESM Synchronization' 
 fi # if no-download
 
 if [[ "${NOCOMPUTE}" != 'TRUE' ]]
   then
-    
     # N.B.: station extraction runs concurrently with averaging/regridding, because it is I/O limited,
     #       while the other two are CPU limited - easy load balancing
             
-    ## extract station data (all datasets)
+    # extract station data (all datasets)
     export PYAVG_BATCH=${PYAVG_BATCH:-'BATCH'} # run in batch mode - this should not be changed
     export PYAVG_THREADS=${PYAVG_EXTNP:-1} # parallel execution
     export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
     export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
-    nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/GeoPy/src/processing/exstns.py" \
-      &> ${ROOT}/exstns.log & # 2> ${ROOT}/exstns.err
-    PID=$! # save PID of background process to use with wait 
+    if [[ "${NOLOGGING}" != 'TRUE' ]]
+      then
+        nice --adjustment=${NICENESS} "${PYTHON}" "${CODE}/GeoPy/src/processing/exstns.py" \
+          &> ${DATA}/exstns.log & # 2> ${DATA}/exstns.err
+      else
+        nice --adjustment=${NICENESS} "${PYTHON}" "${CODE}/GeoPy/src/processing/exstns.py"
+    fi # if logging
+    #PID=$! # save PID of background process to use with wait 
     
-    ## run post-processing (update climatologies)
+    # run post-processing (update climatologies)
     # WRF
     export PYAVG_BATCH=${PYAVG_BATCH:-'BATCH'} # run in batch mode - this should not be changed
     export PYAVG_THREADS=${PYAVG_AVGNP:-3} # parallel execution
     export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
     export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
-    #"${PYTHON}/bin/python" -c "print 'OK'" 1> ${WRFDATA}/wrfavg.log 2> ${WRFDATA}/wrfavg.err # for debugging
-	  nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/GeoPy/src/processing/wrfavg.py" \
-	    &> ${WRFDATA}/wrfavg.log #2> ${WRFDATA}/wrfavg.err
+    #"${PYTHON}" -c "print 'OK'" 1> ${WRFDATA}/wrfavg.log 2> ${WRFDATA}/wrfavg.err # for debugging
+    if [[ "${NOLOGGING}" != 'TRUE' ]]
+      then
+        nice --adjustment=${NICENESS} "${PYTHON}" "${CODE}/GeoPy/src/processing/wrfavg.py" \
+          &> ${WRFDATA}/wrfavg.log #2> ${WRFDATA}/wrfavg.err
+      else
+        nice --adjustment=${NICENESS} "${PYTHON}" "${CODE}/GeoPy/src/processing/wrfavg.py"
+    fi # if logging
     REPORT $? 'WRF Post-processing'
     
 fi # if no-compute
@@ -148,13 +193,23 @@ if [[ "${NOENSEMBLE}" != 'TRUE' ]]
     # WRF
     cd "${WRFDATA}/wrfavg/"
     for E in */*ensemble*/; do 
-      nice --adjustment=${NICENESS} "${SCRIPTS}/ensembleAverage.sh" ${E} &> ${E}/ensembleAverage.log #2> ${E}/ensembleAverage.err
+      if [[ "${NOLOGGING}" != 'TRUE' ]]
+        then
+          nice --adjustment=${NICENESS} "${SCRIPTS}/ensembleAverage.sh" ${E} &> ${E}/ensembleAverage.log #2> ${E}/ensembleAverage.err
+        else
+          nice --adjustment=${NICENESS} "${SCRIPTS}/ensembleAverage.sh" ${E} 
+      fi # if logging
       REPORT $? "WRF Ensemble Average '${E}'"
     done
     # CESM
     cd "${CESMDATA}/cesmavg/"
-    for E in ens*/; do 
-      nice --adjustment=${NICENESS} "${SCRIPTS}/ensembleAverage.sh" ${E} &> ${E}/ensembleAverage.log #2> ${E}/ensembleAverage.err
+    for E in *ens*/; do 
+      if [[ "${NOLOGGING}" != 'TRUE' ]]
+        then
+          nice --adjustment=${NICENESS} "${SCRIPTS}/ensembleAverage.sh" ${E} &> ${E}/ensembleAverage.log #2> ${E}/ensembleAverage.err
+        else
+          nice --adjustment=${NICENESS} "${SCRIPTS}/ensembleAverage.sh" ${E} 
+      fi # if logging
       REPORT $? "CESM Ensemble Average '${E}'"
     done
 fi # if no-download
@@ -171,20 +226,30 @@ if [[ "${NOCOMPUTE}" != 'TRUE' ]]
     export PYAVG_THREADS=${PYAVG_AVGNP:-3} # parallel execution
     export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
     export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
-	  nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/GeoPy/src/processing/shpavg.py" \
-	    &> ${ROOT}/shpavg.log #2> ${ROOT}/shpavg.err
+    if [[ "${NOLOGGING}" != 'TRUE' ]]
+      then
+        nice --adjustment=${NICENESS} "${PYTHON}" "${CODE}/GeoPy/src/processing/shpavg.py" \
+        &> ${DATA}/shpavg.log #2> ${DATA}/shpavg.err
+      else
+        nice --adjustment=${NICENESS} "${PYTHON}" "${CODE}/GeoPy/src/processing/shpavg.py" 
+    fi
     REPORT $? 'Regional/Shape Averaging'
     
-    ## run regridding (all datasets)
+    # run regridding (all datasets)
     # same settings as wrfavg...
     export PYAVG_BATCH=${PYAVG_BATCH:-'BATCH'} # run in batch mode - this should not be changed
     export PYAVG_THREADS=${PYAVG_AVGNP:-3} # parallel execution
     export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
     export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
-    nice --adjustment=${NICENESS} "${PYTHON}/bin/python" "${CODE}/GeoPy/src/processing/regrid.py" \
-       &> ${ROOT}/regrid.log #2> ${ROOT}/regrid.err
+    if [[ "${NOLOGGING}" != 'TRUE' ]]
+      then
+        nice --adjustment=${NICENESS} "${PYTHON}" "${CODE}/GeoPy/src/processing/regrid.py" \
+        &> ${DATA}/regrid.log #2> ${DATA}/regrid.err
+      else
+        nice --adjustment=${NICENESS} "${PYTHON}" "${CODE}/GeoPy/src/processing/regrid.py"
+    fi
     REPORT $? 'Dataset Regridding'
-    
+     
     wait $PID # wait for station extraction to finish
     REPORT $? 'Station Data Extraction' # wait returns the exit status of the command it waited for
          

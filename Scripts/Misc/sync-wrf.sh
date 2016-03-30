@@ -1,41 +1,29 @@
 #!/bin/bash
 # script to synchronize WRF data with SciNet or other sources
 
-## user specific settings
-SSHMASTER="${SSHMASTER:-${HOME}}" # should be supplied by caller
-# connection settings
-if [[ "${HOST}" == 'komputer' ]]
-  then
-    # download from komputer instead of SciNet using sshfs connection
-    SSH="-o BatchMode=yes"
-    HOST='fskomputer' # defined in .ssh/config
-    SRC='/data/WRF/wrfavg/' # archives with my own wrfavg files
-    SUB='WesternCanada GreatLakes'
-    INVERT='INVERT' # invert name/folder order in source (i.e. like in target folder)
-elif [[ "${HISPD}" == 'HISPD' ]]
-  then
-    # high-speed transfer: special identity/ssh key, batch mode, and connection sharing
-    SSH="-o BatchMode=yes -o ControlPath=${SSHMASTER}/hispd-master-%l-%r@%h:%p -o ControlMaster=auto -o ControlPersist=1"
-    HOST='datamover' # defined in .ssh/config
-    SRC='/reserved1/p/peltier/aerler/'
-    SUB='WesternCanada GreatLakes'
-    INVERT='FALSE' # source has name first then folder type (like on SciNet)
+## load settings
+echo
+if [[ "$KCFG" == "NONE" ]]; then
+    echo "Using configuration from parent environment (not sourcing)."
+elif [[ -z "$KCFG" ]]; then
+    echo "Sourcing configuration from default file: $PWD/kconfig.sh"
+    source kconfig.sh # default config file (in local directory)
+elif [[ -f "$KCFG" ]]; then 
+    echo "Sourcing configuration from alternative file: $KCFG"
+    source "$KCFG" # alternative config file
 else
-    # ssh settings for unattended nightly update: special identity/ssh key, batch mode, and connection sharing
-    SSH="-i /home/me/.ssh/rsync -o BatchMode=yes -o ControlPath=${SSHMASTER}/master-%l-%r@%h:%p -o ControlMaster=auto -o ControlPersist=1"
-    HOST='aerler@login.scinet.utoronto.ca'
-    SRC='/reserved1/p/peltier/aerler/'
-    SUB='WesternCanada GreatLakes'
-    INVERT='FALSE' # source has name first then folder type (like on SciNet)
-fi # if high-speed
-## settings with sensible defaults
-# WRF downscaling roots
-WRFDATA="${WRFDATA:-/data/WRF/}" # should be supplied by caller
-DST="${WRFDATA}/wrfavg/"
-# data selection
+    echo "ERROR: no configuration file '$KCFG'"
+fi # if config file
+echo
+# N.B.: the following variables need to be set in the parent environment or sourced from a config file
+#       HOST, SRC, SUBDIR, WRFDATA or DATA
+# some defaults for optional variables
+WRFDATA="${DATA}/WRF/" # local WRF data root
+SSH="${SSH:-"-o BatchMode=yes -o ControlPath=${HOME}/master-%l-%r@%h:%p -o ControlMaster=auto -o ControlPersist=1"}" # default SSH options
+INVERT="${INVERT:-'FALSE'}" # source has experiment name first then folder type
 STATIC=${STATIC:-'STATIC'} # transfer static/constant data
-REX=${REX:-'*-*/'} # regex defining experiments
-FILETYPES=${FILETYPES:-'wrf*_d??_monthly.nc'} # regex defining averaged files
+REX=${REX:-'*-*'} # regex defining experiments
+FILETYPES=${FILETYPES:-'wrf*_d0?_monthly.nc'} # regex defining averaged files
 if [[ "${FILETYPES}" == 'NONE' ]]; then FILETYPES=''; fi
 
 echo
@@ -54,7 +42,7 @@ echo
 
 # stuff on reserved and scratch
 ERR=0
-for S in ${SUB}
+for S in ${SUBDIR}
   do
     WRFAVG="${DST}/${S}/" # recreate first level subfolder structure from source
     #cd "${WRFAVG}" # go to local data folder to expand regular expression (experiment list)
