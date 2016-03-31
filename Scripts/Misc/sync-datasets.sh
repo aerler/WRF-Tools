@@ -39,10 +39,11 @@ for D in ${DATASETS}
     echo "   ***   ${D}   ***   "
     echo
     # use rsync for the transfer; verbose, archive, update, gzip
+    # N.B.: here gzip is used, because we are transferring entire directories with many uncompressed files
     if [[ "${RESTORE}" == 'RESTORE' ]]; then
       E="${REM}/${D}" # no trailing slash!
       # to restore from backup, local and remote are switched
-      time rsync -vauz -e "ssh ${SSH}"  "${HOST}:${E}" "${LOC}"
+      time rsync -vauz --copy-unsafe-links -e "ssh ${SSH}"  "${HOST}:${E}" "${LOC}"
     else
       E="${LOC}/${D}" # no trailing slash!
       time rsync -vauz -e "ssh ${SSH}"  "${E}" "${HOST}:${REM}"

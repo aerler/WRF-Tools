@@ -65,6 +65,7 @@ for S in ${SUBDIR}
           else E=${E%/${N}}; DIRAVG="${N}/wrfavg"; DIROUT="${N}/wrfout" # SciNet
         fi # if $INVERT
         # loop over file types
+        set -f # deactivate shell expansion of globbing expressions for $FILETYPES in for loop
         for FILETYPE in ${FILETYPES}
           do
             F="${E}/${DIRAVG}/${FILETYPE}" # monthly means
@@ -77,23 +78,24 @@ for S in ${SUBDIR}
               #echo "$N" # feedback
               # use rsync for the transfer; verbose, archive, update (gzip is probably not necessary)
               # N.B.: with connection sharing, repeating connection attempts is not really necessary
-              rsync -vau -e "ssh $SSH" "$HOST:$F" $M/ 
+              rsync -vau --copy-unsafe-links -e "ssh $SSH" "$HOST:$F" $M/ 
               [ $? -gt 0 ] && ERR=$(( $ERR + 1 )) # capture exit code
             fi # if ls scinet
         done # for $FILETYPES
+        set +f # reactivate shell expansion of globbing expressions
         if [[ "${STATIC}" == 'STATIC' ]]; then
           # transfer constants files
           G="${E}/${DIROUT}/wrfconst_d0?.nc" # constants files
           ssh $SSH $HOST "ls $G" &> /dev/null
           if [ $? == 0 ]; then # check exit code 
-            rsync -vau -e "ssh $SSH" "$HOST:$G" $M/ 
+            rsync -vau --copy-unsafe-links -e "ssh $SSH" "$HOST:$G" $M/ 
             [ $? -gt 0 ] && ERR=$(( $ERR + 1 )) # capture exit code
           fi # if ls scinet
           # transfer config files
           H="${E}/${DIROUT}/static.tgz" # config files 
           ssh $SSH $HOST "ls $H" &> /dev/null
           if [ $? == 0 ]; then # check exit code 
-            rsync -vau -e "ssh $SSH" "$HOST:$H" $M/ 
+            rsync -vau --copy-unsafe-links -e "ssh $SSH" "$HOST:$H" $M/ 
             [ $? -gt 0 ] && ERR=$(( $ERR + 1 )) # capture exit code
           fi # if ls scinet
         fi # if $STATIC

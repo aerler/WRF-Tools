@@ -194,24 +194,26 @@ if [[ "${NOENSEMBLE}" != 'TRUE' ]]
     # WRF
     cd "${WRFDATA}/wrfavg/"
     for E in */*ensemble*/; do 
-      if [[ "${NOLOGGING}" != 'TRUE' ]]
-        then
-          nice --adjustment=${NICENESS} "${SCRIPTS}/ensembleAverage.sh" ${E} &> ${E}/ensembleAverage.log #2> ${E}/ensembleAverage.err
+      if [ -w "$E" ]; then
+        if [[ "${NOLOGGING}" != 'TRUE' ]]; then
+            nice --adjustment=${NICENESS} "${SCRIPTS}/ensembleAverage.sh" ${E} &> ${E}/ensembleAverage.log #2> ${E}/ensembleAverage.err
         else
-          nice --adjustment=${NICENESS} "${SCRIPTS}/ensembleAverage.sh" ${E} 
-      fi # if logging
-      REPORT $? "WRF Ensemble Average '${E}'"
+            nice --adjustment=${NICENESS} "${SCRIPTS}/ensembleAverage.sh" ${E} 
+        fi # if logging
+        REPORT $? "WRF Ensemble Average '${E}'"
+      fi # if writable
     done
     # CESM
     cd "${CESMDATA}/cesmavg/"
     for E in *ens*/; do 
-      if [[ "${NOLOGGING}" != 'TRUE' ]]
-        then
-          nice --adjustment=${NICENESS} "${SCRIPTS}/ensembleAverage.sh" ${E} &> ${E}/ensembleAverage.log #2> ${E}/ensembleAverage.err
-        else
-          nice --adjustment=${NICENESS} "${SCRIPTS}/ensembleAverage.sh" ${E} 
-      fi # if logging
-      REPORT $? "CESM Ensemble Average '${E}'"
+      if [ -w "$E" ]; then
+        if [[ "${NOLOGGING}" != 'TRUE' ]]; then
+            nice --adjustment=${NICENESS} "${SCRIPTS}/ensembleAverage.sh" ${E} &> ${E}/ensembleAverage.log #2> ${E}/ensembleAverage.err
+          else
+            nice --adjustment=${NICENESS} "${SCRIPTS}/ensembleAverage.sh" ${E} 
+        fi # if logging      
+        REPORT $? "CESM Ensemble Average '${E}'"
+      fi # if writable
     done
 fi # if no-download
 
