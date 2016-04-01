@@ -50,7 +50,7 @@ elif 'm' in freq:
   stepform = '%Y-%m'
   offset = pandas.DateOffset(days=pandas.to_datetime(dateargs[0]).day)
 
-print dateargs
+#print dateargs
 begindate = pandas.to_datetime(dateargs[0]) - offset 
 # check input and generate datelist
 if lperiod:

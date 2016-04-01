@@ -10,8 +10,12 @@ VERBOSITY=${VERBOSITY:-1} # level of warning and error reporting
 NCOFLAGS=${NCOFLAGS:-'--netcdf4 --overwrite'} # flags passed to NCO call
 CLIMFILES='*clim*.nc' # regular expression defining the files to be averaged
 # N.B.: these files have to be present in every ensemble member
-ROOTDIR=${ROOTDIR:-$PWD} # default: present working directory
-ENSAVG="$1" # name of the ensemble average, first argument
+# get ensemble name and folder, first argument
+TMP="$1"; TMP="${TMP%/}" # cut trailing slash
+# name of the ensemble average
+ENSAVG="${TMP##*/}" # just the name, no folders
+ROOTDIR="${TMP%%/*}/" # cut of ensemble name
+if [[ "$ROOTDIR" != '/'*  ]]; then ROOTDIR="$PWD/$ROOTDIR"; fi # add present working directory, if necessary
 ENSDIR="$ROOTDIR/$ENSAVG/" # destination folder
 MASTER=$(cat "$ENSDIR/members.txt" | head -n 1) # to get file list
 MASTERDIR="$ROOTDIR/$MASTER/" # folder for file list
