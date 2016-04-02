@@ -134,7 +134,7 @@ for E in $( ssh ${SSH} ${HOST} "ls -d ${D}" ) # get folder listing from scinet
                         tar xzf "${TB}"
                         [ $? -gt 0 ] && ERR=$(( $ERR + 1 )) # capture exit code
                         touch "${T}" # update modification date of folder
-                    elif [[ "${TB}" -nt "${T}/" ]]; then
+                    elif [[ "${TB}" -nt "${T}" ]]; then
                         echo "Extracting new diagnostic tarball (${ANA}): ${TB}"
                         rm -r "${T}"
                         tar xzf "${TB}"
