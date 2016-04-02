@@ -129,25 +129,27 @@ for E in $( ssh ${SSH} ${HOST} "ls -d ${D}" ) # get folder listing from scinet
                 cd "${M}" # tar extracts into the current directory
                 for TB in "${M}"/*.tgz; do
                     T=${TB%.tgz} # get folder name (no extension)
-                    if [[ ! -e "${T}/" ]]; then
+                    if [[ ! -e "${T}" ]]; then
                         echo "Extracting diagnostic tarball (${ANA}): ${TB}"
                         tar xzf "${TB}"
                         [ $? -gt 0 ] && ERR=$(( $ERR + 1 )) # capture exit code
                         touch "${T}" # update modification date of folder
                     elif [[ "${TB}" -nt "${T}/" ]]; then
                         echo "Extracting new diagnostic tarball (${ANA}): ${TB}"
-                        rm -r "${T}/"
+                        rm -r "${T}"
                         tar xzf "${TB}"
                         [ $? -gt 0 ] && ERR=$(( $ERR + 1 )) # capture exit code
                         touch "${T}" # update modification date of folder
                     else
                         echo "${T} diagnostics are up-to-date (${ANA})"
-                    fi # if $T/
-                done # for *.tar
+                    fi # if $T
+                    # N.B.: $T is either a sub-folder into which the tarball extracts, or an indicator file 
+                    #       that simply records whther or not the tarball was extracted (for "tar-bombs") 
+                done # for *.tgz
             else
                 echo "No diagnostics tarball found on local system (${ANA})"
                 ERR=$(( $ERR + 1 )) # register as error
-            fi # if ${M}/*.tar
+            fi # if ${M}/*.tgz
             echo
         else
             echo "No diagnostics tarball found on remote system (${ANA})"
@@ -194,7 +196,7 @@ for E in $( ssh ${SSH} ${HOST} "ls -d ${D}" ) # get folder listing from scinet
           then
             cd "${M}" # tar extracts into the current directory
             for TB in "${M}"/*.tgz; do
-                T=${TB%.tar} # get folder name (no .tar)
+                T=${TB%.tgz} # get folder name (no .tar)
                 if [[ ! -e "${T}/" ]]; then
                     echo "Extracting diagnostic tarball (cvdp): ${TB}"
                     tar xzf "${TB}"
@@ -209,8 +211,8 @@ for E in $( ssh ${SSH} ${HOST} "ls -d ${D}" ) # get folder listing from scinet
                 else
                     echo "${T} diagnostics are up-to-date (cvdp)"
                 fi # if $T/
-            done # for *.tar
-        fi # if ${M}/*.tar
+            done # for *.tgz
+        fi # if ${M}/*.tgz
         echo
     fi # if ls scinet
 done # for experiments
