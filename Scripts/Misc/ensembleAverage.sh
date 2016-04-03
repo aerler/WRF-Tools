@@ -5,17 +5,19 @@
 # settings
 OVERWRITE=${OVERWRITE:-'FALSE'} # whether or not to overwrite existing files...
 #OVERWRITE=${OVERWRITE:-'OVERWRITE'} # whether or not to overwrite existing files...
-#EXCLUDE=${EXCLUDE:-'TSK,SolidPrecip_SR,LiquidPrecip_SR,liqprec_sr,solprec_sr'} # variables to be excluded from average (because the cause trouble)
 VERBOSITY=${VERBOSITY:-1} # level of warning and error reporting
 NCOFLAGS=${NCOFLAGS:-'--netcdf4 --overwrite'} # flags passed to NCO call
 CLIMFILES='*clim*.nc' # regular expression defining the files to be averaged
 # N.B.: these files have to be present in every ensemble member
 # get ensemble name and folder, first argument
-TMP="$1"; TMP="${TMP%/}" # cut trailing slash
+TMP="$1"; TMP="${TMP%/}" # cut trailing slash, if any
 # name of the ensemble average
 ENSAVG="${TMP##*/}" # just the name, no folders
-ROOTDIR="${TMP%%/*}/" # cut of ensemble name
-if [[ "$ROOTDIR" != '/'*  ]]; then ROOTDIR="$PWD/$ROOTDIR"; fi # add present working directory, if necessary
+ROOTDIR="${TMP%%/*}" # cut of ensemble name
+# adjust root folder accordingly
+if [[ "$ENSAVG" == "$ROOTDIR" ]]; then ROOTDIR="$PWD/" # no subfolders, use present working directory
+elif [[ "$ROOTDIR" != '/'*  ]]; then ROOTDIR="$PWD/$ROOTDIR/" # add present working directory, if necessary
+else ROOTDIR="$ROOTDIR/"; fi # or just add trailing slash
 ENSDIR="$ROOTDIR/$ENSAVG/" # destination folder
 MASTER=$(cat "$ENSDIR/members.txt" | head -n 1) # to get file list
 MASTERDIR="$ROOTDIR/$MASTER/" # folder for file list
@@ -25,7 +27,6 @@ MEMDIRS=''; for M in $MEMBERS; do MEMDIRS="$MEMDIRS $ROOTDIR/$M/"; done # associ
 
 ERR=0 # count errors (from exit codes)
 OK=0 # count successes
-# loop over files
 FILELIST=$(ls "$MASTERDIR/"$CLIMFILES) # list of files that are potentially processed
 echo 
 echo "   ***   Generating Ensemble '${ENSAVG}'   ***   "
@@ -33,6 +34,7 @@ echo
 echo "   Destination Folder: ${ENSDIR}   "
 echo "   Ensemble Memebers: ${MEMBERS}   "
 echo
+# loop over files
 for FILE in $FILELIST
   do
     FN=${FILE##*/} # file name without path
@@ -45,22 +47,32 @@ for FILE in $FILELIST
             if [[ $VERBOSITY -gt 1 ]]; then echo "WARNING: $MD/$FN is missing!"; fi
         fi # if file exists
     done # count missing
-    # is all files are there, produce ensemble average
+    # if all files are there, produce ensemble average
     if [ $MISS == 0 ]
       then
         echo
         if [[ "$OVERWRITE" != 'OVERWRITE' ]] && [[ -f $ENSDIR/$FN ]]
           then
             echo "Skipping $FN - already exists!"
-          else
+          else # $OVERWRITE
             echo "${FN}"
-            unset EXCLUDE # clear eclude list
-            # detect file type and set an exlude list
-            #if [[ $FN == *hydro* ]]; then EXCLUDE='T2,Tmean,SolidPrecip_SR,LiquidPrecip_SR,liqprec_sr,solprec_sr'
-            #elif [[ $FN == *srfc* ]]; then EXCLUDE='TSK'
-            #fi # file type/name
-            # add flags to EXCLUDE list
-            if [[ -n "$EXCLUDE" ]]; then EXCLUDE="--exclude --variable $EXCLUDE"; fi
+            # load exclude list based on file type
+            unset EXCLUDE # clear exclude list
+            if [[ -f "$ENSDIR/exclude.txt" ]] 
+              then 
+                # detect file type and set an exlude list
+                FT=${FN%%_*} # strip grid and aggregation tags
+                # load exclude list from file
+                EXCLUDE="$( grep "$FT" "$ENSDIR/exclude.txt" )" # read line for file type from file (comma-seperated, as above)
+                # e.g.: wrfsrfc: TSK,SolidPrecip_SR,LiquidPrecip_SR,liqprec_sr,solprec_sr
+                EXCLUDE="${EXCLUDE#$FT:}" # remove file type identifier 
+                # if excludes, add flags (the pattern replacement // is to delete all spaces for the test)
+                if [[ -n ${EXCLUDE// } ]]; then 
+                  # add flags to and remove file type from EXCLUDE list
+                  EXCLUDE="--exclude --variable ${EXCLUDE#$FT:}"
+                fi # if excludes
+            fi # exclude list
+            # assemble path of source files
             MEMFILES=''; for M in $MEMDIRS; do MEMFILES="$MEMFILES $M/$FN"; done # source files
             # NCO command
             if [[ $VERBOSITY -gt 0 ]]; then echo "ncea $NCOFLAGS $EXCLUDE $MEMFILES $ENSDIR/$FN"; fi
@@ -71,13 +83,13 @@ for FILE in $FILELIST
                 ERR=$(( $ERR + 1 ))
                 echo "ERROR: $ENSDIR/$FN"
             fi # handle exit code
-        fi # OVERWRITE
-      else
+        fi # $OVERWRITE
+      else # if $MISS
         if [[ $VERBOSITY -gt 0 ]]; then 
             echo
             echo "WARNING: skipping $FN - $MISS inputs missing!"
         fi
-      fi # if $MISS           
+    fi # if $MISS           
 done # loop over $FILELIST
 echo
 
