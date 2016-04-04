@@ -107,7 +107,7 @@ elif [[ -f "$KCFG" ]]; then
 else
     echo "ERROR: no configuration file '$KCFG'"
 fi # if config file
-KFCG='NONE' # suppress sourcing in child processes
+export KFCG='NONE' # suppress sourcing in child processes
 echo
 # N.B.: The following variables need to be set:
 #       CODE, DATA, GDAL_DATA, SCRIPTS, PYTHON, PYTHONPATH, 
@@ -118,8 +118,10 @@ export CESMDATA="${CESMDATA:-"${DATA}/CESM/"}" # local CESM data root
 export HISPD="${HISPD:-'FALSE'}" # whether or not to use the high-speed datamover connection
 # N.B.: the datamover connection needs to be established manually beforehand
 export SSH="${SSH:-"-o BatchMode=yes -o ControlPath=${HOME}/master-%l-%r@%h:%p -o ControlMaster=auto -o ControlPersist=1"}" # default SSH options
+export STATIC="${STATIC:-'STATIC'}" # download static/const data 
 export INVERT="${INVERT:-'FALSE'}" # source has experiment name first then folder type
 export RESTORE="${RESTORE:-'FALSE'}" # restore CESM data and other datasets from local repository (currently not implemented for WRF)
+export CODE DATA GDAL_DATA PYTHONPATH SSHMASTER HOST SRC SUBDIR # make sure remaining environment variables are passed to sub-processes
 NICENESS=${NICENESS:-10} # low priority, but not lowest
 
 if [[ "${NODOWNLOAD}" != 'TRUE' ]]
