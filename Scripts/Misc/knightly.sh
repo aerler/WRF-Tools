@@ -95,7 +95,6 @@ function REPORT {
 # N.B.: defaults and command line options will be overwritten by custom settings in config file
 # load custom configuration from file
 
-echo
 if [[ "$KCFG" == "NONE" ]]; then
     echo "Using configuration from parent environment (not sourcing)."
 elif [[ -z "$KCFG" ]]; then
@@ -107,7 +106,7 @@ elif [[ -f "$KCFG" ]]; then
 else
     echo "ERROR: no configuration file '$KCFG'"
 fi # if config file
-export KFCG='NONE' # suppress sourcing in child processes
+export KCFG='NONE' # suppress sourcing in child processes
 echo
 # N.B.: The following variables need to be set:
 #       CODE, DATA, GDAL_DATA, SCRIPTS, PYTHON, PYTHONPATH, 

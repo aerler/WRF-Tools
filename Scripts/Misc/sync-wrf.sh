@@ -3,8 +3,11 @@
 # Andre R. Erler, July 2013, GPL v3
 # revised by Fengyi Xie and Andre R. Erler, March 2016, GPL v3
 
-## load settings
 echo
+hostname
+date
+echo 
+## load settings
 if [[ "$KCFG" == "NONE" ]]; then
     echo "Using configuration from parent environment (not sourcing)."
 elif [[ -z "$KCFG" ]]; then
@@ -29,10 +32,6 @@ FILETYPES=${FILETYPES:-'wrf*_d0?_monthly.nc'} # regex defining averaged files
 if [[ "${FILETYPES}" == 'NONE' ]]; then FILETYPES=''; fi
 
 echo
-echo
-hostname
-date
-echo 
 echo "   >>>   Synchronizing Local Averaged WRF Data   <<<   " 
 echo
 echo "      Local:  ${WRFDATA}"
@@ -90,7 +89,15 @@ for S in ${SUBDIR}
           if [ $? == 0 ]; then # check exit code 
             rsync -vau --copy-unsafe-links -e "ssh $SSH" "$HOST:$G" $M/ 
             [ $? -gt 0 ] && ERR=$(( $ERR + 1 )) # capture exit code
-          fi # if ls scinet
+          else
+            # if wrfout does not work, try wrfavg
+            G="${E}/${DIRAVG}/wrfconst_d0?.nc" # constants files
+            ssh $SSH $HOST "ls $G" &> /dev/null
+            if [ $? == 0 ]; then # check exit code 
+              rsync -vau --copy-unsafe-links -e "ssh $SSH" "$HOST:$G" $M/ 
+              [ $? -gt 0 ] && ERR=$(( $ERR + 1 )) # capture exit code
+            fi # if ls scinet:wrfavg
+          fi # if ls scinet:wrfout
           # transfer config files
           H="${E}/${DIROUT}/static.tgz" # config files 
           ssh $SSH $HOST "ls $H" &> /dev/null
