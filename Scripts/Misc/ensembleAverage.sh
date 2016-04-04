@@ -60,17 +60,22 @@ for FILE in $FILELIST
             unset EXCLUDE # clear exclude list
             if [[ -f "$ENSDIR/exclude.txt" ]] 
               then 
-                # detect file type and set an exlude list
-                FT=${FN%%_*} # strip grid and aggregation tags
-                # load exclude list from file
-                EXCLUDE="$( grep "$FT" "$ENSDIR/exclude.txt" )" # read line for file type from file (comma-seperated, as above)
-                # e.g.: wrfsrfc: TSK,SolidPrecip_SR,LiquidPrecip_SR,liqprec_sr,solprec_sr
-                EXCLUDE="${EXCLUDE#$FT:}" # remove file type identifier 
-                # if excludes, add flags (the pattern replacement // is to delete all spaces for the test)
-                if [[ -n ${EXCLUDE// } ]]; then 
-                  # add flags to and remove file type from EXCLUDE list
-                  EXCLUDE="--exclude --variable ${EXCLUDE#$FT:}"
-                fi # if excludes
+                ## detect file type and set an exlude list
+                # loop over possible file type patterns
+                for FTP in '_clim_*.nc' '_monthly.nc' '_*.nc'
+                  do
+                    FT=${FN%%$FTP} # strip grid and aggregation tags
+                    # load exclude list from file
+                    EXCLUDE="$( grep "$FT" "$ENSDIR/exclude.txt" )" # read line for file type from file (comma-seperated, as above)
+                    # e.g.: wrfsrfc: TSK,SolidPrecip_SR,LiquidPrecip_SR,liqprec_sr,solprec_sr
+                    EXCLUDE="${EXCLUDE#$FT:}" # remove file type identifier                                 
+                    # if excludes, add flags (the pattern replacement // is to delete all spaces for the test)
+                    if [[ -n ${EXCLUDE// } ]]; then 
+                      # add flags to and remove file type from EXCLUDE list
+                      EXCLUDE="--exclude --variable ${EXCLUDE#$FT:}"
+                      break # exit loop once pattern has been found
+                    fi # if excludes
+                done # $FTP
             fi # exclude list
             # assemble path of source files
             MEMFILES=''; for M in $MEMDIRS; do MEMFILES="$MEMFILES $M/$FN"; done # source files
