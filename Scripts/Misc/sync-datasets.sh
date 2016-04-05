@@ -1,27 +1,33 @@
 #!/bin/bash
 # script to synchronize datasets with SciNet
+# Andre R. Erler, July 2013, GPL v3, revised by in April 2016
 
+echo
+hostname
+date
+echo
+## load settings
+if [[ "$KCFG" == "NONE" ]]; then
+    echo "Using configuration from parent environment (not sourcing)."
+elif [[ -z "$KCFG" ]]; then
+    echo "Sourcing configuration from default file: $PWD/kconfig.sh"
+    source kconfig.sh # default config file (in local directory)
+elif [[ -f "$KCFG" ]]; then 
+    echo "Sourcing configuration from alternative file: $KCFG"
+    source "$KCFG" # alternative config file
+else
+    echo "ERROR: no configuration file '$KCFG'"
+fi # if config file
+echo
+# N.B.: the following variables need to be set in the parent environment or sourced from a config file
+#       HOST, SRC, SUBDIR, WRFDATA or DATA
+# some defaults for optional variables
 RESTORE=${RESTORE:-'FALSE'} # restore datasets from SciNet backup
 LOC="${ROOT:-/data/}" # local datasets root, can be supplied by caller
 REM=/reserved1/p/peltier/aerler/Datasets/ # datasets root on SciNet
 DATASETS='Unity GPCC NARR CFSR CRU PRISM PCIC EC WSC' # list of datasets/folders
 # DATASETS='PRISM' # for tests
-# ssh settings: special identity/ssh key, batch mode, and connection sharing
-# connection settings
-if [[ "${HISPD}" == 'HISPD' ]]
-  then
-    # high-speed transfer: special identity/ssh key, batch mode, and connection sharing
-    SSH="-o BatchMode=yes -o ControlPath=${WRFDATA}/hispd-master-%l-%r@%h:%p -o ControlMaster=auto -o ControlPersist=1"
-    HOST='datamover' # defined in .ssh/config
-  else
-    # ssh settings for unattended nightly update: special identity/ssh key, batch mode, and connection sharing
-    SSH="-i /home/me/.ssh/rsync -o BatchMode=yes -o ControlPath=${WRFDATA}/master-%l-%r@%h:%p -o ControlMaster=auto -o ControlPersist=1"
-    HOST='aerler@login.scinet.utoronto.ca'
-fi # if high-speed
 
-echo
-hostname
-date
 echo 
 echo "   >>>   Synchronizing Local Datasets with SciNet   <<<   " 
 echo

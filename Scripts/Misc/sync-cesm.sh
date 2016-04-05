@@ -1,6 +1,27 @@
 #!/bin/bash
 # script to synchronize CESM data with SciNet
+# Andre R. Erler, July 2013, GPL v3, revised by in April 2016
 
+echo
+hostname
+date
+echo 
+## load settings
+if [[ "$KCFG" == "NONE" ]]; then
+    echo "Using configuration from parent environment (not sourcing)."
+elif [[ -z "$KCFG" ]]; then
+    echo "Sourcing configuration from default file: $PWD/kconfig.sh"
+    source kconfig.sh # default config file (in local directory)
+elif [[ -f "$KCFG" ]]; then 
+    echo "Sourcing configuration from alternative file: $KCFG"
+    source "$KCFG" # alternative config file
+else
+    echo "ERROR: no configuration file '$KCFG'"
+fi # if config file
+echo
+# N.B.: the following variables need to be set in the parent environment or sourced from a config file
+#       HOST, SRC, SUBDIR, WRFDATA or DATA
+# some defaults for optional variables
 RESTORE=${RESTORE:-'FALSE'} # restore datasets from SciNet backup
 # CESM directories / data sources
 REX=${REX:-'h[abc]b20trcn1x1 tb20trcn1x1 h[abcz]brcp85cn1x1 htbrcp85cn1x1 seaice-5r-hf h[abcz]brcp85cn1x1d htbrcp85cn1x1d seaice-5r-hfd'}
@@ -13,34 +34,8 @@ FILETYPES=${FILETYPES:-'cesm[ali][tnc][mde]_*.nc'}
 if [[ "${FILETYPES}" == 'NONE' ]]; then FILETYPES=''; fi
 DIAGS=${DIAGS:-'diag cvdp'}
 if [[ "${DIAGS}" == 'NONE' ]]; then DIAGS=''; fi
-# connection settings
-if [[ "${HISPD}" == 'HISPD' ]]
-  then
-    # high-speed transfer: special identity/ssh key, batch mode, and connection sharing
-    SSH="-o BatchMode=yes -o ControlPath=${CESMDATA}/hispd-master-%l-%r@%h:%p -o ControlMaster=auto -o ControlPersist=1"
-    HOST='datamover' # defined in .ssh/config
-    CCA='/reserved1/p/peltier/aerler//CESM/archive/'
-    INVERT='FALSE' # source has name first then folder type (like on SciNet)
-elif [[ "${HOST}" == 'komputer' ]]
-  then
-    # download from komputer instead of SciNet using sshfs connection
-    SSH="-o BatchMode=yes"
-    HOST='fskomputer' # defined in .ssh/config
-    CCA='/data/CESM/cesmavg/' # archives with my own cesmavg files
-    INVERT='INVERT' # invert name/folder order in source (i.e. like in target folder)
-else
-    # ssh settings for unattended nightly update: special identity/ssh key, batch mode, and connection sharing
-    SSH="-i /home/me/.ssh/rsync -o BatchMode=yes -o ControlPath=${CESMDATA}/master-%l-%r@%h:%p -o ControlMaster=auto -o ControlPersist=1"
-    HOST='aerler@login.scinet.utoronto.ca'
-    CCA='/reserved1/p/peltier/aerler//CESM/archive/'
-    INVERT='FALSE' # source has name first then folder type (like on SciNet)
-fi # if high-speed
 
 echo
-echo
-hostname
-date
-echo 
 echo "   >>>   Synchronizing Local CESM Climatologies   <<<   " 
 echo
 echo "      Local:  ${CESMDATA}"
