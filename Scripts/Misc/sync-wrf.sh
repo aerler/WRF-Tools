@@ -21,9 +21,9 @@ else
 fi # if config file
 echo
 # N.B.: the following variables need to be set in the parent environment or sourced from a config file
-#       HOST, SRC, SUBDIR, WRFDATA or DATA
+#       HOST, WRFSRC, SUBDIR, WRFDATA or DATA
 # some defaults for optional variables
-WRFDATA="${DATA}/WRF/" # local WRF data root
+WRFDATA="${WRFDATA:-${DATA}/WRF/}" # local WRF data root
 SSH="${SSH:-"-o BatchMode=yes -o ControlPath=${HOME}/master-%l-%r@%h:%p -o ControlMaster=auto -o ControlPersist=1"}" # default SSH options
 INVERT="${INVERT:-'FALSE'}" # source has experiment name first then folder type
 STATIC=${STATIC:-'STATIC'} # transfer static/constant data
@@ -45,10 +45,10 @@ echo
 ERR=0
 for S in ${SUBDIR}
   do
-    WRFAVG="${DST}/${S}/" # recreate first level subfolder structure from source
+    WRFAVG="${WRFDATA}/wrfavg/${S}/" # recreate first level subfolder structure from source
     #cd "${WRFAVG}" # go to local data folder to expand regular expression (experiment list)
     set -f # deactivate shell expansion of globbing expressions for $REX in for loop
-    D=''; for R in ${REX}; do D="${D} ${SRC}/${S}/${R}/"; done # assemble list of source folders
+    D=''; for R in ${REX}; do D="${D} ${WRFSRC}/${S}/${R}/"; done # assemble list of source folders
     echo "$D"
     set +f # reactivate shell expansion of globbing expressions
     for E in $( ssh ${SSH} ${HOST} "ls -d ${D}" ) # get folder listing from scinet
@@ -72,7 +72,7 @@ for S in ${SUBDIR}
             echo "${F}"
             ssh ${SSH} ${HOST} "ls ${F}" &> /dev/null
             if [ $? == 0 ]; then # check exit code 
-              M="${WRFAVG}/${N}" # absolute path
+              M="${WRFAVG}/${N}" # absolute path on local machine
               mkdir -p "$M" # make sure directory is there
               #echo "$N" # feedback
               # use rsync for the transfer; verbose, archive, update (gzip is probably not necessary)

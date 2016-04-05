@@ -20,7 +20,7 @@ else
 fi # if config file
 echo
 # N.B.: the following variables need to be set in the parent environment or sourced from a config file
-#       HOST, SRC, SUBDIR, WRFDATA or DATA
+#       HOST, SRC, CESMDATA or DATA
 # some defaults for optional variables
 RESTORE=${RESTORE:-'FALSE'} # restore datasets from SciNet backup
 # CESM directories / data sources
@@ -28,7 +28,7 @@ REX=${REX:-'h[abc]b20trcn1x1 tb20trcn1x1 h[abcz]brcp85cn1x1 htbrcp85cn1x1 seaice
 ENS=${ENS:-'ens20trcn1x1 ensrcp85cn1x1 ensrcp85cn1x1d'}
 CVDP=${CVDP:-"${ENS} grand-ensemble"}
 if [[ "${CVDP}" == 'NONE' ]]; then CVDP=''; fi
-CESMDATA=${CESMDATA:-/data/CESM/} # can be supplied by caller
+CESMDATA="${CESMDATA:-${DATA}/CESM/}" # can be supplied by caller
 # data selection
 FILETYPES=${FILETYPES:-'cesm[ali][tnc][mde]_*.nc'}
 if [[ "${FILETYPES}" == 'NONE' ]]; then FILETYPES=''; fi
@@ -54,7 +54,7 @@ ERR=0
 # generate list of experiments
 cd "${CESMDATA}/cesmavg/" # go to data folder to expand regular expression
 set -f # deactivate shell expansion of globbing expressions for $REX in for loop
-D=''; for R in ${REX}; do D="${D} ${CCA}/${R}"; done # assemble list of source folders
+D=''; for R in ${REX}; do D="${D} ${CESMSRC}/${R}"; done # assemble list of source folders
 echo "$D"
 set +f # reactivate shell expansion of globbing expressions
 # loop over all relevant experiments
@@ -155,7 +155,7 @@ done # for experiments
 
 # generate list of additional CVDP folders (ensembles)
 cd "${CESMDATA}/cvdp/" # go to data folder to expand regular expression
-D=''; for R in ${CVDP}; do D="${D} ${CCA}/${R}"; done # assemble list of source folders
+D=''; for R in ${CVDP}; do D="${D} ${CESMSRC}/${R}"; done # assemble list of source folders
 # loop over all relevant folders
 for E in $( ssh ${SSH} ${HOST} "ls -d ${D}" ) # get folder listing from scinet
   do 
@@ -229,7 +229,7 @@ if [[ "${INVERT}" != 'INVERT' ]] # only update to SciNet
         ## synchronize/backup cesmavg/ens files
         if [[ "${RESTORE}" == 'RESTORE' ]]
           then
-            F="${CCA}/${N}/cesmavg/cesm[ali][tnc][mde]_*.nc" # absolute path
+            F="${CESMSRC}/${N}/cesmavg/cesm[ali][tnc][mde]_*.nc" # absolute path
             # check if experiment has any data
             ssh ${SSH} ${HOST} "ls ${F}" &> /dev/null
             if [ $? == 0 ] # check exit code 
@@ -248,7 +248,7 @@ if [[ "${INVERT}" != 'INVERT' ]] # only update to SciNet
             ls ${F} &> /dev/null
             if [ $? == 0 ] # check exit code 
               then
-                M="${CCA}/${N}/cesmavg" # absolute path
+                M="${CESMSRC}/${N}/cesmavg" # absolute path
                 ssh ${SSH} ${HOST} "mkdir -p '${M}'" # make sure remote directory exists
                 echo "${E}/" # feedback
                 # use rsync for the transfer; verbose, archive, update (gzip is probably not necessary)
