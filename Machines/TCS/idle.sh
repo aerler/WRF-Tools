@@ -1,6 +1,6 @@
 #!/bin/sh
 
-#tell me the number if idle nodes
+# show the number if idle nodes on TCS
 
 ip1=`llstatus | grep -c Idle`
 inodes=`expr $ip1 - 1`

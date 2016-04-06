@@ -18,7 +18,7 @@ export GDAL_DATA='/usr/local/share/gdal' # for GDAL API
 PYTHON='/usr/bin/python' # path to Python executable (do not export!)
 # Python modules and other scripts
 export PYTHONPATH="${CODE}/GeoPy/src/:${CODE}/WRF-Tools/Python/" # required modules
-SCRIPTS="${CODE}/WRF-Tools/Scripts/Misc/" # folder with sync and NCO scripts
+SCRIPTS="${CODE}/WRF-Tools/Scripts/SyncPP/" # folder with sync and NCO scripts
 # WRF & CESM data directories
 export WRFDATA="${DATA}/WRF/" # local WRF data root
 export CESMDATA="${DATA}/CESM/" # local CESM data root
