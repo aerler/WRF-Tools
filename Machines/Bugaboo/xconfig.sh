@@ -6,7 +6,7 @@ GHG='RCP8.5' # CAMtr_volume_mixing_ratio.* file to be used
 # time period and cycling interval
 CYCLING="monthly.2013-08" # stepfile to be used (leave empty if not cycling)
 # I/O and archiving
-IO='snowIO' # this is used for namelist construction and archiving
+IO='fineIO' # this is used for executables and archiving
 ARSYS='' # not available
 ARSCRIPT='' # no archiving available on Bugaboo yet
 ARINTERVAL='' # default is yearly
@@ -28,7 +28,8 @@ MAXDOM=2 # number of domains in WRF and WPS
 RES='7km'
 DOM="wc2-${RES}"
 # WRF
-TIME_CONTROL="cycling,${IO}" # default I/O: only output stream
+TIME_CONTROL="cycling,${IO}" # use fineIO and switch on snow diagnostics
+TIME_CONTROL_MOD=' io_form_auxhist10 = 2 ! switch on hourly snow diagnostics'
 DIAGS='hitop' # needs output stream #23
 PHYSICS='clim-new-v36' # this namelist has to be compatible with the WRF build used!
 PHYSICS_MOD=' cu_physics = 5, 0, 0, ! no convection scheme in inner domain : cu_rad_feedback = .true., .false., .false., : cu_diag = 0, : cugd_avedx = 2 ! increase subsidence spreading in outer domain ' # fractional_seaice = 0, ! does not work with ERA-I? 
