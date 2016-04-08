@@ -59,7 +59,7 @@ function RENAME () {
 	    elif [[ "${WRFQ}" == "sge" ]]; then
 	      sed -i "/#\$ -M/ s/#\$ -M\ .*$/#\$ -M ${EMAIL}/" "${FILE}" # notification address
       elif [[ "${Q}" == "ll" ]]; then
-        # apparently email address is not set here...?
+        : # apparently email address is not set here...?
 	    else
 	      sed -i "/\\\$EMAIL/ s/\\\$EMAIL/${EMAIL}/" "${FILE}" # random email address
 	    fi
