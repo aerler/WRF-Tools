@@ -9,7 +9,7 @@
 #PBS -o $PBS_JOBNAME.$PBS_JOBID.out
 ##PBS -e $PBS_JOBNAME.$PBS_JOBID.err
 # send email if abort (nbae)
-#PBS -M aerler@atmosp.physics.utoronto.ca
+#PBS -M "$EMAIL"
 #PBS -m ae
 # job name
 #PBS -N ar_test

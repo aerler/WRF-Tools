@@ -32,17 +32,17 @@ function RENAME () {
     # WRF run-script
     if [[ "${FILE}" == *WRF* ]] && [[ "${WRFQ}" == "${Q}" ]]; then
       if [[ "${WRFQ}" == "pbs" ]]; then
-        sed -i "/#PBS -N/ s/#PBS -N\ .*$/#PBS -N ${NAME}_WRF/" "run_${CASETYPE}_WRF.${WRFQ}" # experiment name
+        sed -i "/#PBS -N/ s/#PBS -N\ .*$/#PBS -N ${NAME}_WRF/" "${FILE}" # experiment name
         #sed -i "/#PBS -W/ s/#PBS -W\ .*$/#PBS -W depend=afterok:${NAME}_WPS/" "${FILE}" # dependency on WPS
         sed -i "/#PBS -l/ s/#PBS -l nodes=.*:\(.*\)$/#PBS -l nodes=${WRFNODES}:\1/" "${FILE}" # number of nodes (preserve task number)
         sed -i "/#PBS -l/ s/#PBS -l procs=.*$/#PBS -l procs=${WRFNODES}/" "${FILE}" # processes (alternative to nodes)
         sed -i "/#PBS -l/ s/#PBS -l walltime=.*$/#PBS -l walltime=${MAXWCT}/" "${FILE}" # wallclock time
         sed -i "/qsub/ s/qsub ${WRFSCRIPT} -v NEXTSTEP=*\ -W*$/qsub ${WRFSCRIPT} -v NEXTSTEP=*\ -W\ ${NAME}_WPS/" "${FILE}" # dependency
       elif [[ "${WRFQ}" == "sge" ]]; then
-        sed -i "/#$ -N/ s/#$ -N\ .*$/#$ -N ${NAME}_WRF/" "run_${CASETYPE}_WRF.${WRFQ}" # experiment name
+        sed -i "/#\$ -N/ s/#\$ -N\ .*$/#\$ -N ${NAME}_WRF/" "${FILE}" # experiment name
         #sed -i "/#PBS -W/ s/#PBS -W\ .*$/#PBS -W depend=afterok:${NAME}_WPS/" "${FILE}" # dependency on WPS
-        sed -i "/#$ -pe/ s/#$ -pe .*$/#$ -pe mpich $((WRFNODES*32))/" "${FILE}" # number of MPI tasks
-        sed -i "/#$ -l/ s/#$ -l h_rt=.*$/#$ -l h_rt=${MAXWCT}/" "${FILE}" # wallclock time
+        sed -i "/#\$ -pe/ s/#\$ -pe .*$/#\$ -pe mpich $((WRFNODES*32))/" "${FILE}" # number of MPI tasks
+        sed -i "/#\$ -l/ s/#\$ -l h_rt=.*$/#\$ -l h_rt=${MAXWCT}/" "${FILE}" # wallclock time
       elif [[ "${WRFQ}" == "ll" ]]; then
         sed -i "/#\ *@\ *job_name/ s/#\ *@\ *job_name\ *=.*$/# @ job_name = ${NAME}_WRF/" "${FILE}" # experiment name
         sed -i "/#\ *@\ *node/ s/#\ *@\ *node\ *=.*$/# @ node = ${WRFNODES}/" "${FILE}" # number of nodes
@@ -52,6 +52,20 @@ function RENAME () {
         sed -i "/export TASKS/ s+export\ TASKS=.*$+export TASKS=${WRFNODES} # number of MPI tasks+" "${FILE}" # number of tasks (instead of nodes...)
       fi # $Q
     fi # if WRF
+    # set email address for notifications
+    if [[ -n "$EMAIL" ]]; then
+	    if [[ "${Q}" == "pbs" ]]; then
+	      sed -i "/#PBS -M/ s/#PBS -M\ .*$/#PBS -M \"${EMAIL}\"/" "${FILE}" # notification address
+	    elif [[ "${WRFQ}" == "sge" ]]; then
+	      sed -i "/#\$ -M/ s/#\$ -M\ .*$/#\$ -M ${EMAIL}/" "${FILE}" # notification address
+      elif [[ "${Q}" == "ll" ]]; then
+        # apparently email address is not set here...?
+	    else
+	      sed -i "/\\\$EMAIL/ s/\\\$EMAIL/${EMAIL}/" "${FILE}" # random email address
+	    fi
+  	else
+	    sed -i '/\$EMAIL/d' "${FILE}" # remove references to email address
+    fi # replace email address
     ## queue independent changes
     # N.B.: variables that depend on other variables are not overwritten!
     # WRF script

@@ -11,7 +11,7 @@
 #$ -j y
 #$ -o $JOB_NAME.$JOB_ID.out
 ## email notification settings (e:end,a:abort)
-#$ -M aerler@atmosp.physics.utoronto.ca
+#$ -M "$EMAIL"
 #$ -m a
 ## job environment (cwd:current working directory)
 #$ -cwd
