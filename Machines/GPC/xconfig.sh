@@ -1,5 +1,5 @@
 #!/bin/bash
-WRFTOOLS="${MODEL_ROOT}/WRF Tools/"
+WRFTOOLS="${CODE_ROOT}/WRF Tools/"
 ## scenario definition section
 NAME='test'
 # GHG emission scenario

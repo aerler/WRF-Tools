@@ -399,7 +399,7 @@ class CESM(Dataset):
     # set environment variable for NCL (on tmp folder)   
     os.putenv('NCARG_ROOT', NCARG) 
     os.putenv('NCL_POP_REMAP', meta) # NCL is finicky about space characters in the path statement, so relative path is saver
-    os.putenv('MODEL_ROOT', Model) # also for NCL (where personal function libs are)
+    os.putenv('CODE_ROOT', Model) # also for NCL (where personal function libs are)
       
     # figure out source file prefix (only needs to be determined once)
     if not prefix: 

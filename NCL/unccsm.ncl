@@ -5,7 +5,7 @@
 
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/popRemap.ncl"
-load "$MODEL_ROOT/WRF Tools/NCL/functions.ncl"
+load "$CODE_ROOT/WRF Tools/NCL/functions.ncl"
 ;load "meta/setup.ncl"
 
 ;--------------------------------------------------------

@@ -19,8 +19,8 @@ import os # to read environment variables
 ## settings
 #if os.environ.has_key('WRFSRC'):
 #  WRFSRC = os.environ['WRFSRC'] # WRF source folder
-#elif os.environ.has_key('MODEL_ROOT'):
-#  WRFSRC = os.environ['MODEL_ROOT'] + '/WRF/WRFV3/' # WRF source folder
+#elif os.environ.has_key('CODE_ROOT'):
+#  WRFSRC = os.environ['CODE_ROOT'] + '/WRF/WRFV3/' # WRF source folder
 #else:
 #  WRFSRC = os.environ['HOME'] + '/WRF/WRFV3/' # WRF source folder
 WRFSRC = os.getcwd() # WRF source folder

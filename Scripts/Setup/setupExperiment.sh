@@ -3,7 +3,7 @@
 # created 28/06/2012 by Andre R. Erler, GPL v3
 # last revision 11/06/2013 by Andre R. Erler
 
-# environment variables: $MODEL_ROOT, $WPSSRC, $WRFSRC, $SCRATCH
+# environment variables: $CODE_ROOT, $WPSSRC, $WRFSRC, $SCRATCH
 
 set -e # abort if anything goes wrong
 
@@ -122,8 +122,8 @@ DELT='DEFAULT' # time decrement for auto restart (DEFAULT: select according to t
 DATADIR='' # root directory for data
 DATATYPE='CESM' # boundary forcing type
 ## run configuration
-WRFROOT="${MODEL_ROOT}/WRFV3.4/"
-WRFTOOLS="${MODEL_ROOT}/WRF Tools/"
+WRFROOT="${CODE_ROOT}/WRFV3.4/"
+WRFTOOLS="${CODE_ROOT}/WRF Tools/"
 GENSTEPS="${WRFTOOLS}/Python/wrfrun/generateStepfile.py" # Python script to generate stepfiles
 # I/O, archiving, and averaging 
 IO='fineIO' # this is used for namelist construction and archiving

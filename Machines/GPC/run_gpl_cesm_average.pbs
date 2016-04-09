@@ -137,7 +137,7 @@ function RUNCMDS {
     if [[ "${DIAG}" == 'DIAG' ]] && [[ "${MODE}" == 'RUN' ]]
       then
         mkdir -p "$RUNDIR/diag/" # make sure destination folder exists
-        ln -sf "${MODEL_ROOT}/WRF Tools/Scripts/GPC/run_amwg_diag.csh" # link AMWG script (CSH)
+        ln -sf "${CODE_ROOT}/WRF Tools/Scripts/GPC/run_amwg_diag.csh" # link AMWG script (CSH)
         # current/control reference
         if [[ -n "$HREF" ]]; then 
           if [[ "$HREF" == 'OBS' ]]; then DIAGTAR="$RUNDIR/diag/$RUN-obs.tar"
@@ -196,7 +196,7 @@ function RUNCMDS {
         if [[ "${AVERAGE}" == 'AVERAGE' ]] && [[ "${MODE}" == 'RUN' ]]
           then
             mkdir -p "${AVGDIR}" # make sure destination folder exists
-            ln -sf "${MODEL_ROOT}/WRF Tools/Python/wrfavg/cesm_average.py" # link averaging script
+            ln -sf "${CODE_ROOT}/WRF Tools/Python/wrfavg/cesm_average.py" # link averaging script
             # loop over averaging periods
             for PERIOD in $PRDS
               do
@@ -219,7 +219,7 @@ function RUNCMDS {
     if [[ "${CVDP}" == 'CVDP' ]] # also works for ensemble mode
       then
         mkdir -p "$RUNDIR/cvdp/" # make sure destination folder exists
-        ln -sf "${MODEL_ROOT}/WRF Tools/NCL/CVDP/run_cvdp.sh" # link CVDP driver script
+        ln -sf "${CODE_ROOT}/WRF Tools/NCL/CVDP/run_cvdp.sh" # link CVDP driver script
         #if [ -f "$RUNDIR/cvdp.log" ]; then CVDPOUT=$( grep -c 'The NCL driver script completed successfully' "$RUNDIR/cvdp.log" )
         #else CVDPOUT=0; fi # always run CVDP, if no logs are present
         if [ ! -f "$RUNDIR/cvdp/cvdp.tar" ] || [[ "$OVERWRITE" == 'OVERWRITE' ]]; then

@@ -4,7 +4,7 @@
 
 # environment variables for "modules"
 # export NCARG_ROOT='/usr/local/ncarg/'
-# export MODEL_ROOT="${HOME}/Models/"
+# export CODE_ROOT="${HOME}/Models/"
 
 export MAC='i7' # machine name
 export QSYS='SH' # queue system

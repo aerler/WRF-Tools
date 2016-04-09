@@ -1,5 +1,5 @@
 #!/bin/bash
-WRFTOOLS="${MODEL_ROOT}/WRF Tools/"
+WRFTOOLS="${CODE_ROOT}/WRF Tools/"
 ## scenario definition section
 NAME='test'
 # GHG emission scenario
@@ -56,7 +56,7 @@ export TEST='this is a test variable' # just to test custom environment snippets
 #WRFWCT='00:15:00'
 #WRFNODES=4
 #DELT='45'
-WRFROOT="$MODEL_ROOT/WRFV3.6/"
+WRFROOT="$CODE_ROOT/WRFV3.6/"
 # WPS executables
 #WPSBLD='Clim-fineIO'
 WPSSYS="Linux" # also affects unccsm.exe
