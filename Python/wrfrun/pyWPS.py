@@ -64,8 +64,9 @@ METGRID = './' + metgrid_exe
 
 ## read environment variables (overrides defaults)
 # defaults are set above (some machine specific)
-# model root folder (instalation folder of 'WRF Tools'
-if os.environ.has_key('MODEL_ROOT'): Model = os.environ['MODEL_ROOT']
+# code root folder (instalation folder of 'WRF Tools'
+if os.environ.has_key('CODE_ROOT'): Model = os.environ['CODE_ROOT']
+else: raise ValueError, 'Environment variable $CODE_ROOT not defined'
 # NCARG installation folder (for NCL)
 if os.environ.has_key('NCARG_ROOT'): 
   NCARG = os.environ['NCARG_ROOT']
