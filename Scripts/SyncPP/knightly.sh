@@ -181,7 +181,7 @@ if [[ "${NOCOMPUTE}" != 'TRUE' ]]
     if [[ "${NOLOGGING}" != 'TRUE' ]]
       then
         nice --adjustment=${NICENESS} "${PYTHON}" "${CODE}/GeoPy/src/processing/wrfavg.py" \
-          &> ${WRFDATA}/wrfavg.log #2> ${WRFDATA}/wrfavg.err
+          &> ${WRFDATA}/wrfavg/wrfavg.log #2> ${WRFDATA}/wrfavg.err
       else
         nice --adjustment=${NICENESS} "${PYTHON}" "${CODE}/GeoPy/src/processing/wrfavg.py"
     fi # if logging
