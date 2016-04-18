@@ -20,6 +20,7 @@ from numexpr import evaluate, set_num_threads, set_vml_num_threads
 set_num_threads(1); set_vml_num_threads(1)
 # my own netcdf stuff
 from utils.nctools import add_var
+
 # days per month without leap days (duplicate from datasets.common) 
 days_per_month_365 = np.array([31,28,31,30,31,30,31,31,30,31,30,31])
 # N.B.: importing from datasets.common causes problems with GDAL, if it is not installed
@@ -27,9 +28,6 @@ dv_float = np.dtype('float32') # final precision used for derived floating point
 dtype_float = dv_float # general floating point precision used for temporary arrays
 # dryday_threshold = 0.2/86400. # precip treshold for a dry day 0.2 mm/day
 
-# thresholds for wet-day variables (from AMS glossary and ETCCDI Climate Change Indices) 
-precip_thresholds = [0.2, 1., 10., 20.]
-# N.B.: importing from wrfout_average causes problems in ipython notebooks
 
 def calcTimeDelta(timestamps, year=None, month=None):
   ''' function to calculate time deltas and subtract leap-days, if necessary '''

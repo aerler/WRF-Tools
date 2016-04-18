@@ -31,6 +31,10 @@ import wrfavg.derived_variables as dv
 days_per_month_365 = dv.days_per_month_365
 dtype_float = dv.dtype_float 
 
+# thresholds for wet-day variables (from AMS glossary and ETCCDI Climate Change Indices) 
+from datasets.commom import precip_thresholds
+# N.B.: importing from WRF Tools to GeoPy causes a name collision
+
 # date error class
 class DateError(Exception):
   ''' Exceptions related to wrfout date strings, e.g. in file names. '''
@@ -210,7 +214,7 @@ derived_variables['plev3d'] = [dv.OrographicIndexPlev(), dv.Vorticity(), dv.Wate
                                dv.GHT_Var(), dv.Vorticity_Var()]
 # add wet-day variables for different thresholds
 wetday_variables = [dv.WetDays, dv.WetDayRain, dv.WetDayPrecip] 
-for threshold in dv.precip_thresholds:
+for threshold in precip_thresholds:
   for wetday_var in wetday_variables:
     derived_variables['srfc'].append(wetday_var(threshold=threshold, rain='RAIN'))
     derived_variables['hydro'].append(wetday_var(threshold=threshold, rain='RAIN'))
