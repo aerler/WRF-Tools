@@ -8,8 +8,7 @@ export QSYS='SGE' # queue system
 
 ## environment variables for "modules"
 # export NCARG_ROOT='/usr/local/ncarg/' only needed to interpolate CESM data
-export IBHOSTS="${HOME}/ibhosts-5"
-#export IBHOSTS="${HOME}/ibhosts"
+export IBHOSTS="${HOME}/ibhosts"
 
 # folder that contains WRF Tools (is necessary for some scripts in non-interactive mode)
 export CODE_ROOT="$HOME/"
