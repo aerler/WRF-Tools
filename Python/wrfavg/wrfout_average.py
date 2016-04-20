@@ -32,7 +32,7 @@ days_per_month_365 = dv.days_per_month_365
 dtype_float = dv.dtype_float 
 
 # thresholds for wet-day variables (from AMS glossary and ETCCDI Climate Change Indices) 
-from datasets.common import precip_thresholds
+from utils.constants import precip_thresholds
 # N.B.: importing from WRF Tools to GeoPy causes a name collision
 
 # date error class
