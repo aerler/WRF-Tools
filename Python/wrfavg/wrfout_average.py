@@ -235,7 +235,7 @@ consecutive_variables['hydro'] = {'CNWD' : ('NetPrecip', 'above', 0., 'Consecuti
                                   'CWGD' : ('NetWaterFlux', 'above', 0., 'Consecutive Water Gain Days'),
                                   'CWLD' : ('NetWaterFlux', 'below', 0., 'Consecutive Water Loss Days'),}
 # add wet-day variables for different thresholds
-for threshold in dv.precip_thresholds:
+for threshold in precip_thresholds:
   for filetype,rain_var in zip(['srfc','hydro','xtrm'],['RAIN','RAIN','RAINMEAN']):
     suffix = '_{:03d}'.format(int(10*threshold)); name_suffix = '{:3.1f} mm/day)'.format(threshold)
     consecutive_variables[filetype]['CWD'+suffix] = (rain_var, 'above', threshold/86400., 
@@ -390,8 +390,6 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
     # check time-stamps in old datasets
     if mean.end_date < begindate: assert t0 == len(mean.dimensions[time]) + 1 # another check
     else: assert t0 <= len(mean.dimensions[time]) + 1 # get time index where we start; in month beginning 1979
-    # update dry-day threshold (in case it was changed...)
-#     mean.dryday_threshold = dv.dryday_threshold # threshold for dry days used in statistical computations
     # checks for new variables
     if laddnew or lrecalc: 
       if t0 != 1: raise DateError, "Have to start at the beginning to add new or recompute old variables!" # t0 starts with 1, not 0
