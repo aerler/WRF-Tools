@@ -110,6 +110,7 @@ export KCFG='NONE' # suppress sourcing in child processes
 echo
 # N.B.: The following variables need to be set:
 #       CODE, DATA, GDAL_DATA, SCRIPTS, PYTHON, PYTHONPATH, 
+#       PYYAML_EXSTNS, PYYAML_WRFAVG, PYYAML_SHPAVG, PYYAML_REGRID
 #       SSHMASTER, SSH, HOST, SRC, SUBDIR
 # some defaults for optional variables
 export WRFDATA="${WRFDATA:-"${DATA}/WRF/"}" # local WRF data root
@@ -158,6 +159,7 @@ if [[ "${NOCOMPUTE}" != 'TRUE' ]]
     #       while the other two are CPU limited - easy load balancing
             
     # extract station data (all datasets)
+    export PYAVG_YAML="${PYYAML_EXSTNS}" # YAML configuration file
     export PYAVG_BATCH=${PYAVG_BATCH:-'BATCH'} # run in batch mode - this should not be changed
     export PYAVG_THREADS=${PYAVG_EXTNP:-1} # parallel execution
     export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
@@ -173,6 +175,7 @@ if [[ "${NOCOMPUTE}" != 'TRUE' ]]
     
     # run post-processing (update climatologies)
     # WRF
+    export PYAVG_YAML="${PYYAML_WRFAVG}" # YAML configuration file
     export PYAVG_BATCH=${PYAVG_BATCH:-'BATCH'} # run in batch mode - this should not be changed
     export PYAVG_THREADS=${PYAVG_AVGNP:-3} # parallel execution
     export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
@@ -226,6 +229,7 @@ if [[ "${NOCOMPUTE}" != 'TRUE' ]]
                 
     ## average over regions (all datasets)
     # same settings as wrfavg...
+    export PYAVG_YAML="${PYYAML_SHPAVG}" # YAML configuration file
     export PYAVG_BATCH=${PYAVG_BATCH:-'BATCH'} # run in batch mode - this should not be changed
     export PYAVG_THREADS=${PYAVG_AVGNP:-3} # parallel execution
     export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
@@ -241,6 +245,7 @@ if [[ "${NOCOMPUTE}" != 'TRUE' ]]
     
     # run regridding (all datasets)
     # same settings as wrfavg...
+    export PYAVG_YAML="${PYYAML_REGRID}" # YAML configuration file
     export PYAVG_BATCH=${PYAVG_BATCH:-'BATCH'} # run in batch mode - this should not be changed
     export PYAVG_THREADS=${PYAVG_AVGNP:-3} # parallel execution
     export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output

@@ -25,6 +25,12 @@ export CESMDATA="${DATA}/CESM/" # local CESM data root
 # general settings
 NICENESS=${NICENESS:-10}
 
+# location of YAML configuration files for Python scripts
+PYYAML_WRFAVG="${WRFDATA}/wrfavg/wrfavg.yaml"
+PYYAML_EXSTNS="${DATA}/exstns.yaml"
+PYYAML_SHPAVG="${DATA}/shpavg.yaml"
+PYYAML_REGRID="${DATA}/regrid.yaml"
+
 
 # Environmental variable used by sync-wrf are defined here
 
