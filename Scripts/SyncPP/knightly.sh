@@ -130,7 +130,7 @@ if [[ "${NODOWNLOAD}" != 'TRUE' ]]
     # Datasets
     if [[ "${NOLOGGING}" != 'TRUE' ]]
       then
-        nice --adjustment=${NICENESS} "${SCRIPTS}/sync-datasets.sh" &> "${DATA}/sync-datasets.log" #2> ${DATA}/sync-datasets.err # 2>&1
+        nice --adjustment=${NICENESS} "${SCRIPTS}/sync-datasets.sh" &> "${DATA}"/sync-datasets.log #2> "${DATA}"/sync-datasets.err # 2>&1
       else
         nice --adjustment=${NICENESS} "${SCRIPTS}/sync-datasets.sh"
     fi # if logging
@@ -138,7 +138,7 @@ if [[ "${NODOWNLOAD}" != 'TRUE' ]]
     # WRF
     if [[ "${NOLOGGING}" != 'TRUE' ]]
       then
-        nice --adjustment=${NICENESS} "${SCRIPTS}/sync-wrf.sh" &> ${WRFDATA}/sync-wrf.log #2> ${WRFDATA}/sync-wrf.err # 2>&1
+        nice --adjustment=${NICENESS} "${SCRIPTS}/sync-wrf.sh" &> "${WRFDATA}"/sync-wrf.log #2> "${WRFDATA}"/sync-wrf.err # 2>&1
       else
         nice --adjustment=${NICENESS} "${SCRIPTS}/sync-wrf.sh"
     fi # if logging
@@ -146,7 +146,7 @@ if [[ "${NODOWNLOAD}" != 'TRUE' ]]
     # CESM
     if [[ "${NOLOGGING}" != 'TRUE' ]]
       then
-        nice --adjustment=${NICENESS} "${SCRIPTS}/sync-cesm.sh" &> ${CESMDATA}/sync-cesm.log #2> ${CESMDATA}/sync-cesm.err # 2>&1
+        nice --adjustment=${NICENESS} "${SCRIPTS}/sync-cesm.sh" &> "${CESMDATA}"/sync-cesm.log #2> "${CESMDATA}"/sync-cesm.err # 2>&1
       else
         nice --adjustment=${NICENESS} "${SCRIPTS}/sync-cesm.sh"
     fi # if logging
@@ -167,7 +167,7 @@ if [[ "${NOCOMPUTE}" != 'TRUE' ]]
     if [[ "${NOLOGGING}" != 'TRUE' ]]
       then
         nice --adjustment=${NICENESS} "${PYTHON}" "${CODE}/GeoPy/src/processing/exstns.py" \
-          &> ${DATA}/exstns.log & # 2> ${DATA}/exstns.err
+          &> "${DATA}"/exstns.log & # 2> "${DATA}"/exstns.err
       else
         nice --adjustment=${NICENESS} "${PYTHON}" "${CODE}/GeoPy/src/processing/exstns.py"
     fi # if logging
@@ -180,11 +180,11 @@ if [[ "${NOCOMPUTE}" != 'TRUE' ]]
     export PYAVG_THREADS=${PYAVG_AVGNP:-3} # parallel execution
     export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
     export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
-    #"${PYTHON}" -c "print 'OK'" 1> ${WRFDATA}/wrfavg.log 2> ${WRFDATA}/wrfavg.err # for debugging
+    #"${PYTHON}" -c "print 'OK'" 1> "${WRFDATA}"/wrfavg.log 2> "${WRFDATA}"/wrfavg.err # for debugging
     if [[ "${NOLOGGING}" != 'TRUE' ]]
       then
         nice --adjustment=${NICENESS} "${PYTHON}" "${CODE}/GeoPy/src/processing/wrfavg.py" \
-          &> ${WRFDATA}/wrfavg/wrfavg.log #2> ${WRFDATA}/wrfavg.err
+          &> "${WRFDATA}"/wrfavg/wrfavg.log #2> "${WRFDATA}"/wrfavg.err
       else
         nice --adjustment=${NICENESS} "${PYTHON}" "${CODE}/GeoPy/src/processing/wrfavg.py"
     fi # if logging
@@ -237,7 +237,7 @@ if [[ "${NOCOMPUTE}" != 'TRUE' ]]
     if [[ "${NOLOGGING}" != 'TRUE' ]]
       then
         nice --adjustment=${NICENESS} "${PYTHON}" "${CODE}/GeoPy/src/processing/shpavg.py" \
-        &> ${DATA}/shpavg.log #2> ${DATA}/shpavg.err
+        &> "${DATA}"/shpavg.log #2> "${DATA}"/shpavg.err
       else
         nice --adjustment=${NICENESS} "${PYTHON}" "${CODE}/GeoPy/src/processing/shpavg.py" 
     fi
@@ -253,7 +253,7 @@ if [[ "${NOCOMPUTE}" != 'TRUE' ]]
     if [[ "${NOLOGGING}" != 'TRUE' ]]
       then
         nice --adjustment=${NICENESS} "${PYTHON}" "${CODE}/GeoPy/src/processing/regrid.py" \
-        &> ${DATA}/regrid.log #2> ${DATA}/regrid.err
+        &> "${DATA}"/regrid.log #2> "${DATA}"/regrid.err
       else
         nice --adjustment=${NICENESS} "${PYTHON}" "${CODE}/GeoPy/src/processing/regrid.py"
     fi
