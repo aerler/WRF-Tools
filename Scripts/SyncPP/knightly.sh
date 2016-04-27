@@ -24,9 +24,9 @@ while true; do
     -d | --debug        )   PYAVG_DEBUG=DEBUG; shift;;
     -n | --niceness     )   NICENESS=$2; shift 2;;
          --config       )   KCFG="$2"; shift 2;;
-         --code-root    )   CODE="$2"; shift 2;;
-         --data-root    )   DATA="$2"; shift 2;;
-         --from-home    )   CODE="${HOME}/Code/"; shift;;
+         --code-root    )   CODE_ROOT="$2"; shift 2;;
+         --data-root    )   DATA_ROOT="$2"; shift 2;;
+         --from-home    )   CODE_ROOT="${HOME}/Code/"; shift;;
          --python       )   PYTHON="$2"; shift 2;;
          --overwrite    )   PYAVG_OVERWRITE='OVERWRITE';  shift;;
          --no-compute   )   NOCOMPUTE='TRUE'; shift;;
@@ -109,19 +109,19 @@ fi # if config file
 export KCFG='NONE' # suppress sourcing in child processes
 echo
 # N.B.: The following variables need to be set:
-#       CODE, DATA, GDAL_DATA, SCRIPTS, PYTHON, PYTHONPATH, 
+#       CODE_ROOT, DATA_ROOT, GDAL_DATA, SCRIPTS, PYTHON, PYTHONPATH, 
 #       PYYAML_EXSTNS, PYYAML_WRFAVG, PYYAML_SHPAVG, PYYAML_REGRID
 #       SSHMASTER, SSH, HOST, SRC, SUBDIR
 # some defaults for optional variables
-export WRFDATA="${WRFDATA:-"${DATA}/WRF/"}" # local WRF data root
-export CESMDATA="${CESMDATA:-"${DATA}/CESM/"}" # local CESM data root
+export WRFDATA="${WRFDATA:-"${DATA_ROOT}/WRF/"}" # local WRF data root
+export CESMDATA="${CESMDATA:-"${DATA_ROOT}/CESM/"}" # local CESM data root
 export HISPD="${HISPD:-'FALSE'}" # whether or not to use the high-speed datamover connection
 # N.B.: the datamover connection needs to be established manually beforehand
 export SSH="${SSH:-"-o BatchMode=yes -o ControlPath=${HOME}/master-%l-%r@%h:%p -o ControlMaster=auto -o ControlPersist=1"}" # default SSH options
 export STATIC="${STATIC:-'STATIC'}" # download static/const data 
 export INVERT="${INVERT:-'FALSE'}" # source has experiment name first then folder type
 export RESTORE="${RESTORE:-'FALSE'}" # restore CESM data and other datasets from local repository (currently not implemented for WRF)
-export CODE DATA GDAL_DATA PYTHONPATH SSHMASTER HOST SRC SUBDIR # make sure remaining environment variables are passed to sub-processes
+export CODE_ROOT DATA_ROOT GDAL_DATA PYTHONPATH SSHMASTER HOST SRC SUBDIR # make sure remaining environment variables are passed to sub-processes
 NICENESS=${NICENESS:-10} # low priority, but not lowest
 
 if [[ "${NODOWNLOAD}" != 'TRUE' ]]
@@ -130,7 +130,7 @@ if [[ "${NODOWNLOAD}" != 'TRUE' ]]
     # Datasets
     if [[ "${NOLOGGING}" != 'TRUE' ]]
       then
-        nice --adjustment=${NICENESS} "${SCRIPTS}/sync-datasets.sh" &> "${DATA}"/sync-datasets.log #2> "${DATA}"/sync-datasets.err # 2>&1
+        nice --adjustment=${NICENESS} "${SCRIPTS}/sync-datasets.sh" &> "${DATA_ROOT}"/sync-datasets.log #2> "${DATA_ROOT}"/sync-datasets.err # 2>&1
       else
         nice --adjustment=${NICENESS} "${SCRIPTS}/sync-datasets.sh"
     fi # if logging
@@ -166,10 +166,10 @@ if [[ "${NOCOMPUTE}" != 'TRUE' ]]
     export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
     if [[ "${NOLOGGING}" != 'TRUE' ]]
       then
-        nice --adjustment=${NICENESS} "${PYTHON}" "${CODE}/GeoPy/src/processing/exstns.py" \
-          &> "${DATA}"/exstns.log & # 2> "${DATA}"/exstns.err
+        nice --adjustment=${NICENESS} "${PYTHON}" "${CODE_ROOT}/GeoPy/src/processing/exstns.py" \
+          &> "${DATA_ROOT}"/exstns.log & # 2> "${DATA_ROOT}"/exstns.err
       else
-        nice --adjustment=${NICENESS} "${PYTHON}" "${CODE}/GeoPy/src/processing/exstns.py"
+        nice --adjustment=${NICENESS} "${PYTHON}" "${CODE_ROOT}/GeoPy/src/processing/exstns.py"
     fi # if logging
     #PID=$! # save PID of background process to use with wait 
     
@@ -183,10 +183,10 @@ if [[ "${NOCOMPUTE}" != 'TRUE' ]]
     #"${PYTHON}" -c "print 'OK'" 1> "${WRFDATA}"/wrfavg.log 2> "${WRFDATA}"/wrfavg.err # for debugging
     if [[ "${NOLOGGING}" != 'TRUE' ]]
       then
-        nice --adjustment=${NICENESS} "${PYTHON}" "${CODE}/GeoPy/src/processing/wrfavg.py" \
+        nice --adjustment=${NICENESS} "${PYTHON}" "${CODE_ROOT}/GeoPy/src/processing/wrfavg.py" \
           &> "${WRFDATA}"/wrfavg/wrfavg.log #2> "${WRFDATA}"/wrfavg.err
       else
-        nice --adjustment=${NICENESS} "${PYTHON}" "${CODE}/GeoPy/src/processing/wrfavg.py"
+        nice --adjustment=${NICENESS} "${PYTHON}" "${CODE_ROOT}/GeoPy/src/processing/wrfavg.py"
     fi # if logging
     REPORT $? 'WRF Post-processing'
     
@@ -236,10 +236,10 @@ if [[ "${NOCOMPUTE}" != 'TRUE' ]]
     export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
     if [[ "${NOLOGGING}" != 'TRUE' ]]
       then
-        nice --adjustment=${NICENESS} "${PYTHON}" "${CODE}/GeoPy/src/processing/shpavg.py" \
-        &> "${DATA}"/shpavg.log #2> "${DATA}"/shpavg.err
+        nice --adjustment=${NICENESS} "${PYTHON}" "${CODE_ROOT}/GeoPy/src/processing/shpavg.py" \
+        &> "${DATA_ROOT}"/shpavg.log #2> "${DATA_ROOT}"/shpavg.err
       else
-        nice --adjustment=${NICENESS} "${PYTHON}" "${CODE}/GeoPy/src/processing/shpavg.py" 
+        nice --adjustment=${NICENESS} "${PYTHON}" "${CODE_ROOT}/GeoPy/src/processing/shpavg.py" 
     fi
     REPORT $? 'Regional/Shape Averaging'
     
@@ -252,10 +252,10 @@ if [[ "${NOCOMPUTE}" != 'TRUE' ]]
     export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
     if [[ "${NOLOGGING}" != 'TRUE' ]]
       then
-        nice --adjustment=${NICENESS} "${PYTHON}" "${CODE}/GeoPy/src/processing/regrid.py" \
-        &> "${DATA}"/regrid.log #2> "${DATA}"/regrid.err
+        nice --adjustment=${NICENESS} "${PYTHON}" "${CODE_ROOT}/GeoPy/src/processing/regrid.py" \
+        &> "${DATA_ROOT}"/regrid.log #2> "${DATA_ROOT}"/regrid.err
       else
-        nice --adjustment=${NICENESS} "${PYTHON}" "${CODE}/GeoPy/src/processing/regrid.py"
+        nice --adjustment=${NICENESS} "${PYTHON}" "${CODE_ROOT}/GeoPy/src/processing/regrid.py"
     fi
     REPORT $? 'Dataset Regridding'
      

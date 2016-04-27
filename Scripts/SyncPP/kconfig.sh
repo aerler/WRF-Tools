@@ -9,27 +9,27 @@ NOENSEMBLE=''
 NOLOGGING=''
 
 # essential variables
-export CODE="${CODE:-${HOME}/Code/}" # code root (makes things easier)
-export DATA="${DATA:-/data/}" # root folder of data repository
+export CODE_ROOT="${CODE_ROOT:-${HOME}/Code/}" # code root (makes things easier)
+export DATA_ROOT="${DATA_ROOT:-/data/}" # root folder of data repository
 # N.B.: these two variables need to respect defaults, otherwise the variables can not be changed from the command line
 
 # some sensible defaults for Linux systems
 export GDAL_DATA='/usr/local/share/gdal' # for GDAL API
 PYTHON='/usr/bin/python' # path to Python executable (do not export!)
 # Python modules and other scripts
-export PYTHONPATH="${CODE}/GeoPy/src/:${CODE}/WRF-Tools/Python/" # required modules
-SCRIPTS="${CODE}/WRF-Tools/Scripts/SyncPP/" # folder with sync and NCO scripts
+export PYTHONPATH="${CODE_ROOT}/GeoPy/src/:${CODE_ROOT}/WRF-Tools/Python/" # required modules
+SCRIPTS="${CODE_ROOT}/WRF-Tools/Scripts/SyncPP/" # folder with sync and NCO scripts
 # WRF & CESM data directories
-export WRFDATA="${DATA}/WRF/" # local WRF data root
-export CESMDATA="${DATA}/CESM/" # local CESM data root
+export WRFDATA="${DATA_ROOT}/WRF/" # local WRF data root
+export CESMDATA="${DATA_ROOT}/CESM/" # local CESM data root
 # general settings
 NICENESS=${NICENESS:-10}
 
 # location of YAML configuration files for Python scripts
 PYYAML_WRFAVG="${WRFDATA}/wrfavg/wrfavg.yaml"
-PYYAML_EXSTNS="${DATA}/exstns.yaml"
-PYYAML_SHPAVG="${DATA}/shpavg.yaml"
-PYYAML_REGRID="${DATA}/regrid.yaml"
+PYYAML_EXSTNS="${DATA_ROOT}/exstns.yaml"
+PYYAML_SHPAVG="${DATA_ROOT}/shpavg.yaml"
+PYYAML_REGRID="${DATA_ROOT}/regrid.yaml"
 
 
 # Environmental variable used by sync-wrf are defined here
