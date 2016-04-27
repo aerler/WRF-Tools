@@ -6,6 +6,7 @@
 #PBS -l walltime=03:00:00
 # merge standard error and output stream
 #PBS -j oe
+#PBS -W umask=0002
 #PBS -o $PBS_JOBNAME.$PBS_JOBID.out
 ##PBS -e $PBS_JOBNAME.$PBS_JOBID.err
 # send email if abort (nbae)
