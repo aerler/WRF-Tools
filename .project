@@ -3,7 +3,7 @@
 	<name>WRF Tools</name>
 	<comment></comment>
 	<projects>
-		<project>PyGeoData</project>
+		<project>GeoPy</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>

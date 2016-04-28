@@ -27,7 +27,7 @@ from utils.nctools import add_coord, copy_dims, copy_ncatts, copy_vars
 from processing.multiprocess import asyncPoolEC
 # import module providing derived variable classes
 import wrfavg.derived_variables as dv
-# aliases 
+# aliases
 days_per_month_365 = dv.days_per_month_365
 dtype_float = dv.dtype_float 
 
@@ -661,10 +661,6 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
       if wrfstartidx != 0: logger.debug('\n{0:s} {1:s}: Starting month at index {2:d}.'.format(pidstr, currentdate, wrfstartidx))
       # save WRF time-stamp for beginning of month for the new file, for record
       starttimestamp = wrfout.variables[wrftimestamp][wrfstartidx,:] # written to file later
-      # print feedback (the current month)
-      if not lskip: # but not if we are skipping this step...
-        if lparallel: progressstr += '{0:s}, '.format(currentdate) # bundle output in parallel mode
-        else: logger.info('{0:s},'.format(currentdate)) # serial mode
       #logger.debug('\n{0:s}{1:s}-01_00:00:00, {2:s}'.format(pidstr, currentdate, str().join(wrfout.variables[wrftimestamp][wrfstartidx,:])))
       if '{0:s}-01_00:00:00'.format(currentdate,) == str().join(wrfout.variables[wrftimestamp][wrfstartidx,:]): pass # proper start of the month
       elif meanidx == 0 and '{0:s}-01_06:00:00'.format(currentdate,) == str().join(wrfout.variables[wrftimestamp][wrfstartidx,:]): pass # for some reanalysis... but only at start of simulation 
@@ -719,7 +715,8 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
               var = wrfout.variables[varname]
               tax = var.dimensions.index(wrftime) # index of time axis
               slices = [slice(None)]*len(var.shape) 
-              ioerror = "File: {:s}, Variable: {:s}, Folder: {:s}".format(filelist[filecounter], varname, infolder)                  
+              # construct informative IOError message
+              ioerror = "An Error occcured in file '{:s}'; variable: '{:s}'\n('{:s}')".format(filelist[filecounter], varname, infolder)                  
               # decide how to average
               ## Accumulated Variables
               if varname in acclist: 
@@ -861,6 +858,9 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
             #if wrfstartidx == 2: warn(error_string.format(lasttimestamp, firsttimestamp, wrfstartidx))
             if wrfstartidx == 0: raise DateError, error_string.format(lasttimestamp, firsttimestamp, wrfstartidx)
         else: # month complete
+          # print feedback (the current month) to indicate completion
+          if lparallel: progressstr += '{0:s}, '.format(currentdate) # bundle output in parallel mode
+          else: logger.info('{0:s},'.format(currentdate)) # serial mode
           # clear temporary storage
           if lcarryover:
             for devar in derived_vars.values():
@@ -883,7 +883,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
               if firsttimestamp != lasttimestamp:
                 raise NotImplementedError, "If the first timestep of the next month is the last timestep in the file, it has to be duplicated in the next file."
                 
-          
+        
       ## now the the loop over files has terminated and we need to normalize and save the results
       
       if not lskip:
@@ -970,7 +970,8 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
   # return exit code
   return ec
 
-# now begin execution    
+
+## now begin execution    
 if __name__ == '__main__':
 
 
