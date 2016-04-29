@@ -36,7 +36,11 @@ $LLQ -f %o %nh| grep mudryk| awk '{ SUM += $2} END { print "Lawrence: " SUM }'
 #echo $totsum
 echo ""
 
-# print number of idle nodes
-idle
+## print number of idle nodes
+# find idle.sh in parent directory
+if [ -h "$0" ]; then PP="$( readlink -fn \"$0\" )"
+else PP="$0"; fi
+PP="$( dirname \"$PP\" )"
+"$PP/idle.sh" # execute idle.sh script in same folder
 echo ""
 
