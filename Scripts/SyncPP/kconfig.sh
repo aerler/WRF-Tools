@@ -23,6 +23,7 @@ SCRIPTS="${CODE_ROOT}/WRF-Tools/Scripts/SyncPP/" # folder with sync and NCO scri
 export WRFDATA="${DATA_ROOT}/WRF/" # local WRF data root
 export CESMDATA="${DATA_ROOT}/CESM/" # local CESM data root
 # general settings
+export FIGURE_ROOT="${HOME}" # this variable is not used; only to prevent crash
 NICENESS=${NICENESS:-10}
 
 # location of YAML configuration files for Python scripts

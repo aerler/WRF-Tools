@@ -122,6 +122,8 @@ export STATIC="${STATIC:-'STATIC'}" # download static/const data
 export INVERT="${INVERT:-'FALSE'}" # source has experiment name first then folder type
 export RESTORE="${RESTORE:-'FALSE'}" # restore CESM data and other datasets from local repository (currently not implemented for WRF)
 export CODE_ROOT DATA_ROOT GDAL_DATA PYTHONPATH SSHMASTER HOST SRC SUBDIR # make sure remaining environment variables are passed to sub-processes
+export FIGURE_ROOT="${FIGURE_ROOT:-${HOME}}" # there is usually no need for this variable
+# N.B.: FIGURE_ROOT is only set to prevent GeoPy from complaining; it is not used
 NICENESS=${NICENESS:-10} # low priority, but not lowest
 
 if [[ "${NODOWNLOAD}" != 'TRUE' ]]
