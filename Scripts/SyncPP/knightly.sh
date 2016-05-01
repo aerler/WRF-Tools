@@ -262,10 +262,10 @@ if [[ "${NOCOMPUTE}" != 'TRUE' ]]
 	    export PYAVG_OVERWRITE='OVERWRITE' # typically requires overwrite - difficult to check
 	    if [[ "${NOLOGGING}" != 'TRUE' ]]
 	      then
-	        nice --adjustment=${NICENESS} "${PYTHON}" "${CODE_ROOT}/GeoPy/src/processing/exstns.py" \
-	          &> "${DATA_ROOT}"/exstns.log & # 2> "${DATA_ROOT}"/exstns.err
+	        nice --adjustment=${NICENESS} "${PYTHON}" "${CODE_ROOT}/GeoPy/src/processing/exprst.py" \
+	          &> "${DATA_ROOT}"/exprst.log & # 2> "${DATA_ROOT}"/exprst.err
 	      else
-    	    nice --adjustment=${NICENESS} "${PYTHON}" "${CODE_ROOT}/GeoPy/src/processing/exstns.py" &
+    	    nice --adjustment=${NICENESS} "${PYTHON}" "${CODE_ROOT}/GeoPy/src/processing/exprst.py" &
 	    fi # if logging
       PID=$! # new PID to wait for
       PYAVG_OVERWRITE="$TMP" # preserve default
