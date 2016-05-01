@@ -187,7 +187,7 @@ if [[ "${NOCOMPUTE}" != 'TRUE' ]]
     #"${PYTHON}" -c "print 'OK'" 1> "${WRFDATA}"/wrfavg.log 2> "${WRFDATA}"/wrfavg.err # for debugging
     if [[ "${NOLOGGING}" != 'TRUE' ]]
       then
-        #nice --adjustment=${NICENESS} "${PYTHON}" "${CODE_ROOT}/GeoPy/src/processing/wrfavg.py" \
+        nice --adjustment=${NICENESS} "${PYTHON}" "${CODE_ROOT}/GeoPy/src/processing/wrfavg.py" \
           &> "${WRFDATA}"/wrfavg/wrfavg.log #2> "${WRFDATA}"/wrfavg.err
       else
         nice --adjustment=${NICENESS} "${PYTHON}" "${CODE_ROOT}/GeoPy/src/processing/wrfavg.py"
@@ -240,7 +240,7 @@ if [[ "${NOCOMPUTE}" != 'TRUE' ]]
     export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
     if [[ "${NOLOGGING}" != 'TRUE' ]]
       then
-        #nice --adjustment=${NICENESS} "${PYTHON}" "${CODE_ROOT}/GeoPy/src/processing/regrid.py" \
+        nice --adjustment=${NICENESS} "${PYTHON}" "${CODE_ROOT}/GeoPy/src/processing/regrid.py" \
         &> "${DATA_ROOT}"/regrid.log #2> "${DATA_ROOT}"/regrid.err
       else
         nice --adjustment=${NICENESS} "${PYTHON}" "${CODE_ROOT}/GeoPy/src/processing/regrid.py"
@@ -281,7 +281,7 @@ if [[ "${NOCOMPUTE}" != 'TRUE' ]]
     export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
     if [[ "${NOLOGGING}" != 'TRUE' ]]
       then
-        #nice --adjustment=${NICENESS} "${PYTHON}" "${CODE_ROOT}/GeoPy/src/processing/shpavg.py" \
+        nice --adjustment=${NICENESS} "${PYTHON}" "${CODE_ROOT}/GeoPy/src/processing/shpavg.py" \
         &> "${DATA_ROOT}"/shpavg.log #2> "${DATA_ROOT}"/shpavg.err
       else
         nice --adjustment=${NICENESS} "${PYTHON}" "${CODE_ROOT}/GeoPy/src/processing/shpavg.py" 
