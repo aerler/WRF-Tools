@@ -29,8 +29,9 @@ NICENESS=${NICENESS:-10}
 # location of YAML configuration files for Python scripts
 PYYAML_WRFAVG="${WRFDATA}/wrfavg/wrfavg.yaml"
 PYYAML_EXSTNS="${DATA_ROOT}/exstns.yaml"
-PYYAML_SHPAVG="${DATA_ROOT}/shpavg.yaml"
 PYYAML_REGRID="${DATA_ROOT}/regrid.yaml"
+PYYAML_EXSTNS="${DATA_ROOT}/exprst.yaml"
+PYYAML_SHPAVG="${DATA_ROOT}/shpavg.yaml"
 
 
 # Environmental variable used by sync-wrf are defined here

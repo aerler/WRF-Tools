@@ -8,7 +8,7 @@
 
 # pre-process arguments using getopt
 if [ -z $( getopt -T ) ]; then
-  TMP=$( getopt -o e:a:tsrdn:h --long procs-exstns:,procs-avgreg:,test,highspeed,restore,debug,niceness:,config:,code-root:,data-root:,from-home,python:,overwrite,no-compute,no-download,no-ensemble,help -n "$0" -- "$@" ) # pre-process arguments
+  TMP=$( getopt -o e:a:tsrdn:h --long procs-exstns:,procs-avgreg:,test,highspeed,restore,debug,niceness:,config:,code-root:,data-root:,from-home,python:,overwrite,export-raster,no-compute,no-download,no-ensemble,help -n "$0" -- "$@" ) # pre-process arguments
   [ $? != 0 ] && exit 1 # getopt already prints an error message
   eval set -- "$TMP" # reset positional parameters (arguments) to $TMP list
 fi # check if GNU getopt ("enhanced")
@@ -16,23 +16,24 @@ fi # check if GNU getopt ("enhanced")
 #while getopts 'fs' OPTION; do # getopts version... supports only short options
 while true; do
   case "$1" in
-    -e | --procs-exstns )   PYAVG_EXTNP=$2; shift 2;;
-    -a | --procs-avgreg )   PYAVG_AVGNP=$2; shift 2;;
-    -t | --test         )   PYAVG_BATCH='FALSE'; shift;;    
-    -s | --highspeed    )   HISPD='HISPD';  shift;;
-    -r | --restore      )   RESTORE='RESTORE'; shift;;
-    -d | --debug        )   PYAVG_DEBUG=DEBUG; shift;;
-    -n | --niceness     )   NICENESS=$2; shift 2;;
-         --config       )   KCFG="$2"; shift 2;;
-         --code-root    )   CODE_ROOT="$2"; shift 2;;
-         --data-root    )   DATA_ROOT="$2"; shift 2;;
-         --from-home    )   CODE_ROOT="${HOME}/Code/"; shift;;
-         --python       )   PYTHON="$2"; shift 2;;
-         --overwrite    )   PYAVG_OVERWRITE='OVERWRITE';  shift;;
-         --no-compute   )   NOCOMPUTE='TRUE'; shift;;
-         --no-download  )   NODOWNLOAD='TRUE'; shift;;
-         --no-ensemble  )   NOENSEMBLE='TRUE'; shift;;
-    -h | --help         )   echo -e " \
+    -e | --procs-exstns  )   PYAVG_EXTNP=$2; shift 2;;
+    -a | --procs-avgreg  )   PYAVG_AVGNP=$2; shift 2;;
+    -t | --test          )   PYAVG_BATCH='FALSE'; shift;;    
+    -s | --highspeed     )   HISPD='HISPD';  shift;;
+    -r | --restore       )   RESTORE='RESTORE'; shift;;
+    -d | --debug         )   PYAVG_DEBUG=DEBUG; shift;;
+    -n | --niceness      )   NICENESS=$2; shift 2;;
+         --config        )   KCFG="$2"; shift 2;;
+         --code-root     )   CODE_ROOT="$2"; shift 2;;
+         --data-root     )   DATA_ROOT="$2"; shift 2;;
+         --from-home     )   CODE_ROOT="${HOME}/Code/"; shift;;
+         --python        )   PYTHON="$2"; shift 2;;
+         --overwrite     )   PYAVG_OVERWRITE='OVERWRITE';  shift;;
+         --export-raster )   EXPRST='TRUE'; shift;;
+         --no-compute    )   NOCOMPUTE='TRUE'; shift;;
+         --no-download   )   NODOWNLOAD='TRUE'; shift;;
+         --no-ensemble   )   NOENSEMBLE='TRUE'; shift;;
+    -h | --help          )   echo -e " \
                             \n\
     -e | --procs-exstns   number of processes to use for station extraction (concurrently to averaging/regridding; default: 2)\n\
     -a | --procs-avgreg   number of processes to use for averaging and regridding (concurrently to stations; default: 2)\n\
@@ -48,6 +49,7 @@ while true; do
          --from-home      use home directory as code root\n\
          --python         use alternative Python executable\n\
          --overwrite      recompute all averages and regridding (default: False)\n\
+         --export-raster  run the raster export script (exprst.py)\n\
          --no-compute     skips the computation steps except the ensemble means (skips all Python scripts)\n\
          --no-download    skips all downloads from SciNet\n\
          --no-ensemble    skips computation of ensemble means\n\
@@ -171,9 +173,9 @@ if [[ "${NOCOMPUTE}" != 'TRUE' ]]
         nice --adjustment=${NICENESS} "${PYTHON}" "${CODE_ROOT}/GeoPy/src/processing/exstns.py" \
           &> "${DATA_ROOT}"/exstns.log & # 2> "${DATA_ROOT}"/exstns.err
       else
-        nice --adjustment=${NICENESS} "${PYTHON}" "${CODE_ROOT}/GeoPy/src/processing/exstns.py"
+        nice --adjustment=${NICENESS} "${PYTHON}" "${CODE_ROOT}/GeoPy/src/processing/exstns.py" &
     fi # if logging
-    #PID=$! # save PID of background process to use with wait 
+    PID=$! # save PID of background process to use with wait 
     
     # run post-processing (update climatologies)
     # WRF
@@ -185,7 +187,7 @@ if [[ "${NOCOMPUTE}" != 'TRUE' ]]
     #"${PYTHON}" -c "print 'OK'" 1> "${WRFDATA}"/wrfavg.log 2> "${WRFDATA}"/wrfavg.err # for debugging
     if [[ "${NOLOGGING}" != 'TRUE' ]]
       then
-        nice --adjustment=${NICENESS} "${PYTHON}" "${CODE_ROOT}/GeoPy/src/processing/wrfavg.py" \
+        #nice --adjustment=${NICENESS} "${PYTHON}" "${CODE_ROOT}/GeoPy/src/processing/wrfavg.py" \
           &> "${WRFDATA}"/wrfavg/wrfavg.log #2> "${WRFDATA}"/wrfavg.err
       else
         nice --adjustment=${NICENESS} "${PYTHON}" "${CODE_ROOT}/GeoPy/src/processing/wrfavg.py"
@@ -228,22 +230,6 @@ if [[ "${NOCOMPUTE}" != 'TRUE' ]]
     
     # N.B.: station extraction runs concurrently with averaging/regridding, because it is I/O limited,
     #       while the other two are CPU limited - easy load balancing
-                
-    ## average over regions (all datasets)
-    # same settings as wrfavg...
-    export PYAVG_YAML="${PYYAML_SHPAVG}" # YAML configuration file
-    export PYAVG_BATCH=${PYAVG_BATCH:-'BATCH'} # run in batch mode - this should not be changed
-    export PYAVG_THREADS=${PYAVG_AVGNP:-3} # parallel execution
-    export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
-    export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
-    if [[ "${NOLOGGING}" != 'TRUE' ]]
-      then
-        nice --adjustment=${NICENESS} "${PYTHON}" "${CODE_ROOT}/GeoPy/src/processing/shpavg.py" \
-        &> "${DATA_ROOT}"/shpavg.log #2> "${DATA_ROOT}"/shpavg.err
-      else
-        nice --adjustment=${NICENESS} "${PYTHON}" "${CODE_ROOT}/GeoPy/src/processing/shpavg.py" 
-    fi
-    REPORT $? 'Regional/Shape Averaging'
     
     # run regridding (all datasets)
     # same settings as wrfavg...
@@ -254,16 +240,65 @@ if [[ "${NOCOMPUTE}" != 'TRUE' ]]
     export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
     if [[ "${NOLOGGING}" != 'TRUE' ]]
       then
-        nice --adjustment=${NICENESS} "${PYTHON}" "${CODE_ROOT}/GeoPy/src/processing/regrid.py" \
+        #nice --adjustment=${NICENESS} "${PYTHON}" "${CODE_ROOT}/GeoPy/src/processing/regrid.py" \
         &> "${DATA_ROOT}"/regrid.log #2> "${DATA_ROOT}"/regrid.err
       else
         nice --adjustment=${NICENESS} "${PYTHON}" "${CODE_ROOT}/GeoPy/src/processing/regrid.py"
     fi
     REPORT $? 'Dataset Regridding'
      
-    wait $PID # wait for station extraction to finish
-    REPORT $? 'Station Data Extraction' # wait returns the exit status of the command it waited for
-         
+    if [[ "$EXPRST" == 'TRUE' ]]; then 
+      
+      # wait for station extraction to finish (should be fast)
+	    wait $PID # wait for station extraction to finish
+	    REPORT $? 'Station Data Extraction' # wait returns the exit status of the command it waited for
+	    
+	    # export to raster format in parallel (like stations)
+	    export PYAVG_YAML="${PYYAML_EXPRST}" # YAML configuration file
+	    export PYAVG_BATCH=${PYAVG_BATCH:-'BATCH'} # run in batch mode - this should not be changed
+	    export PYAVG_THREADS=${PYAVG_EXTNP:-1} # parallel execution
+	    export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
+	    TMP="$PYAVG_OVERWRITE" # preserve default
+	    export PYAVG_OVERWRITE='OVERWRITE' # typically requires overwrite - difficult to check
+	    if [[ "${NOLOGGING}" != 'TRUE' ]]
+	      then
+	        nice --adjustment=${NICENESS} "${PYTHON}" "${CODE_ROOT}/GeoPy/src/processing/exstns.py" \
+	          &> "${DATA_ROOT}"/exstns.log & # 2> "${DATA_ROOT}"/exstns.err
+	      else
+    	    nice --adjustment=${NICENESS} "${PYTHON}" "${CODE_ROOT}/GeoPy/src/processing/exstns.py" &
+	    fi # if logging
+      PID=$! # new PID to wait for
+      PYAVG_OVERWRITE="$TMP" # preserve default
+
+    fi # raster extraction
+    
+    ## average over regions (all datasets)
+    # same settings as wrfavg...
+    export PYAVG_YAML="${PYYAML_SHPAVG}" # YAML configuration file
+    export PYAVG_BATCH=${PYAVG_BATCH:-'BATCH'} # run in batch mode - this should not be changed
+    export PYAVG_THREADS=${PYAVG_AVGNP:-3} # parallel execution
+    export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
+    export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
+    if [[ "${NOLOGGING}" != 'TRUE' ]]
+      then
+        #nice --adjustment=${NICENESS} "${PYTHON}" "${CODE_ROOT}/GeoPy/src/processing/shpavg.py" \
+        &> "${DATA_ROOT}"/shpavg.log #2> "${DATA_ROOT}"/shpavg.err
+      else
+        nice --adjustment=${NICENESS} "${PYTHON}" "${CODE_ROOT}/GeoPy/src/processing/shpavg.py" 
+    fi
+    REPORT $? 'Regional/Shape Averaging'
+                 
+    # wait for remaining parallel execution
+    if [[ "$EXPRST" == 'TRUE' ]]; then 
+      # wait for raster export to finish (should also be fast)
+      wait $PID # wait for station extraction to finish
+      REPORT $? 'Raster Export' # wait returns the exit status of the command it waited for
+    else
+      # wait for station extraction to finish (should be fast)
+      wait $PID # wait for station extraction to finish
+      REPORT $? 'Station Data Extraction' # wait returns the exit status of the command it waited for
+    fi
+                    
 fi # if no-compute
 
 # report
