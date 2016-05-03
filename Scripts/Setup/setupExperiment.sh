@@ -103,6 +103,8 @@ function RENAME () {
     sed -i "/AUTORST=/ s/AUTORST=[^$][^$].*$/AUTORST=\'${AUTORST}\' # whether or not to restart job after a numerical instability /" "${FILE}"
     # time decrement to use in case of instability (used by crashHandler.sh)
     sed -i "/DELT=/ s/DELT=[^$][^$].*$/DELT=\'${DELT}\' # time decrement for auto restart /" "${FILE}"
+    #Username check
+     sed -i "s/aerler@atmosp\./${USER}@/" "${FILE}"
 } # fct. RENAME
 
 
