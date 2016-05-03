@@ -49,7 +49,7 @@ if [[ -n "${NEXTSTEP}" ]]
     echo
     echo "Linking restart files to next working directory:"
     echo "${NEXTDIR}"
-    for RESTART in "${RSTDIR}"/wrfrst_d??_"${RSTDATE}"; do
+    for RESTART in "${RSTDIR}"/wrfrst_d??_${RSTDATE//:/[_:]}; do # match hh:mm:ss and hh_mm_ss
       ln -sf "${RESTART}"; done  
     
     # check for WRF input files (in next working directory)

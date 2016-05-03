@@ -49,13 +49,18 @@
  auxhist8_interval                   = 1440, 1440, 1440, 1440,
  frames_per_auxhist8                 = 1000, 1000, 1000, 1000,
  ! nudging increments
- auxhist9_outname                   = "wrffdda_d<domain>_<date>.nc",
- io_form_auxhist9                   = 2,
- auxhist9_interval                  = 1440, 1440, 1440, 1440,
- frames_per_auxhist9                = 1000, 1000, 1000, 1000,
- ! pressure level diagnostics
- auxhist23_outname                  = "wrfplev3d_d<domain>_<date>.nc",
- io_form_auxhist23                  = 2,
- auxhist23_interval                 = 360, 360, 360, 360,
- frames_per_auxhist23               = 1000, 1000, 1000, 1000,
+ auxhist9_outname                    = "wrffdda_d<domain>_<date>.nc",
+ io_form_auxhist9                    = 2,
+ auxhist9_interval                   = 1440, 1440, 1440, 1440,
+ frames_per_auxhist9                 = 1000, 1000, 1000, 1000,
+! snow, energy & mass balance diagnostics (hourly)
+ auxhist10_outname                   = "wrfsnow_d<domain>_<date>.nc",
+ io_form_auxhist10                   = 0, ! needs to be switched on
+ auxhist10_interval                  =   60,   60,   60,   60,
+ frames_per_auxhist10                = 1000, 1000, 1000, 1000, 
+! pressure level diagnostics
+ auxhist23_outname                   = "wrfplev3d_d<domain>_<date>.nc",
+ io_form_auxhist23                   = 2,
+ auxhist23_interval                  = 360, 360, 360, 360,
+ frames_per_auxhist23                = 1000, 1000, 1000, 1000,
 /

@@ -15,22 +15,25 @@ HGSYNC=1
 HGPULL=1
 HGUPDATE=1
 SVNSYNC=1
+GITSYNC=1
 # parse arguments
 #while getopts 'fs' OPTION; do # getopts version... supports only short options
 while true; do
   case "$1" in
     -d | --dir         )   ROOT=$2; shift 2;;
     -r | --recurse     )   RECLEV=$2; shift 2;;
-    -q | --hg-only     )   SVNSYNC=0; shift;;
+    -g | --git-only    )   SVNSYNC=0; HGSYNC=0; shift;;
+    -q | --hg-only     )   SVNSYNC=0; GITSYNC=0; shift;;
     -p | --pull-only   )   HGUPDATE=0; shift;;
     -u | --update-only )   HGPULL=0; shift;;
-    -s | --svn-only    )   HGSYNC=0; shift;;
+    -s | --svn-only    )   HGSYNC=0; GITSYNC=0; shift;;
     -h | --help        )   echo -e " \
                             \n\
     -d | --dir           Specify root folder of repositories (default: current path) \n\
     -r | --recurse       Set a maximum level for recursing into sub-folders (default: 3) \n\
     -q | --hg-only       Only synchronize HG repositories \n\
-    -p | --pull-only     Only run HG pull (no updates) \n\
+    -g | --git-only      Only synchronize Git repositories \n\
+    -p | --pull-only     Only run HG/Git pull (no updates) \n\
     -u | --update-only   Only run HG update (no pull) \n\
     -s | --svn-only      Only synchronize SVN repositories \n\
     -h | --help          print this help \n\
@@ -43,12 +46,15 @@ done # while getopts
 # set search expression based on recursion level
 PATTERN='*/ */*/ */*/*/' # globbing expressions for search
 HGSRCX='' 
+GITSRCX='' 
 SVNSRCX=''
 for L in $( seq $RECLEV ); do
   # check which patterns actually apply
   DIR="${ROOT}/$( echo "${PATTERN}" | cut -d ' ' -f ${L} )/"
   ls -d ${DIR}/.hg &> /dev/null # check if any HG repositories present
   [ $? -eq 0 ] && [ ${HGSYNC} -eq 1 ] && HGSRCX="${HGSRCX} ${DIR}/.hg" 
+  ls -d ${DIR}/.git &> /dev/null # check if any git repositories present
+  [ $? -eq 0 ] && [ ${GITSYNC} -eq 1 ] && GITSRCX="${GITSRCX} ${DIR}/.git" 
   ls -d ${DIR}/.svn &> /dev/null # check if any SVN repositories present
   [ $? -eq 0 ] && [ ${SVNSYNC} -eq 1 ] && SVNSRCX="${SVNSRCX} ${DIR}/.svn" 
 done
@@ -88,6 +94,40 @@ if [[ -n "${HGSRCX}" ]]; then
       echo
   done
 fi # if HG
+  
+if [[ -n "${GITSRCX}" ]]; then
+  # feedback
+  echo
+  echo "   ***   Updating Git Repositories   ***  "
+  echo
+
+  # update HG repositories (and pull)
+  for HG in ${GITSRCX}
+    do 
+      LEC=0 # local error counter
+      D=${HG%/.git} # get parent of .hg folder
+      echo ${D#"${ROOT}/"}
+      cd "${D}"
+      # pull & update repository
+      if [ ${HGPULL} -eq 1 ] && [ ${HGUPDATE} -eq 1 ]; then 
+        git pull
+        [ $? -gt 0 ] && LEC=$(( $LEC + 1 ))
+      elif [ ${HGPULL} -eq 1 ] && [ ${HGUPDATE} -eq 0 ]; then
+        git fetch
+        [ $? -gt 0 ] && LEC=$(( $LEC + 1 ))
+      elif [ ${HGPULL} -eq 0 ] && [ ${HGUPDATE} -eq 1 ]; then
+        echo "Invalid option for Git repository! (can't update without pull)"
+        LEC=$(( $LEC + 1 ))
+      fi # if pull and/or update
+      # evaluate results
+      if [ ${LEC} -eq 0 ] 
+        then OK=$(( ${OK} + 1 ))
+        else ERR=$(( ${ERR} + 1 ))
+      fi # if no error
+      cd "${ROOT}" # back to root folder
+      echo
+  done
+fi # if Git
   
 if [[ -n "${SVNSRCX}" ]]; then
 # feedback

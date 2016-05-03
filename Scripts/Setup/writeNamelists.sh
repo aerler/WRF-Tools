@@ -5,7 +5,7 @@
 # root folder where namelist snippets are located
 # every namelist group is assumed to have its own folder
 # the files will be written to the current directory
-WRFTOOLS=${WRFTOOLS:-"${MODEL_ROOT}/WRF Tools/"}
+WRFTOOLS=${WRFTOOLS:-"${CODE_ROOT}/WRF Tools/"}
 NMLDIR=${NMLDIR:-"${WRFTOOLS}/misc/namelists/"}
 
 ## definition section

@@ -18,8 +18,11 @@ elif [[ "${MODE}" == 'NOSTAT'* ]]; then
 elif [[ "${MODE}" == 'RESTART' ]]; then
   # restart run (no geogrid)
   RESTART='RESTART' # restart previously terminated run
-  NOGEO='NOGEO' # run without geogrid
   NOTAR='FALSE' # star static
+  # check if geogrid file for first domain is present
+  # (checking all is too complicated, because we don't know which)
+  if [ -f "${INIDIR}/geo_em.d01.nc" ]; then NOGEO='NOGEO' # run without geogrid
+  else NOGEO='FALSE'; fi # run with geogrid
 elif [[ "${MODE}" == 'CLEAN' ]] || [[ "${MODE}" == '' ]]; then
   # cold start with geogrid
   NOGEO='FALSE' # run with geogrid
@@ -78,7 +81,7 @@ if [[ "${RESTART}" == 'RESTART' ]]; then # restart
   # link restart files
   [ $VERBOSITY -gt 0 ] && echo "Linking restart files to next working directory:"
   [ $VERBOSITY -gt 0 ] && echo "${NEXTDIR}"
-  for RST in "${WRFOUT}"/wrfrst_d??_"${RSTDATE}"; do
+  for RST in "${WRFOUT}"/wrfrst_d??_${RSTDATE//:/[_:]}; do # match hh:mm:ss and hh_mm_ss
     ln -sf "${RST}" 
     [ $VERBOSITY -gt 0 ] && echo  "${RST}"
   done

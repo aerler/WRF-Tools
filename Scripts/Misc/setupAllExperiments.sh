@@ -14,7 +14,7 @@ if [ -z $( getopt -T ) ]; then
 fi # check if GNU getopt ("enhanced")
 # default parameters
 ERRLOG='setup_errors.log'
-WRFTOOLS=${WRFTOOLS:-"${MODEL_ROOT}/WRF Tools/"} # setup source folder
+WRFTOOLS=${WRFTOOLS:-"${CODE_ROOT}/WRF Tools/"} # setup source folder
 VERBOSITY=1 # show setup output
 RUNONLY=0 # only run setup for currently running experiments (sources 'running_experiments.sh')
 TEST=0 # do not actually restart, just print parameters

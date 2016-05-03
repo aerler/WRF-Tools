@@ -1,0 +1,37 @@
+#!/bin/bash
+# MOAB/Torque submission script for Rocks
+
+## queue/SGE settings
+#$ -S /bin/bash
+## resource requirements
+##$ -l h_rt=24:00:00
+#$ -pe mpich 256
+## join stdout & stderr
+#$ -N test_WRF
+#$ -j y
+#$ -o $JOB_NAME.$JOB_ID.out
+## email notification settings (e:end,a:abort)
+#$ -M "$EMAIL"
+#$ -m a
+## job environment (cwd:current working directory)
+#$ -cwd
+#$ -v NEXTSTEP
+#$ -v NOWPS
+## special queue for WRF: 8 nodes
+#$ -q all.q
+
+# source "${HOME}/.bashrc"
+# N.B.: sourcing .bashrc is not necessary because the environment should be set in the setup script (setupRocks.sh)
+
+## job settings
+export WRFNODES=8 # number of nodes used for WRF (set in setup scripts)
+# get PBS names (needed for folder names)
+export JOBNAME="${JOB_NAME}" # not the $RUNNAME
+export INIDIR="${SGE_O_WORKDIR}" # experiment root (launch directory)
+# important scripts
+export WRFSCRIPT="run_cycling_WRF.sge" # WRF suffix assumed
+export WPSSCRIPT="run_cycling_WPS.sh" # WRF suffix assumed, WPS suffix substituted: ${JOBNAME%_WRF}_WPS
+# WRF and WPS wallclock  time limits (no way to query from queue system)
+export WRFWCT='24:00:00' # WRF wallclock time limit
+export WPSWCT='01:00:00' # WPS wallclock time limit
+

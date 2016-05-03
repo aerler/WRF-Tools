@@ -64,8 +64,9 @@ METGRID = './' + metgrid_exe
 
 ## read environment variables (overrides defaults)
 # defaults are set above (some machine specific)
-# model root folder (instalation folder of 'WRF Tools'
-if os.environ.has_key('MODEL_ROOT'): Model = os.environ['MODEL_ROOT']
+# code root folder (instalation folder of 'WRF Tools'
+if os.environ.has_key('CODE_ROOT'): Model = os.environ['CODE_ROOT']
+else: raise ValueError, 'Environment variable $CODE_ROOT not defined'
 # NCARG installation folder (for NCL)
 if os.environ.has_key('NCARG_ROOT'): 
   NCARG = os.environ['NCARG_ROOT']
@@ -398,7 +399,7 @@ class CESM(Dataset):
     # set environment variable for NCL (on tmp folder)   
     os.putenv('NCARG_ROOT', NCARG) 
     os.putenv('NCL_POP_REMAP', meta) # NCL is finicky about space characters in the path statement, so relative path is saver
-    os.putenv('MODEL_ROOT', Model) # also for NCL (where personal function libs are)
+    os.putenv('CODE_ROOT', Model) # also for NCL (where personal function libs are)
       
     # figure out source file prefix (only needs to be determined once)
     if not prefix: 

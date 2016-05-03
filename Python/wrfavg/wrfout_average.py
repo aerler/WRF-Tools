@@ -27,9 +27,13 @@ from utils.nctools import add_coord, copy_dims, copy_ncatts, copy_vars
 from processing.multiprocess import asyncPoolEC
 # import module providing derived variable classes
 import wrfavg.derived_variables as dv
-# aliases 
+# aliases
 days_per_month_365 = dv.days_per_month_365
 dtype_float = dv.dtype_float 
+
+# thresholds for wet-day variables (from AMS glossary and ETCCDI Climate Change Indices) 
+from utils.constants import precip_thresholds
+# N.B.: importing from WRF Tools to GeoPy causes a name collision
 
 # date error class
 class DateError(Exception):
@@ -89,7 +93,7 @@ if os.environ.has_key('PYAVG_RECALC'):
     # recalculate all derived variables and leave others in place
     lrecalc = True; lderivedonly = True; recalcvars = []
   else:
-    recalcvars = os.environ['PYAVG_RECALC'].split(',') # colon separated list of variables to recompute
+    recalcvars = os.environ['PYAVG_RECALC'].split() # space separated list (other characters cause problems...)
     if len(recalcvars) > 0 and len(recalcvars[0]) > 0: lrecalc = True # if there is a variable to recompute
     else: lrecalc = False
   # lrecalc uses the same pathway, but they can operate independently
@@ -103,12 +107,12 @@ else: loverwrite = False # i.e. append
 #       otherwise only the selected months are recomputed 
 # file types to process 
 if os.environ.has_key('PYAVG_FILETYPES'):
-  filetypes = os.environ['PYAVG_FILETYPES'].split(',') # space separated list (other characters cause problems...)
+  filetypes = os.environ['PYAVG_FILETYPES'].split() # space separated list (other characters cause problems...)
   if len(filetypes) == 1 and len(filetypes[0]) == 0: filetypes = None # empty string, substitute default 
 else: filetypes = None # defaults are set below
 # domains to process
 if os.environ.has_key('PYAVG_DOMAINS'):
-  domains = os.environ['PYAVG_DOMAINS'].split(',')
+  domains = os.environ['PYAVG_DOMAINS'].split() # space separated list (other characters cause problems...)
   if len(domains) == 1: domains = [int(i) for i in domains[0]] # string of single-digit indices
   else: domains = [int(i) for i in domains] # semi-colon separated list
 else: domains = None # defaults are set below 
@@ -167,7 +171,8 @@ domains = domains or [1,2,3,4]
 # filetypes and domains can also be set in an semi-colon-separated environment variable (see above)
 # file pattern (WRF output and averaged files)
 # inputpattern = 'wrf{0:s}_d{1:02d}_{2:s}-{3:s}-{4:s}_\d\d:\d\d:\d\d.nc' # expanded with format(type,domain,year,month) 
-inputpattern = '^wrf{0:s}_d{1:s}_{2:s}_\d\d[_:]\d\d[_:]\d\d(?:\.nc$|$)' # expanded with format(type,domain,datestring)
+#inputpattern = '^wrf{0:s}_d{1:s}_{2:s}_\d\d[_:]\d\d[_:]\d\d(?:\.nc$|$)' # expanded with format(type,domain,datestring)
+inputpattern = '^wrf{0:s}_d{1:s}_{2:s}_\d\d[_:]\d\d[_:]\d\d.*$' # expanded with format(type,domain,datestring)
 # N.B.: the last section (?:\.nc$|$) matches either .nc at the end or just the end of the string;
 #       ?: just means that the group defined by () can not be retrieved (it is just to hold "|") 
 constpattern = 'wrfconst_d{0:02d}' # expanded with format(domain), also WRF output
@@ -209,7 +214,7 @@ derived_variables['plev3d'] = [dv.OrographicIndexPlev(), dv.Vorticity(), dv.Wate
                                dv.GHT_Var(), dv.Vorticity_Var()]
 # add wet-day variables for different thresholds
 wetday_variables = [dv.WetDays, dv.WetDayRain, dv.WetDayPrecip] 
-for threshold in dv.precip_thresholds:
+for threshold in precip_thresholds:
   for wetday_var in wetday_variables:
     derived_variables['srfc'].append(wetday_var(threshold=threshold, rain='RAIN'))
     derived_variables['hydro'].append(wetday_var(threshold=threshold, rain='RAIN'))
@@ -230,7 +235,7 @@ consecutive_variables['hydro'] = {'CNWD' : ('NetPrecip', 'above', 0., 'Consecuti
                                   'CWGD' : ('NetWaterFlux', 'above', 0., 'Consecutive Water Gain Days'),
                                   'CWLD' : ('NetWaterFlux', 'below', 0., 'Consecutive Water Loss Days'),}
 # add wet-day variables for different thresholds
-for threshold in dv.precip_thresholds:
+for threshold in precip_thresholds:
   for filetype,rain_var in zip(['srfc','hydro','xtrm'],['RAIN','RAIN','RAINMEAN']):
     suffix = '_{:03d}'.format(int(10*threshold)); name_suffix = '{:3.1f} mm/day)'.format(threshold)
     consecutive_variables[filetype]['CWD'+suffix] = (rain_var, 'above', threshold/86400., 
@@ -385,8 +390,6 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
     # check time-stamps in old datasets
     if mean.end_date < begindate: assert t0 == len(mean.dimensions[time]) + 1 # another check
     else: assert t0 <= len(mean.dimensions[time]) + 1 # get time index where we start; in month beginning 1979
-    # update dry-day threshold (in case it was changed...)
-#     mean.dryday_threshold = dv.dryday_threshold # threshold for dry days used in statistical computations
     # checks for new variables
     if laddnew or lrecalc: 
       if t0 != 1: raise DateError, "Have to start at the beginning to add new or recompute old variables!" # t0 starts with 1, not 0
@@ -658,10 +661,6 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
       if wrfstartidx != 0: logger.debug('\n{0:s} {1:s}: Starting month at index {2:d}.'.format(pidstr, currentdate, wrfstartidx))
       # save WRF time-stamp for beginning of month for the new file, for record
       starttimestamp = wrfout.variables[wrftimestamp][wrfstartidx,:] # written to file later
-      # print feedback (the current month)
-      if not lskip: # but not if we are skipping this step...
-        if lparallel: progressstr += '{0:s}, '.format(currentdate) # bundle output in parallel mode
-        else: logger.info('{0:s},'.format(currentdate)) # serial mode
       #logger.debug('\n{0:s}{1:s}-01_00:00:00, {2:s}'.format(pidstr, currentdate, str().join(wrfout.variables[wrftimestamp][wrfstartidx,:])))
       if '{0:s}-01_00:00:00'.format(currentdate,) == str().join(wrfout.variables[wrftimestamp][wrfstartidx,:]): pass # proper start of the month
       elif meanidx == 0 and '{0:s}-01_06:00:00'.format(currentdate,) == str().join(wrfout.variables[wrftimestamp][wrfstartidx,:]): pass # for some reanalysis... but only at start of simulation 
@@ -716,7 +715,8 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
               var = wrfout.variables[varname]
               tax = var.dimensions.index(wrftime) # index of time axis
               slices = [slice(None)]*len(var.shape) 
-              ioerror = "File: {:s}, Variable: {:s}, Folder: {:s}".format(filelist[filecounter], varname, infolder)                  
+              # construct informative IOError message
+              ioerror = "An Error occcured in file '{:s}'; variable: '{:s}'\n('{:s}')".format(filelist[filecounter], varname, infolder)                  
               # decide how to average
               ## Accumulated Variables
               if varname in acclist: 
@@ -858,6 +858,9 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
             #if wrfstartidx == 2: warn(error_string.format(lasttimestamp, firsttimestamp, wrfstartidx))
             if wrfstartidx == 0: raise DateError, error_string.format(lasttimestamp, firsttimestamp, wrfstartidx)
         else: # month complete
+          # print feedback (the current month) to indicate completion
+          if lparallel: progressstr += '{0:s}, '.format(currentdate) # bundle output in parallel mode
+          else: logger.info('{0:s},'.format(currentdate)) # serial mode
           # clear temporary storage
           if lcarryover:
             for devar in derived_vars.values():
@@ -880,7 +883,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
               if firsttimestamp != lasttimestamp:
                 raise NotImplementedError, "If the first timestep of the next month is the last timestep in the file, it has to be duplicated in the next file."
                 
-          
+        
       ## now the the loop over files has terminated and we need to normalize and save the results
       
       if not lskip:
@@ -967,7 +970,8 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
   # return exit code
   return ec
 
-# now begin execution    
+
+## now begin execution    
 if __name__ == '__main__':
 
 

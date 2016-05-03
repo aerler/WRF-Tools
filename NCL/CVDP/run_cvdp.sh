@@ -11,7 +11,7 @@ module load Xlibraries/X11-64 ImageMagick/6.6.7
 module list
 echo
 
-# environment variables: MODEL_ROOT, CCA
+# environment variables: CODE_ROOT, CCA
 # run using loaded modules
 set -e # abort, if anything goes wrong
 # experiment settings
@@ -30,7 +30,7 @@ DATADIR="$WORKDIR/input/" # where input data will reside
 OUTDIR="$WORKDIR/output/" # where output data is written to
 OBSDIR="$ROOTDIR/input_obs/" # folder with observational data
 OBSSRC='/reserved1/p/peltier/aerler/CESM/CVDP/obs_input/' # source of obs data
-CVDPSRC="$MODEL_ROOT/WRF Tools/NCL/CVDP/"
+CVDPSRC="$CODE_ROOT/WRF Tools/NCL/CVDP/"
 
 [[ -n "$PARALLEL_SEQ" ]] && sleep $PARALLEL_SEQ # disentangle processes... to avoid race conditions
 

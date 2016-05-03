@@ -162,10 +162,12 @@ else # $SIMPLE != 1, i.e. change stability parameters
 fi # no simple restart
 
 # put in restart links
-for DOM in {1..4}; do
-  ls ../wrfout/wrfrst_d0${DOM}_${CURRENTSTEP}* &> /dev/null
+for DOM in {1..9}; do
+  RST="${INIDIR}/wrfout/wrfrst_d0${DOM}_${CURRENTSTEP}"
+  ls "${RST}"*  &> /dev/null
   if [ $? == 0 ] # check if restart file for DOM exists
-  then ln -sf $( ls ../wrfout/wrfrst_d0${DOM}_${CURRENTSTEP}* | head -n 1 ); fi # create link to first
+  then ln -sf $( ls "${RST}"* | head -n 1 ) "${INIDIR}/${CURRENTSTEP}/"; fi
+   # N.B.: creates a link to the first restart file that matches
 done # loop over domains
 
 # change back into initial directory (experiment root)

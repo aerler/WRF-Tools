@@ -1,0 +1,93 @@
+#!/bin/bash
+#MOAB/Torque archiving script for SciNet HPSS
+
+## queue/PBS settings
+# 72h is maximum for long queue, 1h for short
+#PBS -l walltime=72:00:00
+# merge standard error and output stream
+#PBS -j oe
+#PBS -W umask=0002
+#PBS -o $PBS_JOBNAME.$PBS_JOBID.out
+##PBS -e $PBS_JOBNAME.$PBS_JOBID.err
+# send email if abort (nbae)
+#PBS -M "$EMAIL"
+#PBS -m ae
+# job name
+#PBS -N retrieve_cesm-2100
+## submit to queue (NB: this has to be the last PBS line!)
+#PBS -q archive
+ 
+echo
+echo "retrieving CESM output from HPSS"
+echo
+
+trap "echo 'Job script not completed';exit 129" TERM INT
+# Note that your initial directory in HPSS will be $ARCHIVE
+ 
+## list of experiments, valid periods, and file types
+#EXPS="htbrcp85cn1x1 htbrcp85cn1x1b zbrcp85cn1x1 hcbrcp85cn1x1 seaice-5r seaice-5r-hf"
+EXPS=${EXPS:-'habrcp85cn1x1d hbbrcp85cn1x1d hcbrcp85cn1x1d'}
+echo "Experiments: $EXPS"
+#PERIODS: 2006-2019 2045-2059 2045-2049 2055-2060 2055-2064 2060-2085 2095-2104
+PERIOD=${PERIOD:-'2085-2100'}
+echo "Period: $PERIOD"
+#FILES="atm  cpl  dart	glc  ice  lnd  ocn  rest"
+FILES=${FILES:-"atm  ice  lnd"}
+echo "Filetypes: $FILES"
+echo
+# regex definingwhat should be retrieved
+REGEX=${REGEX:-"*/*/hist/????/*.nc"}
+echo "Search Term: $REGEX"
+echo
+# folder pattern: $run_name/$filetype/hist/$year/file.nc
+
+#WDIR='/reserved1/p/peltier/aerler/CESM/archive/'
+WDIR=${WDIR:-"${PBS_O_WORKDIR}"} # use current directory as archive root
+echo "Destination: $WDIR"
+cd $WDIR
+echo
+
+for EXP in $EXPS
+  do
+    
+    echo
+	  echo $EXP
+	
+		for FILE in $FILES
+			do
+			
+				SRC=$ARCHIVE/CESM/${EXP}/${FILE}_${PERIOD}.tar
+				echo "Source: $SRC"
+				
+				hsi ls $SRC
+				EC=$?
+				
+				if [ $EC != 0 ]; then
+				  echo "HSI returned non-zero code. $SRC does not exist. Nothing to do."
+				   exit 999    
+				else
+				   echo '   starting transfer...'
+				fi
+				
+		    # EXP HTAR (extract)
+				htar -xpf "$SRC" "$REGEX"
+				EC=$?
+				
+				
+				if [ ! $EC == 0 ]; then
+				   echo 'HTAR returned non-zero code.'
+				   /scinet/gpc/bin/exit2msg $EC
+				   exit $EC
+				else
+				   echo '   TRANSFER SUCCESSFUL'
+				fi
+				echo
+			
+		done # FILES
+    echo
+    
+done # EXPS EXP
+echo "All Transfers Completed"
+
+trap - TERM INT
+

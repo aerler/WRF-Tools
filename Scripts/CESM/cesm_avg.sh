@@ -41,7 +41,7 @@ for RUN in $RUNS
     echo "   ($RUNDIR)"	
     mkdir -p "${AVGDIR}" # make sure destination folder exists
     cd "${RUNDIR}"
-    ln -sf "${MODEL_ROOT}/WRF Tools/Python/wrfavg/cesm_average.py" # link archiving script
+    ln -sf "${CODE_ROOT}/WRF Tools/Python/wrfavg/cesm_average.py" # link archiving script
     # determine period from name
     if [[ "$RUN" == *20tr* ]]; then START='1979'
     elif [[ "$RUN" == *rcp*d ]]; then START='2085'

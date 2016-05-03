@@ -1,0 +1,107 @@
+#!/bin/bash
+#MOAB/Torque archiving script for SciNet HPSS
+
+## queue/PBS settings
+# 72h is maximum for long queue, 1h for short
+#PBS -l walltime=72:00:00
+# merge standard error and output stream
+#PBS -j oe
+#PBS -W umask=0002
+#PBS -o $PBS_JOBNAME.$PBS_JOBID.out
+##PBS -e $PBS_JOBNAME.$PBS_JOBID.err
+# send email if abort (nbae)
+#PBS -M "$EMAIL"
+#PBS -m ae
+# job name
+#PBS -N archive_cesm
+## submit to queue (NB: this has to be the last PBS line!)
+#PBS -q archive
+ 
+echo "moving CESM output after clompletion of XXX years to hpss"
+ 
+trap "echo 'Job script not completed';exit 129" TERM INT
+# Note that your initial directory in HPSS will be $ARCHIVE
+ 
+#hsi <<EOF
+#  mkdir $ARCHIVE/CCSM3
+#  mkdir $ARCHIVE/CCSM3/archive
+#end
+#EOF
+
+
+
+#list="htbrcp85cn1x1"
+#years="2045-2059"
+#list="htbrcp85cn1x1b"
+#years="2095-2104"
+#list="zbrcp85cn1x1"
+#years="2006-2019"
+#list="hcbrcp85cn1x1"
+#years="2045-2049"
+list="seaice-3r"
+years="2006-2045"
+#list="seaice-3r-hf"
+#years="2045-2059"
+direc="atm  cpl  dart	glc  ice  lnd  ocn  rest"
+
+CCA='/reserved1/p/peltier/aerler/CESM/archive/'
+cd $CCA
+
+for run in $list
+do
+
+hsi <<EOF
+mkdir -p $ARCHIVE/CESM/${run}/
+end
+EOF
+
+
+echo $run
+
+for dd in $direc
+do
+
+DEST=$ARCHIVE/CESM/${run}/${dd}_${years}.tar
+echo DEST $DEST
+#ls $DEST
+
+hsi ls $DEST
+status=$?
+
+if [ $status == 0 ]; then
+   echo 'HSI returned zero code. $DEST exists. Nothing has been done.'
+   exit 999    
+else
+   echo 'TRANSFER WILL BE DONE'
+fi
+
+
+htar -cpf $DEST ${run}/${dd}
+status=$?
+
+
+if [ ! $status == 0 ]; then
+   echo 'HTAR returned non-zero code.'
+   /scinet/gpc/bin/exit2msg $status
+   exit $status
+else
+   echo 'TRANSFER SUCCESSFUL'
+fi
+
+
+done # direc
+done # list run
+
+INDEX_DIR=$HOME/.ish_register
+if ! [ -e "$INDEX_DIR" ]; then
+  mkdir -p $INDEX_DIR
+fi
+
+export ISHREGISTER="$INDEX_DIR"
+/scinet/gpc/bin/ish hindex
+
+
+
+
+trap - TERM INT
+

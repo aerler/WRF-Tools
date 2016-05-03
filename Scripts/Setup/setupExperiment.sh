@@ -3,7 +3,7 @@
 # created 28/06/2012 by Andre R. Erler, GPL v3
 # last revision 11/06/2013 by Andre R. Erler
 
-# environment variables: $MODEL_ROOT, $WPSSRC, $WRFSRC, $SCRATCH
+# environment variables: $CODE_ROOT, $WPSSRC, $WRFSRC, $SCRATCH
 
 set -e # abort if anything goes wrong
 
@@ -32,17 +32,17 @@ function RENAME () {
     # WRF run-script
     if [[ "${FILE}" == *WRF* ]] && [[ "${WRFQ}" == "${Q}" ]]; then
       if [[ "${WRFQ}" == "pbs" ]]; then
-        sed -i "/#PBS -N/ s/#PBS -N\ .*$/#PBS -N ${NAME}_WRF/" "run_${CASETYPE}_WRF.${WRFQ}" # experiment name
+        sed -i "/#PBS -N/ s/#PBS -N\ .*$/#PBS -N ${NAME}_WRF/" "${FILE}" # experiment name
         #sed -i "/#PBS -W/ s/#PBS -W\ .*$/#PBS -W depend=afterok:${NAME}_WPS/" "${FILE}" # dependency on WPS
         sed -i "/#PBS -l/ s/#PBS -l nodes=.*:\(.*\)$/#PBS -l nodes=${WRFNODES}:\1/" "${FILE}" # number of nodes (preserve task number)
         sed -i "/#PBS -l/ s/#PBS -l procs=.*$/#PBS -l procs=${WRFNODES}/" "${FILE}" # processes (alternative to nodes)
         sed -i "/#PBS -l/ s/#PBS -l walltime=.*$/#PBS -l walltime=${MAXWCT}/" "${FILE}" # wallclock time
         sed -i "/qsub/ s/qsub ${WRFSCRIPT} -v NEXTSTEP=*\ -W*$/qsub ${WRFSCRIPT} -v NEXTSTEP=*\ -W\ ${NAME}_WPS/" "${FILE}" # dependency
       elif [[ "${WRFQ}" == "sge" ]]; then
-        sed -i "/#$ -N/ s/#$ -N\ .*$/#$ -N ${NAME}_WRF/" "run_${CASETYPE}_WRF.${WRFQ}" # experiment name
+        sed -i "/#\$ -N/ s/#\$ -N\ .*$/#\$ -N ${NAME}_WRF/" "${FILE}" # experiment name
         #sed -i "/#PBS -W/ s/#PBS -W\ .*$/#PBS -W depend=afterok:${NAME}_WPS/" "${FILE}" # dependency on WPS
-        sed -i "/#$ -pe/ s/#$ -pe .*$/#$ -pe mpich $((WRFNODES*32))/" "${FILE}" # number of MPI tasks
-        sed -i "/#$ -l/ s/#$ -l h_rt=.*$/#$ -l h_rt=${MAXWCT}/" "${FILE}" # wallclock time
+        sed -i "/#\$ -pe/ s/#\$ -pe .*$/#\$ -pe mpich $((WRFNODES*32))/" "${FILE}" # number of MPI tasks
+        sed -i "/#\$ -l/ s/#\$ -l h_rt=.*$/#\$ -l h_rt=${MAXWCT}/" "${FILE}" # wallclock time
       elif [[ "${WRFQ}" == "ll" ]]; then
         sed -i "/#\ *@\ *job_name/ s/#\ *@\ *job_name\ *=.*$/# @ job_name = ${NAME}_WRF/" "${FILE}" # experiment name
         sed -i "/#\ *@\ *node/ s/#\ *@\ *node\ *=.*$/# @ node = ${WRFNODES}/" "${FILE}" # number of nodes
@@ -52,6 +52,20 @@ function RENAME () {
         sed -i "/export TASKS/ s+export\ TASKS=.*$+export TASKS=${WRFNODES} # number of MPI tasks+" "${FILE}" # number of tasks (instead of nodes...)
       fi # $Q
     fi # if WRF
+    # set email address for notifications
+    if [[ -n "$EMAIL" ]]; then
+	    if [[ "${Q}" == "pbs" ]]; then
+	      sed -i "/#PBS -M/ s/#PBS -M\ .*$/#PBS -M \"${EMAIL}\"/" "${FILE}" # notification address
+	    elif [[ "${WRFQ}" == "sge" ]]; then
+	      sed -i "/#\$ -M/ s/#\$ -M\ .*$/#\$ -M ${EMAIL}/" "${FILE}" # notification address
+      elif [[ "${Q}" == "ll" ]]; then
+        : # apparently email address is not set here...?
+	    else
+	      sed -i "/\\\$EMAIL/ s/\\\$EMAIL/${EMAIL}/" "${FILE}" # random email address
+	    fi
+  	else
+	    sed -i '/\$EMAIL/d' "${FILE}" # remove references to email address
+    fi # replace email address
     ## queue independent changes
     # N.B.: variables that depend on other variables are not overwritten!
     # WRF script
@@ -108,15 +122,19 @@ DELT='DEFAULT' # time decrement for auto restart (DEFAULT: select according to t
 DATADIR='' # root directory for data
 DATATYPE='CESM' # boundary forcing type
 ## run configuration
-WRFROOT="${MODEL_ROOT}/WRFV3.4/"
-WRFTOOLS="${MODEL_ROOT}/WRF Tools/"
+WRFROOT="${CODE_ROOT}/WRFV3.4/"
+WRFTOOLS="${CODE_ROOT}/WRF Tools/"
 GENSTEPS="${WRFTOOLS}/Python/wrfrun/generateStepfile.py" # Python script to generate stepfiles
 # I/O, archiving, and averaging 
 IO='fineIO' # this is used for namelist construction and archiving
+ARSYS='' # archive - define in xconfig.sh
 ARSCRIPT='DEFAULT' # this is a dummy name...
-ARINTERVAL='YEARLY' # default: archive after every job
+ARINTERVAL='YEARLY' # default
+AVGSYS='' # post-processing - define in xconfig.sh
 AVGSCRIPT='DEFAULT' # this is a dummy name...
-AVGINTERVAL='YEARLY' # default: average after every job
+AVGINTERVAL='YEARLY' # default
+# N.B.: interval options are: YEARLY, MONTHLY, DAILY, wiht YEARLY being preferred;
+#       unknown/empty intervals trigger archiving/averaging after every step
 ## WPS
 WPSSYS='' # WPS - define in xconfig.sh
 # other WPS configuration files
@@ -203,23 +221,23 @@ WPSSRC=${WPSSRC:-"${WRFROOT}/WPS/"}
 WRFSRC=${WRFSRC:-"${WRFROOT}/WRFV3/"}
 
 # figure out queue systems from machine setup scripts
-TMP=$( eval $( grep 'QSYS=' "${WRFTOOLS}/Scripts/${WPSSYS}/setup_${WPSSYS}.sh" ); echo "${QSYS}" )
+TMP=$( eval $( grep 'QSYS=' "${WRFTOOLS}/Machines/${WPSSYS}/setup_${WPSSYS}.sh" ); echo "${QSYS}" )
 WPSQ=${WPSQ:-$( echo "${TMP}" | tr '[:upper:]' '[:lower:]' )} # "${QSYS,,}" is not POSIX compliant
-TMP=$( eval $( grep 'QSYS=' "${WRFTOOLS}/Scripts/${WRFSYS}/setup_${WRFSYS}.sh" ); echo "${QSYS}" )
+TMP=$( eval $( grep 'QSYS=' "${WRFTOOLS}/Machines/${WRFSYS}/setup_${WRFSYS}.sh" ); echo "${QSYS}" )
 WRFQ=${WRFQ:-$( echo "${TMP}" | tr '[:upper:]' '[:lower:]' )}
 # fallback queue: shell script
-if [ ! -f "${WRFTOOLS}/Scripts/${WPSSYS}/run_cycling_WPS.${WPSQ}" ]; then WPSQ='sh'; fi
-if [ ! -f "${WRFTOOLS}/Scripts/${WRFSYS}/run_cycling_WRF.${WRFQ}" ]; then WRFQ='sh'; fi
+if [ ! -f "${WRFTOOLS}/Machines/${WPSSYS}/run_cycling_WPS.${WPSQ}" ]; then WPSQ='sh'; fi
+if [ ! -f "${WRFTOOLS}/Machines/${WRFSYS}/run_cycling_WRF.${WRFQ}" ]; then WRFQ='sh'; fi
 # N.B.: the queue names are also used as file name extension for the run scripts
 # then figure out default wallclock times
-TMP=$( eval $( grep 'WPSWCT=' "${WRFTOOLS}/Scripts/${WPSSYS}/run_cycling_WPS.${WPSQ}" ); echo "$WPSWCT" )
+TMP=$( eval $( grep 'WPSWCT=' "${WRFTOOLS}/Machines/${WPSSYS}/run_cycling_WPS.${WPSQ}" ); echo "$WPSWCT" )
 WPSWCT=${WPSWCT:-"${TMP}"}
-TMP=$( eval $( grep 'WRFWCT=' "${WRFTOOLS}/Scripts/${WRFSYS}/run_cycling_WRF.${WRFQ}" ); echo "$WRFWCT" )
+TMP=$( eval $( grep 'WRFWCT=' "${WRFTOOLS}/Machines/${WRFSYS}/run_cycling_WRF.${WRFQ}" ); echo "$WRFWCT" )
 WRFWCT=${WRFWCT:-"${TMP}"}
 # read number of WPS & WRF nodes/processes (defaults to one)
-TMP=$( eval $( grep 'WPSNODES=' "${WRFTOOLS}/Scripts/${WPSSYS}/run_cycling_WPS.${WPSQ}" ); echo "${WPSNODES:-1}" )
+TMP=$( eval $( grep 'WPSNODES=' "${WRFTOOLS}/Machines/${WPSSYS}/run_cycling_WPS.${WPSQ}" ); echo "${WPSNODES:-1}" )
 WPSNODES=${WPSNODES:-$TMP}
-TMP=$( eval $( grep 'WRFNODES=' "${WRFTOOLS}/Scripts/${WRFSYS}/run_cycling_WRF.${WRFQ}" ); echo "${WRFNODES:-1}" )
+TMP=$( eval $( grep 'WRFNODES=' "${WRFTOOLS}/Machines/${WRFSYS}/run_cycling_WRF.${WRFQ}" ); echo "${WRFNODES:-1}" )
 WRFNODES=${WRFNODES:-$TMP}
 
 # default WPS and real executables
@@ -370,7 +388,7 @@ echo "  system: ${WPSSYS}, queue: ${WPSQ}"
 # user scripts (in root folder)
 cd "${RUNDIR}"
 # WPS run script (concatenate machine specific and common components)
-cat "${WRFTOOLS}/Scripts/${WPSSYS}/run_${CASETYPE}_WPS.${WPSQ}" > "run_${CASETYPE}_WPS.${WPSQ}"
+cat "${WRFTOOLS}/Machines/${WPSSYS}/run_${CASETYPE}_WPS.${WPSQ}" > "run_${CASETYPE}_WPS.${WPSQ}"
 cat "${WRFTOOLS}/Scripts/Common/run_${CASETYPE}.environment" >> "run_${CASETYPE}_WPS.${WPSQ}"
 cat "${WRFTOOLS}/Scripts/Common/run_${CASETYPE}_WPS.common" >> "run_${CASETYPE}_WPS.${WPSQ}"
 RENAME "run_${CASETYPE}_WPS.${WPSQ}"
@@ -380,7 +398,7 @@ if [[ "${WPSQ}" == "sh" ]]; then # make executable in shell
 mkdir -p "${RUNDIR}/scripts/"
 cd "${RUNDIR}/scripts/"
 ln -sf "${WRFTOOLS}/Scripts/Common/execWPS.sh"
-ln -sf "${WRFTOOLS}/Scripts/${WPSSYS}/setup_${WPSSYS}.sh" 'setup_WPS.sh' # renaming
+ln -sf "${WRFTOOLS}/Machines/${WPSSYS}/setup_${WPSSYS}.sh" 'setup_WPS.sh' # renaming
 if [[ "${WPSSYS}" == "GPC" ]] || [[ "${WPSSYS}" == "i7" ]]; then # link to
     ln -sf "${WRFTOOLS}/Python/wrfrun/selectWPSqueue.py"; fi # if shell
 cd "${RUNDIR}"
@@ -427,11 +445,11 @@ if [[ -n "${CYCLING}" ]]; then
   RENAME "startCycle.sh"
 fi # if cycling
 #if [[ "${WRFQ}" == "ll" ]]; then # because LL does not support dependencies
-#    cp "${WRFTOOLS}/Scripts/${WRFSYS}/sleepCycle.sh" .
+#    cp "${WRFTOOLS}/Machines/${WRFSYS}/sleepCycle.sh" .
 #    RENAME 'sleepCycle.sh'
 #fi # if LL
 # WRF run-script (concatenate machine specific and common components)
-cat "${WRFTOOLS}/Scripts/${WRFSYS}/run_${CASETYPE}_WRF.${WRFQ}" > "run_${CASETYPE}_WRF.${WRFQ}"
+cat "${WRFTOOLS}/Machines/${WRFSYS}/run_${CASETYPE}_WRF.${WRFQ}" > "run_${CASETYPE}_WRF.${WRFQ}"
 cat "${WRFTOOLS}/Scripts/Common/run_${CASETYPE}.environment" >> "run_${CASETYPE}_WRF.${WRFQ}"
 if [ $( grep -c 'custom environment' xconfig.sh ) -gt 0 ]; then
   echo 'Adding custom environment section from xconfig.sh to run-script'
@@ -447,7 +465,7 @@ if [[ "${WRFQ}" == "sh" ]]; then # make executable in shell
 mkdir -p "${RUNDIR}/scripts/"
 cd "${RUNDIR}/scripts/"
 ln -sf "${WRFTOOLS}/Scripts/Common/execWRF.sh"
-ln -sf "${WRFTOOLS}/Scripts/${WRFSYS}/setup_${WRFSYS}.sh" 'setup_WRF.sh' # renaming
+ln -sf "${WRFTOOLS}/Machines/${WRFSYS}/setup_${WRFSYS}.sh" 'setup_WRF.sh' # renaming
 if [[ -n "${CYCLING}" ]]; then
     ln -sf "${WRFTOOLS}/Scripts/Setup/setup_cycle.sh"
     ln -sf "${WRFTOOLS}/Scripts/Common/launchPreP.sh"
@@ -467,9 +485,9 @@ cd "${RUNDIR}"
 ## setup archiving and averaging
 echo
 # prepare archive script
-if [[ -n "${ARSCRIPT}" ]]; then
+if [[ -n "${ARSCRIPT}" ]] && [[ -n "${ARSYS}" ]]; then
     # copy script and change job name
-    cp -f "${WRFTOOLS}/Scripts/HPSS/${ARSCRIPT}" .
+    cp -f "${WRFTOOLS}/Machines/${ARSYS}/${ARSCRIPT}" .
     sed -i "/#PBS -N/ s/#PBS -N\ .*$/#PBS -N ${NAME}_ar/" "${ARSCRIPT}"
     echo "Setting up archiving: ${ARSCRIPT}"
     # set archiving interval
@@ -481,10 +499,11 @@ if [[ -n "${ARSCRIPT}" ]]; then
     RENAME "${ARSCRIPT}"
 fi # $ARSCRIPT
 # prepare averaging script
-if [[ -n "${AVGSCRIPT}" ]]; then
+if [[ -n "${AVGSCRIPT}" ]] && [[ -n "${AVGSYS}" ]]; then
     # copy script and change job name
     ln -s "${WRFTOOLS}/Python/wrfavg/wrfout_average.py" "./scripts/"
-    cp -f "${WRFTOOLS}/Scripts/${WPSSYS}/${AVGSCRIPT}" .
+    ln -s "${WRFTOOLS}/Scripts/WRF/addVariable.sh" "./scripts/"
+    cp -f "${WRFTOOLS}/Machines/${AVGSYS}/${AVGSCRIPT}" .
     mkdir -p 'wrfavg' # folder for averaged output
     sed -i "/#PBS -N/ s/#PBS -N\ .*$/#PBS -N ${NAME}_avg/" "${AVGSCRIPT}"
     echo "Setting up averaging: ${AVGSCRIPT}"
