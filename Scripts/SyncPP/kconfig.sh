@@ -30,7 +30,7 @@ NICENESS=${NICENESS:-10}
 PYYAML_WRFAVG="${WRFDATA}/wrfavg/wrfavg.yaml"
 PYYAML_EXSTNS="${DATA_ROOT}/exstns.yaml"
 PYYAML_REGRID="${DATA_ROOT}/regrid.yaml"
-PYYAML_EXSTNS="${DATA_ROOT}/exprst.yaml"
+PYYAML_EXPORT="${DATA_ROOT}/export.yaml"
 PYYAML_SHPAVG="${DATA_ROOT}/shpavg.yaml"
 
 
