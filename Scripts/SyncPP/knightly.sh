@@ -8,7 +8,7 @@
 
 # pre-process arguments using getopt
 if [ -z $( getopt -T ) ]; then
-  TMP=$( getopt -o e:a:tsrdn:h --long procs-exstns:,procs-avgreg:,test,highspeed,restore,debug,niceness:,config:,code-root:,data-root:,from-home,python:,overwrite,export-raster,no-compute,no-download,no-ensemble,help -n "$0" -- "$@" ) # pre-process arguments
+  TMP=$( getopt -o e:a:tsrdn:h --long procs-exstns:,procs-avgreg:,test,highspeed,restore,debug,niceness:,config:,code-root:,data-root:,from-home,python:,overwrite,export,no-compute,no-download,no-ensemble,help -n "$0" -- "$@" ) # pre-process arguments
   [ $? != 0 ] && exit 1 # getopt already prints an error message
   eval set -- "$TMP" # reset positional parameters (arguments) to $TMP list
 fi # check if GNU getopt ("enhanced")
@@ -29,7 +29,7 @@ while true; do
          --from-home     )   CODE_ROOT="${HOME}/Code/"; shift;;
          --python        )   PYTHON="$2"; shift 2;;
          --overwrite     )   PYAVG_OVERWRITE='OVERWRITE';  shift;;
-         --export-raster )   EXPORT='TRUE'; shift;;
+         --export        )   EXPORT='TRUE'; shift;;
          --no-compute    )   NOCOMPUTE='TRUE'; shift;;
          --no-download   )   NODOWNLOAD='TRUE'; shift;;
          --no-ensemble   )   NOENSEMBLE='TRUE'; shift;;
@@ -49,7 +49,7 @@ while true; do
          --from-home      use home directory as code root\n\
          --python         use alternative Python executable\n\
          --overwrite      recompute all averages and regridding (default: False)\n\
-         --export-raster  run the raster export script (export.py)\n\
+         --export         run the export script (export.py; formats defined in YAML file)\n\
          --no-compute     skips the computation steps except the ensemble means (skips all Python scripts)\n\
          --no-download    skips all downloads from SciNet\n\
          --no-ensemble    skips computation of ensemble means\n\
