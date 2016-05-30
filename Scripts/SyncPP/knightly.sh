@@ -113,7 +113,7 @@ echo
 # N.B.: The following variables need to be set:
 #       CODE_ROOT, DATA_ROOT, GDAL_DATA, SCRIPTS, PYTHON, PYTHONPATH, 
 #       PYYAML_EXSTNS, PYYAML_WRFAVG, PYYAML_SHPAVG, PYYAML_REGRID
-#       SSHMASTER, SSH, HOST, SRC, SUBDIR
+#       SSHMASTER, SSH, HOST, WRFSRC, SUBDIR, CESMSRC, OBSSRC, DATASETS
 # some defaults for optional variables
 export WRFDATA="${WRFDATA:-"${DATA_ROOT}/WRF/"}" # local WRF data root
 export CESMDATA="${CESMDATA:-"${DATA_ROOT}/CESM/"}" # local CESM data root

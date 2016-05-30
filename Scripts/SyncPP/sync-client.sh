@@ -59,15 +59,13 @@ fi # if config file
 export KCFG='NONE' # suppress sourcing in child processes
 echo
 # N.B.: The following variables need to be set:
-#       CODE_ROOT, DATA_ROOT, SCRIPTS, SUBDIR,
+#       CODE_ROOT, DATA_ROOT, SCRIPTS, OBSCLSTR, DATASETS,
+#       WRFCLSTR, SUBDIR, CESMCLSTR, WRFWRKSTN, CESMWRKSTN,
 #       CLUSTER, CLUSTERSSH, WORKSTN, WORKSTNSSH
 # default settings
 CODE="${CODE:-${HOME}/Code/}" # code root
 SCRIPTS="${SCRIPTS:-${CODE}/WRF-Tools/Scripts/SyncPP/}" # folder with all the scripts
 NICENESS=${NICENESS:-10}
-# data folders
-export WRFDATA="${WRFDATA:-${DATA_ROOT}/WRF/}" # local WRF data root
-export CESMDATA="${CESMDATA:-${DATA_ROOT}/CESM/}" # local CESM data root
 
 
 ## error reporting
@@ -90,23 +88,27 @@ function REPORT {
 
 
 ## synchronize observational datasets
+export OBSDATA="${OBSDATA:-${DATA_ROOT}/}" # local datasets root
 rm -f "${ROOT}"/sync-datasets.log 
 if [[ "${NOCLUSTER}" != 'TRUE' ]] && [[ "${NODATASETS}" != 'TRUE' ]]; then
   export RESTORE='RESTORE' # restore datasets from HPC cluster backup
   export HOST="$CLUSTER" # ssh to HPC cluster
-  export SSH="$CLUSTERSSH" # ssh settings for HPC cluster 
-  nice --adjustment=${NICENESS} "${SCRIPTS}/sync-datasets.sh" &>> "${ROOT}"/sync-datasets.log #2> "${ROOT}"/sync-datasets.err # 2>&1
+  export SSH="$CLUSTERSSH" # ssh settings for HPC cluster
+  export OBSSRC="$OBSCLSTR" # only cluster is used  
+  export DATASETS
+  nice --adjustment=${NICENESS} "${SCRIPTS}/sync-datasets.sh" &>> "${OBSDATA}"/sync-datasets.log #2> "${OBSDATA}"/sync-datasets.err # 2>&1
   REPORT $? 'Dataset/Obs Synchronization' 
 fi # if not $NOCLUSTER
 
 
 ## synchronize CESM data
+export CESMDATA="${CESMDATA:-${DATA_ROOT}/CESM/}" # local CESM data root
 rm -f "${CESMDATA}"/sync-cesm.log 
 # diagnostics and ensembles from HPC cluster
 if [[ "${NOCLUSTER}" != 'TRUE' ]] && [[ "${NOCESM}" != 'TRUE' ]]; then
   export HOST="$CLUSTER" # ssh to HPC cluster
   export SSH="$CLUSTERSSH" # ssh settings for HPC cluster 
-  export CESMSRC='/reserved1/p/peltier/aerler//CESM/archive/'
+  export CESMSRC="$CESMCLSTR" # remote archive with cesmavg files
   export INVERT='FALSE' # source has name first then folder type (like on HPC cluster)
   export RESTORE='RESTORE'
   export FILETYPES='NONE'
@@ -118,7 +120,7 @@ fi # if not $NOCLUSTER
 ## download rest from workstation
 export HOST="$WORKSTN" # ssh to workstation
 export SSH="$WORKSTNSSH" # ssh settings for workstation
-export CESMSRC='/data/CESM/cesmavg/' # archives with my own cesmavg files
+export CESMSRC="$CESMWRKSTN" # archives with my own cesmavg files
 export INVERT='INVERT' # invert name/folder order in source (i.e. like in target folder)
 export RESTORE='FALSE'
 export DIAGS='NONE'
@@ -138,12 +140,13 @@ fi # if not $NOWORKSTN
 
 
 ## synchronize WRF data
+export WRFDATA="${WRFDATA:-${DATA_ROOT}/WRF/}" # local WRF data root
 rm -f "${WRFDATA}"/sync-wrf.log
 # monthly files from HPC cluster
 if [[ "${NOCLUSTER}" != 'TRUE' ]] && [[ "${NOWRF}" != 'TRUE' ]]; then
   export HOST="$CLUSTER" # ssh to HPC cluster
   export SSH="$CLUSTERSSH" # ssh settings for HPC cluster 
-  export WRFSRC='/reserved1/p/peltier/aerler/'
+  export WRFSRC="$WRFCLSTR"
   export INVERT='FALSE' # source has name first then folder type (like on HPC cluster)  export REX='g-ctrl*'
   export FILETYPES='wrfplev3d_d01_clim_*.nc wrfsrfc_d01_clim_*.nc wrfhydro_d02_clim_*.nc wrfxtrm_d02_clim_*.nc wrflsm_d02_clim_*.nc wrfsrfc_d02_clim_*.nc'
   export STATIC='FALSE'
@@ -154,7 +157,7 @@ fi # if not $NOCLUSTER
 ## download rest from workstation
 export HOST="$WORKSTN" # ssh to workstation
 export SSH="$WORKSTNSSH" # ssh settings for workstation
-export WRFSRC='/data/WRF/wrfavg/' # archives with my own wrfavg files
+export WRFSRC="$WRFWRKSTN" # archives with my own wrfavg files
 export INVERT='INVERT' # invert name/folder order in source (i.e. like in target folder)
 # climatologies etc. from workstation
 if [[ "${NOWORKSTN}" != 'TRUE' ]] && [[ "${NOWRF}" != 'TRUE' ]]; then

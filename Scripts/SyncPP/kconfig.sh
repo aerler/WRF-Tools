@@ -35,6 +35,7 @@ PYYAML_SHPAVG="${DATA_ROOT}/shpavg.yaml"
 
 
 # Environment variables used by rsync scripts are defined here
+DATASETS='Unity GPCC NARR CFSR CRU PRISM PCIC EC WSC' # list of observational datasets
 
 # connection settings for rsync scripts
 if [[ "${HISPD}" == 'HISPD' ]]
@@ -44,8 +45,9 @@ if [[ "${HISPD}" == 'HISPD' ]]
 else    
     SSH="-o BatchMode=yes -o ControlPath=${HOME}/master-%l-%r@%h:%p -o ControlMaster=auto -o ControlPersist=1" # default SSH login options
     HOST='' # login for the remote host where the data repository is located
-    SRC='' # root folder of remote data repository (source)
+    WRFSRC='' # root folder of remote WRF data (source)
     SUBDIR='' # sub-folders of remote data repository
+    CESMSRC='' # root folder of remote CESM data (source)
+    OBSSRC='' # root folder of remote observational datasets (source)
     INVERT='FALSE' # source has name first then folder type (like on SciNet)
-
 fi
