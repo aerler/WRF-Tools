@@ -2,7 +2,7 @@
 # this is a sample configuration file for knightly.sh and associated scripts
 # Fengyi Xie and Andre R. Erler, March 2016, GPL v3
 
-# Environmental variable used by knightly.sh are defined here
+# Environment variables used by knightly.sh can be defined here
 NODOWNLOAD=''
 NOCOMPUTE=''
 NOENSEMBLE=''
@@ -34,9 +34,9 @@ PYYAML_EXPORT="${DATA_ROOT}/export.yaml"
 PYYAML_SHPAVG="${DATA_ROOT}/shpavg.yaml"
 
 
-# Environmental variable used by sync-wrf are defined here
+# Environment variables used by rsync scripts are defined here
 
-# connection settings for sync jobs
+# connection settings for rsync scripts
 if [[ "${HISPD}" == 'HISPD' ]]
   then
     # high-speed transfer: special identity/ssh key, batch mode, and connection sharing

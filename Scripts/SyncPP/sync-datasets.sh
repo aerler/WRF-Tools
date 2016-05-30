@@ -20,7 +20,7 @@ else
 fi # if config file
 echo
 # N.B.: the following variables need to be set in the parent environment or sourced from a config file
-#       HOST, SRC, SUBDIR, WRFDATA or DATA
+#       HOST
 # some defaults for optional variables
 RESTORE=${RESTORE:-'FALSE'} # restore datasets from SciNet backup
 LOC="${ROOT:-/data/}" # local datasets root, can be supplied by caller

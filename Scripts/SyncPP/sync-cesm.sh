@@ -20,7 +20,7 @@ else
 fi # if config file
 echo
 # N.B.: the following variables need to be set in the parent environment or sourced from a config file
-#       HOST, SRC, CESMDATA or DATA
+#       HOST, CESMSRC, CESMDATA or DATA_ROOT
 # some defaults for optional variables
 RESTORE=${RESTORE:-'FALSE'} # restore datasets from SciNet backup
 # CESM directories / data sources
@@ -28,7 +28,7 @@ REX=${REX:-'h[abc]b20trcn1x1 tb20trcn1x1 h[abcz]brcp85cn1x1 htbrcp85cn1x1 seaice
 ENS=${ENS:-'ens20trcn1x1 ensrcp85cn1x1 ensrcp85cn1x1d'}
 CVDP=${CVDP:-"${ENS} grand-ensemble"}
 if [[ "${CVDP}" == 'NONE' ]]; then CVDP=''; fi
-CESMDATA="${CESMDATA:-${DATA}/CESM/}" # can be supplied by caller
+CESMDATA="${CESMDATA:-${DATA_ROOT}/CESM/}" # can be supplied by caller
 # data selection
 FILETYPES=${FILETYPES:-'cesm[ali][tnc][mde]_*.nc'}
 if [[ "${FILETYPES}" == 'NONE' ]]; then FILETYPES=''; fi

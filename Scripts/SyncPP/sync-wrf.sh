@@ -21,9 +21,9 @@ else
 fi # if config file
 echo
 # N.B.: the following variables need to be set in the parent environment or sourced from a config file
-#       HOST, WRFSRC, SUBDIR, WRFDATA or DATA
+#       HOST, WRFSRC, SUBDIR, WRFDATA or DATA_ROOT
 # some defaults for optional variables
-WRFDATA="${WRFDATA:-${DATA}/WRF/}" # local WRF data root
+WRFDATA="${WRFDATA:-${DATA_ROOT}/WRF/}" # local WRF data root
 SSH="${SSH:-"-o BatchMode=yes -o ControlPath=${HOME}/master-%l-%r@%h:%p -o ControlMaster=auto -o ControlPersist=1"}" # default SSH options
 INVERT="${INVERT:-'FALSE'}" # source has experiment name first then folder type
 STATIC=${STATIC:-'STATIC'} # transfer static/constant data
