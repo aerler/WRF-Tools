@@ -111,6 +111,8 @@ if [[ "${NOCLUSTER}" != 'TRUE' ]] && [[ "${NOCESM}" != 'TRUE' ]]; then
   export CESMSRC="$CESMCLSTR" # remote archive with cesmavg files
   export INVERT='FALSE' # source has name first then folder type (like on HPC cluster)
   export RESTORE='RESTORE'
+  export CESMENS='NONE' # ensembles are only for upload
+  export CESMREX='*'
   export FILETYPES='NONE'
   export DIAGS='diag cvdp'
   nice --adjustment=${NICENESS} "${SCRIPTS}/sync-cesm.sh" &> "${CESMDATA}"/sync-cesm.log #2> "${CESMDATA}"/sync-cesm.err # 2>&1
@@ -125,15 +127,18 @@ export INVERT='INVERT' # invert name/folder order in source (i.e. like in target
 export RESTORE='FALSE'
 export DIAGS='NONE'
 export CVDP='NONE'
+export CESMENS='NONE'
 # climatologies etc. from workstation
 if [[ "${NOWORKSTN}" != 'TRUE' ]] && [[ "${NOCESM}" != 'TRUE' ]]; then
-  export FILETYPES='cesm*_clim_*.nc'
+  export FILETYPES="${CESMCLIMFT:-'cesmatm*_clim_*.nc cesmlnd*_clim_*.nc'}"
+  export CESMREX="${CESMCLIMREX:-'ens*'}" # these files are quite large: only ensembles
   nice --adjustment=${NICENESS} "${SCRIPTS}/sync-cesm.sh" &>> "${CESMDATA}"/sync-cesm.log #2>> "${CESMDATA}"/sync-cesm.err # 2>&1
   REPORT $? 'CESM Climatologies' 
 fi # if not $NOWORKSTN
 # stations etc. from workstation
 if [[ "${NOWORKSTN}" != 'TRUE' ]] && [[ "${NOCESM}" != 'TRUE' ]]; then
-  export FILETYPES='cesm*_ec*_*.nc cesm*_shpavg_*.nc'
+  export FILETYPES="${CESMSTNSFT:-'cesm*_ec*_*.nc cesm*_shpavg_*.nc'}"
+  export CESMREX="${CESMSTNSREX:-'*'}" # these files are pretty small: all experiments
   nice --adjustment=${NICENESS} "${SCRIPTS}/sync-cesm.sh" &>> "${CESMDATA}"/sync-cesm.log #2>> "${CESMDATA}"/sync-cesm.err # 2>&1
   REPORT $? 'CESM Stations etc.' 
 fi # if not $NOWORKSTN
@@ -142,16 +147,18 @@ fi # if not $NOWORKSTN
 ## synchronize WRF data
 export WRFDATA="${WRFDATA:-${DATA_ROOT}/WRF/}" # local WRF data root
 rm -f "${WRFDATA}"/sync-wrf.log
+
 # monthly files from HPC cluster
 if [[ "${NOCLUSTER}" != 'TRUE' ]] && [[ "${NOWRF}" != 'TRUE' ]]; then
   export HOST="$CLUSTER" # ssh to HPC cluster
   export SSH="$CLUSTERSSH" # ssh settings for HPC cluster 
   export WRFSRC="$WRFCLSTR"
   export INVERT='FALSE' # source has name first then folder type (like on HPC cluster)  export REX='g-ctrl*'
-  export FILETYPES='wrfplev3d_d01_clim_*.nc wrfsrfc_d01_clim_*.nc wrfhydro_d02_clim_*.nc wrfxtrm_d02_clim_*.nc wrflsm_d02_clim_*.nc wrfsrfc_d02_clim_*.nc'
+  export FILETYPES="${WRFCLTSFT:-'wrfplev3d_d01_monthly.nc wrfsrfc_d01_monthly.nc wrfhydro_d02_monthly.nc wrfxtrm_d02_monthly.nc wrflsm_d02_monthly.nc wrfsrfc_d02_monthly.nc'}"
+  export WRFREX="${WRFCLTSREX:-'NONE'}" # these files are very large! None by default
   export STATIC='FALSE'
   nice --adjustment=${NICENESS} "${SCRIPTS}/sync-wrf.sh" &> "${WRFDATA}"/sync-wrf.log #2> "${WRFDATA}"/sync-wrf.err # 2>&1
-  REPORT $? 'WRF Monthly from HPC cluster' 
+  REPORT $? 'WRF Monthly from HPC cluster'
 fi # if not $NOCLUSTER
 
 ## download rest from workstation
@@ -161,16 +168,16 @@ export WRFSRC="$WRFWRKSTN" # archives with my own wrfavg files
 export INVERT='INVERT' # invert name/folder order in source (i.e. like in target folder)
 # climatologies etc. from workstation
 if [[ "${NOWORKSTN}" != 'TRUE' ]] && [[ "${NOWRF}" != 'TRUE' ]]; then
-  export FILETYPES='wrfplev3d_d01_clim_*.nc wrfsrfc_d01_clim_*.nc wrfhydro_d02_clim_*.nc wrfxtrm_d02_clim_*.nc wrflsm_d02_clim_*.nc wrfsrfc_d02_clim_*.nc'
-  export REX='*-ensemble* max-ctrl* max-ens* ctrl-* ctrl-ens* *-3km erai-max erai-ctrl erai-[gt] [gtm]-* [gm][gm]-*'
+  export FILETYPES="${WRFCLIMFT:-'wrfplev3d_d01_clim_*.nc wrfsrfc_d01_clim_*.nc wrfhydro_d02_clim_*.nc wrfxtrm_d02_clim_*.nc wrflsm_d02_clim_*.nc wrfsrfc_d02_clim_*.nc'}"
+  export WRFREX="${WRFCLIMREX:-'*-ensemble*'}" # these files are quite large: only ensembles
   export STATIC='STATIC'
   nice --adjustment=${NICENESS} "${SCRIPTS}/sync-wrf.sh" &>> "${WRFDATA}"/sync-wrf.log #2> "${WRFDATA}"/sync-wrf.err # 2>&1
   REPORT $? 'WRF Climatologies' 
 fi # if not $NOWORKSTN
 # stations etc. from workstation
 if [[ "${NOWORKSTN}" != 'TRUE' ]] && [[ "${NOWRF}" != 'TRUE' ]]; then
-  export FILETYPES='wrf*_ec*_*.nc wrf*_shpavg_*.nc'
-  export REX='*-*/'
+  export FILETYPES="${WRFSTNSFT:-'wrf*_ec*_*.nc wrf*_shpavg_*.nc'}"
+  export WRFREX="${WRFSTNSREX:-'*-*'}" # these files are pretty small: all experiments
   export STATIC='FALSE'
   nice --adjustment=${NICENESS} "${SCRIPTS}/sync-wrf.sh" &>> "${WRFDATA}"/sync-wrf.log #2> "${WRFDATA}"/sync-wrf.err # 2>&1
   REPORT $? 'WRF Stations etc.' 
