@@ -5,7 +5,6 @@ NOTE: Mar 28, 2016: Modified to ensure compatibility with pyhton 3
 
 import os
 from functools import reduce
-from paramiko import SSHClient
 
 def secondsToStr(t):
     return "%d:%02d:%02d.%03d" % \
@@ -33,21 +32,33 @@ def which(program):
                 return exe_file
     return None
 
+# this is not essential
+# try:
+# 
+#   from paramiko import SSHClient
+# 
+#   def push_notification_to_user(msg):
+#       """
+#       Pushes a notification to me through the Pushover API. 
+#       Args:
+#           msg: the message to push
+#       Returns:
+#           True, when pushing successful
+#       """
+#   
+#       scl = SSHClient()
+#       scl.load_system_host_keys()
+#       scl.connect('scinet03-ib0')
+#       token = "" # pushover API token
+#       user  = "" # pushover user ID
+#       url   = "https://api.pushover.net/1/messages.json"
+#       cmd   = "curl -s --form-string 'token={0}' --form-string 'user={1}' --form-string 'message={2}' {3}".format(token, user, msg, url)
+#       stdin, stdout, stderr = scl.exec_command(cmd)
+#       return True
+# 
+# except ImportError: 
+#   
 def push_notification_to_user(msg):
-    """
-    Pushes a notification to me through the Pushover API. 
-    Args:
-        msg: the message to push
-    Returns:
-        True, when pushing successful
-    """
-
-    scl = SSHClient()
-    scl.load_system_host_keys()
-    scl.connect('scinet03-ib0')
-    token = "akgAGDCC5mJjsUQSP3VXUUgHwQqJms" # pushover API token
-    user  = "uxEnjV6Uz6DHB1B5j5bKy72agTaups" # pushover user ID
-    url   = "https://api.pushover.net/1/messages.json"
-    cmd   = "curl -s --form-string 'token={0}' --form-string 'user={1}' --form-string 'message={2}' {3}".format(token, user, msg, url)
-    stdin, stdout, stderr = scl.exec_command(cmd)
-    return True
+  ''' dummy replacement for push notifications '''
+  print('Push-notifications are currently not supported.\nMessage: {:s}'.format(msg))
+  return True
