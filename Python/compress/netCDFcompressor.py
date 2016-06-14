@@ -19,6 +19,8 @@ the short term archive.
 NOTE: Mar 28, 2016: Modified to ensure compatibility with pyhton 3
 
 NOTE: Jun 09, 2016: Adapted for use with WRF output by Fengyi Xie
+
+NOTE: Jun 12, 2016: Updated and adapted for use with 6-hourly CESM output by Andre R. Erler
 """
 
 
@@ -41,7 +43,7 @@ from functools import partial
 
 # User library imports =========================================================
 
-from scinet_cesm_utils import which, secondsToStr, push_notification_to_user
+from scinet_cesm_utils import which, secondsToStr
 
 
 # Stuff for comparing two netcdf files >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -175,55 +177,74 @@ def endlog(start, total_years, sty, edy):
     
 
 
-def job_func(ncfile, comp, debug=False):
+def job_func(ncfile, comp, debug=False, skip_NC4=True):
     """
     This is the main worker subroutine. 
     ARGUMENTS
-        ncfile - a file on which to operate upon
-        comp   - compression level in nccopy
+        ncfile   - a file on which to operate upon
+        comp     - compression level in nccopy
+        skip_NC4 - skip NetCDF-4 files
     """
-    logger = multiprocessing.get_logger()
-    outfile = ncfile[:ncfile.rfind(".")] + "_new.nc"
-    command = "nccopy -s -d {0} {1} {2}".format(comp, ncfile, outfile)
-    logger.info(command)
-    command = command.strip().split()
-    assert(len(command) == 6)  # Checking to make sure the strip().split() command worked as intended
-
-    success = False
-    ctr = 0
     
-    # Sometimes scinet file system acts weird and nccopy commands fail. But running
-    # the nccopy command again usually works. This loop will make multiple attempts 
-    # to call nccopy and convert the file. 
-    while (not success) and (ctr < 5):
-        try:
-          if debug:
-            if not osp.exists(ncfile): 
-              success = False
-              logger.critical('DEBUG: source file missing: {:s}'.format(ncfile))
-            else: success = True
-          else:
-            subprocess.check_call(command)
-            success = True
-        except subprocess.CalledProcessError as e:
-            logger.critical("nccopy: errorcode [{0}] file [{1}] message [{2}]; Retrying.....".format(e.returncode, ncfile, e.output))
-        except Exception as e:
-            logger.critical("An exception was raised: {0}".format(str(e)))
-        ctr += 1
+    logger = multiprocessing.get_logger()
 
-    if success:
-        # Now we verify the coversion using the cprnc tool. 
-        check_passed = False
-        try:
-          if not debug: compare(ncfile, outfile, False)
-          check_passed=True
-        except Exception as e:
-            logger.critical("Verification failed for file {0}, {1}. Error raised was: {2}".format(ncfile, outfile, e))
-
-        if check_passed and not debug: os.rename(outfile, ncfile)
+    # check format of file
+    if skip_NC4:
+        # open file and check format version (skip NetCDF-4)
+        lskip = ( Dataset(ncfile).data_model == 'NETCDF4' )
+    else: lskip = False # never skip
+    
+    # decide what to do based on format information
+    if lskip:
+      
+        # skip file (print message)
+        logger.info('Skipping NetCDF-4 file {0}'.format(ncfile))
+        success = True; check_passed = True # pretend everything is alright
+      
     else:
-        check_passed = False
-        logger.critical("nccopy FAILED to convert {0}".format(ncfile))
+      
+        # proceed as ususal
+        outfile = ncfile[:ncfile.rfind(".")] + "_new.nc"
+        command = "nccopy -s -d {0} {1} {2}".format(comp, ncfile, outfile)
+        logger.info(command)
+        command = command.strip().split()
+        assert(len(command) == 6)  # Checking to make sure the strip().split() command worked as intended
+    
+        success = False
+        ctr = 0
+        
+        # Sometimes scinet file system acts weird and nccopy commands fail. But running
+        # the nccopy command again usually works. This loop will make multiple attempts 
+        # to call nccopy and convert the file. 
+        while (not success) and (ctr < 5):
+            try:
+              if debug:
+                if not osp.exists(ncfile): 
+                  success = False
+                  logger.critical('DEBUG: source file missing: {:s}'.format(ncfile))
+                else: success = True
+              else:
+                subprocess.check_call(command)
+                success = True
+            except subprocess.CalledProcessError as e:
+                logger.critical("nccopy: errorcode [{0}] file [{1}] message [{2}]; Retrying.....".format(e.returncode, ncfile, e.output))
+            except Exception as e:
+                logger.critical("An exception was raised: {0}".format(str(e)))
+            ctr += 1
+    
+        if success:
+            # Now we verify the coversion using the cprnc tool. 
+            check_passed = False
+            try:
+              if not debug: compare(ncfile, outfile, False)
+              check_passed=True
+            except Exception as e:
+                logger.critical("Verification failed for file {0}, {1}. Error raised was: {2}".format(ncfile, outfile, e))
+    
+            if check_passed and not debug: os.rename(outfile, ncfile)
+        else:
+            check_passed = False
+            logger.critical("nccopy FAILED to convert {0}".format(ncfile))
 
     return ReturnData(ncfile, int(success), int(check_passed))
 
@@ -267,40 +288,67 @@ def init(l):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(prog="netCDFcompressor.py")
-    parser.add_argument('case',      nargs=1, type=str, help='CESM case name (use \'WRF\' for WRF cases)')
-    parser.add_argument('start',     nargs=1, type=int, help='start year')
-    parser.add_argument('end',       nargs=1, type=int, help='end year')
-    parser.add_argument('filetypes', nargs=1, type=str, help='filetypes to process')
-    parser.add_argument('-h0',       action='store_true', help='CESM history stream 0 (usually monthly; default)')
-    parser.add_argument('-h1',       action='store_true', help='CESM history stream 1 (usually 6-hourly output)')
-    parser.add_argument('-dom',      nargs=1, type=int, default=['d0?'], help='WRF domain number')
-    parser.add_argument('--mode',    nargs=1, type=str, choices=['WRF','CESM','CESM1'], help='WRF or CESM mode')
-    parser.add_argument('-n',        nargs=1, type=int, default=[multiprocessing.cpu_count()], 
-                                     help='number of parallel processes')
-    parser.add_argument('-L1',       type=str, help='Location of the CESM level 1 data, if different from default')
-    parser.add_argument('--folder',  type=str, help='Case root folder (default: current directory; alias for -L1)')
-    parser.add_argument('--debug',   action='store_true', help='Debug mode: do not replace soruce files')    
-    parser.add_argument('--notify',  action='store_true', help='Send a push notification upon completion')
-
+    parser.add_argument('start',        nargs=1, type=int, help='start year')
+    parser.add_argument('end',          nargs=1, type=int, help='end year')
+    parser.add_argument('--case',       nargs=1, type=str, help='CESM case name (use \'WRF\' or omit for WRF)')
+    parser.add_argument('--mode',       nargs=1, type=str, choices=['WRF','CESM','CESM1'], 
+                                        help='WRF or CESM mode (default: \'CESM\' if \'case\' is specified, otherwise \'WRF\')')
+    parser.add_argument('--filetypes',  nargs=1, type=str, default=['all'], help='filetypes to process')
+    parser.add_argument('-h0',          action='store_true', help='CESM history stream 0 (usually monthly; default)')
+    parser.add_argument('-h1',          action='store_true', help='CESM history stream 1 (usually 6-hourly output)')
+    parser.add_argument('--domain',     nargs=1, type=int, help='WRF domain number')
+    parser.add_argument('-n',           nargs=1, type=int, default=[int(multiprocessing.cpu_count()/4)], 
+                                        help='number of parallel processes (default: CPU_count/4')
+    parser.add_argument('-L1',          type=str, help='Location of the CESM level 1 data, if different from default')
+    parser.add_argument('--folder',     type=str, help='Case root folder (default: current directory; alias for -L1)')
+    parser.add_argument('--debug',      action='store_true', help='Debug mode: only list file globbing expressions (no conversion)')
+    parser.add_argument('--noskip',     action='store_true', help='Also compress files already in NetCDF-4 format')
+    
     ncflags = parser.add_argument_group('nccopy flags')
     ncflags.add_argument('-d',   nargs=1, type=int,  default=[1], help="compression level")
     
     start_clock = time()  #start clock, used for timing the script
 
     args        = parser.parse_args()
-    casename    = args.case[0]
-    if args.mode: mode = args.case[0]
-    else: mode = 'WRF' if casename == 'WRF' else 'CESM1'
+    # general arguments
     start_year  = args.start[0]
     end_year    = args.end[0]
     nprocs      = args.n[0]
     comp        = args.d[0]
     debug       = args.debug
-  
-    if mode == "WRF":
-        domain = args.dom[0]
-        filetype_list = ["fdda", "drydyn3d", "hydro", "lsm", "moist3d", "plev3d", "rad", "srfc", "xtrm"]
+    skip_NC4    = not args.noskip
+    
+    # figure out what the data folder is
+    if args.folder and args.L1: raise ValueError("'L1' and 'folder' arguments are aliases; can only use one.")
+    elif args.folder:
+      comp_direc = args.folder.strip()
+      if not osp.exists(comp_direc): raise IOError(comp_direc)
+    elif args.L1:
+      comp_direc = args.folder.strip()
+      if not osp.exists(comp_direc): raise IOError(comp_direc)
+    else:
+      comp_direc = os.getcwd()
+    # remove trailing slashes etc. and check
+    comp_direc = osp.normpath(comp_direc) 
+    if not osp.isdir(comp_direc): raise IOError("'{0}' is not a directory.".format(comp_direc))
+    
+    # infer mode or casename
+    casename    = args.case[0]
+    mode        = args.mode[0]
+    if mode is None:
+        if casename is None: mode = 'WRF'
+        else: mode = 'CESM'
     elif mode == 'CESM' or mode == 'CESM1':
+        mode = 'CESM' # standardize
+        # infer casename from last component of folder name 
+        if casename is None: casename = comp_direc.split('/')[-1]
+        
+    # set/check filetypes based on mode
+    if mode == "WRF":
+        if args.domain: domain = 'd{:02d}'.format(args.domain[0])
+        else: domain = 'd[0-9][0-9]' # match all domains
+        filetype_list = ["fdda", "drydyn3d", "hydro", "lsm", "moist3d", "plev3d", "rad", "srfc", "xtrm"]
+    elif mode == 'CESM':
         mode = 'CESM'
         # different history streams are processed slightly differently 
         if args.h0 and args.h1: raise ValueError('Can only process one history stream!')
@@ -335,16 +383,17 @@ if __name__ == "__main__":
     atexit.register(endlog, start_clock, total_years, start_year, end_year)
 
     print("Configuration  >>>>>>>")
+    print(("  Start year     : {0}".format(start_year)))
+    print(("  End year       : {0}".format(end_year)))
     if mode == 'WRF': 
-      print(("  Domain         : {0}".format(domain)))
+      print(("  Domain(s)      : {0}".format('{:02d}'.format(args.domain[0]) if args.domain else 'all')))
     elif mode == 'CESM': 
       print(("  Case name      : {0}".format(casename)))
       print(("  History stream : {0:d}".format(hs)))
-    print(("  Filetypes      : {0}".format(filetype_arg)))
-    print(("  Start year     : {0}".format(start_year)))
-    print(("  End year       : {0}".format(end_year)))
+    print(("  Filetype(s)    : {0}".format(filetype_arg)))
     print(("  Num procs      : {0}".format(nprocs)))
     print(("  Compression    : {0}".format(comp)))
+    print(("  Skip NetCDF-4  : {0}".format(skip_NC4)))
     if args.debug: print("     DEBUG MODE   ")
     print("<<<<<<<<<<<<<<<<<<<<<<")
 
@@ -368,19 +417,8 @@ if __name__ == "__main__":
     # the multiprocessing module's Pool class function map only operates on
     # functions with a single argument. For this reason, i take the actual
     # worker function here and convert it into a "partial" function first. 
-    partial_job_func = partial(job_func, comp=comp, debug=debug)
+    partial_job_func = partial(job_func, comp=comp, debug=debug, skip_NC4=skip_NC4)
 
-    
-    # figure out what the data folder is
-    if args.folder and args.L1: raise ValueError("'L1' and 'folder' arguments are aliases; can only use one.")
-    elif args.folder:
-      comp_direc = args.folder.strip()
-      if not osp.exists(comp_direc): raise IOError(comp_direc)
-    elif args.L1:
-      comp_direc = args.folder.strip()
-      if not osp.exists(comp_direc): raise IOError(comp_direc)
-    else:
-      comp_direc = os.getcwd()
 
     if mode == "WRF":
         # if this is the case root, we have to add the default filetype structure (e.g. wrfout/)
@@ -436,7 +474,3 @@ if __name__ == "__main__":
     pool.close()
 
     print_diagnostics(returneddata)
-
-    if args.notify:
-      ret = push_notification_to_user("Compression for {0}/{1} complete!".format(casename, filetype))
-
