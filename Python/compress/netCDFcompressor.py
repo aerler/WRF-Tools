@@ -301,7 +301,7 @@ if __name__ == "__main__":
                                         help='number of parallel processes (default: CPU_count/4')
     parser.add_argument('-L1',          type=str, help='Location of the CESM level 1 data, if different from default')
     parser.add_argument('--folder',     type=str, help='Case root folder (default: current directory; alias for -L1)')
-    parser.add_argument('--debug',      action='store_true', help='Debug mode: only list file globbing expressions (no conversion)')
+    parser.add_argument('--debug',      action='store_true', help='Debug mode: only list files and operations (no conversion)')
     parser.add_argument('--noskip',     action='store_true', help='Also compress files already in NetCDF-4 format')
     
     ncflags = parser.add_argument_group('nccopy flags')
@@ -333,8 +333,8 @@ if __name__ == "__main__":
     if not osp.isdir(comp_direc): raise IOError("'{0}' is not a directory.".format(comp_direc))
     
     # infer mode or casename
-    casename    = args.case[0]
-    mode        = args.mode[0]
+    casename    = args.case[0] if args.case else None
+    mode        = args.mode[0] if args.mode else None
     if mode is None:
         if casename is None: mode = 'WRF'
         else: mode = 'CESM'
