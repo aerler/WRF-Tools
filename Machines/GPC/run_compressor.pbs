@@ -71,7 +71,7 @@ if [[ -n ${H1} ]]; then
 fi # $H1
 # data folder argument
 if [[ -n ${FOLDER} ]]; then
-    FF='--folder' # FOLDER will be quoted to avoid escaping
+    FOLDER="--folder ${FOLDER}" # FOLDER still needs to be escaped
 fi # $FOLDER
 # no-skip flag
 if [[ -n ${NOSKIP} ]]; then
@@ -94,12 +94,12 @@ fi # $DEBUG
 ## execute compressor script with command line arguments
 # print command
 echo "python ${COMPRESSOR} ${BEGIN} ${END} ${CASE} ${MODE} ${FILET} ${DOM}"
-echo "                     ${H0} ${H1} ${FF} ${FOLDER} ${NOSKIP} ${N} ${D} ${DEBUG}"
+echo "                     ${H0} ${H1} ${FOLDER} ${NOSKIP} ${N} ${D} ${DEBUG}"
 echo
 echo
 # execute and print to stdout
 python "${COMPRESSOR}" ${BEGIN} ${END} ${CASE} ${MODE} ${FILET} ${DOM} \
-                       ${H0} ${H1} ${FF} "${FOLDER}" ${NOSKIP} ${N} ${D} ${DEBUG}
+                       ${H0} ${H1} ${FOLDER} ${NOSKIP} ${N} ${D} ${DEBUG}
 ERR=$? # capture exit code
 
 # exit with exit code from python script

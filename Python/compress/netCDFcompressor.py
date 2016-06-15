@@ -298,7 +298,7 @@ if __name__ == "__main__":
     parser.add_argument('-h0',          action='store_true', help='CESM history stream 0 (usually monthly; default)')
     parser.add_argument('-h1',          action='store_true', help='CESM history stream 1 (usually 6-hourly output)')
     #parser.add_argument('-L1',          type=str, help='Location of the CESM level 1 data, if different from default')
-    parser.add_argument('--folder',     type=str, help='Case root folder (default: current directory; alias for -L1)')
+    parser.add_argument('--folder',     type=str, help='Case root folder (default: current directory)')
     parser.add_argument('--noskip',     action='store_true', help='Also compress files already in NetCDF-4 format')
     parser.add_argument('-n',           nargs=1, type=int, default=[int(multiprocessing.cpu_count()/4)], 
                                         help='number of parallel processes (default: CPU_count/4')
@@ -319,13 +319,13 @@ if __name__ == "__main__":
     skip_NC4    = not args.noskip
     
     # figure out what the data folder is
-    if args.folder and args.L1: raise ValueError("'L1' and 'folder' arguments are aliases; can only use one.")
-    elif args.folder:
+    #if args.folder and args.L1: raise ValueError("'L1' and 'folder' arguments are aliases; can only use one.")
+    if args.folder:
       comp_direc = args.folder.strip()
       if not osp.exists(comp_direc): raise IOError(comp_direc)
-    elif args.L1:
-      comp_direc = args.folder.strip()
-      if not osp.exists(comp_direc): raise IOError(comp_direc)
+    #elif args.L1:
+    #  comp_direc = args.folder.strip()
+    #  if not osp.exists(comp_direc): raise IOError(comp_direc)
     else:
       comp_direc = os.getcwd()
     # remove trailing slashes etc. and check
