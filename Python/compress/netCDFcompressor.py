@@ -294,15 +294,15 @@ if __name__ == "__main__":
     parser.add_argument('--mode',       nargs=1, type=str, choices=['WRF','CESM','CESM1'], 
                                         help='WRF or CESM mode (default: \'CESM\' if \'case\' is specified, otherwise \'WRF\')')
     parser.add_argument('--filetypes',  nargs=1, type=str, default=['all'], help='filetypes to process')
+    parser.add_argument('--domain',     nargs=1, type=int, help='WRF domain number')
     parser.add_argument('-h0',          action='store_true', help='CESM history stream 0 (usually monthly; default)')
     parser.add_argument('-h1',          action='store_true', help='CESM history stream 1 (usually 6-hourly output)')
-    parser.add_argument('--domain',     nargs=1, type=int, help='WRF domain number')
+    #parser.add_argument('-L1',          type=str, help='Location of the CESM level 1 data, if different from default')
+    parser.add_argument('--folder',     type=str, help='Case root folder (default: current directory; alias for -L1)')
+    parser.add_argument('--noskip',     action='store_true', help='Also compress files already in NetCDF-4 format')
     parser.add_argument('-n',           nargs=1, type=int, default=[int(multiprocessing.cpu_count()/4)], 
                                         help='number of parallel processes (default: CPU_count/4')
-    parser.add_argument('-L1',          type=str, help='Location of the CESM level 1 data, if different from default')
-    parser.add_argument('--folder',     type=str, help='Case root folder (default: current directory; alias for -L1)')
     parser.add_argument('--debug',      action='store_true', help='Debug mode: only list files and operations (no conversion)')
-    parser.add_argument('--noskip',     action='store_true', help='Also compress files already in NetCDF-4 format')
     
     ncflags = parser.add_argument_group('nccopy flags')
     ncflags.add_argument('-d',   nargs=1, type=int,  default=[1], help="compression level")
