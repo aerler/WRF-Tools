@@ -67,7 +67,7 @@ if [[ -n ${H0} ]]; then
 fi # $H0
 # 6-hourly history flag (CESM only)
 if [[ -n ${H1} ]]; then
-    H0="-h1"
+    H1="-h1"
 fi # $H1
 # data folder argument
 if [[ -n ${FOLDER} ]]; then
