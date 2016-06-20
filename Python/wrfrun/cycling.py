@@ -16,7 +16,7 @@ import sys # writing to stdout
 import datetime # to compute run time
 import calendar # to locate leap years
 # my modules
-from namelist import time
+import time
 
 ## setup
 # pass current/last step name as argument

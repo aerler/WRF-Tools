@@ -18,7 +18,7 @@ import subprocess # launching external programs
 import multiprocessing # parallelization
 import string # to iterate over alphabet...
 # my modules
-from namelist import time
+import time
 import datetime as dt
 
 ##  Default Settings (may be overwritten by in meta/namelist.py)

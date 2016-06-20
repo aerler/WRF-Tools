@@ -49,7 +49,7 @@ function CHECK {
                 rm -rf ${CURRENTSTEP}/rsl.* ${CURRENTSTEP}/wrf*.nc
   	            # restart job (this is a bit hackish and not as general as I would like it...)
   	            if [[ "$MAC" == 'GPC' ]]; then 
-  	              ssh gpc-f102n084-ib0 "cd \"${INIDIR}\"; qsub ./run_cycling_WRF.pbs -v NOWPS=${NOWPS},NEXTSTEP=${CURRENTSTEP}"
+  	              ssh gpc-f104n084-ib0 "cd \"${INIDIR}\"; qsub ./run_cycling_WRF.pbs -v NOWPS=${NOWPS},NEXTSTEP=${CURRENTSTEP}"
   	            elif [[ "$MAC" == 'TCS' ]]; then
   	              ssh tcs-f11n06-ib0 "cd \"${INIDIR}\"; export NEXTSTEP=${CURRENTSTEP}; export NOWPS=${NOWPS}; llsubmit ./run_cycling_WRF.ll"
   	            elif [[ "$MAC" == 'P7' ]]; then
@@ -62,7 +62,7 @@ function CHECK {
                 if [[ -f "$SCLOG"  ]] && [ 0 -lt $(tail -n 1 "$SCLOG" | grep -c 'Waiting for WPS job to complete' ) ]; then
                   # This means, the sleeper job is waiting for WPS to complete - just restart WPS
                   if [[ "${WRFWCT}" != '00:00:00' ]] && [[ "${WRFWCT}" != '0' ]]; then WRFWCT='00:45:00'; fi
-                  ssh gpc-f102n084-ib0 "cd '${INIDIR}'; export WRFWCT=${WRFWCT}; export WPSWCT='00:15:00'; export NEXTSTEP=${CURRENTSTEP}; export WPSSCRIPT='run_cycling_WPS.pbs'; python scripts/selectWPSqueue.py; sleep 3" # give command some time to complete
+                  ssh gpc-f104n084-ib0 "cd '${INIDIR}'; export WRFWCT=${WRFWCT}; export WPSWCT='00:15:00'; export NEXTSTEP=${CURRENTSTEP}; export WPSSCRIPT='run_cycling_WPS.pbs'; python scripts/selectWPSqueue.py; sleep 3" # give command some time to complete
                   #ssh gpc04 "cd \"${INIDIR}\"; qsub ./run_cycling_WPS.pbs -v NEXTSTEP=${CURRENTSTEP}"
                 else
                   # start new sleeper job (which will start WPS)
