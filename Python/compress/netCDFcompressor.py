@@ -274,10 +274,15 @@ def print_diagnostics(diag):
         print("Files that failed verification:")
         for item in diag:
             if (item.pass1 and (not item.pass2)): print(("    {0}".format(item)))
+        # use fraction of failed operations as exit code (+10)
+        ec = 10 + int( total_failed / len(diag) )
     else:
         print("All files converted SUCCESSFULLY!!")
+        ec = 0 # indicates success
     print(("-"*80))
     print(("-"*80))
+    # return exit code
+    return ec
 
 
 def init(l):
@@ -473,4 +478,6 @@ if __name__ == "__main__":
 
     pool.close()
 
-    print_diagnostics(returneddata)
+    ec = print_diagnostics(returneddata)
+    # return with exit Code
+    exit(ec)
