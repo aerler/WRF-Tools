@@ -275,7 +275,7 @@ def print_diagnostics(diag):
         for item in diag:
             if (item.pass1 and (not item.pass2)): print(("    {0}".format(item)))
         # use fraction of failed operations as exit code (+10)
-        ec = 10 + int( total_failed / len(diag) )
+        ec = 10 + int( 10 * total_failed / len(diag) )
     else:
         print("All files converted SUCCESSFULLY!!")
         ec = 0 # indicates success
