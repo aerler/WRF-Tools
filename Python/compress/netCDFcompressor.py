@@ -352,7 +352,8 @@ if __name__ == "__main__":
     if mode == "WRF":
         if args.domain: domain = 'd{:02d}'.format(args.domain[0])
         else: domain = 'd[0-9][0-9]' # match all domains
-        filetype_list = ["fdda", "drydyn3d", "hydro", "lsm", "moist3d", "plev3d", "rad", "srfc", "xtrm"]
+        filetype_list = ["fdda", "drydyn3d", "hydro", "lsm", "moist3d", "plev3d", "rad", "srfc", "xtrm", "flake", "rst"]
+        filetype_list_small = ["fdda", "hydro", "lsm", "plev3d", "rad", "srfc", "xtrm", "flake", "rst"]
     elif mode == 'CESM':
         mode = 'CESM'
         # different history streams are processed slightly differently 
@@ -367,6 +368,7 @@ if __name__ == "__main__":
     # infer filetypes    
     filetype_arg   = args.filetypes[0]
     if filetype_arg.lower() == 'all': filetypes = filetype_list
+    elif filetype_arg.lower() == 'small': filetypes = filetype_list_small
     else: filetypes = filetype_arg.split(',')
     # check filetypes
     for filetype in filetypes:
