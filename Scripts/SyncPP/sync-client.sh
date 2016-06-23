@@ -1,10 +1,10 @@
 #!/bin/bash
-# script to synchronize parts of the data with SciNet and komputer
-# 26/12/2014
+# script to synchronize parts of the data from a remote cluster environment and remote workstation to a client computer
+# 26/12/2014, Andre R. Erler, GPL v3, updated 30/05/2016
 
 # pre-process arguments using getopt
 if [ -z $( getopt -T ) ]; then
-  TMP=$( getopt -o sn:h --long highspeed,niceness:,from-home,no-scinet,no-komputer,no-datasets,no-cesm,no-wrf,help -n "$0" -- "$@" ) # pre-process arguments
+  TMP=$( getopt -o sn:h --long highspeed,niceness:,config:,from-home,no-cluster,no-workstn,no-datasets,no-cesm,no-wrf,help -n "$0" -- "$@" ) # pre-process arguments
   [ $? != 0 ] && exit 1 # getopt already prints an error message
   eval set -- "$TMP" # reset positional parameters (arguments) to $TMP list
 fi # check if GNU getopt ("enhanced")
@@ -14,9 +14,10 @@ while true; do
   case "$1" in
     -s | --highspeed   )   HISPD='HISPD';  shift;;
     -n | --niceness    )   NICENESS=$2; shift 2;;
+         --config        )   KCFG="$2"; shift 2;;
          --from-home   )   CODE="${HOME}/Code/"; shift;;
-         --no-scinet   )   NOSCINET='TRUE'; shift;;
-         --no-komputer )   NOKOMPUTER='TRUE'; shift;;
+         --no-cluster  )   NOCLUSTER='TRUE'; shift;;
+         --no-workstn  )   NOWORKSTN='TRUE'; shift;;
          --no-datasets )   NODATASETS='TRUE'; shift;;
          --no-cesm     )   NOCESM='TRUE'; shift;;
          --no-wrf      )   NOWRF='TRUE'; shift;;
@@ -24,9 +25,11 @@ while true; do
                             \n\
     -s | --highspeed     whether or not to use the high-speed datamover connection (default: False)\n\
     -n | --niceness      nicesness of the sub-processes (default: +10)\n\
+         --config         an alternative configuration file to source instead of kconfig.sh\n\
+                          (set to 'NONE' to inherit settings from parent environment)\n\
          --from-home     use code from user $HOME instead of default (/home/data/Code)\n\
-         --no-scinet     skip all downloads from SciNet\n\
-         --no-komputer   skip all downloads from komputer (workstation)\n\
+         --no-cluster    skip all downloads from remote HPC cluster\n\
+         --no-workstn    skip all downloads from remote workstation\n\
          --no-datasets   skip download of observational datasets\n\
          --no-cesm       skip download of CESM data\n\
          --no-wrf        skip download of WRF data\n\
@@ -38,24 +41,31 @@ while true; do
 done # while getopts  
 
 
-# settings and environment
-# general settings
+## set environment variables
+# N.B.: defaults and command line options will be overwritten by custom settings in config file
+# load custom configuration from file
+
+if [[ "$KCFG" == "NONE" ]]; then
+    echo "Using configuration from parent environment (not sourcing)."
+elif [[ -z "$KCFG" ]]; then
+    echo "Sourcing configuration from default file: $PWD/lconfig.sh"
+    source lconfig.sh # default config file (in local directory)
+elif [[ -f "$KCFG" ]]; then 
+    echo "Sourcing configuration from alternative file: $KCFG"
+    source "$KCFG" # alternative config file
+else
+    echo "ERROR: no configuration file '$KCFG'"
+fi # if config file
+export KCFG='NONE' # suppress sourcing in child processes
+echo
+# N.B.: The following variables need to be set:
+#       CODE_ROOT, DATA_ROOT, SCRIPTS, OBSCLSTR, DATASETS,
+#       WRFCLSTR, SUBDIR, CESMCLSTR, WRFWRKSTN, CESMWRKSTN,
+#       CLUSTER, CLUSTERSSH, WORKSTN, WORKSTNSSH
+# default settings
 CODE="${CODE:-${HOME}/Code/}" # code root
-SCRIPTS="${CODE}/WRF Tools/Scripts/SyncPP/" # folder with all the scripts
+SCRIPTS="${SCRIPTS:-${CODE}/WRF-Tools/Scripts/SyncPP/}" # folder with all the scripts
 NICENESS=${NICENESS:-10}
-# data root directories
-export ROOT='/media/me/data-2/Data/'
-#export ROOT='/media/me/Seagate Expansion Drive/Data/'
-export WRFDATA="${ROOT}/WRF/" # local WRF data root
-export CESMDATA="${ROOT}/CESM/" # local CESM data root
-# SSH settings for SciNet
-# same as ssh settings for unattended nightly update: 
-# special identity/ssh key, batch mode, and connection sharing
-SCINET='aerler@login.scinet.utoronto.ca'
-SCINETSSH="-i /home/me/.ssh/rsync -o BatchMode=yes -o ControlPath=${HOME}/master-%l-%r@%h:%p -o ControlMaster=auto -o ControlPersist=1"
-# SSH settings for workstation
-KOMPUTER='fskomputer' # has to be defined in .ssh/config
-KOMPUTERSSH="-o BatchMode=yes"
 
 
 ## error reporting
@@ -76,96 +86,102 @@ function REPORT {
   fi # if $EC == 0
 } # function REPORT 
 
-## start synchronization
-export KCFG='NONE' # don't load anything from file!!!
-
 
 ## synchronize observational datasets
+export OBSDATA="${OBSDATA:-${DATA_ROOT}/}" # local datasets root
 rm -f "${ROOT}"/sync-datasets.log 
-if [[ "${NOSCINET}" != 'TRUE' ]] && [[ "${NODATASETS}" != 'TRUE' ]]; then
-  export RESTORE='RESTORE' # restore datasets from SciNet backup
-  export HOST="$SCINET" # ssh to SciNet
-  export SSH="$SCINETSSH" # ssh settings for SciNet 
-  nice --adjustment=${NICENESS} "${SCRIPTS}/sync-datasets.sh" &>> "${ROOT}"/sync-datasets.log #2> "${ROOT}"/sync-datasets.err # 2>&1
+if [[ "${NOCLUSTER}" != 'TRUE' ]] && [[ "${NODATASETS}" != 'TRUE' ]]; then
+  export RESTORE='RESTORE' # restore datasets from HPC cluster backup
+  export HOST="$CLUSTER" # ssh to HPC cluster
+  export SSH="$CLUSTERSSH" # ssh settings for HPC cluster
+  export OBSSRC="$OBSCLSTR" # only cluster is used  
+  export DATASETS
+  nice --adjustment=${NICENESS} "${SCRIPTS}/sync-datasets.sh" &>> "${OBSDATA}"/sync-datasets.log #2> "${OBSDATA}"/sync-datasets.err # 2>&1
   REPORT $? 'Dataset/Obs Synchronization' 
-fi # if not $NOSCINET
+fi # if not $NOCLUSTER
 
 
 ## synchronize CESM data
-# download from komputer instead of SciNet using sshfs connection
+export CESMDATA="${CESMDATA:-${DATA_ROOT}/CESM/}" # local CESM data root
 rm -f "${CESMDATA}"/sync-cesm.log 
-# diagnostics and ensembles from SciNet
-if [[ "${NOSCINET}" != 'TRUE' ]] && [[ "${NOCESM}" != 'TRUE' ]]; then
-  export HOST="$SCINET" # ssh to SciNet
-  export SSH="$SCINETSSH" # ssh settings for SciNet 
-  export CCA='/reserved1/p/peltier/aerler//CESM/archive/'
-  export INVERT='FALSE' # source has name first then folder type (like on SciNet)
+# diagnostics and ensembles from HPC cluster
+if [[ "${NOCLUSTER}" != 'TRUE' ]] && [[ "${NOCESM}" != 'TRUE' ]]; then
+  export HOST="$CLUSTER" # ssh to HPC cluster
+  export SSH="$CLUSTERSSH" # ssh settings for HPC cluster 
+  export CESMSRC="$CESMCLSTR" # remote archive with cesmavg files
+  export INVERT='FALSE' # source has name first then folder type (like on HPC cluster)
   export RESTORE='RESTORE'
+  export CESMENS='NONE' # ensembles are only for upload
+  export CESMREX='*'
   export FILETYPES='NONE'
   export DIAGS='diag cvdp'
   nice --adjustment=${NICENESS} "${SCRIPTS}/sync-cesm.sh" &> "${CESMDATA}"/sync-cesm.log #2> "${CESMDATA}"/sync-cesm.err # 2>&1
-  REPORT $? 'CESM Diagnostics from SciNet' 
-fi # if not $NOSCINET
+  REPORT $? 'CESM Diagnostics from HPC cluster' 
+fi # if not $NOCLUSTER
 
-## download rest from komputer
-export HOST="$KOMPUTER" # ssh to workstation
-export SSH="$KOMPUTERSSH" # ssh settings for workstation
-export CCA='/data/CESM/cesmavg/' # archives with my own cesmavg files
+## download rest from workstation
+export HOST="$WORKSTN" # ssh to workstation
+export SSH="$WORKSTNSSH" # ssh settings for workstation
+export CESMSRC="$CESMWRKSTN" # archives with my own cesmavg files
 export INVERT='INVERT' # invert name/folder order in source (i.e. like in target folder)
 export RESTORE='FALSE'
 export DIAGS='NONE'
 export CVDP='NONE'
-# climatologies etc. from komputer
-if [[ "${NOKOMPUTER}" != 'TRUE' ]] && [[ "${NOCESM}" != 'TRUE' ]]; then
-  export FILETYPES='cesm*_clim_*.nc'
+export CESMENS='NONE'
+# climatologies etc. from workstation
+if [[ "${NOWORKSTN}" != 'TRUE' ]] && [[ "${NOCESM}" != 'TRUE' ]]; then
+  export FILETYPES="${CESMCLIMFT:-'cesmatm*_clim_*.nc cesmlnd*_clim_*.nc'}"
+  export CESMREX="${CESMCLIMREX:-'ens*'}" # these files are quite large: only ensembles
   nice --adjustment=${NICENESS} "${SCRIPTS}/sync-cesm.sh" &>> "${CESMDATA}"/sync-cesm.log #2>> "${CESMDATA}"/sync-cesm.err # 2>&1
   REPORT $? 'CESM Climatologies' 
-fi # if not $NOKOMPUTER
-# stations etc. from komputer
-if [[ "${NOKOMPUTER}" != 'TRUE' ]] && [[ "${NOCESM}" != 'TRUE' ]]; then
-  export FILETYPES='cesm*_ec*_*.nc cesm*_shpavg_*.nc'
+fi # if not $NOWORKSTN
+# stations etc. from workstation
+if [[ "${NOWORKSTN}" != 'TRUE' ]] && [[ "${NOCESM}" != 'TRUE' ]]; then
+  export FILETYPES="${CESMSTNSFT:-'cesm*_ec*_*.nc cesm*_shpavg_*.nc'}"
+  export CESMREX="${CESMSTNSREX:-'*'}" # these files are pretty small: all experiments
   nice --adjustment=${NICENESS} "${SCRIPTS}/sync-cesm.sh" &>> "${CESMDATA}"/sync-cesm.log #2>> "${CESMDATA}"/sync-cesm.err # 2>&1
   REPORT $? 'CESM Stations etc.' 
-fi # if not $NOKOMPUTER
+fi # if not $NOWORKSTN
 
 
 ## synchronize WRF data
+export WRFDATA="${WRFDATA:-${DATA_ROOT}/WRF/}" # local WRF data root
 rm -f "${WRFDATA}"/sync-wrf.log
-# monthly files from SciNet
-if [[ "${NOSCINET}" != 'TRUE' ]] && [[ "${NOWRF}" != 'TRUE' ]]; then
-  export HOST="$SCINET" # ssh to SciNet
-  export SSH="$SCINETSSH" # ssh settings for SciNet 
-  export SRC='/reserved1/p/peltier/aerler/'
-  export SUBDIR='WesternCanada GreatLakes'
-  export INVERT='FALSE' # source has name first then folder type (like on SciNet)  export REX='g-ctrl*'
-  export FILETYPES='wrfplev3d_d01_clim_*.nc wrfsrfc_d01_clim_*.nc wrfhydro_d02_clim_*.nc wrfxtrm_d02_clim_*.nc wrflsm_d02_clim_*.nc wrfsrfc_d02_clim_*.nc'
+
+# monthly files from HPC cluster
+if [[ "${NOCLUSTER}" != 'TRUE' ]] && [[ "${NOWRF}" != 'TRUE' ]]; then
+  export HOST="$CLUSTER" # ssh to HPC cluster
+  export SSH="$CLUSTERSSH" # ssh settings for HPC cluster 
+  export WRFSRC="$WRFCLSTR"
+  export INVERT='FALSE' # source has name first then folder type (like on HPC cluster)  export REX='g-ctrl*'
+  export FILETYPES="${WRFCLTSFT:-'wrfplev3d_d01_monthly.nc wrfsrfc_d01_monthly.nc wrfhydro_d02_monthly.nc wrfxtrm_d02_monthly.nc wrflsm_d02_monthly.nc wrfsrfc_d02_monthly.nc'}"
+  export WRFREX="${WRFCLTSREX:-'NONE'}" # these files are very large! None by default
   export STATIC='FALSE'
   nice --adjustment=${NICENESS} "${SCRIPTS}/sync-wrf.sh" &> "${WRFDATA}"/sync-wrf.log #2> "${WRFDATA}"/sync-wrf.err # 2>&1
-  REPORT $? 'WRF Monthly from SciNet' 
-fi # if not $NOSCINET
+  REPORT $? 'WRF Monthly from HPC cluster'
+fi # if not $NOCLUSTER
 
-## download rest from komputer
-export HOST="$KOMPUTER" # ssh to workstation
-export SSH="$KOMPUTERSSH" # ssh settings for workstation
-export SRC='/data/WRF/wrfavg/' # archives with my own wrfavg files
-export SUBDIR='WesternCanada GreatLakes'
+## download rest from workstation
+export HOST="$WORKSTN" # ssh to workstation
+export SSH="$WORKSTNSSH" # ssh settings for workstation
+export WRFSRC="$WRFWRKSTN" # archives with my own wrfavg files
 export INVERT='INVERT' # invert name/folder order in source (i.e. like in target folder)
-# climatologies etc. from komputer
-if [[ "${NOKOMPUTER}" != 'TRUE' ]] && [[ "${NOWRF}" != 'TRUE' ]]; then
-  export FILETYPES='wrfplev3d_d01_clim_*.nc wrfsrfc_d01_clim_*.nc wrfhydro_d02_clim_*.nc wrfxtrm_d02_clim_*.nc wrflsm_d02_clim_*.nc wrfsrfc_d02_clim_*.nc'
-  export REX='*-ensemble* max-ctrl* max-ens* ctrl-* ctrl-ens* *-3km erai-max erai-ctrl erai-[gt] [gtm]-* [gm][gm]-*'
+# climatologies etc. from workstation
+if [[ "${NOWORKSTN}" != 'TRUE' ]] && [[ "${NOWRF}" != 'TRUE' ]]; then
+  export FILETYPES="${WRFCLIMFT:-'wrfplev3d_d01_clim_*.nc wrfsrfc_d01_clim_*.nc wrfhydro_d02_clim_*.nc wrfxtrm_d02_clim_*.nc wrflsm_d02_clim_*.nc wrfsrfc_d02_clim_*.nc'}"
+  export WRFREX="${WRFCLIMREX:-'*-ensemble*'}" # these files are quite large: only ensembles
   export STATIC='STATIC'
   nice --adjustment=${NICENESS} "${SCRIPTS}/sync-wrf.sh" &>> "${WRFDATA}"/sync-wrf.log #2> "${WRFDATA}"/sync-wrf.err # 2>&1
   REPORT $? 'WRF Climatologies' 
-fi # if not $NOKOMPUTER
-# stations etc. from komputer
-if [[ "${NOKOMPUTER}" != 'TRUE' ]] && [[ "${NOWRF}" != 'TRUE' ]]; then
-  export FILETYPES='wrf*_ec*_*.nc wrf*_shpavg_*.nc'
-  export REX='*-*/'
+fi # if not $NOWORKSTN
+# stations etc. from workstation
+if [[ "${NOWORKSTN}" != 'TRUE' ]] && [[ "${NOWRF}" != 'TRUE' ]]; then
+  export FILETYPES="${WRFSTNSFT:-'wrf*_ec*_*.nc wrf*_shpavg_*.nc'}"
+  export WRFREX="${WRFSTNSREX:-'*-*'}" # these files are pretty small: all experiments
   export STATIC='FALSE'
   nice --adjustment=${NICENESS} "${SCRIPTS}/sync-wrf.sh" &>> "${WRFDATA}"/sync-wrf.log #2> "${WRFDATA}"/sync-wrf.err # 2>&1
   REPORT $? 'WRF Stations etc.' 
-fi # if not $NOKOMPUTER
+fi # if not $NOWORKSTN
 
 
 ## report

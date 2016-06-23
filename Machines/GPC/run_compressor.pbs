@@ -1,0 +1,106 @@
+#!/bin/bash
+#MOAB/Torque submission script for SciNet GPC
+
+## queue/PBS settings
+#PBS -l nodes=1:ppn=8
+#PBS -l walltime=48:00:00
+# merge standard error and output stream
+#PBS -j oe
+#PBS -W umask=0002
+#PBS -o $PBS_JOBNAME.$PBS_JOBID.out
+# send email if abort (nbae)
+#PBS -M "$EMAIL"
+#PBS -m ae
+# job name
+#PBS -N compressor
+## submit to queue (NB: this has to be the last PBS line!)
+# batch (default), debug, largemem
+#PBS -q batch
+
+# load some modules
+echo
+hostname
+uname
+echo
+date
+echo
+module purge
+module load intel/14.0.1 gcc/4.9.0 hdf5/1811-v18-serial-intel netcdf/4.2.1.1_serial-intel anaconda2/4.0.0
+module list
+echo
+
+# general settings
+INIDIR="${INIDIR:-${PBS_O_WORKDIR}}" # original working directory
+COMPRESSOR="${COMPRESSOR:-${CODE_ROOT}/WRF Tools/Python/compress/netCDFcompressor.py}" # Python compressor script
+
+# go to working directory
+cd "${INIDIR}"
+
+## assemble command line arguments
+# mandatory arguments
+if [[ -z ${BEGIN} ]] || [[ -z ${END} ]]; then
+    echo 'Arguments $BEGIN and $END are mandatory. Aborting.'
+    exit 2
+fi # BEGIN & END
+# N.B.: Flags for arguments are automatically added, if the variable is set,
+#       boolean flags are set if the associated environment variable is set;
+#       if the environment variable is not set, the argument/flag is omitted.
+# case/experiment name (CESM only)
+if [[ -n ${CASE} ]]; then
+    CASE="--case ${CASE}"
+fi # $CASE
+# mode argument (CESM or WRF)
+if [[ -n ${MODE} ]]; then
+    MODE="--mode ${MODE}"
+fi # $MODE
+# filetypes argument (CESM or WRF)
+if [[ -n ${FILET} ]]; then
+    FILET="--filetypes ${FILET}"
+fi # $FILET
+# domain argument (WRF only)
+if [[ -n ${DOM} ]]; then
+    DOM="--domain ${DOM}"
+fi # $DOM
+# monthly history flag (CESM only)
+if [[ -n ${H0} ]]; then
+    H0="-h0"
+fi # $H0
+# 6-hourly history flag (CESM only)
+if [[ -n ${H1} ]]; then
+    H1="-h1"
+fi # $H1
+# data folder argument
+if [[ -n ${FOLDER} ]]; then
+    FOLDER="--folder ${FOLDER}" # FOLDER still needs to be escaped
+fi # $FOLDER
+# no-skip flag
+if [[ -n ${NOSKIP} ]]; then
+    NOSKIP="--noskip"
+fi # $NOSKIP
+# number of processors
+if [[ -n ${N} ]]; then
+    N="-n ${N}"
+fi # $N
+# compression level
+if [[ -n ${D} ]]; then
+    D="-d ${D}"
+fi # $D
+# debug mode flag
+if [[ -n ${DEBUG} ]]; then
+    DEBUG="--debug"
+fi # $DEBUG
+
+
+## execute compressor script with command line arguments
+# print command
+echo "python ${COMPRESSOR} ${BEGIN} ${END} ${CASE} ${MODE} ${FILET} ${DOM}"
+echo "                     ${H0} ${H1} ${FOLDER} ${NOSKIP} ${N} ${D} ${DEBUG}"
+echo
+echo
+# execute and print to stdout
+python "${COMPRESSOR}" ${BEGIN} ${END} ${CASE} ${MODE} ${FILET} ${DOM} \
+                       ${H0} ${H1} ${FOLDER} ${NOSKIP} ${N} ${D} ${DEBUG}
+ERR=$? # capture exit code
+
+# exit with exit code from python script
+exit ${ERR}

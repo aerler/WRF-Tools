@@ -8,7 +8,7 @@
 
 # pre-process arguments using getopt
 if [ -z $( getopt -T ) ]; then
-  TMP=$( getopt -o e:a:tsrdn:h --long procs-exstns:,procs-avgreg:,test,highspeed,restore,debug,niceness:,config:,code-root:,data-root:,from-home,python:,overwrite,export-raster,no-compute,no-download,no-ensemble,help -n "$0" -- "$@" ) # pre-process arguments
+  TMP=$( getopt -o e:a:tsrdn:h --long procs-exstns:,procs-avgreg:,test,highspeed,restore,debug,niceness:,config:,code-root:,data-root:,from-home,python:,overwrite,export,no-compute,no-download,no-ensemble,help -n "$0" -- "$@" ) # pre-process arguments
   [ $? != 0 ] && exit 1 # getopt already prints an error message
   eval set -- "$TMP" # reset positional parameters (arguments) to $TMP list
 fi # check if GNU getopt ("enhanced")
@@ -29,7 +29,7 @@ while true; do
          --from-home     )   CODE_ROOT="${HOME}/Code/"; shift;;
          --python        )   PYTHON="$2"; shift 2;;
          --overwrite     )   PYAVG_OVERWRITE='OVERWRITE';  shift;;
-         --export-raster )   EXPRST='TRUE'; shift;;
+         --export        )   EXPORT='TRUE'; shift;;
          --no-compute    )   NOCOMPUTE='TRUE'; shift;;
          --no-download   )   NODOWNLOAD='TRUE'; shift;;
          --no-ensemble   )   NOENSEMBLE='TRUE'; shift;;
@@ -49,7 +49,7 @@ while true; do
          --from-home      use home directory as code root\n\
          --python         use alternative Python executable\n\
          --overwrite      recompute all averages and regridding (default: False)\n\
-         --export-raster  run the raster export script (exprst.py)\n\
+         --export         run the export script (export.py; formats defined in YAML file)\n\
          --no-compute     skips the computation steps except the ensemble means (skips all Python scripts)\n\
          --no-download    skips all downloads from SciNet\n\
          --no-ensemble    skips computation of ensemble means\n\
@@ -113,7 +113,7 @@ echo
 # N.B.: The following variables need to be set:
 #       CODE_ROOT, DATA_ROOT, GDAL_DATA, SCRIPTS, PYTHON, PYTHONPATH, 
 #       PYYAML_EXSTNS, PYYAML_WRFAVG, PYYAML_SHPAVG, PYYAML_REGRID
-#       SSHMASTER, SSH, HOST, SRC, SUBDIR
+#       SSHMASTER, SSH, HOST, WRFSRC, SUBDIR, CESMSRC, OBSSRC, DATASETS
 # some defaults for optional variables
 export WRFDATA="${WRFDATA:-"${DATA_ROOT}/WRF/"}" # local WRF data root
 export CESMDATA="${CESMDATA:-"${DATA_ROOT}/CESM/"}" # local CESM data root
@@ -247,14 +247,14 @@ if [[ "${NOCOMPUTE}" != 'TRUE' ]]
     fi
     REPORT $? 'Dataset Regridding'
      
-    if [[ "$EXPRST" == 'TRUE' ]]; then 
+    if [[ "$EXPORT" == 'TRUE' ]]; then 
       
       # wait for station extraction to finish (should be fast)
 	    wait $PID # wait for station extraction to finish
 	    REPORT $? 'Station Data Extraction' # wait returns the exit status of the command it waited for
 	    
 	    # export to raster format in parallel (like stations)
-	    export PYAVG_YAML="${PYYAML_EXPRST}" # YAML configuration file
+	    export PYAVG_YAML="${PYYAML_EXPORT}" # YAML configuration file
 	    export PYAVG_BATCH=${PYAVG_BATCH:-'BATCH'} # run in batch mode - this should not be changed
 	    export PYAVG_THREADS=${PYAVG_EXTNP:-1} # parallel execution
 	    export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
@@ -262,10 +262,10 @@ if [[ "${NOCOMPUTE}" != 'TRUE' ]]
 	    export PYAVG_OVERWRITE='OVERWRITE' # typically requires overwrite - difficult to check
 	    if [[ "${NOLOGGING}" != 'TRUE' ]]
 	      then
-	        nice --adjustment=${NICENESS} "${PYTHON}" "${CODE_ROOT}/GeoPy/src/processing/exprst.py" \
-	          &> "${DATA_ROOT}"/exprst.log & # 2> "${DATA_ROOT}"/exprst.err
+	        nice --adjustment=${NICENESS} "${PYTHON}" "${CODE_ROOT}/GeoPy/src/processing/export.py" \
+	          &> "${DATA_ROOT}"/export.log & # 2> "${DATA_ROOT}"/export.err
 	      else
-    	    nice --adjustment=${NICENESS} "${PYTHON}" "${CODE_ROOT}/GeoPy/src/processing/exprst.py" &
+    	    nice --adjustment=${NICENESS} "${PYTHON}" "${CODE_ROOT}/GeoPy/src/processing/export.py" &
 	    fi # if logging
       PID=$! # new PID to wait for
       PYAVG_OVERWRITE="$TMP" # preserve default
@@ -289,7 +289,7 @@ if [[ "${NOCOMPUTE}" != 'TRUE' ]]
     REPORT $? 'Regional/Shape Averaging'
                  
     # wait for remaining parallel execution
-    if [[ "$EXPRST" == 'TRUE' ]]; then 
+    if [[ "$EXPORT" == 'TRUE' ]]; then 
       # wait for raster export to finish (should also be fast)
       wait $PID # wait for station extraction to finish
       REPORT $? 'Raster Export' # wait returns the exit status of the command it waited for

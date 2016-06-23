@@ -331,9 +331,11 @@ fi # flake
 if [[ "${DELT}" == 'DEFAULT' ]]; then 
   DT=$(sed -n '/time_step/ s/^\ *time_step\ *=\ *\([0-9]\+\).*$/\1/p' namelist.input) # '\ ' = space
   if [[ -z "$DT" ]]; then echo -e '\nERROR: No time step identified in namelist - aborting!\n'; exit 1;
-  elif [ $DT -gt 90 ]; then DELT='30'
-  elif [ $DT -gt 45 ]; then DELT='15'
-  elif [ $DT -gt 30 ]; then DELT='10'
+  elif [ $DT -gt 400 ]; then DELT='120'
+  elif [ $DT -gt 200 ]; then DELT='60'
+  elif [ $DT -gt 100 ]; then DELT='30'
+  elif [ $DT -gt  50 ]; then DELT='15'
+  elif [ $DT -gt  30 ]; then DELT='10'
   else DELT='5'; fi
 fi # if $DELT=DEFAULT
 

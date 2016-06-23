@@ -18,7 +18,7 @@ import subprocess # launching external programs
 import multiprocessing # parallelization
 import string # to iterate over alphabet...
 # my modules
-from namelist import time
+import namelist_time as nlt
 import datetime as dt
 
 ##  Default Settings (may be overwritten by in meta/namelist.py)
@@ -608,7 +608,7 @@ def processFiles(qfilelist, qListDir, queue):
         # collect valid dates
         if date: # i.e. not 'None'
           # check date for validity (only need to check first/master domain)      
-          lok = time.checkDate(date, starts[0], ends[0])
+          lok = nlt.checkDate(date, starts[0], ends[0])
           # collect dates within range
           if lok: okdates.append(date)
     return okdates
@@ -653,13 +653,13 @@ def processTimesteps(myid, dates):
     # figure out sub-domains
     ldoms = [True,]*maxdom # first domain is always computed
     for i in xrange(1,maxdom): # check sub-domains
-      ldoms[i] = time.checkDate(date, starts[i], ends[i])
+      ldoms[i] = nlt.checkDate(date, starts[i], ends[i])
     # update date string in namelist.wps
     #print imform,date
     imdate = imform.format(*date)    
     imfile = impfx+imdate
     nmldate = nmlform.format(*date) # also used by metgrid
-    time.writeNamelist(nmlstwps, ldoms, nmldate, imd, isd, ied)
+    nlt.writeNamelist(nmlstwps, ldoms, nmldate, imd, isd, ied)
     
     # N.B.: in case the stack size limit causes segmentation faults, here are some workarounds
     # subprocess.call(r'ulimit -s unlimited; ./unccsm.exe', shell=True)
@@ -751,10 +751,10 @@ if __name__ == '__main__':
     # directory shortcuts
     Meta = Tmp + meta
     # parse namelist parameters
-    imd, maxdom, isd, startdates, ied, enddates = time.readNamelist(nmlstwps)
+    imd, maxdom, isd, startdates, ied, enddates = nlt.readNamelist(nmlstwps)
     # translate start/end dates into numerical tuples
-    starts = [time.splitDateWRF(sd) for sd in startdates]
-    ends = [time.splitDateWRF(ed) for ed in enddates]
+    starts = [nlt.splitDateWRF(sd) for sd in startdates]
+    ends = [nlt.splitDateWRF(ed) for ed in enddates]
     # figure out domains
     doms = range(1,maxdom+1) # list of domain indices
         

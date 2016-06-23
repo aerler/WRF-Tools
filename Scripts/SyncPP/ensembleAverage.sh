@@ -7,7 +7,7 @@ OVERWRITE=${OVERWRITE:-'FALSE'} # whether or not to overwrite existing files...
 #OVERWRITE=${OVERWRITE:-'OVERWRITE'} # whether or not to overwrite existing files...
 VERBOSITY=${VERBOSITY:-1} # level of warning and error reporting
 NCOFLAGS=${NCOFLAGS:-'--netcdf4 --overwrite'} # flags passed to NCO call
-CLIMFILES='*clim*.nc' # regular expression defining the files to be averaged
+CLIMFILES='*_clim_*.nc' # regular expression defining the files to be averaged
 # N.B.: these files have to be present in every ensemble member
 # get ensemble name and folder, first argument
 TMP="$1"; TMP="${TMP%/}" # cut trailing slash, if any
@@ -66,7 +66,7 @@ for FILE in $FILELIST
                   do
                     FT=${FN%%$FTP} # strip grid and aggregation tags
                     # load exclude list from file
-                    EXCLUDE="$( grep "$FT" "$ENSDIR/exclude.txt" )" # read line for file type from file (comma-seperated, as above)
+                    EXCLUDE="$( grep "$FT:" "$ENSDIR/exclude.txt" )" # read line for file type from file (comma-seperated, as above)
                     # e.g.: wrfsrfc: TSK,SolidPrecip_SR,LiquidPrecip_SR,liqprec_sr,solprec_sr
                     EXCLUDE="${EXCLUDE#$FT:}" # remove file type identifier                                 
                     # if excludes, add flags (the pattern replacement // is to delete all spaces for the test)

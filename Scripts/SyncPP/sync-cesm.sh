@@ -20,15 +20,17 @@ else
 fi # if config file
 echo
 # N.B.: the following variables need to be set in the parent environment or sourced from a config file
-#       HOST, SRC, CESMDATA or DATA
+#       HOST, CESMSRC, CESMDATA or DATA_ROOT
 # some defaults for optional variables
 RESTORE=${RESTORE:-'FALSE'} # restore datasets from SciNet backup
 # CESM directories / data sources
-REX=${REX:-'h[abc]b20trcn1x1 tb20trcn1x1 h[abcz]brcp85cn1x1 htbrcp85cn1x1 seaice-5r-hf h[abcz]brcp85cn1x1d htbrcp85cn1x1d seaice-5r-hfd'}
-ENS=${ENS:-'ens20trcn1x1 ensrcp85cn1x1 ensrcp85cn1x1d'}
-CVDP=${CVDP:-"${ENS} grand-ensemble"}
+CESMREX="${CESMREX:-*}"
+if [[ "${CESMREX}" == 'NONE' ]]; then CESMREX=''; fi
+CESMENS="${CESMENS:-ens*}" # only for upload to cluster
+if [[ "${CESMENS}" == 'NONE' ]]; then CESMENS=''; fi
+CVDP="${CVDP:-${CESMENS} grand-ensemble}"
 if [[ "${CVDP}" == 'NONE' ]]; then CVDP=''; fi
-CESMDATA="${CESMDATA:-${DATA}/CESM/}" # can be supplied by caller
+CESMDATA="${CESMDATA:-${DATA_ROOT}/CESM/}" # can be supplied by caller
 # data selection
 FILETYPES=${FILETYPES:-'cesm[ali][tnc][mde]_*.nc'}
 if [[ "${FILETYPES}" == 'NONE' ]]; then FILETYPES=''; fi
@@ -41,8 +43,8 @@ echo
 echo "      Local:  ${CESMDATA}"
 echo "      Remote: ${HOST}"
 echo
-echo "   Experiments: ${REX}"
-echo "   Ensembles:   ${ENS}"
+echo "   Experiments: ${CESMREX}"
+echo "   Ensembles:   ${CESMENS}"
 echo
 echo "   File Types:  ${FILETYPES}"
 echo "   Diagnostics: ${DIAGS}"
@@ -53,8 +55,8 @@ ERR=0
 
 # generate list of experiments
 cd "${CESMDATA}/cesmavg/" # go to data folder to expand regular expression
-set -f # deactivate shell expansion of globbing expressions for $REX in for loop
-D=''; for R in ${REX}; do D="${D} ${CESMSRC}/${R}"; done # assemble list of source folders
+set -f # deactivate shell expansion of globbing expressions for $CESMREX in for loop
+D=''; for R in ${CESMREX}; do D="${D} ${CESMSRC}/${R}"; done # assemble list of source folders
 echo "$D"
 set +f # reactivate shell expansion of globbing expressions
 # loop over all relevant experiments
@@ -215,7 +217,7 @@ done # for experiments
 if [[ "${INVERT}" != 'INVERT' ]] # only update to SciNet
   then
     # generate list of ensembles to copy back to SciNet
-    D=''; for R in ${ENS}; do D="${D} ${CESMDATA}/cesmavg/${R}"; done # assemble list of source folders
+    D=''; for R in ${CESMENS}; do D="${D} ${CESMDATA}/cesmavg/${R}"; done # assemble list of source folders
     # loop over all relevant ensembles
     for E in $( ls -d ${D} ) # get folder listing (this time local)
       do 

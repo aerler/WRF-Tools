@@ -20,19 +20,16 @@ else
 fi # if config file
 echo
 # N.B.: the following variables need to be set in the parent environment or sourced from a config file
-#       HOST, SRC, SUBDIR, WRFDATA or DATA
+#       HOST, OBSSRC, OBSDATA, DATASETS
 # some defaults for optional variables
 RESTORE=${RESTORE:-'FALSE'} # restore datasets from SciNet backup
-LOC="${ROOT:-/data/}" # local datasets root, can be supplied by caller
-REM=/reserved1/p/peltier/aerler/Datasets/ # datasets root on SciNet
-DATASETS='Unity GPCC NARR CFSR CRU PRISM PCIC EC WSC' # list of datasets/folders
-# DATASETS='PRISM' # for tests
+OBSDATA="${OBSDATA:-${DATA_ROOT}}" # local datasets root, can be supplied by caller
 
 echo 
-echo "   >>>   Synchronizing Local Datasets with SciNet   <<<   " 
+echo "   >>>   Synchronizing Observational Datasets   <<<   " 
 echo
-echo "      Local:  ${LOC}"
-echo "      Remote: ${REM}"
+echo "      Local:  ${OBSDATA}"
+echo "      Remote: ${OBSSRC}"
 echo
 echo
 
@@ -47,12 +44,12 @@ for D in ${DATASETS}
     # use rsync for the transfer; verbose, archive, update, gzip
     # N.B.: here gzip is used, because we are transferring entire directories with many uncompressed files
     if [[ "${RESTORE}" == 'RESTORE' ]]; then
-      E="${REM}/${D}" # no trailing slash!
+      E="${OBSSRC}/${D}" # no trailing slash!
       # to restore from backup, local and remote are switched
-      time rsync -vauz --copy-unsafe-links -e "ssh ${SSH}"  "${HOST}:${E}" "${LOC}"
+      time rsync -vauz --copy-unsafe-links -e "ssh ${SSH}"  "${HOST}:${E}" "${OBSDATA}"
     else
-      E="${LOC}/${D}" # no trailing slash!
-      time rsync -vauz -e "ssh ${SSH}"  "${E}" "${HOST}:${REM}"
+      E="${OBSDATA}/${D}" # no trailing slash!
+      time rsync -vauz -e "ssh ${SSH}"  "${E}" "${HOST}:${OBSSRC}"
     fi # if restore mode
     [ $? -gt 0 ] && ERR=$(( $ERR + 1 )) # capture exit code
     # N.B.: with connection sharing, repeating connection attempts is not really necessary

@@ -16,7 +16,7 @@ import sys # writing to stdout
 import datetime # to compute run time
 import calendar # to locate leap years
 # my modules
-from namelist import time
+import namelist_time as nlt
 
 ## setup
 # pass current/last step name as argument
@@ -93,9 +93,9 @@ if __name__ == '__main__':
     # extract information
     nextstep = linesplit[0] # next step name
     startdatestr = linesplit[1] # next start date
-    startdate = time.splitDateWRF(startdatestr[1:-1])
+    startdate = nlt.splitDateWRF(startdatestr[1:-1])
     enddatestr = linesplit[2] # next end date
-    enddate = time.splitDateWRF(enddatestr[1:-1])
+    enddate = nlt.splitDateWRF(enddatestr[1:-1])
     # screen for leap days (treat Feb. 29th as 28th)
     if lly == False: # i.e. if we don't use leap-years in WRF
       if calendar.isleap(startdate[0]) and startdate[2]==29 and startdate[1]==2:

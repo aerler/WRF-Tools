@@ -21,14 +21,15 @@ else
 fi # if config file
 echo
 # N.B.: the following variables need to be set in the parent environment or sourced from a config file
-#       HOST, WRFSRC, SUBDIR, WRFDATA or DATA
+#       HOST, WRFSRC, SUBDIR, WRFDATA or DATA_ROOT
 # some defaults for optional variables
-WRFDATA="${WRFDATA:-${DATA}/WRF/}" # local WRF data root
+WRFDATA="${WRFDATA:-${DATA_ROOT}/WRF/}" # local WRF data root
 SSH="${SSH:-"-o BatchMode=yes -o ControlPath=${HOME}/master-%l-%r@%h:%p -o ControlMaster=auto -o ControlPersist=1"}" # default SSH options
 INVERT="${INVERT:-'FALSE'}" # source has experiment name first then folder type
-STATIC=${STATIC:-'STATIC'} # transfer static/constant data
-REX=${REX:-'*-*'} # regex defining experiments
-FILETYPES=${FILETYPES:-'wrf*_d0?_monthly.nc'} # regex defining averaged files
+STATIC="${STATIC:-'STATIC'}" # transfer static/constant data
+WRFREX="${WRFREX:-*-*}" # regex defining experiments
+if [[ "${WRFREX}" == 'NONE' ]]; then WRFREX=''; fi
+FILETYPES="${FILETYPES:-wrf*_d0?_monthly.nc}" # regex defining averaged files
 if [[ "${FILETYPES}" == 'NONE' ]]; then FILETYPES=''; fi
 
 echo
@@ -37,7 +38,7 @@ echo
 echo "      Local:  ${WRFDATA}"
 echo "      Remote: ${HOST}"
 echo
-echo "   Experiments: ${REX}"
+echo "   Experiments: ${WRFREX}"
 echo "   File Types:  ${FILETYPES}"
 echo
 
@@ -47,8 +48,8 @@ for S in ${SUBDIR}
   do
     WRFAVG="${WRFDATA}/wrfavg/${S}/" # recreate first level subfolder structure from source
     #cd "${WRFAVG}" # go to local data folder to expand regular expression (experiment list)
-    set -f # deactivate shell expansion of globbing expressions for $REX in for loop
-    D=''; for R in ${REX}; do D="${D} ${WRFSRC}/${S}/${R}/"; done # assemble list of source folders
+    set -f # deactivate shell expansion of globbing expressions for $WRFREX in for loop
+    D=''; for R in ${WRFREX}; do D="${D} ${WRFSRC}/${S}/${R}/"; done # assemble list of source folders
     echo "$D"
     set +f # reactivate shell expansion of globbing expressions
     for E in $( ssh ${SSH} ${HOST} "ls -d ${D}" ) # get folder listing from scinet

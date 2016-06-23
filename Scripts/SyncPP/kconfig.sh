@@ -2,7 +2,7 @@
 # this is a sample configuration file for knightly.sh and associated scripts
 # Fengyi Xie and Andre R. Erler, March 2016, GPL v3
 
-# Environmental variable used by knightly.sh are defined here
+# Environment variables used by knightly.sh can be defined here
 NODOWNLOAD=''
 NOCOMPUTE=''
 NOENSEMBLE=''
@@ -30,22 +30,27 @@ NICENESS=${NICENESS:-10}
 PYYAML_WRFAVG="${WRFDATA}/wrfavg/wrfavg.yaml"
 PYYAML_EXSTNS="${DATA_ROOT}/exstns.yaml"
 PYYAML_REGRID="${DATA_ROOT}/regrid.yaml"
-PYYAML_EXSTNS="${DATA_ROOT}/exprst.yaml"
+PYYAML_EXPORT="${DATA_ROOT}/export.yaml"
 PYYAML_SHPAVG="${DATA_ROOT}/shpavg.yaml"
 
 
-# Environmental variable used by sync-wrf are defined here
+# Environment variables used by rsync scripts are defined here
+export WRFREX='*-*' # all available
+export SUBDIR='WesternCanada GreatLakes' # sub-folders for WRF projects
+export CESMREX='h[abc]b20trcn1x1 tb20trcn1x1 h[abcz]brcp85cn1x1 htbrcp85cn1x1 seaice-5r-hf h[abcz]brcp85cn1x1d htbrcp85cn1x1d seaice-5r-hfd'
+export CESMENS='ens20trcn1x1 ensrcp85cn1x1 ensrcp85cn1x1d'
+export DATASETS='Unity GPCC NARR CFSR CRU PRISM PCIC EC WSC' # list of observational datasets
 
-# connection settings for sync jobs
+# connection settings for rsync scripts
 if [[ "${HISPD}" == 'HISPD' ]]
   then
     # high-speed transfer: special identity/ssh key, batch mode, and connection sharing
     Echo "HISPD not implemented yet!"
 else    
-    SSH="-o BatchMode=yes -o ControlPath=${HOME}/master-%l-%r@%h:%p -o ControlMaster=auto -o ControlPersist=1" # default SSH login options
-    HOST='' # login for the remote host where the data repository is located
-    SRC='' # root folder of remote data repository (source)
-    SUBDIR='' # sub-folders of remote data repository
-    INVERT='FALSE' # source has name first then folder type (like on SciNet)
-
+    export SSH="-o BatchMode=yes -o ControlPath=${HOME}/master-%l-%r@%h:%p -o ControlMaster=auto -o ControlPersist=1" # default SSH login options
+    export HOST='' # login for the remote host where the data repository is located
+    export WRFSRC='' # root folder of remote WRF data (source)
+    export CESMSRC='' # root folder of remote CESM data (source)
+    export OBSSRC='' # root folder of remote observational datasets (source)
+    export INVERT='FALSE' # source has name first then folder type (like on SciNet)
 fi
