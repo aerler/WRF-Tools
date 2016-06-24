@@ -414,16 +414,16 @@ function PROCESSDATASET () {
     ## select domain-wise datasets
     # misc 3D fields (one file per domain)
     fi; if [[ "${DATASET}" == 'MISC3D' ]] || [[ "${DATASET}" == 'DEL3D' ]] || [[ "${DATASET}" == 'FULL' ]]; then
-      local MISC_D1="wrfmoist3d_d01_${DATESTR}_??[:_]??[:_]??* wrfrad_d01_${DATESTR}_??[:_]??[:_]??* wrffdda_d01_${DATESTR}_??[:_]??[:_]??*"
-      local MISC_D2="wrfmoist3d_d02_${DATESTR}_??[:_]??[:_]??* wrfrad_d02_${DATESTR}_??[:_]??[:_]??*"
-      local MISC_D3="wrfmoist3d_d03_${DATESTR}_??[:_]??[:_]??* wrfrad_d03_${DATESTR}_??[:_]??[:_]??*"
-      local MISC_D4="wrfmoist3d_d04_${DATESTR}_??[:_]??[:_]??* wrfrad_d04_${DATESTR}_??[:_]??[:_]??*"
+      local MISC_D1="wrfmoist3d_d01_${DATESTR}_??[:_]??[:_]??* wrffdda_d01_${DATESTR}_??[:_]??[:_]??*"
+      local MISC_D2="wrfmoist3d_d02_${DATESTR}_??[:_]??[:_]??*" #  wrfrad_d0?_${DATESTR}_??[:_]??[:_]??*
+      local MISC_D3="wrfmoist3d_d03_${DATESTR}_??[:_]??[:_]??*"
+      local MISC_D4="wrfmoist3d_d04_${DATESTR}_??[:_]??[:_]??*"
     # some more misc 3D fields that are added separately (they are not in DEL3D, but in HYDRO)
     fi; if [[ "${DATASET}" == 'MISC3D' ]] || [[ "${DATASET}" == 'HYDRO' ]] || [[ "${DATASET}" == 'FULL' ]]; then # not part of DEL3D!
-      local MISC_D1="${MISC_D1} wrflsm_d01_${DATESTR}_??[:_]??[:_]??* wrfhydro_d01_${DATESTR}_??[:_]??[:_]??*"
-      local MISC_D2="${MISC_D2} wrflsm_d02_${DATESTR}_??[:_]??[:_]??* wrfhydro_d02_${DATESTR}_??[:_]??[:_]??*"
-      local MISC_D3="${MISC_D3} wrflsm_d03_${DATESTR}_??[:_]??[:_]??* wrfhydro_d03_${DATESTR}_??[:_]??[:_]??*"
-      local MISC_D4="${MISC_D4} wrflsm_d04_${DATESTR}_??[:_]??[:_]??* wrfhydro_d04_${DATESTR}_??[:_]??[:_]??*"
+      local MISC_D1="${MISC_D1} wrflsm_d01_${DATESTR}_??[:_]??[:_]??* wrfrad_d01_${DATESTR}_??[:_]??[:_]??* wrfhydro_d01_${DATESTR}_??[:_]??[:_]??*"
+      local MISC_D2="${MISC_D2} wrflsm_d02_${DATESTR}_??[:_]??[:_]??* wrfrad_d02_${DATESTR}_??[:_]??[:_]??* wrfhydro_d02_${DATESTR}_??[:_]??[:_]??*"
+      local MISC_D3="${MISC_D3} wrflsm_d03_${DATESTR}_??[:_]??[:_]??* wrfrad_d03_${DATESTR}_??[:_]??[:_]??* wrfhydro_d03_${DATESTR}_??[:_]??[:_]??*"
+      local MISC_D4="${MISC_D4} wrflsm_d04_${DATESTR}_??[:_]??[:_]??* wrfrad_d04_${DATESTR}_??[:_]??[:_]??* wrfhydro_d04_${DATESTR}_??[:_]??[:_]??*"
     # 3D dry dynamics (one file per domain)
     fi; if [[ "${DATASET}" == 'DYN3D' ]] || [[ "${DATASET}" == 'DEL3D' ]] || [[ "${DATASET}" == 'FULL' ]]; then
       local DYN_D1="wrfdrydyn3d_d01_${DATESTR}_??[:_]??[:_]??*"
@@ -451,7 +451,7 @@ function PROCESSDATASET () {
     fi # DIAGS etc.
   fi # if TAG=FINAL
   # determine if this is a cold start or a restart (check for restart files)
-  ls "${SRC}"/wrfrst_d??_${DATESTR}_"00:00:00" >& /dev/null # this only works with globbing expressions, if they are not quoted
+  ls "${SRC}"/wrfrst_d??_"${DATESTR}"_??[:_]??[:_]??* >& /dev/null # this only works with globbing expressions, if they are not quoted
   if [[ $? == 0  ]]; then
     # restart run: backup restart file
     if [[ -n "${MISC_D1}" ]]; then MISC_D1="${MISC_D1} wrfrst_d01_${DATESTR}_??[:_]??[:_]??*"; fi
