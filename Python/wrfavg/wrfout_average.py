@@ -166,7 +166,7 @@ if len(period) >= 3:
 
 ## definitions
 # input files and folders
-filetypes = filetypes or ['srfc', 'plev3d', 'xtrm', 'hydro', 'lsm']
+filetypes = filetypes or ['srfc', 'plev3d', 'xtrm', 'hydro', 'lsm', 'rad', 'snow']
 domains = domains or [1,2,3,4] 
 # filetypes and domains can also be set in an semi-colon-separated environment variable (see above)
 # file pattern (WRF output and averaged files)
