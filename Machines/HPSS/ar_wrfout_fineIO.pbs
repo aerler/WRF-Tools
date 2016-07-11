@@ -164,22 +164,22 @@ function VERIFYHTAR () {
     FILES=$( htar -tf "${HTAR}" | awk '{print $7}' | head -n -2 ); fi
   # print expected archive contents
   if [[ "${QUIET}" != 'QUIET' ]]; then
-      echo "${HTAR}   :::   ${FILES}"; fi # print feedback
+    echo "${HTAR}   :::   ${FILES}"; fi # print feedback
   # check if archive exists
   hsi -q ls "${HTAR}" &> /dev/null # quiet mode
   if [[ $? != 0 ]]; then
-	echo "Warning: archive ${HTAR} does not exist (or HSI failed)."
-	MISS=1
+		echo "Warning: archive ${HTAR} does not exist (or HSI failed)."
+		MISS=1
   else
     # verify archive contents
     if [[ "${VERIFY}" == 'VERIFY' ]]; then
       # evaluate globbing expression
       if [[ "${GLOB}" == 'GLOB' ]]; then
-		htar -Kvf "${HTAR}" -Hcrc -Hverify=1 # verifying all files
-		MISS=$?
+				htar -Kvf "${HTAR}" -Hcrc -Hverify=1 # verifying all files
+				MISS=$?
       else
-		htar -Kvf "${HTAR}" -Hcrc -Hverify=1 ${FILES}
-		MISS=$?
+				htar -Kvf "${HTAR}" -Hcrc -Hverify=1 ${FILES}
+				MISS=$?
       fi # $GLOB
     else
       # check contents without verification...
@@ -201,17 +201,15 @@ function REMOVEHTAR () {
   # check files on disk
   if [[ "${GLOB}" == 'GLOB' ]]; then
     # evaluate globbing expression
-    FILES=$( ls -C ${FILES} )
-  else # OR
-    # check if any of the files still exist
-    CNT=0; for F in "${FILES}"; do
-      if [[ -e "${F}" ]]; then CNT=$(( CNT + 1 )); fi; done;
-  fi # $GLOB
+    FILES=$( ls -C ${FILES} ); fi # $GLOB
+  # check if any of the files still exist
+  CNT=0; for F in "${FILES}"; do
+    if [[ -e "${F}" ]]; then CNT=$(( CNT + 1 )); fi; done;
   # print expected archive contents
   echo "${HTAR}   ---   ${FILES}" # print feedback
   if [[ -n "${CNT}" ]] && [[ ${CNT} == 0 ]]; then
-    echo '   >>> none of the files exist anymore - skipping this step!'
-    echo '   (use the VERIFY operation to verify integrity of the archive)'
+	    echo '   >>> none of the files exist anymore - skipping this step!'
+	    echo '   (use the VERIFY operation to verify integrity of the archive)'
   else
     if [[ "${VERIFY}" == 'VERIFY' ]]; then
       # verify archive contents
@@ -273,12 +271,12 @@ function BACKUPHTAR () {
       echo 'Archive contents are different: need to check, if all files are present on source file system.'
       CHECKDISK "${1}" 'MISSING'
       if [[ $? == 0 ]]; then 
-	echo "   WARNING: All archive contents are present - removing old archive and creating new."
-	hsi -q rm "${HTAR}"
+				echo "   WARNING: All archive contents are present - removing old archive and creating new."
+				hsi -q rm "${HTAR}"
       else
-	echo "   WARNING: Some archive contents are missing on source file system - cannot replace archive."
-	echo "   (Retrieve current contents first, before recreating the new archive.)" 
-	exit 1 # this is an error
+				echo "   WARNING: Some archive contents are missing on source file system - cannot replace archive."
+				echo "   (Retrieve current contents first, before recreating the new archive.)" 
+				exit 1 # this is an error
       fi # CHECKDISK
     fi # CHECKARCHIVE
   fi # archive already exists
@@ -313,7 +311,14 @@ function RETRIEVEHTAR () {
   # if globbing, just use archive table of contents
   if [[ "${GLOB}" == 'GLOB' ]]; then
     # get file list from table of contents (7th column, remove last two lines)
-    FILES=$( htar -tf ${HTAR} | awk '{print $7}' | head -n -2 ); fi
+    FILELIST=$( htar -tf ${HTAR} | awk '{print $7}' | head -n -2 )
+    # apply globbing expression to file list using fake files on RAM-disk
+    TMP="/dev/shm/${USER}_ar_tmp_${PBS_JOBID}/" # temporary working folder on RAM-disk
+    mkdir -p "${TMP}"; cd "${TMP}"
+    for F in $FILELIST; do touch "$F"; done # create dummy files
+    FILES=$( ls -C ${FILES} ); fi # get formatted file list (entries as columns)
+    rm -r "${TMP}" # clean up
+  fi $GLOB
   echo "${HTAR}   >>>   ${FILES}" # print feedback
   # check if archive exists and verify integrity (VERIFYHTAR checks existence)
   if [[ "${VERIFY}" == 'VERIFY' ]]; then
@@ -328,7 +333,7 @@ function RETRIEVEHTAR () {
     MISS=$?
   fi # $VERIFY
   if [[ $MISS != 0 ]]; then
-	echo "Warning: verification of archive ${HTAR} failed - aborting!"
+	  echo "Warning: verification of archive ${HTAR} failed - aborting!"
   else # if verified
     echo "Archive ${HTAR} exists - contents OK."
     # evaluate globbing expression
@@ -338,21 +343,22 @@ function RETRIEVEHTAR () {
       CHECKDISK "${1}" 'PRESENT'
       if [[ $? != 0 ]]; then echo "WARNING: Clobbering existing files!"; fi      
       # extract archive
-      htar -xpmf "${HTAR}" -Hcrc -Hverify=1 # all files: globbing and clobbering
-	  MISS=$?
+      htar -xpmf "${HTAR}" -Hcrc -Hverify=1 ${FILES} # all files: globbing and clobbering
+	    MISS=$?
     else
       # check which files already exist, and skip them (don't clobber)
       NFS=''; for F in ${FILES}; do # no quotes! white space delimited list!
-		if [[ ! -e "${F}" ]]; then NFS="${NFS} ${F}"; fi; done
+		  	if [[ ! -e "${F}" ]]; then NFS="${NFS} ${F}"; fi; done
       if [[ -n "${NFS}" ]]; then
-		echo "Skipping existing files; retrieving ${NFS}"	
-		htar -xpmf "${HTAR}" -Hcrc -Hverify=1 ${NFS} # extract archive
-		MISS=$?
+				echo "Skipping existing files; retrieving ${NFS}"	
+				htar -xpmf "${HTAR}" -Hcrc -Hverify=1 ${NFS} # extract archive
+				MISS=$?
       else
-		echo 'Files already exist in destination folder; run with $RMSRC=RMSRC to overwrite.'
+  		  echo 'Files already exist in destination folder; run with $RMSRC=RMSRC to overwrite.'
       fi # $NFS
       echo
-    fi # $CLOBBER    
+	  fi # $CLOBBER    
+    
   fi # if verified
   # verify contents and return result
   return ${MISS}
