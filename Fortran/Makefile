@@ -8,31 +8,21 @@
 
 .PHONY: all clean
 
-## Select Build System here: Intel, GFortran, GPC
-#SYSTEM = GFortran
-# default build
-ifndef SYSTEM
-SYSTEM = Intel
-endif
-# debugging flags
-#MODE = Debug
+## Select Build System here: Intel, GFortran, GPC, P7
 
-## Load Build Environment
-# Standard Intel
-ifeq ($(SYSTEM), Intel)
-include config/Intel # Intel Compiler
+# Default Build
+ifndef SYSTEM
+  	SYSTEM = GFortran
 endif
-# Standard GFortran
-ifeq ($(SYSTEM), GFortran)
-include config/GFortran # GFortran Compiler
+# Debugging Flags
+ifndef MODE
+  	#MODE = Debug
+    MODE = Release
 endif
-# GPC, SciNet
-ifeq ($(SYSTEM), GPC)
-include config/GPC # Intel Compiler
-endif
-# P7, SciNet
-ifeq ($(SYSTEM), P7)
-include config/P7 # IBM Linux Compiler
+
+# Load Build Environment
+ifdef SYSTEM
+	include ../config/$(SYSTEM)
 endif
 
 ## Assemble Flags
@@ -48,39 +38,39 @@ all: unccsm read_wrf_nc
 ## build unccsm.exe program to convert CCSM netcdf output to WRF intermediate files
 unccsm: unccsm.exe
 
-unccsm.exe: bin/nc2im.o
-	$(FC) $(FCFLAGS) -o bin/$@ $^ $(NC_LIB)
-	mv bin/unccsm.exe bin/$(SYSTEM)/
+unccsm.exe: ../bin/nc2im.o
+	$(FC) $(FCFLAGS) -o ../bin/$@ $^ $(NC_LIB)
+	mv ../bin/unccsm.exe ../bin/$(SYSTEM)/
 
-bin/nc2im.o: Fortran/nc2im.f90
+../bin/nc2im.o: nc2im.f90
 	$(FC) $(FCFLAGS) $(NC_INC) -c $^
-	mv nc2im.o bin/
+	mv nc2im.o ../bin/
 
 ## build convert_spectra to convert spherical harmonic coefficients from ECMWF
 # grib files to total wavenumber spectra and save as netcdf
 spectra: convert_spectra
 
-convert_spectra: bin/gribSpectra.o
-	$(FC) $(FCFLAGS) -o bin/$@ $^ $(GRIBLIBS) $(NCLIBS)
+convert_spectra: ../bin/gribSpectra.o
+	$(FC) $(FCFLAGS) -o ../bin/$@ $^ $(GRIBLIBS) $(NCLIBS)
 
-bin/gribSpectra.o: Fortran/gribSpectra.f90
+../bin/gribSpectra.o: gribSpectra.f90
 	$(FC) $(FCFLAGS) $(INCLUDE) -c $^
-	mv gribSpectra.o bin/
+	mv gribSpectra.o ../bin/
 
 ## build read_wrf_nc to change landuse parameters in geogrid
 #read_wrf_nc: read_wrf_nc
 
-read_wrf_nc: bin/read_wrf_nc.o
-	$(FC) $(FCFLAGS) -o bin/$@ $^ $(NC_LIB)
-	mv bin/read_wrf_nc bin/$(SYSTEM)/
+read_wrf_nc: ../bin/read_wrf_nc.o
+	$(FC) $(FCFLAGS) -o ../bin/$@ $^ $(NC_LIB)
+	mv ../bin/read_wrf_nc ../bin/$(SYSTEM)/
 
-bin/read_wrf_nc.o: Fortran/read_wrf_nc.f90
+../bin/read_wrf_nc.o: read_wrf_nc.f90
 	$(FC) $(FCFLAGS) $(NC_INC) -c $^
-	mv read_wrf_nc.o bin/
+	mv read_wrf_nc.o ../bin/
 
 
 clean:
-	rm -f bin/*.exe bin/*.mod bin/*.o bin/*.so bin/*.a
+	rm -f ../bin/*.exe ../bin/*.mod ../bin/*.o ../bin/*.so ../bin/*.a
 
 ### F2Py Flags (for reference)
 #F2PYCC = intelem
