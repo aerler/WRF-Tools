@@ -22,7 +22,6 @@ import sys # writing to stdout and exit with exit code
 # environment variables (set by caller instance)
 WRFWCT = os.getenv('WRFWCT','00:00:00')
 WPSWCT = os.getenv('WPSWCT','00:00:00')
-WPSSCRIPT = os.getenv('WPSSCRIPT')
 NEXTSTEP = os.getenv('NEXTSTEP')
 DEBUG = os.getenv('DEBUG')
 # machine-specific setup: read from environment (except debug mode)
@@ -32,16 +31,16 @@ if DEBUG == 'DEBUG':
   ppn = (16,20) # possible processes per node
   ppm = max(ppn) # maximum (assuming all are similar)
   showq = 'cat queue-test.txt' # test dummy
-  submitPrimary = 'echo qsub {:s} -v NEXTSTEP={:s} -l nodes=1:m128g:ppn=16 -q largemem'.format(WPSSCRIPT,NEXTSTEP)
-  submitSecondary = 'echo qsub {:s} -v NEXTSTEP={:s} -l nodes=1:m32g:ppn=8 -q batch'.format(WPSSCRIPT,NEXTSTEP)
+  submitPrimary = 'echo qsub WPS_script.pbs -v NEXTSTEP={:s} -l nodes=1:m128g:ppn=16 -q largemem'.format(NEXTSTEP)
+  submitSecondary = 'echo qsub WPS_script.pbs -v NEXTSTEP={:s} -l nodes=1:m32g:ppn=8 -q batch'.format(NEXTSTEP)
 else:
   # we need to know something about the queue system...
   nodes = int(os.getenv('QNDS')) # number of nodes
   ppn = tuple(int(np) for np in os.getenv('QPPN').split(',')) # possible processes per node
   ppm = int(os.getenv('QPPM',max(ppn))) # maximum (assuming all are similar)
   showq = os.getenv('QSHOW') # queue query command
-  submitPrimary = os.getenv('QONE').format(WPSSCRIPT,NEXTSTEP)
-  submitSecondary = os.getenv('QTWO').format(WPSSCRIPT,NEXTSTEP)  
+  submitPrimary = os.getenv('QONE').format(NEXTSTEP)
+  submitSecondary = os.getenv('QTWO').format(NEXTSTEP)  
   # use only sandy (old form)
   #nodes = 76 # number of nodes
   #ppm = 16 # processes per node
