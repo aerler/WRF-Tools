@@ -79,7 +79,17 @@ export RUNGEO=${RUNGEO:-"ssh gpc-f104n084-ib0 \"cd ${INIDIR}; source ${SCRIPTDIR
 
 # WPS/preprocessing submission command (for next step)
 # export SUBMITWPS=${SUBMITWPS:-'ssh gpc-f102n084 "cd \"${INIDIR}\"; qsub ./${WPSSCRIPT} -v NEXTSTEP=${NEXTSTEP}"'} # evaluated by launchPreP
-export SUBMITWPS=${SUBMITWPS:-'ssh gpc-f104n084-ib0 "cd \"${INIDIR}\"; export WRFWCT=${WRFWCT}; export WPSWCT=${WPSWCT}; export NEXTSTEP=${NEXTSTEP}; export WPSSCRIPT=${WPSSCRIPT}; python ${SCRIPTDIR}/selectWPSqueue.py"'} # use Python script to estimate queue time and choose queue
+# export SUBMITWPS=${SUBMITWPS:-'ssh gpc-f104n084-ib0 "cd \"${INIDIR}\"; export WRFWCT=${WRFWCT}; export WPSWCT=${WPSWCT}; export NEXTSTEP=${NEXTSTEP}; export WPSSCRIPT=${WPSSCRIPT}; python ${SCRIPTDIR}/selectWPSqueue.py"'} # use Python script to estimate queue time and choose queue
+export SUBMITWPS=${SUBMITWPS:-"$( cat <<-_______END_OF_COMMAND
+      ssh gpc-f104n084-ib0 "cd '\${INIDIR}' 
+														export WRFWCT='\${WRFWCT}'; export WPSWCT='\${WPSWCT}'; export NEXTSTEP='\${NEXTSTEP}'
+														export QNDS=4; export QPPN='16,20'; export QSHOW='showq -w class=largemem'
+														export QONE='qsub \${WPSSCRIPT} -v NEXTSTEP={:s} -l nodes=1 -q largemem '
+														export QTWO='qsub \${WPSSCRIPT} -v NEXTSTEP={:s} -l nodes=1:m32g:ppn=8 -q batch'
+														python '\${SCRIPTDIR}/selectWPSqueue.py'"
+_______END_OF_COMMAND
+                                 )"} # use Python script to estimate queue time and choose queue
+# N.B.: this is a "here document"; variable substitution should happen at the eval stage
 export WAITFORWPS=${WAITFORWPS:-'NO'} # stay on compute node until WPS for next step finished, in order to submit next WRF job
 
 # archive submission command (for last step)
