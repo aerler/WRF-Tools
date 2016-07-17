@@ -3,7 +3,7 @@
 
 ## queue/PBS settings
 #PBS -l procs=8
-#PBS -l pmem=2000MB
+#PBS -l pmem=4000MB
 #PBS -l walltime=04:00:00
 # merge standard error and output stream
 #PBS -j oe
