@@ -95,7 +95,7 @@ export WAITFORWPS=${WAITFORWPS:-'NO'} # stay on compute node until WPS for next 
 # archive submission command (for last step)
 #export SUBMITAR=${SUBMITAR:-'ssh gpc-f104n084-ib0 "cd \"${INIDIR}\"; echo \"${ARTAG}\" >> HPSS_backlog.txt"; echo "Logging archive tag \"${ARTAG}\" in 'HPSS_backlog.txt' for later archiving."'} # evaluated by launchPostP
 ## N.B.: instead of archiving, just log the year to be archived; this is temporarily necessary,  because HPSS is full
-export SUBMITAR=${SUBMITAR:-'ssh gpc-f104n084-ib0 "cd \"${INIDIR}\"; qsub ./${ARSCRIPT} -v TAGS=${ARTAG},MODE=BACKUP,INTERVAL=${ARINTERVAL}"'} # evaluated by launchPostP
+export SUBMITAR=${SUBMITAR:-'ssh gpc-f104n084-ib0 "cd \"${INIDIR}\"; qsub ./${ARSCRIPT} -p 500 -v TAGS=${ARTAG},MODE=BACKUP,INTERVAL=${ARINTERVAL}"'} # evaluated by launchPostP
 # N.B.: requires $ARTAG to be set in the launch script
 
 # averaging submission command (for last step in the interval)
