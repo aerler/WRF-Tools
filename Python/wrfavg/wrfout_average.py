@@ -62,6 +62,7 @@ def getDateRegX(period):
   elif period == '2085-2099': prdrgx = '20(8[5-9]|9[0-9])' # 15 year future period  
   elif period == '2090-2094': prdrgx = '209[0-4]' # 5 year future period
   else: prdrgx = None
+  print("\n  Loading regular expression for date string: '{:s}'\n".format(prdrgx))
   return prdrgx 
 
 
@@ -947,8 +948,9 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
   except Exception:
     # report error
     logger.exception('\n # {0:s} WARNING: an Error occured while stepping through files! '.format(pidstr)+
-                     '\n # Last State: month={0:d}, variable={1:s}, file={2:s}'.format(meanidx,varname,filename)+
+                     '\n # Last State: month={0:d}, variable={1:s}, file={2:s}'.format(meanidx,varname,filelist[filecounter])+
                      '\n # Saving current data and exiting\n')
+    wrfout.close()
     #logger.exception(pidstr) # print stack trace of last exception and current process ID
     ec = 1 # set non-zero exit code
     # N.B.: this enables us to still close the file!
