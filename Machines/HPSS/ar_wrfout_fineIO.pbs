@@ -200,11 +200,14 @@ function REMOVEHTAR () {
   local MISS=0 # missing file counter
   # check files on disk
   if [[ "${GLOB}" == 'GLOB' ]]; then
-    # evaluate globbing expression
-    FILES=$( ls -C ${FILES} ); fi # $GLOB
-  # check if any of the files still exist
-  CNT=0; for F in "${FILES}"; do
-    if [[ -e "${F}" ]]; then CNT=$(( CNT + 1 )); fi; done;
+    # evaluate globbing expression 
+    FILES=$( ls -C ${FILES} ) # read list of existing files from disk 
+    if [ $? -gt 0 ]; then CNT=0; else CNT=1; fi # signal that (some) files exist
+  else
+    # check if any of the given files still exist
+    CNT=0; for F in ${FILES}; do
+      if [[ -e "${F}" ]]; then CNT=$(( CNT + 1 )); fi; done;
+  fi # $GLOB
   # print expected archive contents
   echo "${HTAR}   ---   ${FILES}" # print feedback
   if [[ -n "${CNT}" ]] && [[ ${CNT} == 0 ]]; then
@@ -224,29 +227,29 @@ function REMOVEHTAR () {
     if [[ $MISS == 0 ]]; then
       # loop over files in list and check presence in HTAR list
       for FILE in ${FILES}; do
-	if [[ "${FILE}" == $( echo "${LIST}" | sed -n "/${FILE}/p" ) ]]; then
-	  if [[ "${RMSRC}" == 'RMSRC' ]]; then # additional safety check
-	    if [[ -e "${FILE}" ]]; then
-	      echo "   >>> removing ${FILE}"
-	      rm "${FILE}"
-	    else echo "   ### ${FILE} does not exist"; fi
-	  else
-	    echo "   >>> would remove ${FILE}, if RMSRC='RMSRC' was set..."
-	  fi # RMSRC
-	else
-	  if [[ ${MISS} == 0 ]]; then echo; fi # visually offset missing file list
-	  echo "WARNING: File ${FILE} missing in archive ${HTAR}"
-	  echo "   >>> not deleting ${FILE}"
-	  MISS=$(( ${MISS} + 1 ))
-	fi
-      done
+	      if [[ "${FILE}" == $( echo "${LIST}" | sed -n "/${FILE}/p" ) ]]; then
+	        if [[ "${RMSRC}" == 'RMSRC' ]]; then # additional safety check
+	          if [[ -e "${FILE}" ]]; then
+	            echo "   >>> removing ${FILE}"
+	            rm "${FILE}"
+	          else echo "   ### ${FILE} does not exist"; fi # -e $FILE
+	        else
+	          echo "   >>> would remove ${FILE}, if RMSRC='RMSRC' was set..."
+	        fi # RMSRC
+	      else
+	        if [[ ${MISS} == 0 ]]; then echo; fi # visually offset missing file list
+	        echo "WARNING: File ${FILE} missing in archive ${HTAR}"
+	        echo "   >>> not deleting ${FILE}"
+	        MISS=$(( ${MISS} + 1 ))
+	      fi # $FILE in HTAR
+      done # loop over $FILES
     else
       echo
       echo "   >>>   Cannot verify integrity of archive ${HTAR} - aborting!   <<<   "
       echo
       MISS=1
-    fi
-  fi
+    fi # if HTAR OK
+  fi # if $FILES on disk
   # return number of missing files
   return ${MISS}
 }
