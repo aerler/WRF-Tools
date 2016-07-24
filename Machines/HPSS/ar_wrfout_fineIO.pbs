@@ -198,18 +198,15 @@ function REMOVEHTAR () {
   local FILES=${2} # list of files that should be in the archive
   local LIST=$( htar -tf "${HTAR}" | awk '{print $7}' | head -n -2 ) # column 7 are the file names, except last two lines
   local MISS=0 # missing file counter
-  # check files on disk
-  if [[ "${GLOB}" == 'GLOB' ]]; then
-    # evaluate globbing expression 
-    FILES=$( ls -C ${FILES} ) # read list of existing files from disk 
-    if [ $? -gt 0 ]; then CNT=0; else CNT=1; fi # signal that (some) files exist
-  else
-    # check if any of the given files still exist
-    CNT=0; for F in ${FILES}; do
-      if [[ -e "${F}" ]]; then CNT=$(( CNT + 1 )); fi; done;
-  fi # $GLOB
+  # check if files are present on disk
+  # evaluate globbing expression (read list of existing files from disk)
+  if [[ "${GLOB}" == 'GLOB' ]]; then FILES=$( ls -C ${FILES} ); fi
   # print expected archive contents
   echo "${HTAR}   ---   ${FILES}" # print feedback
+  # check if any of the given files still exist
+  CNT=0; for F in ${FILES}; do
+    if [[ -e "${F}" ]]; then CNT=$(( CNT + 1 )); fi; done;
+  # begin removal process if any of the files are present
   if [[ -n "${CNT}" ]] && [[ ${CNT} == 0 ]]; then
 	    echo '   >>> none of the files exist anymore - skipping this step!'
 	    echo '   (use the VERIFY operation to verify integrity of the archive)'
