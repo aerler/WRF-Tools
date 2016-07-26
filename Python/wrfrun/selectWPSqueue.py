@@ -31,8 +31,8 @@ if DEBUG == 'DEBUG':
   ppn = (16,20) # possible processes per node
   ppm = max(ppn) # maximum (assuming all are similar)
   showq = 'cat queue-test.txt' # test dummy
-  submitPrimary = 'echo qsub WPS_script.pbs -v NEXTSTEP={:s} -l nodes=1:m128g:ppn=16 -q largemem'.format(NEXTSTEP)
-  submitSecondary = 'echo qsub WPS_script.pbs -v NEXTSTEP={:s} -l nodes=1:m32g:ppn=8 -q batch'.format(NEXTSTEP)
+  submitPrimary = 'echo qsub WPS_script.pbs -v NEXTSTEP={0:s} -l nodes=1:m128g:ppn=16 -q largemem'.format(NEXTSTEP)
+  submitSecondary = 'echo qsub WPS_script.pbs -v NEXTSTEP={0:s} -l nodes=1:m32g:ppn=8 -q batch'.format(NEXTSTEP)
 else:
   # we need to know something about the queue system...
   nodes = int(os.getenv('QNDS')) # number of nodes
@@ -68,7 +68,7 @@ def convertTime(timeString):
   elif len(tmp) == 4: # days:hours:minutes:seconds
     time = int(tmp[0])*86400 + int(tmp[1])*3600 + int(tmp[2])*60 + int(tmp[3])
   else: # unknown
-    warnings.warn('WARNING: invalid time format encountered: {:s}'.format(time))
+    warnings.warn('WARNING: invalid time format encountered: {0:s}'.format(time))
     time = 0
   # return value in seconds (integer)
   return time
@@ -105,7 +105,7 @@ if __name__ == '__main__':
     if lrun or lidl:
       np =  float(linesplit[3]) # ensure floating point division below: np / ppm
       if np == 1 and lidl: np = 20 # if no specific number is requested, idle jobs just show '1'
-      if np not in ppn: print('WARNING: large number of processes: {:d} --- possibly multi-node jobs.'.format(int(np)))
+      if np not in ppn: print('WARNING: large number of processes: {0:d} --- possibly multi-node jobs.'.format(int(np)))
       nn = math.ceil(np / ppm) # next full multiple of ppm: number of nodes
       time = linesplit[4]
 #      # print times
@@ -124,7 +124,7 @@ if __name__ == '__main__':
   #slots = numpy.zeros(nodes,dtype=int) # integer seconds
   slots = [int(0) for x in xrange(nodes)]
   # distribute running jobs to nodes
-  if len(running) > len(slots): warnings.warn('WARNING: number of nodes and number of running jobs not equal: {:s} jobs on {:d} nodes.'.format(len(running),nodes))
+  if len(running) > len(slots): warnings.warn('WARNING: number of nodes and number of running jobs not equal: {0:s} jobs on {1:d} nodes.'.format(len(running),nodes))
   for i in xrange(min(len(running),len(slots))):
     slots[i] = running[i]
 #  print slots
@@ -142,7 +142,7 @@ if __name__ == '__main__':
   waittime = vmin
   #waittime = slots.min()
   #  print waittime
-  print('\nEstimated queue wait time is {:3.2f} hours\n'.format(waittime/3600))
+  print('\nEstimated queue wait time is {0:3.2f} hours\n'.format(waittime/3600))
   # determine acceptable wait time
   if WRFWCT:
     timelimit = convertTime(WRFWCT) # basic time limit from WRF execution time
