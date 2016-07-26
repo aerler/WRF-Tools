@@ -1,9 +1,9 @@
 # ============================================================================
-# Name        : P7
+# Name        : GPC
 # Author      : Andre R. Erler
 # Version     : 1
 # Copyright   : GPL v3
-# Description : P7 (SciNet) Configuration for Fortran Tools Makefile
+# Description : GPC (SciNet) Configuration for Fortran Tools Makefile
 # ============================================================================
 
 FC = ifort -fpp -convert big_endian # respect Fortran comments for pre-processing

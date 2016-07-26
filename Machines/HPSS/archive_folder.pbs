@@ -1,0 +1,121 @@
+#!/bin/bash
+# generic MOAB/Torque archiving script for SciNet HPSS
+# this script will archive the contents of a folder to HPSS; it will default
+# to the current folder and immitate the same folder structure on HPSS; the
+# archive name is the job name (+ .tar)
+# Andre R. Erler, GPL v3, 17/07/2016
+
+## queue/PBS settings
+# 72h is maximum for long queue, 1h for short
+#PBS -l walltime=72:00:00
+# merge standard error and output stream
+#PBS -j oe
+#PBS -W umask=0002
+#PBS -o $PBS_JOBNAME.$PBS_JOBID.out
+##PBS -e $PBS_JOBNAME.$PBS_JOBID.err
+# send email if abort (nbae)
+#PBS -M "$EMAIL"
+#PBS -m ae
+# job name
+#PBS -N archive_folder
+## submit to queue (NB: this has to be the last PBS line!)
+#PBS -q archive
+ 
+trap "echo 'Job script not completed'; exit 129" TERM INT
+# Note that your initial directory in HPSS will be $ARCHIVE
+
+hostname
+date
+echo
+echo
+echo "Archiving Folder Contents on HPSS"
+echo
+
+## some settings
+
+# source/disk folder (default to present)
+SRC="${SRC:-${PBS_O_WORKDIR}}"
+# destination/archive folder (default to same structure)
+if [[ -z "$DST" ]]; then
+  # use pattern from SRC and substitute SCRATCH/RESERVED with ARCHIVE
+  DST=${SRC#${SCRATCH}} # remove $SCRATCH
+  DST=${DST#${RESERVED}} # remove $RESERVED
+  DST="${ARCHIVE}/${DST}" # prepend $ARCHIVE
+fi # if $DST
+# archive file name
+TAR=${TAR:-"${PBS_JOBNAME}.tar"} # default to job name with extension
+
+# print some feedback
+echo "    Source folder (on disk):  SRC=$SRC"
+echo "    Destination   (on HPSS):  DST=$DST"
+echo "    Archive name (tar file):  TAR=$TAR"
+echo "      Overwrite old archive:  OVERWRITE=$OVERWRITE"
+echo
+echo
+
+# make sure archive folder exists
+hsi -q mkdir -p "$DST"
+# prevent overwriting existing file
+echo
+echo "Checking for existing archive files of the same name:"
+hsi -q ls -B "$DST/$TAR"
+EC=$? # record exit code
+if [ $EC -eq 0 ]; then
+  if [[ "$OVERWRITE" == 'OVERWRITE' ]]; then
+    echo "WARNING: removing existing archive file!"
+    hsi -q rm "$DST/$TAR"
+  else
+    echo "An archive file of the same name already exists --- aborting!"
+    echo
+    exit $EC
+  fi # if $OVERWRITE
+else
+  echo "No existing archive file found; proceeding with archiving."
+fi
+echo
+
+
+## start archiving
+
+# go to source folder
+cd "$SRC"
+# show folder contents
+echo
+echo "Files in source folder $SRC:"
+ls "$SRC"
+echo
+
+# execute htar command (also create checksum)
+echo "Beginning archiving..."
+htar -cpf "$DST/$TAR"  -Humask=0137 -Hcrc -Hverify=1 "$SRC"
+EC=$? # record exit code
+
+# show feedback/results
+if [ $EC -ne 0 ]; then
+   echo 'HTAR returned non-zero code.'
+   /scinet/gpc/bin/exit2msg $EC
+   exit $EC
+else
+   echo 'TRANSFER SUCCESSFUL'
+fi
+echo 
+echo "New archive file:"
+hsi -q ls -B "$DST/$TAR"
+echo
+echo "Archive folder contents:"
+hsi -q ls "$DST/"
+echo
+
+
+# update ISH register (uncomment if used)
+#INDEX_DIR=$HOME/.ish_register
+#if [ ! -e "$INDEX_DIR" ]; then
+#  mkdir -p $INDEX_DIR
+#fi
+#
+#export ISHREGISTER="$INDEX_DIR"
+#/scinet/gpc/bin/ish hindex
+
+# trap exit signals
+trap - TERM INT
+exit $EC

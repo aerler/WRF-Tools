@@ -7,7 +7,6 @@ Short script to estimate expected queue wait times.
 '''
 
 # imports
-import socket # recognizing host
 import subprocess
 import warnings
 import math
@@ -23,34 +22,39 @@ import sys # writing to stdout and exit with exit code
 # environment variables (set by caller instance)
 WRFWCT = os.getenv('WRFWCT','00:00:00')
 WPSWCT = os.getenv('WPSWCT','00:00:00')
-WPSSCRIPT = os.getenv('WPSSCRIPT')
 NEXTSTEP = os.getenv('NEXTSTEP')
-# machine-specific setup
-hostname = socket.gethostname()
-if ('gpc' in hostname):
+DEBUG = os.getenv('DEBUG')
+# machine-specific setup: read from environment (except debug mode)
+if DEBUG == 'DEBUG':
+  # this is for test purpose only; read file 'queue-test.txt' in same directory
+  nodes = 2 # number of nodes
+  ppn = (16,20) # possible processes per node
+  ppm = max(ppn) # maximum (assuming all are similar)
+  showq = 'cat queue-test.txt' # test dummy
+  submitPrimary = 'echo qsub WPS_script.pbs -v NEXTSTEP={:s} -l nodes=1:m128g:ppn=16 -q largemem'.format(NEXTSTEP)
+  submitSecondary = 'echo qsub WPS_script.pbs -v NEXTSTEP={:s} -l nodes=1:m32g:ppn=8 -q batch'.format(NEXTSTEP)
+else:
   # we need to know something about the queue system...
-  # use only sandy
+  nodes = int(os.getenv('QNDS')) # number of nodes
+  ppn = tuple(int(np) for np in os.getenv('QPPN').split(',')) # possible processes per node
+  ppm = int(os.getenv('QPPM',max(ppn))) # maximum (assuming all are similar)
+  showq = os.getenv('QSHOW') # queue query command
+  submitPrimary = os.getenv('QONE').format(NEXTSTEP)
+  submitSecondary = os.getenv('QTWO').format(NEXTSTEP)  
+  # use only sandy (old form)
   #nodes = 76 # number of nodes
-  #ppn = 16 # processes per node
+  #ppm = 16 # processes per node
   #showq = 'showq -w class=sandy' # queue query command
   #submitPrimary = 'qsub {:s} -v NEXTSTEP={:s} -l nodes=1:m128g:ppn=16 -q sandy '.format(WPSSCRIPT,NEXTSTEP)
   #submitSecondary = 'qsub {:s} -v NEXTSTEP={:s} -l nodes=1:m128g:ppn=16 -q sandy'.format(WPSSCRIPT,NEXTSTEP)
-  # use largemem as primary
-  nodes = 4 # number of nodes
-  npps = (16,20) # possible processes per node
-  ppn = max(npps) # maximum (assuming all are similar)
-  showq = 'showq -w class=largemem' # queue query command
-  submitPrimary = 'qsub {:s} -v NEXTSTEP={:s} -l nodes=1 -q largemem '.format(WPSSCRIPT,NEXTSTEP)
-  submitSecondary = 'qsub {:s} -v NEXTSTEP={:s} -l nodes=1:m128g:ppn=16 -q sandy'.format(WPSSCRIPT,NEXTSTEP)
+  # use largemem as primary, 32G as secondary (sandy takes too long, old form)
+  # nodes = 4 # number of nodes
+  # ppn = (16,20) # possible processes per node
+  # ppm = max(ppn) # maximum (assuming all are similar)
+  # showq = 'showq -w class=largemem' # queue query command
+  # submitPrimary = 'qsub {:s} -v NEXTSTEP={:s} -l nodes=1 -q largemem '.format(WPSSCRIPT,NEXTSTEP)
+  # submitSecondary = 'qsub {:s} -v NEXTSTEP={:s} -l nodes=1:m32g:ppn=8 -q batch'.format(WPSSCRIPT,NEXTSTEP)
   #submitPrimary = submitSecondary # temporarily disabled
-else:
-  # this is for test purpose only; read file 'queue-test.txt' in same directory
-  nodes = 2 # number of nodes
-  npps = (16,20) # possible processes per node
-  ppn = max(npps) # maximum (assuming all are similar)
-  showq = 'cat queue-test.txt' # test dummy
-  submitPrimary = 'echo qsub {:s} -v NEXTSTEP={:s} -l nodes=1:m128g:ppn=16 -q largemem'.format(WPSSCRIPT,NEXTSTEP)
-  submitSecondary = 'echo qsub {:s} -v NEXTSTEP={:s} -l nodes=1:m32g:ppn=8 -q batch'.format(WPSSCRIPT,NEXTSTEP)
 
 ## functions
 
@@ -99,10 +103,10 @@ if __name__ == '__main__':
       elif "Idle" == linesplit[2]: lidl = True
     # process time
     if lrun or lidl:
-      np =  float(linesplit[3]) # ensure floating point division below: np / ppn
+      np =  float(linesplit[3]) # ensure floating point division below: np / ppm
       if np == 1 and lidl: np = 20 # if no specific number is requested, idle jobs just show '1'
-      if np not in npps: print('WARNING: large number of processes: {:d} --- possibly multi-node jobs.'.format(int(np)))
-      nn = math.ceil(np / ppn) # next full multiple of ppn: number of nodes
+      if np not in ppn: print('WARNING: large number of processes: {:d} --- possibly multi-node jobs.'.format(int(np)))
+      nn = math.ceil(np / ppm) # next full multiple of ppm: number of nodes
       time = linesplit[4]
 #      # print times
 #      if lrun: print 'Running: {:s}'.format(time)
