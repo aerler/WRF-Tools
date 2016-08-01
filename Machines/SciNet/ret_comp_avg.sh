@@ -17,6 +17,7 @@ else # $# period
     BEGIN="2045"; END="2059"
   else
     BEGIN="1979"; END="1994"
+  fi # period
 fi # $# period
 # file settings
 DIAGS=${DIAGS:-'MISCDIAG'}
