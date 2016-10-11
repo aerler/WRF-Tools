@@ -94,6 +94,7 @@ export RUNGEO=${RUNGEO:-"ssh gpc-f104n084-ib0 \"cd ${INIDIR}; source ${SCRIPTDIR
 # N.B.: the 'bash -c' command is necessary in order to remain consistent with the ssh commands used from other machines
 export SUBMITWPS=${SUBMITWPS:-"$( cat <<-_______END_OF_COMMAND
       ssh gpc-f104n084-ib0 "cd '\${INIDIR}' 
+                            module load intel/15.0.2 gcc python/2.7.8
 														export WRFWCT='\${WRFWCT}'; export WPSWCT='\${WPSWCT}'; export NEXTSTEP='\${NEXTSTEP}'
 														export QNDS=4; export QPPN='16,20'; export QSHOW='showq -w class=largemem'
 														export QONE='qsub \${WPSSCRIPT} -v NEXTSTEP={:s} -l nodes=1 -q largemem '
