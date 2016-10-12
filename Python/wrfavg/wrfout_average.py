@@ -844,8 +844,8 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
           # check consistency of missing value flag
           assert missing_value is None or missing_value == wrfout.P_LEV_MISSING
           # find first timestep (compare to last of previous file) and (re-)set time step counter
-          wrfstartidx = -1; tmptimestamp = lasttimestamp
-          while tmptimestamp <= lasttimestamp:
+          wrfstartidx = -1; tmptimestamp = lasttimestamp; filelen1 = len(wrfout.dimensions[wrftime]) - 1
+          while tmptimestamp <= lasttimestamp and wrfstartidx < filelen1:
             wrfstartidx += 1
             tmptimestamp = str().join(wrfout.variables[wrftimestamp][wrfstartidx,:])
           # some checks

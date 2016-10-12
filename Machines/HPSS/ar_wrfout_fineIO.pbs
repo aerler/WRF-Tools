@@ -37,6 +37,7 @@ INTERVAL=${INTERVAL:-'YEARLY'} # default is yearly; used to be monthly
 PATTERN=${PATTERN:-'_wrf.tgz'} # $TAGS inference from certain files
 PATREGX=${PATREGX:-''} # matching regex for $TAGS: roughly TAGS=$(ls *$PATTERN | grep -o $PATREGX)
 TAGGLOB=${TAGGLOB:-''} # globbing extension for $TAGS (TAGSTR="${TAG}${TAGGLOB}")
+MarcRst=${MarcRst:-'FALSE'} # inidcate if wrfrst files are in marcIO archives instead of misc3d
 # data folder
 INIDIR=${INIDIR:-"${PBS_O_WORKDIR}"}
 DST=${DST:-"${ARCHIVE}/${INIDIR#/*/${USER}/}/"} # replicate directory tree
@@ -399,7 +400,8 @@ function PROCESSDATASET () {
   	local MARCIO='' # construct file list using a loop over domain indicies
   	for D in $( echo "${DOMAINS}" | fold --width=1 ); do
   	  MARCIO="${MARCIO} wrfxtrm_d0${D}_${DATESTR}_??[:_]??[:_]??*"
-  	  # N.B.: restart files were omitted, because thei are large and are usually retrieved individually (manually)
+  	  # N.B.: restart files are only added on request, because they are large and are usually retrieved individually (manually)
+      if [[ "$MarcRst" == 'MarcRst' ]]; then MARCIO="${MARCIO} wrfrst_d0${D}_${DATESTR}_??[:_]??[:_]??*"; fi
   	done # $DOMAINS
   else
     ## select datasets and logs
@@ -417,6 +419,13 @@ function PROCESSDATASET () {
       for D in $( echo "${DOMAINS}" | fold --width=1 ); do
 	      DIAGS="${DIAGS} wrfxtrm_d0${D}_${DATESTR}_??[:_]??[:_]??* wrfsrfc_d0${D}_${DATESTR}_??[:_]??[:_]??* wrfplev3d_d0${D}_${DATESTR}_??[:_]??[:_]??*"
       done # $DOMAINS
+  	fi; if [[ "${DATASET}" == 'FULL' ]] && [[ "${MarcRst}" == 'MarcRst' ]]; then      
+	    # Marc's special archvie stream (MarcIO) (all domains in one file)
+	    local MARCIO='' # construct file list using a loop over domain indicies
+	    for D in $( echo "${DOMAINS}" | fold --width=1 ); do
+	      MARCIO="${MARCIO} wrfxtrm_d0${D}_${DATESTR}_??[:_]??[:_]??* wrfrst_d0${D}_${DATESTR}_??[:_]??[:_]??*"
+	      # N.B.: include xtrm and rst files, but omit flake (redundant with srfc)
+	    done # $DOMAINS
     ## select domain-wise datasets
     # misc 3D fields (one file per domain)
     fi; if [[ "${DATASET}" == 'MISC3D' ]] || [[ "${DATASET}" == 'DEL3D' ]] || [[ "${DATASET}" == 'FULL' ]]; then
@@ -424,6 +433,14 @@ function PROCESSDATASET () {
       local MISC_D2="wrfmoist3d_d02_${DATESTR}_??[:_]??[:_]??*" #  wrfrad_d0?_${DATESTR}_??[:_]??[:_]??*
       local MISC_D3="wrfmoist3d_d03_${DATESTR}_??[:_]??[:_]??*"
       local MISC_D4="wrfmoist3d_d04_${DATESTR}_??[:_]??[:_]??*"
+      if [[ "${MarcRst}" != 'MarcRst' ]]; then
+        local MISC_D1="${MISC_D1} wrfrst_d01_${DATESTR}_??[:_]??[:_]??*" 
+        local MISC_D2="${MISC_D2} wrfrst_d02_${DATESTR}_??[:_]??[:_]??*" 
+        local MISC_D3="${MISC_D3} wrfrst_d03_${DATESTR}_??[:_]??[:_]??*" 
+        local MISC_D4="${MISC_D4} wrfrst_d04_${DATESTR}_??[:_]??[:_]??*" 
+        # N.B.: adding restart files to MISC3D by default can cause an error, if a archiving step has no
+        #       restart files at all, this is, however, extremely unlikely (possibly the first step)
+      fi # unless we are dealing with Marc's IO config, restart files are in MISC3D
     # some more misc 3D fields that are added separately (they are not in DEL3D, but in HYDRO)
     fi; if [[ "${DATASET}" == 'MISC3D' ]] || [[ "${DATASET}" == 'HYDRO' ]] || [[ "${DATASET}" == 'FULL' ]]; then # not part of DEL3D!
       local MISC_D1="${MISC_D1} wrflsm_d01_${DATESTR}_??[:_]??[:_]??* wrfrad_d01_${DATESTR}_??[:_]??[:_]??* wrfhydro_d01_${DATESTR}_??[:_]??[:_]??*"
@@ -458,16 +475,10 @@ function PROCESSDATASET () {
   fi # if TAG=FINAL
   # determine if this is a cold start or a restart (check for restart files)
   ls "${SRC}"/wrfrst_d??_"${DATESTR}"_??[:_]??[:_]??* >& /dev/null # this only works with globbing expressions, if they are not quoted
-  if [[ $? == 0  ]]; then
-    # restart run: backup restart file
-    if [[ -n "${MISC_D1}" ]]; then MISC_D1="${MISC_D1} wrfrst_d01_${DATESTR}_??[:_]??[:_]??*"; fi
-    if [[ -n "${MISC_D2}" ]]; then MISC_D2="${MISC_D2} wrfrst_d02_${DATESTR}_??[:_]??[:_]??*"; fi
-    if [[ -n "${MISC_D3}" ]]; then MISC_D3="${MISC_D3} wrfrst_d03_${DATESTR}_??[:_]??[:_]??*"; fi
-    if [[ -n "${MISC_D4}" ]]; then MISC_D4="${MISC_D4} wrfrst_d04_${DATESTR}_??[:_]??[:_]??*"; fi
-    if [[ "${GLOB}" != 'GLOB' ]]; then
+  if [[ $? == 0  ]] && [[ "${GLOB}" != 'GLOB' ]]; then
       unset STATIC; fi # skip this step, if no globbing is used
-    # cold start: backup data tables, constants, and geogrid files
-  fi
+  # cold start: backup data tables, constants, and geogrid files
+  # N.B.: restart files have been added to regular MISC3D
   echo
   # operation feedback
   echo "   ***   ${MODE} ${DATENAME}   ***   "
