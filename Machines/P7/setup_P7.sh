@@ -91,8 +91,8 @@ export SUBMITWPS=${SUBMITWPS:-"$( cat <<-_______END_OF_COMMAND
       ssh gpc-f104n084-ib0 "cd '\${INIDIR}' 
 														export WRFWCT='\${WRFWCT}'; export WPSWCT='\${WPSWCT}'; export NEXTSTEP='\${NEXTSTEP}'
 														export QNDS=4; export QPPN='16,20'; export QSHOW='showq -w class=largemem'
-														export QONE='qsub \${WPSSCRIPT} -v NEXTSTEP={:s} -l nodes=1 -q largemem '
-														export QTWO='qsub \${WPSSCRIPT} -v NEXTSTEP={:s} -l nodes=1:m32g:ppn=8 -q batch'
+														export QONE='qsub \${WPSSCRIPT} -v NEXTSTEP={0:s} -l nodes=1 -q largemem '
+														export QTWO='qsub \${WPSSCRIPT} -v NEXTSTEP={0:s} -l nodes=1:m32g:ppn=8 -q batch'
 														python '\${SCRIPTDIR}/selectWPSqueue.py'"
 _______END_OF_COMMAND
                                  )"} # use Python script to estimate queue time and choose queue
