@@ -40,6 +40,9 @@ ADDVARIABLE="addVariable.sh" # an NCKS script
 # default (run AddVar or not) based on $PERIOD
 if [[ -n "${PERIOD}" ]]; then ADDVAR=${ADDVAR:-"FALSE"}
 else ADDVAR=${ADDVAR:-"ADDVAR"}; fi
+# replace record dimension bytes
+REPBYTE='FALSE'
+REPLACEBYTE="replaceByte.sh"
 
 # return to original working directory
 cd "${INIDIR}"
@@ -65,6 +68,17 @@ if [[ "${ADDVAR}" == 'ADDVAR' ]]; then
         "${SCRIPTDIR}/${ADDVARIABLE}" "${VAR}" # launch NCKS script for all variables
       echo
     done
+fi
+echo
+
+# replace record dimension bytes 
+echo
+if [[ "${REPBYTE}" == 'REPBYTE' ]]; then
+    # repair record dimension
+	echo
+	echo "Fixing Record Dimension Byte"
+	"${SCRIPTDIR}/${REPLACEBYTE}" # just use default (should be all wrf output)
+	echo
 fi
 echo
 

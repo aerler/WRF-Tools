@@ -4,8 +4,7 @@
 # 10/03/2016, GPL v3, Andre R. Erler
 
 # read arguments (optional)
-REGEX=${2:-'wrf*.nc'} # default: all WRF output files
-if [ $# -gt 0 ]; then REGEX="$1"; fi # use this regex for files
+REGEX=${@:-'wrfout/wrf*.nc'} # default: all WRF output files
 # the regex can also contain a path; it is expanded by a for loop
 
 # function to actually replace bytes
