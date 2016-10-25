@@ -835,10 +835,10 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
           lasttimestamp = str().join(wrfout.variables[wrftimestamp][wrfendidx-1,:]) # needed to determine, if first timestep is the same as last
           assert lskip or lasttimestamp == monthlytimestamps[-1]
           # lasttimestep is also used for leap-year detection later on
+          assert len(wrfout.dimensions[wrftime]) == wrfendidx, (len(wrfout.dimensions[wrftime]),wrfendidx) # wrfendidx should be the length of the file, not the last index!
           ## find first timestep (compare to last of previous file) and (re-)set time step counter
           # initialize search
           tmptimestamp = lasttimestamp; filelen1 = len(wrfout.dimensions[wrftime]) - 1; wrfstartidx = filelen1;
-          assert len(wrfout.dimensions[wrftime]) == wrfendidx, (len(wrfout.dimensions[wrftime]),wrfendidx) # wrfendidx should be the length of the file, not the last index!
           while tmptimestamp <= lasttimestamp:
             if wrfstartidx < filelen1:
               wrfstartidx += 1 # step forward in current file
@@ -885,7 +885,6 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
             ## find first timestep (compare to last of previous file) and (re-)set time step counter
             # initialize search
             tmptimestamp = lasttimestamp; filelen1 = len(wrfout.dimensions[wrftime]) - 1; wrfstartidx = filelen1;
-            assert len(wrfout.dimensions[wrftime]) == wrfendidx, (len(wrfout.dimensions[wrftime]),wrfendidx) # wrfendidx should be the length of the file, not the last index!
             while tmptimestamp <= lasttimestamp:
               if wrfstartidx < filelen1:
                 wrfstartidx += 1 # step forward in current file
@@ -904,6 +903,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
                   assert missing_value is None or missing_value == wrfout.P_LEV_MISSING
                 else: break # this is not really tested...
               tmptimestamp = str().join(wrfout.variables[wrftimestamp][wrfstartidx,:])
+            # N.B.: same code as in "not complete" section
 #             wrfout.close() # close file
 #             #del wrfout; gc.collect() # doesn't seem to work here - strange error
 #             filecounter += 1 # move to next file
