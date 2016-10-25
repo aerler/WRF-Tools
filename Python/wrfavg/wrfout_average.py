@@ -848,12 +848,14 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
               #del wrfout; gc.collect() # doesn't seem to work here - strange error
               # N.B.: filecounter +1 < len(filelist) is already checked above 
               filecounter += 1 # move to next file
-              logger.debug("\n{0:s} Opening input file '{1:s}'.\n".format(pidstr,filelist[filecounter]))
-              wrfout = nc.Dataset(infolder+filelist[filecounter], 'r', format='NETCDF4') # ... and open new one
-              filelen1 = len(wrfout.dimensions[wrftime]) - 1 # length of new file
-              wrfstartidx = 0 # reset index
-              # check consistency of missing value flag
-              assert missing_value is None or missing_value == wrfout.P_LEV_MISSING
+              if filecounter < len(filelist):    
+                logger.debug("\n{0:s} Opening input file '{1:s}'.\n".format(pidstr,filelist[filecounter]))
+                wrfout = nc.Dataset(infolder+filelist[filecounter], 'r', format='NETCDF4') # ... and open new one
+                filelen1 = len(wrfout.dimensions[wrftime]) - 1 # length of new file
+                wrfstartidx = 0 # reset index
+                # check consistency of missing value flag
+                assert missing_value is None or missing_value == wrfout.P_LEV_MISSING
+              else: break # this is not really tested...
             tmptimestamp = str().join(wrfout.variables[wrftimestamp][wrfstartidx,:])
           # some checks
           firsttimestamp = str().join(wrfout.variables[wrftimestamp][0,:])
@@ -880,16 +882,38 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
           assert lskip or lasttimestamp == monthlytimestamps[-1]                
           # open next file (if end of month and file coincide)
           if wrfendidx == len(wrfout.dimensions[wrftime])-1: # reach end of file
-            wrfout.close() # close file
-            #del wrfout; gc.collect() # doesn't seem to work here - strange error
-            filecounter += 1 # move to next file
-            if filecounter < len(filelist):    
-              logger.debug("\n{0:s} Opening input file '{1:s}'.\n".format(pidstr,filelist[filecounter]))
-              wrfout = nc.Dataset(infolder+filelist[filecounter], 'r', format='NETCDF4') # ... and open new one
-              firsttimestamp = str().join(wrfout.variables[wrftimestamp][0,:]) # check first timestep (compare to last of previous file)
-              wrfstartidx = 0 # always use initialization step (but is reset above anyway)
-              if firsttimestamp != lasttimestamp:
-                raise NotImplementedError, "If the first timestep of the next month is the last timestep in the file, it has to be duplicated in the next file."
+            ## find first timestep (compare to last of previous file) and (re-)set time step counter
+            # initialize search
+            tmptimestamp = lasttimestamp; filelen1 = len(wrfout.dimensions[wrftime]) - 1; wrfstartidx = filelen1;
+            assert len(wrfout.dimensions[wrftime]) == wrfendidx, (len(wrfout.dimensions[wrftime]),wrfendidx) # wrfendidx should be the length of the file, not the last index!
+            while tmptimestamp <= lasttimestamp:
+              if wrfstartidx < filelen1:
+                wrfstartidx += 1 # step forward in current file
+              else:
+                # open next file, if we reach the end
+                wrfout.close() # close file
+                #del wrfout; gc.collect() # doesn't seem to work here - strange error
+                # N.B.: filecounter +1 < len(filelist) is already checked above 
+                filecounter += 1 # move to next file
+                if filecounter < len(filelist):    
+                  logger.debug("\n{0:s} Opening input file '{1:s}'.\n".format(pidstr,filelist[filecounter]))
+                  wrfout = nc.Dataset(infolder+filelist[filecounter], 'r', format='NETCDF4') # ... and open new one
+                  filelen1 = len(wrfout.dimensions[wrftime]) - 1 # length of new file
+                  wrfstartidx = 0 # reset index
+                  # check consistency of missing value flag
+                  assert missing_value is None or missing_value == wrfout.P_LEV_MISSING
+                else: break # this is not really tested...
+              tmptimestamp = str().join(wrfout.variables[wrftimestamp][wrfstartidx,:])
+#             wrfout.close() # close file
+#             #del wrfout; gc.collect() # doesn't seem to work here - strange error
+#             filecounter += 1 # move to next file
+#             if filecounter < len(filelist):    
+#               logger.debug("\n{0:s} Opening input file '{1:s}'.\n".format(pidstr,filelist[filecounter]))
+#               wrfout = nc.Dataset(infolder+filelist[filecounter], 'r', format='NETCDF4') # ... and open new one
+#               firsttimestamp = str().join(wrfout.variables[wrftimestamp][0,:]) # check first timestep (compare to last of previous file)
+#               wrfstartidx = 0 # always use initialization step (but is reset above anyway)
+#               if firsttimestamp != lasttimestamp:
+#                 raise NotImplementedError, "If the first timestep of the next month is the last timestep in the file, it has to be duplicated in the next file."
                 
         
       ## now the the loop over files has terminated and we need to normalize and save the results
