@@ -38,8 +38,8 @@ DOMAINS='1234' # string of single-digit domain indices
 ## shuffle some variables
 ADDVARIABLE="addVariable.sh" # an NCKS script
 # default (run AddVar or not) based on $PERIOD
-if [[ -n "${PERIOD}" ]]; then ADDVAR=${ADDVAR:-"FALSE"}
-else ADDVAR=${ADDVAR:-"ADDVAR"}; fi
+if [[ -n "${PERIOD}" ]]; then ADDVAR=${ADDVAR:-"ADDVAR"}
+else ADDVAR=${ADDVAR:-"FALSE"}; fi
 # replace record dimension bytes
 REPBYTE='FALSE'
 REPLACEBYTE="replaceByte.sh"
