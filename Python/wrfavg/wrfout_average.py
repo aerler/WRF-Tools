@@ -835,18 +835,24 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
           lasttimestamp = str().join(wrfout.variables[wrftimestamp][wrfendidx-1,:]) # needed to determine, if first timestep is the same as last
           assert lskip or lasttimestamp == monthlytimestamps[-1]
           # lasttimestep is also used for leap-year detection later on
-          wrfout.close() # close file
-          #del wrfout; gc.collect() # doesn't seem to work here - strange error
-          # N.B.: filecounter +1 < len(filelist) is already checked above 
-          filecounter += 1 # move to next file
-          logger.debug("\n{0:s} Opening input file '{1:s}'.\n".format(pidstr,filelist[filecounter]))
-          wrfout = nc.Dataset(infolder+filelist[filecounter], 'r', format='NETCDF4') # ... and open new one
-          # check consistency of missing value flag
-          assert missing_value is None or missing_value == wrfout.P_LEV_MISSING
-          # find first timestep (compare to last of previous file) and (re-)set time step counter
-          wrfstartidx = -1; tmptimestamp = lasttimestamp; filelen1 = len(wrfout.dimensions[wrftime]) - 1
-          while tmptimestamp <= lasttimestamp and wrfstartidx < filelen1:
-            wrfstartidx += 1
+          ## find first timestep (compare to last of previous file) and (re-)set time step counter
+          # initialize search
+          tmptimestamp = lasttimestamp; filelen1 = len(wrfout.dimensions[wrftime]) - 1; wrfstartidx = filelen1;
+          assert len(wrfout.dimensions[wrftime]) == wrfendidx, (len(wrfout.dimensions[wrftime]),wrfendidx) # wrfendidx should be the length of the file, not the last index!
+          while tmptimestamp <= lasttimestamp:
+            if wrfstartidx < filelen1:
+              wrfstartidx += 1 # step forward in current file
+            else:
+              # open next file, if we reach the end
+              wrfout.close() # close file
+              #del wrfout; gc.collect() # doesn't seem to work here - strange error
+              # N.B.: filecounter +1 < len(filelist) is already checked above 
+              filecounter += 1 # move to next file
+              logger.debug("\n{0:s} Opening input file '{1:s}'.\n".format(pidstr,filelist[filecounter]))
+              wrfout = nc.Dataset(infolder+filelist[filecounter], 'r', format='NETCDF4') # ... and open new one
+              # check consistency of missing value flag
+              assert missing_value is None or missing_value == wrfout.P_LEV_MISSING
+              wrfstartidx = 0
             tmptimestamp = str().join(wrfout.variables[wrftimestamp][wrfstartidx,:])
           # some checks
           firsttimestamp = str().join(wrfout.variables[wrftimestamp][0,:])
