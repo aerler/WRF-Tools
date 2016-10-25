@@ -850,9 +850,10 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
               filecounter += 1 # move to next file
               logger.debug("\n{0:s} Opening input file '{1:s}'.\n".format(pidstr,filelist[filecounter]))
               wrfout = nc.Dataset(infolder+filelist[filecounter], 'r', format='NETCDF4') # ... and open new one
+              filelen1 = len(wrfout.dimensions[wrftime]) - 1 # length of new file
+              wrfstartidx = 0 # reset index
               # check consistency of missing value flag
               assert missing_value is None or missing_value == wrfout.P_LEV_MISSING
-              wrfstartidx = 0
             tmptimestamp = str().join(wrfout.variables[wrftimestamp][wrfstartidx,:])
           # some checks
           firsttimestamp = str().join(wrfout.variables[wrftimestamp][0,:])
