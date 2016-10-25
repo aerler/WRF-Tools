@@ -41,7 +41,7 @@ ADDVARIABLE="addVariable.sh" # an NCKS script
 if [[ -n "${PERIOD}" ]]; then ADDVAR=${ADDVAR:-"ADDVAR"}
 else ADDVAR=${ADDVAR:-"FALSE"}; fi
 # replace record dimension bytes
-REPBYTE='FALSE'
+FIXBYTE=${FIXBYTE:-'FALSE'}
 REPLACEBYTE="replaceByte.sh"
 
 # return to original working directory
@@ -73,7 +73,7 @@ echo
 
 # replace record dimension bytes 
 echo
-if [[ "${REPBYTE}" == 'REPBYTE' ]]; then
+if [[ "${FIXBYTE}" == 'FIXBYTE' ]]; then
     # repair record dimension
 	echo
 	echo "Fixing Record Dimension Byte"
