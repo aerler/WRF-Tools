@@ -19,10 +19,10 @@ if [ -z $SYSTEM ] || [[ "$SYSTEM" == "$MAC" ]]; then
   # load modules
 	echo
 	module purge
-	#module load intel/13.1.1 intelmpi/4.1.0.027 hdf5/187-v18-serial-intel netcdf/4.1.3_hdf5_serial-intel extras/64_6.4
+	module load intel/13.1.1 intelmpi/4.1.0.027 hdf5/187-v18-serial-intel netcdf/4.1.3_hdf5_serial-intel extras/64_6.4
   #module load intel/12.1.5 openmpi/1.4.4-intel-v12.1 hdf5/187-v18-serial-intel netcdf/4.1.3_hdf5_serial-intel extras/64_6.4
   #module load intel/12.1.3 intelmpi/4.0.3.008 hdf5/187-v18-serial-intel netcdf/4.1.3_hdf5_serial-intel
-	#module load gcc/4.8.1 python/2.7.3 ncl/6.1.0 extras/64_6.4 # need Python 2.7
+	module load gcc/4.8.1 python/2.7.3 ncl/6.1.0 extras/64_6.4 # need Python 2.7
 	# N.B.: extras/64 is necessary for Grib2 support (libjasper and libpng12)
   # pyWPS.py specific modules
 	#if [[ ${RUNPYWPS} == 1 ]]; then
@@ -94,7 +94,6 @@ export RUNGEO=${RUNGEO:-"ssh gpc-f104n084-ib0 \"cd ${INIDIR}; source ${SCRIPTDIR
 # N.B.: the 'bash -c' command is necessary in order to remain consistent with the ssh commands used from other machines
 export SUBMITWPS=${SUBMITWPS:-"$( cat <<-_______END_OF_COMMAND
       ssh gpc-f104n084-ib0 "cd '\${INIDIR}' 
-                            #module load intel/15.0.2 gcc python/2.7.8
 														export WRFWCT='\${WRFWCT}'; export WPSWCT='\${WPSWCT}'; export NEXTSTEP='\${NEXTSTEP}'
 														export QNDS=4; export QPPN='16,20'; export QSHOW='showq -w class=largemem'
 														export QONE='qsub \${WPSSCRIPT} -v NEXTSTEP={0:s} -l nodes=1 -q largemem '

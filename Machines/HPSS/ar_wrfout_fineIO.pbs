@@ -54,9 +54,9 @@ case "${MODE}" in
 esac # check MODE
 # then check DATASET
 case "${DATASET}" in
-  FULL | MISC3D | DYN3D | DIAGS )   # datasets that correspond to archive files   
+  FULL | MISC3D | MISCDIAG | DYN3D | DIAGS )   # datasets that correspond to archive files   
     MODEOK='MODEOK';; # everything is OK
-  DEL3D | HYDRO | MISCDIAG | LOGS | FINAL | MarcIO )   # only REMOVE/RETRIEVE options   
+  DEL3D | HYDRO | LOGS | FINAL | MarcIO )   # only REMOVE/RETRIEVE options   
     if [[ "${MODE}" == 'BACKUP' ]]; then MODEOK='FALSE'; else MODEOK='MODEOK'; fi;; # everythin except backup
   * )   MODEOK='UNKNOWN';;
 esac #  vs. 
@@ -428,7 +428,7 @@ function PROCESSDATASET () {
 	    done # $DOMAINS
     ## select domain-wise datasets
     # misc 3D fields (one file per domain)
-    fi; if [[ "${DATASET}" == 'MISC3D' ]] || [[ "${DATASET}" == 'DEL3D' ]] || [[ "${DATASET}" == 'FULL' ]]; then
+    fi; if [[ "${DATASET}" == 'MISC3D' ]] || [[ "${DATASET}" == 'MISCDIAG' ]] || [[ "${DATASET}" == 'DEL3D' ]] || [[ "${DATASET}" == 'FULL' ]]; then
       local MISC_D1="wrfmoist3d_d01_${DATESTR}_??[:_]??[:_]??* wrffdda_d01_${DATESTR}_??[:_]??[:_]??*"
       local MISC_D2="wrfmoist3d_d02_${DATESTR}_??[:_]??[:_]??*" #  wrfrad_d0?_${DATESTR}_??[:_]??[:_]??*
       local MISC_D3="wrfmoist3d_d03_${DATESTR}_??[:_]??[:_]??*"
@@ -442,7 +442,7 @@ function PROCESSDATASET () {
         #       restart files at all, this is, however, extremely unlikely (possibly the first step)
       fi # unless we are dealing with Marc's IO config, restart files are in MISC3D
     # some more misc 3D fields that are added separately (they are not in DEL3D, but in HYDRO)
-    fi; if [[ "${DATASET}" == 'MISC3D' ]] || [[ "${DATASET}" == 'HYDRO' ]] || [[ "${DATASET}" == 'FULL' ]]; then # not part of DEL3D!
+    fi; if [[ "${DATASET}" == 'MISC3D' ]] || [[ "${DATASET}" == 'MISCDIAG' ]] || [[ "${DATASET}" == 'FULL' ]]; then # not part of DEL3D!
       local MISC_D1="${MISC_D1} wrflsm_d01_${DATESTR}_??[:_]??[:_]??* wrfrad_d01_${DATESTR}_??[:_]??[:_]??* wrfhydro_d01_${DATESTR}_??[:_]??[:_]??*"
       local MISC_D2="${MISC_D2} wrflsm_d02_${DATESTR}_??[:_]??[:_]??* wrfrad_d02_${DATESTR}_??[:_]??[:_]??* wrfhydro_d02_${DATESTR}_??[:_]??[:_]??*"
       local MISC_D3="${MISC_D3} wrflsm_d03_${DATESTR}_??[:_]??[:_]??* wrfrad_d03_${DATESTR}_??[:_]??[:_]??* wrfhydro_d03_${DATESTR}_??[:_]??[:_]??*"
@@ -454,23 +454,24 @@ function PROCESSDATASET () {
       local DYN_D3="wrfdrydyn3d_d03_${DATESTR}_??[:_]??[:_]??*"
       local DYN_D4="wrfdrydyn3d_d04_${DATESTR}_??[:_]??[:_]??*"
     # small files in misc 3D fields
-    fi; if [[ "${DATASET}" == 'MISCDIAG' ]]; then
+    fi; if [[ "${DATASET}" == 'HYDRO' ]]; then
       local MISC_D1="wrflsm_d01_${DATESTR}_??[:_]??[:_]??* wrfrad_d01_${DATESTR}_??[:_]??[:_]??* wrfhydro_d01_${DATESTR}_??[:_]??[:_]??*"
       local MISC_D2="wrflsm_d02_${DATESTR}_??[:_]??[:_]??* wrfrad_d02_${DATESTR}_??[:_]??[:_]??* wrfhydro_d02_${DATESTR}_??[:_]??[:_]??*"
       local MISC_D3="wrflsm_d03_${DATESTR}_??[:_]??[:_]??* wrfrad_d03_${DATESTR}_??[:_]??[:_]??* wrfhydro_d03_${DATESTR}_??[:_]??[:_]??*"
       local MISC_D4="wrflsm_d04_${DATESTR}_??[:_]??[:_]??* wrfrad_d04_${DATESTR}_??[:_]??[:_]??* wrfhydro_d04_${DATESTR}_??[:_]??[:_]??*"
-    fi # MISCDIAG
+    fi # HYDRO
     # return error if dataset not found
-    if [[ -z "${FINAL}" ]] && [[ -z "${DIAGS}" ]] && [[ -z "${MISC_D1}" ]] && [[ -z "${MISC_D2}" ]] && [[ -z "${MISC_D3}" ]] && [[ -z "${MISC_D4}" ]] && [[ -z "${DYN_D1}" ]] && [[ -z "${DYN_D2}" ]] && [[ -z "${DYN_D3}" ]] && [[ -z "${DYN_D4}" ]]; then
-      echo
-      if [[ "${DATASET}" == 'DYN3D' ]] && [[ "${DATASET}" == 'MISC3D' ]] && [[ "${DATASET}" == 'FULL' ]] && [[ "${DATASET}" == 'LOGS' ]] && [[ "${DATASET}" == 'DIAGS' ]] && [[ "${DATASET}" == 'HYDRO' ]]
-	then # known dataset but other problem
-	  echo "   >>>   WARNING: dataset ${DATASET} can not be used in the desired configuration! (aborting)   <<<   "
-	else # unknown dataset
-	  echo "   >>>   WARNING: dataset ${DATASET} not found! (aborting)   <<<   "
-      fi # DATASET
-      echo
-      return 1
+    if [[ -z "${FINAL}" ]] && [[ -z "${DIAGS}" ]] && [[ -z "${MISC_D1}" ]] && [[ -z "${MISC_D2}" ]] && [[ -z "${MISC_D3}" ]] && [[ -z "${MISC_D4}" ]] && [[ -z "${DYN_D1}" ]] && [[ -z "${DYN_D2}" ]] && [[ -z "${DYN_D3}" ]] && [[ -z "${DYN_D4}" ]]
+      then
+	      echo
+	      if [[ "${DATASET}" == 'DYN3D' ]] || [[ "${DATASET}" == 'MISC3D' ]] || [[ "${DATASET}" == 'MISCDIAG' ]] || [[ "${DATASET}" == 'FULL' ]] || [[ "${DATASET}" == 'LOGS' ]] || [[ "${DATASET}" == 'DIAGS' ]] || [[ "${DATASET}" == 'HYDRO' ]]
+					then # known dataset but other problem
+					  echo "   >>>   WARNING: dataset ${DATASET} can not be used in the desired configuration! (aborting)   <<<   "
+					else # unknown dataset
+					  echo "   >>>   WARNING: dataset ${DATASET} not found! (aborting)   <<<   "
+	      fi # DATASET
+	      echo
+	      return 1
     fi # DIAGS etc.
   fi # if TAG=FINAL
   # determine if this is a cold start or a restart (check for restart files)

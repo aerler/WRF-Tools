@@ -1,10 +1,11 @@
 #!/bin/bash
 # Script to change the time length byte; adapted from Marc's script
+# usage: ./replaceByte.sh [ Filelist | RegEx ] 
 # 10/03/2016, GPL v3, Andre R. Erler
 
 # read arguments (optional)
-if [ $# -gt 0 ]; then cd "$1"; fi
-if [ $# -gt 1 ]; then REGEX=${2:-'wrf*.nc'}; fi
+REGEX=${@:-'wrfout/wrf*.nc'} # default: all WRF output files
+# the regex can also contain a path; it is expanded by a for loop
 
 # function to actually replace bytes
 function REPLACE (){
