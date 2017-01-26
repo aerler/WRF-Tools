@@ -39,7 +39,7 @@ export WRFREX='*-*' # all available
 export SUBDIR='WesternCanada GreatLakes' # sub-folders for WRF projects
 export CESMREX='h[abc]b20trcn1x1 tb20trcn1x1 h[abcz]brcp85cn1x1 htbrcp85cn1x1 seaice-5r-hf h[abcz]brcp85cn1x1d htbrcp85cn1x1d seaice-5r-hfd'
 export CESMENS='ens20trcn1x1 ensrcp85cn1x1 ensrcp85cn1x1d'
-export DATASETS='Unity GPCC NARR CFSR CRU PRISM PCIC EC WSC' # list of observational datasets
+export DATASETS='Unity NRCan GPCC NARR CFSR CRU PRISM PCIC EC GHCN WSC' # list of observational datasets
 
 # connection settings for rsync scripts
 if [[ "${HISPD}" == 'HISPD' ]]
