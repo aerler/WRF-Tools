@@ -12,7 +12,7 @@
 # @ class = verylong
 # @ output = $(job_name).$(jobid).out
 # @ error  = $(job_name).$(jobid).out
-# @ wall_clock_limit = 48:00:00
+# @ wall_clock_limit = 72:00:00
 #
 # @ node = 1
 # @ node_usage = not_shared

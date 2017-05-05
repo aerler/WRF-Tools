@@ -2,7 +2,7 @@
 # LoadLeveler submission script for SciNet P7
 ##=====================================
 # @ job_name = test_2x128
-# @ wall_clock_limit = 48:00:00
+# @ wall_clock_limit = 72:00:00
 # @ node = 1
 # @ tasks_per_node = 128
 # @ notification = error
