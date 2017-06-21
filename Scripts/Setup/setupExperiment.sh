@@ -150,6 +150,14 @@ MAXDOM=2 # number of domains in WRF and WPS
 ## load configuration file
 echo "Sourcing experimental setup file (xconfig.sh)" 
 source xconfig.sh
+
+# set different wallclock limit between P7 and others
+if [[ "${WRFSYS}" == 'P7' ]]; then
+  MAXWCT='72:00:00' # P7 has increased wallclock limit time
+else
+  MAXWCT='48:00:00' # this is common on most clusters
+fi
+
 # create run folder
 echo
 echo "   Setting up Experiment ${NAME}"
