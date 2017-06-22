@@ -141,7 +141,7 @@ WPSSYS='' # WPS - define in xconfig.sh
 GEODATA="/project/p/peltier/WRF/geog/" # location of geogrid data
 ## WRF
 WRFSYS='' # WRF - define in xconfig.sh
-MAXWCT='48:00:00' # this is common on most clusters
+MAXWCT='' # to some extent dependent on cluster
 POLARWRF=0 # PolarWRF switch
 FLAKE=0 # FLake lake model (in-house; only V3.4 & V3.5)
 # some settings depend on the number of domains
@@ -151,12 +151,17 @@ MAXDOM=2 # number of domains in WRF and WPS
 echo "Sourcing experimental setup file (xconfig.sh)" 
 source xconfig.sh
 
-# set different wallclock limit between P7 and others
-if [[ "${WRFSYS}" == 'P7' ]]; then
-  MAXWCT='72:00:00' # P7 has increased wallclock limit time
-else
-  MAXWCT='48:00:00' # this is common on most clusters
-fi
+# apply command line argument for WRFSYS (overrides xconfig)
+[[ -n $1 ]] && WRFSYS="$1"
+
+# set default wallclock limit by machine
+if [[ -z "${MAXWCT}" ]]; then
+  if [[ "${WRFSYS}" == 'P7' ]]; then
+    MAXWCT='72:00:00' # P7 has increased wallclock limit time
+  else
+    MAXWCT='48:00:00' # this is common on most clusters
+  fi # WRFSYS
+fi # $MAXWCT
 
 # create run folder
 echo
@@ -164,9 +169,6 @@ echo "   Setting up Experiment ${NAME}"
 echo
 mkdir -p "${RUNDIR}"
 mkdir -p "${WRFOUT}"
-
-# apply command line argument for WRFSYS
-[[ -n $1 ]] && WRFSYS="$1"
 
 ## fix default settings
 
