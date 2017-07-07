@@ -1,38 +1,45 @@
 #This is the script that calls cdb_query from python
 
 ##  imports
-import os # directory operations
+import glob,os # directory operations
+import subprocess
 
 # os.system("cdb_query CMIP5 ask --null --help")
 
-# Define directory and filename variables
-Svalidate_file='MIROC5_rcp85_2085_pointer_local_full.validate.nc'
+# Define directory and filename variables for testing purpose
+Svalidate_file='GFDL-ESM2M_rcp85_2100_noDayVar_pointer_local.validate.nc'
 Soutput_file='reduce_output.nc'
-Syear='2085'
-Smonth='1'
-Sday='1'
-Shour='06'
+Syear='2095'
+Smonth='6'
+Sday='3'
+Shour='18'
 
 # os.system('echo "Hello {0:} World!"'.format(Svalidate_file))
 
 # Here defines the functions to call cdb_query_CMIP5_reduce to slice out data files
 # Different numbers of arguments are needed to specify time step, so three functions are needed.
 def call_cdb_query_download_6hour(validate_file, output_file, year, month, day, hour):
-    os.putenv('HDF5_DISABLE_VERSION_CHECK', '1') 
-    os.system('cdb_query CMIP5 reduce -O --year={0:} --month={1:} --day={2:} --hour={3:} --var=huss --var=tas --var=uas --var=vas --var=ua --var=va --var=ta --var=hus --var=ps --var=psl --out_destination=./\'{4:}_{5:}_{6:}_{7:}/\' \'\' {8:} {9:} '.format(year, month, day, hour, year, month, day, hour, validate_file, output_file))
+    os.putenv('HDF5_DISABLE_VERSION_CHECK', '1')
+    subprocess.call(['cdb_query_6hr CMIP5 reduce -O --year={0:} --month={1:} --day={2:} --hour={3:} --var=huss --var=tas --var=uas --var=vas --var=ua --var=va --var=ta --var=hus --var=ps --var=psl --out_destination=./\'{4:}_{5:}_{6:}_{7:}/\' \'\' {8:} {9:} '.format(year, month, day, hour, year, month, day, hour, validate_file, output_file)], shell=True)
     
 def call_cdb_query_download_day(validate_file, output_file, year, month, day):
     os.putenv('HDF5_DISABLE_VERSION_CHECK', '1') 
-    os.system('cdb_query CMIP5 reduce -O --year={0:} --month={1:} --day={2:} --var=snw --var=tslsi --var=sic --var=sit --var=tos --out_destination=./\'{3:}_{4:}_{5:}/\' \'\' {6:} {7:}'.format(year, month, day, year, month, day, validate_file, output_file))
+    subprocess.call(['cdb_query_day CMIP5 reduce -O --year={0:} --month={1:} --day={2:} --var=snw --var=tslsi --var=sic --var=sit --var=tos --out_destination=./\'{3:}_{4:}_{5:}/\' \'\' {6:} {7:}'.format(year, month, day, year, month, day, validate_file, output_file)], shell=True)
 
 def call_cdb_query_download_month(validate_file, output_file, year, month):
     os.putenv('HDF5_DISABLE_VERSION_CHECK', '1') 
-    os.system('cdb_query CMIP5 reduce -O --year={0:} --month={1:} --var=tsl --var=mrlsl --var=snd --out_destination=./\'{2:}_{3:}/\' \'\' {4:} {5:}'.format(year, month, year, month, validate_file, output_file))
+    subprocess.call(['cdb_query_month CMIP5 reduce -O --year={0:} --month={1:} --var=tsl --var=mrlsl --var=snd --out_destination=./\'{2:}_{3:}/\' \'\' {4:} {5:}'.format(year, month, year, month, validate_file, output_file)], shell=True)
 
 # Define the function that merges the reduced files into a single file
-def merge_files_from_reduce(reduce_directory,file_outname):
-    os.system('mv ./{0:}/*/*/*/*/*/*/*/*/*/*.nc {1:}/'.format(reduce_directory, reduce_directory))
-    os.system('cdo merge ./{0:}/*.nc ./{1:}.nc'.format(reduce_directory, file_outname))
+def merge_files_from_reduce_nco(reduce_directory,file_outname):
+    subprocess.call(['mv ./{0:}/*/*/*/*/*/*/*/*/*/*.nc {1:}/'.format(reduce_directory, reduce_directory)], shell=True)
+    for filename in glob.glob('./{0:}/*.nc'.format(reduce_directory)):
+        print filename
+        subprocess.call(['ncks -A {0:} ./{1:}.nc'.format(filename, file_outname)], shell=True)
+
+def merge_files_from_reduce_cdo(reduce_directory,file_outname):
+    subprocess.call(['mv ./{0:}/*/*/*/*/*/*/*/*/*/*.nc {1:}/'.format(reduce_directory, reduce_directory)], shell=True)
+    subprocess.call(['cdo merge ./{0:}/*.nc ./{1:}.nc'.format(reduce_directory, file_outname)], shell=True)
 
 # Define the function that removes the temporary directories created by the merge functions
 def clean_reduce_directory(reduce_directory):
@@ -62,19 +69,19 @@ def apply_cdb_query_singleWPSstep(Vfile,inputdate):
     #6hourly files
     merged_filename='merged_6hourly'
     temp_reduce_directory='{0:}_{1:}_{2:}_{3:}'.format(stepyear, stepmonth, stepday, stephour)
-    merge_files_from_reduce(temp_reduce_directory,merged_filename)
+    merge_files_from_reduce_nco(temp_reduce_directory,merged_filename)
     clean_reduce_directory(temp_reduce_directory)
     
     #Daily files
     merged_filename='merged_daily'
     temp_reduce_directory='{0:}_{1:}_{2:}'.format(stepyear, stepmonth, stepday)
-    merge_files_from_reduce(temp_reduce_directory,merged_filename)
+    merge_files_from_reduce_cdo(temp_reduce_directory,merged_filename)
     clean_reduce_directory(temp_reduce_directory)
     
     #Monthly files
     merged_filename='merged_monthly'
     temp_reduce_directory='{0:}_{1:}'.format(stepyear, stepmonth)
-    merge_files_from_reduce(temp_reduce_directory,merged_filename)
+    merge_files_from_reduce_cdo(temp_reduce_directory,merged_filename)
     clean_reduce_directory(temp_reduce_directory)
     
     print(inputdate, 'completed cdb_query operation')
@@ -85,7 +92,8 @@ if name == '__main__':
   # Note that the test requires a single validate file and date that associates with the validate file!
   sampledate=('2085','01','01','00')
   print('date=',sampledate)
-  sampleVfile = 'MIROC5_rcp85_2085_pointer_local_full.validate.nc'
+  #sampleVfile = '../pythoncdb/MIROC5_rcp85_2085_pointer_local_full.validate.nc'
+  sampleVfile = 'GFDL-ESM2M_rcp85_2100_full_pointer_local.validate.nc'
   print('validate_file=',sampleVfile)
   apply_cdb_query_singleWPSstep(sampleVfile,sampledate)
   

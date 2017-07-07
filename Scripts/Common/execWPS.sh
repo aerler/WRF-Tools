@@ -62,6 +62,18 @@ if [[ ${RUNPYWPS} == 1 ]]
 		# CFSR Reanalysis Data
 		cp ${NOCLOBBER} -P "${INIDIR}/plev" "${INIDIR}/srfc" "${WORKDIR}"
 		cp ${NOCLOBBER} -P "${BINDIR}/ungrib.exe" "${WORKDIR}"
+  elif [[ "${DATATYPE}" == 'CMIP5' ]]; then
+		# CMIP5 Global Climate Model series Data
+		#cp ${NOCLOBBER} -P "${INIDIR}/MIROC5_rcp85_2085_pointer_local_full.validate.nc" "${WORKDIR}/CMIP5data.validate.nc"      # copy the validate file used by cdb_query
+		cp ${NOCLOBBER} -P "${BINDIR}/unCMIP5.ncl" "${BINDIR}/unccsm.exe" "${WORKDIR}"    # copy the executables
+    find -maxdepth 1 -name "*validate*" -exec cp ${NOCLOBBER} -P {} "${WORKDIR}/CMIP5data.validate.nc" \;
+		#cp ${NOCLOBBER} -P "${INIDIR}/orog_fx_MIROC5_rcp85_r0i0p0.nc" "${WORKDIR}/orog_file.nc"      # copy the coordinate files used by unCMIP5.ncl
+    find -maxdepth 1 -name "*orog*" -exec cp ${NOCLOBBER} -P {} "${WORKDIR}/orog_file.nc" \;
+		#cp ${NOCLOBBER} -P "${INIDIR}/sftlf_fx_MIROC5_rcp85_r0i0p0.nc" "${WORKDIR}/sftlf_file.nc"      
+    find -maxdepth 1 -name "*sftlf*" -exec cp ${NOCLOBBER} -P {} "${WORKDIR}/sftlf_file.nc" \;
+		#cp ${NOCLOBBER} -P "${INIDIR}/MIROC5_ocn2atm_linearweight.nc" "${WORKDIR}/ocn2atmweight_file.nc"      
+    find -maxdepth 1 -name "*linearweight*" -exec cp ${NOCLOBBER} -P {} "${WORKDIR}/ocn2atmweight_file.nc" \;
+		
 	elif [[ "${DATATYPE}" == 'ERA-I' ]]; then
     # CFSR Reanalysis Data
     cp ${NOCLOBBER} -P "${INIDIR}/uv" "${INIDIR}/sc" "${INIDIR}/sfc" "${WORKDIR}"
@@ -115,6 +127,9 @@ if [[ ${RUNPYWPS} == 1 ]]
     fi
 
     # finish
+    # swap module back to previous set
+    
+    
     echo
     echo ' >>> WPS finished <<< '
     echo
