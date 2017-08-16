@@ -124,7 +124,6 @@ DATATYPE='CESM' # boundary forcing type
 ## run configuration
 WRFROOT="${CODE_ROOT}/WRFV3.4/"
 WRFTOOLS="${CODE_ROOT}/WRF Tools/"
-GENSTEPS="${WRFTOOLS}/Python/wrfrun/generateStepfile.py" # Python script to generate stepfiles
 # I/O, archiving, and averaging 
 IO='fineIO' # this is used for namelist construction and archiving
 ARSYS='' # archive - define in xconfig.sh
@@ -448,6 +447,7 @@ if [[ -n "${CYCLING}" ]]; then
     INT=${CYCLING#*:*:}
     END=${CYCLING%:*}; END=${END#*:}
     # generate stepfile on-the-fly
+    GENSTEPS=${GENSTEPS:-"${WRFTOOLS}/Python/wrfrun/generateStepfile.py"} # Python script to generate stepfiles
     echo "creating new stepfile: begin=${BEGIN}, end=${END}, interval=${INT}"    
     python "${GENSTEPS}" ${LLEAP} --interval="${INT}" "${BEGIN}" "${END}" 
     # LLEAP is defined above; don't quote option, because it may no be defined
@@ -528,7 +528,7 @@ fi # $AVGSCRIPT
 echo
 # radiation scheme
 RAD=$(sed -n '/ra_lw_physics/ s/^\ *ra_lw_physics\ *=\ *\(.\),.*$/\1/p' namelist.input) # \  = space
-if [[ "$RAD" != $(sed -n '/ra_sw_physics/ s/^\ *ra_sw_physics\ *=\ *\(.\),.*$/\1/p' namelist.input) ]]; then
+if [[ "${RAD}" != $(sed -n '/ra_sw_physics/ s/^\ *ra_sw_physics\ *=\ *\(.\),.*$/\1/p' namelist.input) ]]; then
   echo 'Error: different schemes for SW and LW radiation are currently not supported.'
   exit 1
 fi # check short wave 
