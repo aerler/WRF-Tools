@@ -124,7 +124,6 @@ DATATYPE='CESM' # boundary forcing type
 ## run configuration
 WRFROOT="${CODE_ROOT}/WRFV3.4/"
 WRFTOOLS="${CODE_ROOT}/WRF Tools/"
-GENSTEPS="${WRFTOOLS}/Python/wrfrun/generateStepfile.py" # Python script to generate stepfiles
 # I/O, archiving, and averaging 
 IO='fineIO' # this is used for namelist construction and archiving
 ARSYS='' # archive - define in xconfig.sh
@@ -141,7 +140,7 @@ WPSSYS='' # WPS - define in xconfig.sh
 GEODATA="/project/p/peltier/WRF/geog/" # location of geogrid data
 ## WRF
 WRFSYS='' # WRF - define in xconfig.sh
-MAXWCT='48:00:00' # this is common on most clusters
+MAXWCT='' # to some extent dependent on cluster
 POLARWRF=0 # PolarWRF switch
 FLAKE=0 # FLake lake model (in-house; only V3.4 & V3.5)
 # some settings depend on the number of domains
@@ -150,15 +149,25 @@ MAXDOM=2 # number of domains in WRF and WPS
 ## load configuration file
 echo "Sourcing experimental setup file (xconfig.sh)" 
 source xconfig.sh
+
+# apply command line argument for WRFSYS (overrides xconfig)
+[[ -n $1 ]] && WRFSYS="$1"
+
+# set default wallclock limit by machine
+if [[ -z "${MAXWCT}" ]]; then
+  if [[ "${WRFSYS}" == 'P7' ]]; then
+    MAXWCT='72:00:00' # P7 has increased wallclock limit time
+  else
+    MAXWCT='48:00:00' # this is common on most clusters
+  fi # WRFSYS
+fi # $MAXWCT
+
 # create run folder
 echo
 echo "   Setting up Experiment ${NAME}"
 echo
 mkdir -p "${RUNDIR}"
 mkdir -p "${WRFOUT}"
-
-# apply command line argument for WRFSYS
-[[ -n $1 ]] && WRFSYS="$1"
 
 ## fix default settings
 
@@ -438,6 +447,7 @@ if [[ -n "${CYCLING}" ]]; then
     INT=${CYCLING#*:*:}
     END=${CYCLING%:*}; END=${END#*:}
     # generate stepfile on-the-fly
+    GENSTEPS=${GENSTEPS:-"${WRFTOOLS}/Python/wrfrun/generateStepfile.py"} # Python script to generate stepfiles
     echo "creating new stepfile: begin=${BEGIN}, end=${END}, interval=${INT}"    
     python "${GENSTEPS}" ${LLEAP} --interval="${INT}" "${BEGIN}" "${END}" 
     # LLEAP is defined above; don't quote option, because it may no be defined
@@ -518,7 +528,7 @@ fi # $AVGSCRIPT
 echo
 # radiation scheme
 RAD=$(sed -n '/ra_lw_physics/ s/^\ *ra_lw_physics\ *=\ *\(.\),.*$/\1/p' namelist.input) # \  = space
-if [[ "$RAD" != $(sed -n '/ra_sw_physics/ s/^\ *ra_sw_physics\ *=\ *\(.\),.*$/\1/p' namelist.input) ]]; then
+if [[ "${RAD}" != $(sed -n '/ra_sw_physics/ s/^\ *ra_sw_physics\ *=\ *\(.\),.*$/\1/p' namelist.input) ]]; then
   echo 'Error: different schemes for SW and LW radiation are currently not supported.'
   exit 1
 fi # check short wave 
