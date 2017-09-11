@@ -65,6 +65,7 @@ if [[ ${RUNPYWPS} == 1 ]]
   elif [[ "${DATATYPE}" == 'CMIP5' ]]; then
 		# CMIP5 Global Climate Model series Data
 		#cp ${NOCLOBBER} -P "${INIDIR}/MIROC5_rcp85_2085_pointer_local_full.validate.nc" "${WORKDIR}/CMIP5data.validate.nc"      # copy the validate file used by cdb_query
+    cp ${NOCLOBBER} -P "${INIDIR}/init" "${WORKDIR}"     #copy the initial step data
 		cp ${NOCLOBBER} -P "${BINDIR}/unCMIP5.ncl" "${BINDIR}/unccsm.exe" "${WORKDIR}"    # copy the executables
     find -maxdepth 1 -name "*validate*" -exec cp ${NOCLOBBER} -P {} "${WORKDIR}/CMIP5data.validate.nc" \;
 		#cp ${NOCLOBBER} -P "${INIDIR}/orog_fx_MIROC5_rcp85_r0i0p0.nc" "${WORKDIR}/orog_file.nc"      # copy the coordinate files used by unCMIP5.ncl
