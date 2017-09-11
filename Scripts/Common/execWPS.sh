@@ -128,8 +128,6 @@ if [[ ${RUNPYWPS} == 1 ]]
     fi
 
     # finish
-    # swap module back to previous set
-    
     
     echo
     echo ' >>> WPS finished <<< '
