@@ -21,6 +21,10 @@ Shour='18'
 def call_cdb_query_download_6hour(validate_file, output_file, year, month, day, hour):
     os.putenv('HDF5_DISABLE_VERSION_CHECK', '1')
     subprocess.call(['cdb_query_6hr CMIP5 reduce -O --year={0:} --month={1:} --day={2:} --hour={3:} --var=huss --var=tas --var=uas --var=vas --var=ua --var=va --var=ta --var=hus --var=ps --var=psl --out_destination=./\'{4:}_{5:}_{6:}_{7:}/\' \'\' {8:} {9:} '.format(year, month, day, hour, year, month, day, hour, validate_file, output_file)], shell=True)
+
+def call_cdb_query_download_day1(validate_file, output_file, year, month, day, hour):
+    os.putenv('HDF5_DISABLE_VERSION_CHECK', '1')
+    subprocess.call(['cdb_query_day1 CMIP5 reduce -O --year={0:} --month={1:} --day={2:} --hour={3:} --next --var=huss --var=tas --var=uas --var=vas --var=ua --var=va --var=ta --var=hus --var=ps --var=psl --out_destination=./\'{4:}_{5:}_{6:}_{7:}/\' \'\' {8:} {9:} '.format(year, month, day, hour, year, month, day, hour, validate_file, output_file)], shell=True)
     
 def call_cdb_query_download_day(validate_file, output_file, year, month, day):
     os.putenv('HDF5_DISABLE_VERSION_CHECK', '1') 
@@ -47,10 +51,14 @@ def clean_reduce_directory(reduce_directory):
 
 def apply_cdb_query_singleWPSstep(Vfile,inputdate):
     #Break up the namelist date string into individual components
+    print 'calling cdb_query for step {0:}'.format(inputdate)
+    print Vfile
     stepyear = inputdate[0]
     stepmonth = inputdate[1]
     stepday = inputdate[2]
     stephour = inputdate[3]
+    print stepyear,stepmonth,stepday,stephour
+    
     
     #Validate filename
     source_validate_file = Vfile
@@ -60,7 +68,14 @@ def apply_cdb_query_singleWPSstep(Vfile,inputdate):
     temp_output_file='reduce_output.nc'
     
     #Execute the cdb_query_CMIP5_reduce functions here for monthly/daily/6hourly files
-    call_cdb_query_download_6hour(source_validate_file, temp_output_file, stepyear, stepmonth, stepday, stephour)
+    if stepmonth == '1' and stepday == '1' and stephour == '0':
+      # Here copy the initial 6hr step file for each year into the folder. The file name is made after pyWPS.py glob the file with the right year. Therefore the file name is hard coded.
+      print stepyear,stepmonth,stepday,stephour
+      print 'copying initial timestep file for year {0:}'.format(stepyear)
+      subprocess.call(['cp initialstepfile.nc merged_6hourly.nc'], shell=True)
+    else:
+      call_cdb_query_download_6hour(source_validate_file, temp_output_file, stepyear, stepmonth, stepday, stephour)
+    #call_cdb_query_download_6hour(source_validate_file, temp_output_file, stepyear, stepmonth, stepday, stephour)
     call_cdb_query_download_day(source_validate_file, temp_output_file, stepyear, stepmonth, stepday)
     call_cdb_query_download_month(source_validate_file, temp_output_file, stepyear, stepmonth)
     
@@ -86,14 +101,14 @@ def apply_cdb_query_singleWPSstep(Vfile,inputdate):
     
     print(inputdate, 'completed cdb_query operation')
     
-name='__main__'
-if name == '__main__':
-  # Test the full function with date
-  # Note that the test requires a single validate file and date that associates with the validate file!
-  sampledate=('2085','01','01','00')
-  print('date=',sampledate)
-  #sampleVfile = '../pythoncdb/MIROC5_rcp85_2085_pointer_local_full.validate.nc'
-  sampleVfile = 'GFDL-ESM2M_rcp85_2100_full_pointer_local.validate.nc'
-  print('validate_file=',sampleVfile)
-  apply_cdb_query_singleWPSstep(sampleVfile,sampledate)
+#name='__main__'
+#if name == '__main__':
+#  # Test the full function with date
+#  # Note that the test requires a single validate file and date that associates with the validate file!
+#  sampledate=('2085','1','1','0')
+#  print('date=',sampledate)
+#  #sampleVfile = '../pythoncdb/MIROC5_rcp85_2085_pointer_local_full.validate.nc'
+#  sampleVfile = 'GFDL-CM3_rcp85_2084-2100_full_pointer_local.validate.nc'
+#  print('validate_file=',sampleVfile)
+#  apply_cdb_query_singleWPSstep(sampleVfile,sampledate)
   
