@@ -19,10 +19,11 @@ if [ -z $SYSTEM ] || [[ "$SYSTEM" == "$MAC" ]]; then
   # load modules
 	echo
 	module purge
-	module load intel/13.1.1 intelmpi/4.1.0.027 hdf5/187-v18-serial-intel netcdf/4.1.3_hdf5_serial-intel extras/64_6.4
+	#module load intel/15.0.2 intelmpi/4.1.0.027 hdf5/1814-v18-serial-intel netcdf/4.3.3.1_serial-intel cdo/1.6.9-intel extras/64_6.4
+  module load intel/13.1.1 intelmpi/4.1.0.027 hdf5/187-v18-serial-intel netcdf/4.1.3_hdf5_serial-intel extras/64_6.4
   #module load intel/12.1.5 openmpi/1.4.4-intel-v12.1 hdf5/187-v18-serial-intel netcdf/4.1.3_hdf5_serial-intel extras/64_6.4
   #module load intel/12.1.3 intelmpi/4.0.3.008 hdf5/187-v18-serial-intel netcdf/4.1.3_hdf5_serial-intel
-	module load gcc/4.8.1 python/2.7.3 ncl/6.1.0 extras/64_6.4 # need Python 2.7
+	module load gcc/4.8.1 anaconda2/4.1.1 ncl/6.2.0 extras/64_6.4 # need Python 2.7
 	# N.B.: extras/64 is necessary for Grib2 support (libjasper and libpng12)
   # pyWPS.py specific modules
 	#if [[ ${RUNPYWPS} == 1 ]]; then
@@ -35,6 +36,23 @@ if [ -z $SYSTEM ] || [[ "$SYSTEM" == "$MAC" ]]; then
 
   # unlimit stack size (unfortunately necessary with WRF to prevent segmentation faults)
   ulimit -s unlimited
+  
+  # set the functions that are used in CMIP5 cases
+  function ncks() { modulewrap -hdf5/187-v18-serial-intel,-netcdf/4.1.3_hdf5_serial-intel,hdf5/1814-v18-serial-intel,netcdf/4.3.3.1_serial-intel,udunits/2.1.11,gsl/1.15-intel,nco/4.4.8-intel command ncks $@; }
+  export -f ncks
+  
+  function cdo() { modulewrap -hdf5/187-v18-serial-intel,-netcdf/4.1.3_hdf5_serial-intel,hdf5/1814-v18-serial-intel,netcdf/4.3.3.1_serial-intel,cdo/1.6.9-intel command cdo $@; }
+  export -f cdo
+  
+  function cdb_query_6hr() { modulewrap -hdf5/187-v18-serial-intel,-netcdf/4.1.3_hdf5_serial-intel,hdf5/1814-v18-serial-intel,netcdf/4.3.3.1_serial-intel command cdb_query $1 $2 $3 $4 $5 $6 $7 $8 $9 ${10} ${11} ${12} ${13} ${14} ${15} ${16} ${17} ${18} "''" ${20} ${21};}
+  export -f cdb_query_6hr
+  
+  function cdb_query_day() { modulewrap -hdf5/187-v18-serial-intel,-netcdf/4.1.3_hdf5_serial-intel,hdf5/1814-v18-serial-intel,netcdf/4.3.3.1_serial-intel command cdb_query $1 $2 $3 $4 $5 $6 $7 $8 $9 ${10} ${11} ${12} "''" ${14} ${15};}
+  export -f cdb_query_day
+  
+  function cdb_query_month() { modulewrap -hdf5/187-v18-serial-intel,-netcdf/4.1.3_hdf5_serial-intel,hdf5/1814-v18-serial-intel,netcdf/4.3.3.1_serial-intel command cdb_query $1 $2 $3 $4 $5 $6 $7 $8 $9 "''" ${11} ${12};}
+  export -f cdb_query_month
+  
   
 fi # if on GPC
 
