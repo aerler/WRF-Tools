@@ -182,7 +182,10 @@ if [[ -z "${CASETYPE}" ]]; then
 fi
 
 # boundary data definition for WPS
-if [[ "${DATATYPE}" == 'CESM' ]]; then
+if [[ "${DATATYPE}" == 'CMIP5' ]]; then
+  POPMAP=${POPMAP:-'map_gx1v6_to_fv0.9x1.25_aave_da_090309.nc'} # ocean grid definition
+  METGRIDTBL=${METGRIDTBL:-'METGRID.TBL.CESM'}
+elif [[ "${DATATYPE}" == 'CESM' ]]; then
   POPMAP=${POPMAP:-'map_gx1v6_to_fv0.9x1.25_aave_da_090309.nc'} # ocean grid definition
   METGRIDTBL=${METGRIDTBL:-'METGRID.TBL.CESM'}
 # elif [[ "${DATATYPE}" == 'CCSM' ]]; then
@@ -212,7 +215,7 @@ fi # $FLAKE
 # but there are many versions of WRF...
 if [[ -z "$WRFBLD" ]]; then
   # GCM or reanalysis with current I/O version
-  if [[ "${DATATYPE}" == 'CESM' ]] || [[ "${DATATYPE}" == 'CCSM' ]]; then
+  if [[ "${DATATYPE}" == 'CESM' ]] || [[ "${DATATYPE}" == 'CCSM' ]] || [[ "${DATATYPE}" == 'CMIP5' ]]; then
     WRFBLD="Clim-${IO}" # variable GHG scenarios and no leap-years
     LLEAP='--noleap' # option for Python script to omit leap days
   elif [[ "${DATATYPE}" == 'ERA-I' ]] || [[ "${DATATYPE}" == 'CFSR' ]] || [[ "${DATATYPE}" == 'NARR' ]]; then
@@ -356,7 +359,7 @@ mkdir -p "${RUNDIR}/meta"
 cd "${RUNDIR}/meta"
 ln -sf "${WPSSRC}/geogrid/${GEOGRIDTBL}" 'GEOGRID.TBL'
 ln -sf "${WPSSRC}/metgrid/${METGRIDTBL}" 'METGRID.TBL'
-if [[ "${DATATYPE}" == 'CESM' ]] || [[ "${DATATYPE}" == 'CCSM' ]]; then
+if [[ "${DATATYPE}" == 'CESM' ]] || [[ "${DATATYPE}" == 'CCSM' ]] || [[ "${DATATYPE}" == 'CMIP5' ]]; then
   ln -sf "${WRFTOOLS}/misc/data/${POPMAP}"
 elif [[ "${DATATYPE}" == 'CFSR' ]]; then
   ln -sf "${WPSSRC}/ungrib/Variable_Tables/${VTABLE_PLEV}" 'Vtable.CFSR_plev'
@@ -373,6 +376,9 @@ if [[ "${DATATYPE}" == 'CESM' ]] || [[ "${DATATYPE}" == 'CCSM' ]]; then
   ln -sf "${DATADIR}/atm/hist/" 'atm' # atmosphere
   ln -sf "${DATADIR}/lnd/hist/" 'lnd' # land surface
   ln -sf "${DATADIR}/ice/hist/" 'ice' # sea ice
+elif [[ "${DATATYPE}" == 'CMIP5' ]]; then
+  rm -f 'init'
+  ln -sf "${DATADIR}/" 'init'  # initial file directory
 elif [[ "${DATATYPE}" == 'CFSR' ]]; then
   rm -f 'plev' 'srfc'
   ln -sf "${DATADIR}/plev/" 'plev' # pressure level date (3D, 0.5 deg)
@@ -422,6 +428,9 @@ ln -sf "${METEXE}"
 ln -sf "${REALEXE}"
 if [[ "${DATATYPE}" == 'CESM' ]] || [[ "${DATATYPE}" == 'CCSM' ]]; then
   ln -sf "${WRFTOOLS}/NCL/unccsm.ncl"
+  ln -sf "${WRFTOOLS}/bin/${WPSSYS}/unccsm.exe"
+elif  [[ "${DATATYPE}" == 'CMIP5' ]]; then
+  ln -sf "${WRFTOOLS}/NCL/unCMIP5.ncl"
   ln -sf "${WRFTOOLS}/bin/${WPSSYS}/unccsm.exe"
 else
   ln -sf "${UNGRIBEXE}"
@@ -642,6 +651,11 @@ echo
 echo "Remaining tasks:"
 echo " * review meta data and namelists"
 echo " * edit run scripts, if necessary,"
+if  [[ "${DATATYPE}" == 'CMIP5' ]]; then
+  echo " * copy the necessary meta files for CMIP5 into the meta folder"
+  echo " * These file includes the ocn2atm, orog, sftlf files for grid info"
+  echo " * copy the cdb_query CMIP5 validate file into the meta folder"
+fi
 echo
 # count number of broken links
 CNT=0
