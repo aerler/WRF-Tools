@@ -25,7 +25,7 @@ METDATA=${METDATA:-''} # folder to store metgrid data on disk, if desired
 # real.exe
 RUNREAL=${RUNREAL:-1} # whether to run real.exe
 REALIN=${REALIN:-"${METDATA}"} # location of metgrid files
-REALTMP=${REALTMP:-"${HOME}/metgrid"} # in case path to metgrid data is too long
+REALTMP=${REALTMP:-"${WORKDIR}/metgrid"} # in case path to metgrid data is too long
 RAMIN=${RAMIN:-1} # copy input data to ramdisk or read from HD
 REALOUT=${REALOUT:-"${WORKDIR}"} # output folder for WRF input data
 RAMOUT=${RAMOUT:-1} # write output data to ramdisk or directly to HD

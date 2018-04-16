@@ -12,9 +12,8 @@
 #SBATCH --mail-type=FAIL
 # job name
 #SBATCH -J cycling_WRF
-# job dependency
-#SBATCH --dependency=afterok:cycling_WPS
-# N.B.: not sure if this ${SLURM_JOB_NAME%_WRF}_WPS does work...
+### job dependency (doesn't seem to work
+###SBATCH --dependency=afterok:cycling_WPS
 
 
 ## machine specific job settings

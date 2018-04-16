@@ -130,6 +130,7 @@ fi # if $SKIPWPS
 if [ -z $QWAIT ] && [ -n $QSYS ]; then
   if [[ "$QSYS" == 'LL' ]]; then QWAIT=1
   elif [[ "$QSYS" == 'PBS' ]]; then QWAIT=1 # currently, dependencies don't work...
+  elif [[ "$QSYS" == 'SB' ]]; then QWAIT=1 # currently, dependencies don't work...
   elif [[ "$QSYS" == 'SGE' ]]; then QWAIT=1
   else QWAIT=1 # assume the system does not support dependencies
 fi; fi # $QWAIT
