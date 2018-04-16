@@ -22,6 +22,9 @@ if [ -z $SYSTEM ] || [[ "$SYSTEM" == "$MAC" ]]; then
 	module list
 	echo
 
+  # apparently necessary because headers a wrong version...
+  export HDF5_DISABLE_VERSION_CHECK=1
+
   # unlimit stack size (unfortunately necessary with WRF to prevent segmentation faults)
   ulimit -s unlimited
   
@@ -83,8 +86,8 @@ export I_MPI_DEBUG=1 # less output (currently no problems)
 export HYBRIDRUN=${HYBRIDRUN:-'mpirun -ppn ${TASKS} -np $((NODES*TASKS))'} # evaluated by execWRF and execWPS
 
 # geogrid command (executed during machine-independent setup)
-export RUNGEO=${RUNGEO:-"ssh nia-login08 \"cd ${INIDIR}; source ${SCRIPTDIR}/setup_WPS.sh; mpirun -n 4 ${BINDIR}/geogrid.exe\""} # run on GPC via ssh
-#export RUNGEO=${RUNGEO:-"mpirun -n 4 ${BINDIR}/geogrid.exe"}
+#export RUNGEO=${RUNGEO:-"ssh nia-login08 \"cd ${INIDIR}; source ${SCRIPTDIR}/setup_WPS.sh; mpirun -n 4 ${BINDIR}/geogrid.exe\""} # run on GPC via ssh
+export RUNGEO=${RUNGEO:-"mpirun -n 4 ${BINDIR}/geogrid.exe"}
 
 # WPS/preprocessing submission command (for next step)
 # export SUBMITWPS=${SUBMITWPS:-'ssh gpc01 "cd \"${INIDIR}\"; qsub ./${WPSSCRIPT} -v NEXTSTEP=${NEXTSTEP}"'} # evaluated by launchPreP
@@ -95,16 +98,20 @@ export SUBMITWPS=${SUBMITWPS:-'cd "${INIDIR}"; sbatch ./${WPSSCRIPT} --export=NE
 export WAITFORWPS=${WAITFORWPS:-'NO'} # stay on compute node until WPS for next step finished, in order to submit next WRF job
 
 # archive submission command (for last step in the interval)
-export SUBMITAR=${SUBMITAR:-'ssh nia-login08 "cd \"${INIDIR}\"; sbatch ./${ARSCRIPT} --export=TAGS=${ARTAG},MODE=BACKUP,INTERVAL=${ARINTERVAL}"'} # evaluated by launchPostP
+#export SUBMITAR=${SUBMITAR:-'ssh nia-login08 "cd \"${INIDIR}\"; sbatch ./${ARSCRIPT} --export=TAGS=${ARTAG},MODE=BACKUP,INTERVAL=${ARINTERVAL}"'} # evaluated by launchPostP
+export SUBMITAR='' # HPSS is currently not accessible
 # N.B.: requires $ARTAG to be set in the launch script
 
 # averaging submission command (for last step in the interval)
-export SUBMITAVG=${SUBMITAVG:-'ssh nia-login08 "cd \"${INIDIR}\"; sbatch ./${AVGSCRIPT} --export=PERIOD=${AVGTAG}"'} # evaluated by launchPostP
+#export SUBMITAVG=${SUBMITAVG:-'ssh nia-login08 "cd \"${INIDIR}\"; sbatch ./${AVGSCRIPT} --export=PERIOD=${AVGTAG}"'} # evaluated by launchPostP
+export SUBMITAVG=${SUBMITAVG:-"cd \"${INIDIR}\"; sbatch ./${AVGSCRIPT} --export=PERIOD=${AVGTAG}"} # evaluated by launchPostP
 # N.B.: requires $AVGTAG to be set in the launch script
 
 # job submission command (for next step)
-export RESUBJOB=${RESUBJOB-'ssh nia-login08 "cd \"${INIDIR}\"; sbatch ./${WRFSCRIPT} --export=NOWPS=${NOWPS},NEXTSTEP=${NEXTSTEP},RSTCNT=${RSTCNT}"'} # evaluated by resubJob
+#export RESUBJOB=${RESUBJOB-'ssh nia-login08 "cd \"${INIDIR}\"; sbatch ./${WRFSCRIPT} --export=NOWPS=${NOWPS},NEXTSTEP=${NEXTSTEP},RSTCNT=${RSTCNT}"'} # evaluated by resubJob
+export RESUBJOB=${RESUBJOB-"cd \"${INIDIR}\"; sbatch ./${WRFSCRIPT} --export=NOWPS=${NOWPS},NEXTSTEP=${NEXTSTEP},RSTCNT=${RSTCNT}"} # evaluated by resubJob
 
 # sleeper job submission (for next step when WPS is delayed)
-export SLEEPERJOB=${SLEEPERJOB-'ssh nia-login08 "cd \"${INIDIR}\"; nohup ./${STARTSCRIPT} --restart=${NEXTSTEP} --name=${JOBNAME} &> ${STARTSCRIPT%.sh}_${JOBNAME}_${NEXTSTEP}.log &"'} # evaluated by resubJob; relaunches WPS
+#export SLEEPERJOB=${SLEEPERJOB-'ssh nia-login08 "cd \"${INIDIR}\"; nohup ./${STARTSCRIPT} --restart=${NEXTSTEP} --name=${JOBNAME} &> ${STARTSCRIPT%.sh}_${JOBNAME}_${NEXTSTEP}.log &"'} # evaluated by resubJob; relaunches WPS
+export SLEEPERJOB=${SLEEPERJOB-"cd \"${INIDIR}\"; nohup ./${STARTSCRIPT} --restart=${NEXTSTEP} --name=${JOBNAME} &> ${STARTSCRIPT%.sh}_${JOBNAME}_${NEXTSTEP}.log &"} # evaluated by resubJob; relaunches WPS
 # N.B.: all sleeper jobs should be submitted to P7
