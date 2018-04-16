@@ -22,15 +22,18 @@ function RENAME () {
     if [[ "${FILE}" == *WPS* ]] && [[ "${WPSQ}" == "${Q}" ]]; then
       if [[ "${WPSQ}" == "pbs" ]]; then
         sed -i "/#PBS -N/ s/#PBS -N\ .*$/#PBS -N ${NAME}_WPS/" "${FILE}" # name
-        sed -i "/#PBS -l/ s/#PBS -l nodes=.*:\(.*\)$/#PBS -l nodes=${WPSNODES}:\1/" "${FILE}" # number of nodes (preserve task number)
+        sed -i "/#PBS -l/ s/#PBS -l nodes=.*:\(.*\)$/#PBS -l nodes=${WPSNODES}:\1/" "${FILE}" # number of nodes (task number is fixed)
         sed -i "/#PBS -l/ s/#PBS -l procs=.*$/#PBS -l procs=${WPSNODES}/" "${FILE}" # processes (alternative to nodes)
         sed -i "/#PBS -l/ s/#PBS -l walltime=.*$/#PBS -l walltime=${WPSWCT}/" "${FILE}" # wallclock time      
+      elif [[ "${WPSQ}" == "sb" ]]; then
+        sed -i "/#SBATCH -J/ s/#SBATCH -J\ .*$/#SBATCH -J ${NAME}_WPS/" "${FILE}" # name
+        sed -i "/#SBATCH --nodes/ s/#SBATCH --nodes=.*$/#SBATCH --nodes=${WPSNODES}/" "${FILE}" # number of nodes (preserve task number)
+        sed -i "/#SBATCH --time/ s/#SBATCH --time=.*$/#SBATCH --time=${WPSWCT}/" "${FILE}" # wallclock time      
       else
-      sed -i "/export JOBNAME/ s+export\ JOBNAME=.*$+export JOBNAME=${NAME}_WPS  # job name (dummy variable, since there is no queue)+" "${FILE}" # name
+        sed -i "/export JOBNAME/ s+export\ JOBNAME=.*$+export JOBNAME=${NAME}_WPS  # job name (dummy variable, since there is no queue)+" "${FILE}" # name
       fi # $Q
-    fi # if WPS
     # WRF run-script
-    if [[ "${FILE}" == *WRF* ]] && [[ "${WRFQ}" == "${Q}" ]]; then
+    elif [[ "${FILE}" == *WRF* ]] && [[ "${WRFQ}" == "${Q}" ]]; then
       if [[ "${WRFQ}" == "pbs" ]]; then
         sed -i "/#PBS -N/ s/#PBS -N\ .*$/#PBS -N ${NAME}_WRF/" "${FILE}" # experiment name
         #sed -i "/#PBS -W/ s/#PBS -W\ .*$/#PBS -W depend=afterok:${NAME}_WPS/" "${FILE}" # dependency on WPS
@@ -38,6 +41,11 @@ function RENAME () {
         sed -i "/#PBS -l/ s/#PBS -l procs=.*$/#PBS -l procs=${WRFNODES}/" "${FILE}" # processes (alternative to nodes)
         sed -i "/#PBS -l/ s/#PBS -l walltime=.*$/#PBS -l walltime=${MAXWCT}/" "${FILE}" # wallclock time
         sed -i "/qsub/ s/qsub ${WRFSCRIPT} -v NEXTSTEP=*\ -W*$/qsub ${WRFSCRIPT} -v NEXTSTEP=*\ -W\ ${NAME}_WPS/" "${FILE}" # dependency
+      elif [[ "${WRFQ}" == "sb" ]]; then
+        sed -i "/#SBATCH -J/ s/#SBATCH -J\ .*$/#SBATCH -J ${NAME}_WRF/" "${FILE}" # experiment name
+        sed -i "/#SBATCH --nodes/ s/#SBATCH --nodes=.*$/#SBATCH --nodes=${WRFNODES}/" "${FILE}" # number of nodes (task number is fixed)
+        sed -i "/#SBATCH --time/ s/#SBATCH --time=.*$/#SBATCH --time=${MAXWCT}/" "${FILE}" # wallclock time      
+        sed -i "/#SBATCH --dependency/ s/#SBATCH --dependency=.*$/#SBATCH --dependency=afterok:${NAME}_WPS/" "${FILE}" # dependency on WPS
       elif [[ "${WRFQ}" == "sge" ]]; then
         sed -i "/#\$ -N/ s/#\$ -N\ .*$/#\$ -N ${NAME}_WRF/" "${FILE}" # experiment name
         #sed -i "/#PBS -W/ s/#PBS -W\ .*$/#PBS -W depend=afterok:${NAME}_WPS/" "${FILE}" # dependency on WPS
@@ -51,7 +59,25 @@ function RENAME () {
         sed -i "/export JOBNAME/ s+export\ JOBNAME=.*$+export JOBNAME=${NAME}_WRF # job name (dummy variable, since there is no queue)+" "${FILE}" # name
         sed -i "/export TASKS/ s+export\ TASKS=.*$+export TASKS=${WRFNODES} # number of MPI tasks+" "${FILE}" # number of tasks (instead of nodes...)
       fi # $Q
-    fi # if WRF
+    # archive-script
+    elif [[ "${FILE}" == "${ARSCRIPT}" ]]; then
+      if [[ "${WPSQ}" == "pbs" ]]; then
+        sed -i "/#PBS -N/ s/#PBS -N\ .*$/#PBS -N ${NAME}_ar/" "${FILE}"
+      elif [[ "${WPSQ}" == "sb" ]]; then
+        sed -i "/#SBATCH -J/ s/#SBATCH -J\ .*$/#SBATCH -J ${NAME}_ar/" "${FILE}"
+      else
+        sed -i "/export JOBNAME/ s+export\ JOBNAME=.*$+export JOBNAME=${NAME}_ar # job name (dummy variable, since there is no queue)+" "${FILE}" # name                    
+      fi # $Q
+    # averaging-script
+    elif [[ "${FILE}" == "${AVGSCRIPT}" ]]; then
+      if [[ "${WPSQ}" == "pbs" ]]; then
+        sed -i "/#PBS -N/ s/#PBS -N\ .*$/#PBS -N ${NAME}_avg/" "${FILE}"
+      elif [[ "${WPSQ}" == "sb" ]]; then
+        sed -i "/#SBATCH -J/ s/#SBATCH -J\ .*$/#SBATCH -J ${NAME}_avg/" "${FILE}"
+      else
+        sed -i "/export JOBNAME/ s+export\ JOBNAME=.*$+export JOBNAME=${NAME}_avg # job name (dummy variable, since there is no queue)+" "${FILE}" # name                    
+      fi # $Q
+    fi # if WPS,WRF,AR,AVG
     # set email address for notifications
     if [[ -n "$EMAIL" ]]; then
 	    if [[ "${Q}" == "pbs" ]]; then
@@ -155,7 +181,9 @@ source xconfig.sh
 
 # set default wallclock limit by machine
 if [[ -z "${MAXWCT}" ]]; then
-  if [[ "${WRFSYS}" == 'P7' ]]; then
+  if [[ "${WRFSYS}" == 'Niagara' ]]; then
+    MAXWCT='24:00:00' # Niagara has reduced wallclock limit time
+  elif [[ "${WRFSYS}" == 'P7' ]]; then
     MAXWCT='72:00:00' # P7 has increased wallclock limit time
   else
     MAXWCT='48:00:00' # this is common on most clusters
@@ -508,15 +536,9 @@ echo
 # prepare archive script
 if [[ -n "${ARSCRIPT}" ]] && [[ -n "${ARSYS}" ]]; then
     # copy script and change job name
-    cp -f "${WRFTOOLS}/Machines/${ARSYS}/${ARSCRIPT}" .
-    sed -i "/#PBS -N/ s/#PBS -N\ .*$/#PBS -N ${NAME}_ar/" "${ARSCRIPT}"
+    cp -f "${WRFTOOLS}/Machines/${ARSYS}/${ARSCRIPT}" .    
     echo "Setting up archiving: ${ARSCRIPT}"
-    # set archiving interval
-    if [[ -n "${ARINTERVAL}" ]]; then
-      sed -i "/INTERVAL/ s/^\ *INTERVAL=.*$/INTERVAL=\'${ARINTERVAL}\' # interval in which the archive script is to be executed/" "${ARSCRIPT}"
-    fi
-    # dataset variable for number of domains is now set universally        
-    # update folder names
+    # update folder names and queue parameters
     RENAME "${ARSCRIPT}"
 fi # $ARSCRIPT
 # prepare averaging script
@@ -525,10 +547,9 @@ if [[ -n "${AVGSCRIPT}" ]] && [[ -n "${AVGSYS}" ]]; then
     ln -s "${WRFTOOLS}/Python/wrfavg/wrfout_average.py" "./scripts/"
     ln -s "${WRFTOOLS}/Scripts/WRF/addVariable.sh" "./scripts/"
     cp -f "${WRFTOOLS}/Machines/${AVGSYS}/${AVGSCRIPT}" .
-    mkdir -p 'wrfavg' # folder for averaged output
-    sed -i "/#PBS -N/ s/#PBS -N\ .*$/#PBS -N ${NAME}_avg/" "${AVGSCRIPT}"
+    mkdir -p 'wrfavg' # folder for averaged output    
     echo "Setting up averaging: ${AVGSCRIPT}"
-    # update folder names
+    # update folder names and queue parameters
     RENAME "${AVGSCRIPT}"
 fi # $AVGSCRIPT
 
@@ -652,6 +673,8 @@ echo "Remaining tasks:"
 echo " * review meta data and namelists"
 echo " * edit run scripts, if necessary,"
 if  [[ "${DATATYPE}" == 'CMIP5' ]]; then
+  echo
+  echo "For CMIP5 data:"
   echo " * copy the necessary meta files for CMIP5 into the meta folder"
   echo " * These file includes the ocn2atm, orog, sftlf files for grid info"
   echo " * copy the cdb_query CMIP5 validate file into the meta folder"
