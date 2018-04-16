@@ -6,7 +6,7 @@
 #SBATCH --ntasks-per-node=40
 #SBATCH --time=2:00:00
 # std and error output
-#SBATCH --output=$SLURM_JOB_NAME.$SLURM_JOB_ID.out
+#SBATCH --output=cycling_WPS.%j.out
 # send email if abort (nbae)
 #SBATCH --mail-user="$EMAIL"
 #SBATCH --mail-type=FAIL

@@ -6,12 +6,12 @@
 #SBATCH --ntasks-per-node=40
 #SBATCH --time=1:00:00
 # std and error output
-#SBATCH --output=$SLURM_JOB_NAME.$SLURM_JOB_ID.out
+#SBATCH --output=cycling_avg.%j.out
 # send email if abort (nbae)
 #SBATCH --mail-user="$EMAIL"
 #SBATCH --mail-type=END,FAIL
 # job name
-#SBATCH -J wrf_avg_test
+#SBATCH -J cycling_avg
 
 # some log info
 echo

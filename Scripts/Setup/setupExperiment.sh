@@ -27,6 +27,7 @@ function RENAME () {
         sed -i "/#PBS -l/ s/#PBS -l walltime=.*$/#PBS -l walltime=${WPSWCT}/" "${FILE}" # wallclock time      
       elif [[ "${WPSQ}" == "sb" ]]; then
         sed -i "/#SBATCH -J/ s/#SBATCH -J\ .*$/#SBATCH -J ${NAME}_WPS/" "${FILE}" # name
+        sed -i "/#SBATCH --output/ s/#SBATCH --output=.*$/#SBATCH --output=${NAME}_WPS.%j.out/" "${FILE}"
         sed -i "/#SBATCH --nodes/ s/#SBATCH --nodes=.*$/#SBATCH --nodes=${WPSNODES}/" "${FILE}" # number of nodes (preserve task number)
         sed -i "/#SBATCH --time/ s/#SBATCH --time=.*$/#SBATCH --time=${WPSWCT}/" "${FILE}" # wallclock time      
       else
@@ -43,6 +44,7 @@ function RENAME () {
         sed -i "/qsub/ s/qsub ${WRFSCRIPT} -v NEXTSTEP=*\ -W*$/qsub ${WRFSCRIPT} -v NEXTSTEP=*\ -W\ ${NAME}_WPS/" "${FILE}" # dependency
       elif [[ "${WRFQ}" == "sb" ]]; then
         sed -i "/#SBATCH -J/ s/#SBATCH -J\ .*$/#SBATCH -J ${NAME}_WRF/" "${FILE}" # experiment name
+        sed -i "/#SBATCH --output/ s/#SBATCH --output=.*$/#SBATCH --output=${NAME}_WRF.%j.out/" "${FILE}"
         sed -i "/#SBATCH --nodes/ s/#SBATCH --nodes=.*$/#SBATCH --nodes=${WRFNODES}/" "${FILE}" # number of nodes (task number is fixed)
         sed -i "/#SBATCH --time/ s/#SBATCH --time=.*$/#SBATCH --time=${MAXWCT}/" "${FILE}" # wallclock time      
         sed -i "/#SBATCH --dependency/ s/#SBATCH --dependency=.*$/#SBATCH --dependency=afterok:${NAME}_WPS/" "${FILE}" # dependency on WPS
@@ -65,6 +67,7 @@ function RENAME () {
         sed -i "/#PBS -N/ s/#PBS -N\ .*$/#PBS -N ${NAME}_ar/" "${FILE}"
       elif [[ "${WPSQ}" == "sb" ]]; then
         sed -i "/#SBATCH -J/ s/#SBATCH -J\ .*$/#SBATCH -J ${NAME}_ar/" "${FILE}"
+        sed -i "/#SBATCH --output/ s/#SBATCH --output=.*$/#SBATCH --output=${NAME}_ar.%j.out/" "${FILE}"
       else
         sed -i "/export JOBNAME/ s+export\ JOBNAME=.*$+export JOBNAME=${NAME}_ar # job name (dummy variable, since there is no queue)+" "${FILE}" # name                    
       fi # $Q
@@ -74,6 +77,7 @@ function RENAME () {
         sed -i "/#PBS -N/ s/#PBS -N\ .*$/#PBS -N ${NAME}_avg/" "${FILE}"
       elif [[ "${WPSQ}" == "sb" ]]; then
         sed -i "/#SBATCH -J/ s/#SBATCH -J\ .*$/#SBATCH -J ${NAME}_avg/" "${FILE}"
+        sed -i "/#SBATCH --output/ s/#SBATCH --output=.*$/#SBATCH --output=${NAME}_avg.%j.out/" "${FILE}"
       else
         sed -i "/export JOBNAME/ s+export\ JOBNAME=.*$+export JOBNAME=${NAME}_avg # job name (dummy variable, since there is no queue)+" "${FILE}" # name                    
       fi # $Q
@@ -82,7 +86,9 @@ function RENAME () {
     if [[ -n "$EMAIL" ]]; then
 	    if [[ "${Q}" == "pbs" ]]; then
 	      sed -i "/#PBS -M/ s/#PBS -M\ .*$/#PBS -M \"${EMAIL}\"/" "${FILE}" # notification address
-	    elif [[ "${WRFQ}" == "sge" ]]; then
+	    elif [[ "${WPSQ}" == "sb" ]]; then
+        sed -i "/#SBATCH --mail-user/ s/#SBATCH --mail-user=.*$/#SBATCH --mail-user=${EMAIL}/" "${FILE}"
+      elif [[ "${WRFQ}" == "sge" ]]; then
 	      sed -i "/#\$ -M/ s/#\$ -M\ .*$/#\$ -M ${EMAIL}/" "${FILE}" # notification address
       elif [[ "${Q}" == "ll" ]]; then
         : # apparently email address is not set here...?
