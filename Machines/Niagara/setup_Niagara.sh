@@ -18,12 +18,12 @@ if [ -z $SYSTEM ] || [[ "$SYSTEM" == "$MAC" ]]; then
   # load modules
 	echo
 	module purge
-  module load NiaEnv/2018a intel/2018.2 intelmpi/2018.2 hdf5/1.8.20 netcdf/4.6.1 python/2.7.14-anaconda5.1.0
+  module load NiaEnv/2018a python/2.7.14-anaconda5.1.0 intel/2018.2 intelmpi/2018.2 hdf5/1.8.20 netcdf/4.6.1
 	module list
 	echo
 
-  # apparently necessary because headers a wrong version...
-  export HDF5_DISABLE_VERSION_CHECK=1
+  # Anaconda has a different HDF5 version, so if another load-order is required, we need this:
+  #export HDF5_DISABLE_VERSION_CHECK=1
 
   # unlimit stack size (unfortunately necessary with WRF to prevent segmentation faults)
   ulimit -s unlimited
@@ -52,8 +52,9 @@ fi # if RUNPYWPS
 # RAM-disk settings: infer from queue
 if [[ ${RUNPYWPS} == 1 ]] && [[ ${RUNREAL} == 1 ]]
   then
-    #if [[ "${PBS_QUEUE}" == 'largemem' ]]; then
-    if [ $(( $(free | grep 'Mem:' | awk '{print $2}') / 1024**2 )) -gt 100 ]; then
+    RAMGB=$(( $(free | grep 'Mem:' | awk '{print $2}') / 1024**2 ))
+    if [  -gt 90 ]; then
+      # apparently Niagara nodes have 93GB, but that should be enough
 			export RAMIN=${RAMIN:-1}
 			export RAMOUT=${RAMOUT:-1}
     else
@@ -102,26 +103,23 @@ export HYBRIDRUN=${HYBRIDRUN:-'mpirun -ppn ${TASKS} -np $((NODES*TASKS))'} # eva
 export RUNGEO=${RUNGEO:-"mpirun -n 4 ${BINDIR}/geogrid.exe"}
 
 # WPS/preprocessing submission command (for next step)
-export SUBMITWPS=${SUBMITWPS:-'ssh nia-login08 "cd \"${INIDIR}\"; qsub ./${WPSSCRIPT} -v NEXTSTEP=${NEXTSTEP}"'} # evaluated by launchPreP
-#export SUBMITWPS=${SUBMITWPS:-'cd "${INIDIR}"; sbatch ./${WPSSCRIPT} --export=NEXTSTEP=${NEXTSTEP}'} # no queue selector here
+export SUBMITWPS=${SUBMITWPS:-'ssh nia-login07 "cd \"${INIDIR}\"; qsub ./${WPSSCRIPT} -v NEXTSTEP=${NEXTSTEP}"'} # evaluated by launchPreP
 # N.B.: this is a "here document"; variable substitution should happen at the eval stage
 export WAITFORWPS=${WAITFORWPS:-'NO'} # stay on compute node until WPS for next step finished, in order to submit next WRF job
 
 # archive submission command (for last step in the interval)
-#export SUBMITAR=${SUBMITAR:-'ssh nia-login08 "cd \"${INIDIR}\"; sbatch ./${ARSCRIPT} --export=TAGS=${ARTAG},MODE=BACKUP,INTERVAL=${ARINTERVAL}"'} # evaluated by launchPostP
-export SUBMITAR='' # HPSS is currently not accessible
+#export SUBMITAR=${SUBMITAR:-'ssh nia-login07 "cd \"${INIDIR}\"; sbatch ./${ARSCRIPT} --export=TAGS=${ARTAG},MODE=BACKUP,INTERVAL=${ARINTERVAL}"'} # evaluated by launchPostP
 # N.B.: requires $ARTAG to be set in the launch script
+# until HPSS is operational, log archive backlog
+export SUBMITAR=${SUBMITAR:-'ssh nia-login07 "cd \"${INIDIR}\"; echo \"${ARTAG}\" >> HPSS_backlog.txt"; echo "Logging archive tag \"${ARTAG}\" in 'HPSS_backlog.txt' for later archiving."'} # evaluated by launchPostP
+# N.B.: instead of archiving, just log the year to be archived; this is temporarily necessary,  because HPSS is full
 
 # averaging submission command (for last step in the interval)
-export SUBMITAVG=${SUBMITAVG:-'ssh nia-login08 "cd \"${INIDIR}\"; sbatch ./${AVGSCRIPT} --export=PERIOD=${AVGTAG}"'} # evaluated by launchPostP
-#export SUBMITAVG=${SUBMITAVG:-"cd \"${INIDIR}\"; sbatch ./${AVGSCRIPT} --export=PERIOD=${AVGTAG}"} # evaluated by launchPostP
+export SUBMITAVG=${SUBMITAVG:-'ssh nia-login07 "cd \"${INIDIR}\"; sbatch ./${AVGSCRIPT} --export=PERIOD=${AVGTAG}"'} # evaluated by launchPostP
 # N.B.: requires $AVGTAG to be set in the launch script
 
 # job submission command (for next step)
-export RESUBJOB=${RESUBJOB-'ssh nia-login08 "cd \"${INIDIR}\"; sbatch ./${WRFSCRIPT} --export=NOWPS=${NOWPS},NEXTSTEP=${NEXTSTEP},RSTCNT=${RSTCNT}"'} # evaluated by resubJob
-#export RESUBJOB=${RESUBJOB-"cd \"${INIDIR}\"; sbatch ./${WRFSCRIPT} --export=NOWPS=${NOWPS},NEXTSTEP=${NEXTSTEP},RSTCNT=${RSTCNT}"} # evaluated by resubJob
+export RESUBJOB=${RESUBJOB-'ssh nia-login07 "cd \"${INIDIR}\"; sbatch ./${WRFSCRIPT} --export=NOWPS=${NOWPS},NEXTSTEP=${NEXTSTEP},RSTCNT=${RSTCNT}"'} # evaluated by resubJob
 
 # sleeper job submission (for next step when WPS is delayed)
-export SLEEPERJOB=${SLEEPERJOB-'ssh nia-login08 "cd \"${INIDIR}\"; nohup ./${STARTSCRIPT} --restart=${NEXTSTEP} --name=${JOBNAME} &> ${STARTSCRIPT%.sh}_${JOBNAME}_${NEXTSTEP}.log &"'} # evaluated by resubJob; relaunches WPS
-#export SLEEPERJOB=${SLEEPERJOB-"cd \"${INIDIR}\"; nohup ./${STARTSCRIPT} --restart=${NEXTSTEP} --name=${JOBNAME} &> ${STARTSCRIPT%.sh}_${JOBNAME}_${NEXTSTEP}.log &"} # evaluated by resubJob; relaunches WPS
-# N.B.: all sleeper jobs should be submitted to P7
+export SLEEPERJOB=${SLEEPERJOB-'ssh nia-login07 "cd \"${INIDIR}\"; nohup ./${STARTSCRIPT} --restart=${NEXTSTEP} --name=${JOBNAME} &> ${STARTSCRIPT%.sh}_${JOBNAME}_${NEXTSTEP}.log &"'} # evaluated by resubJob; relaunches WPS
