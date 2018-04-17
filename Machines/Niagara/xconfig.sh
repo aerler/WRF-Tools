@@ -36,6 +36,7 @@ PHYSICS='clim-new-v36' # this namelist has to be compatible with the WRF build u
 # PHYSICS_MOD=' sf_lake_physics = 1, 1, 1, ! maybe works now... : use_lakedepth = 0 ! lets try with default depth'
 NOAH_MP='new-v36'
 DOMAINS="${DATATYPE,,}-${RES},${DOM}-grid" # lower-case dataset name
+DOMAINS_MOD=' time_step   = 150 ! for more stability: e_vert   = 42, 42, 42, ! increase vertical resolution for V3.6'
 FDDA='spectral'
 DYNAMICS='default'
 DYNAMICS_MOD=' epssm = 0.5, 0.5, 0.5 ! necessary over the Rocky Mountains'

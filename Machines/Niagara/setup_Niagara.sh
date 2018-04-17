@@ -39,6 +39,16 @@ if [ -z $SYSTEM ] || [[ "$SYSTEM" == "$MAC" ]]; then
   
 fi # if on Niagara
 
+
+# set Python path for PyWPS
+if [[ ${RUNPYWPS} == 1 ]]
+  then
+    if [ -e "${CODE_ROOT}/WRF Tools/Python/" ]; then export PYTHONPATH="${CODE_ROOT}/WRF Tools/Python:${PYTHONPATH}";
+    elif [ -e "${CODE_ROOT}/WRF-Tools/Python/" ]; then export PYTHONPATH="${CODE_ROOT}/WRF-Tools/Python:${PYTHONPATH}"; fi
+    echo "PYTHONPATH: $PYTHONPATH"
+fi # if RUNPYWPS
+
+
 # RAM-disk settings: infer from queue
 if [[ ${RUNPYWPS} == 1 ]] && [[ ${RUNREAL} == 1 ]]
   then
@@ -50,6 +60,8 @@ if [[ ${RUNPYWPS} == 1 ]] && [[ ${RUNREAL} == 1 ]]
 			export RAMIN=${RAMIN:-1}
 			export RAMOUT=${RAMOUT:-0}
     fi # PBS_QUEUE
+    ## don't use hyperthreading for WPS
+    #export TASKS=${TASKS:-40} # number of MPI task per node 
   else
     export RAMIN=${RAMIN:-0}
     export RAMOUT=${RAMOUT:-0}
