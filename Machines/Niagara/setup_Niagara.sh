@@ -103,7 +103,11 @@ export HYBRIDRUN=${HYBRIDRUN:-'mpirun -ppn ${TASKS} -np $((NODES*TASKS))'} # eva
 export RUNGEO=${RUNGEO:-"mpirun -n 4 ${BINDIR}/geogrid.exe"}
 
 # WPS/preprocessing submission command (for next step)
+<<<<<<< HEAD
 export SUBMITWPS=${SUBMITWPS:-'ssh nia-login07 "cd \"${INIDIR}\"; sbatch ./${WPSSCRIPT} --export=NEXTSTEP=${NEXTSTEP}"'} # evaluated by launchPreP
+=======
+export SUBMITWPS=${SUBMITWPS:-'ssh nia-login07 "cd \"${INIDIR}\"; qsub ./${WPSSCRIPT} -v NEXTSTEP=${NEXTSTEP}"'} # evaluated by launchPreP
+>>>>>>> 1b3e53527897703c2ffd76c222da4a9cc2100484
 # N.B.: this is a "here document"; variable substitution should happen at the eval stage
 export WAITFORWPS=${WAITFORWPS:-'NO'} # stay on compute node until WPS for next step finished, in order to submit next WRF job
 
