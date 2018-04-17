@@ -50,10 +50,12 @@ fi # if RUNPYWPS
 
 
 # RAM-disk settings: infer from queue
+echo
 if [[ ${RUNPYWPS} == 1 ]] && [[ ${RUNREAL} == 1 ]]
   then
     RAMGB=$(( $(free | grep 'Mem:' | awk '{print $2}') / 1024**2 ))
-    if [  -gt 90 ]; then
+    echo "Detected ${RAMGB} GB of Memory"
+    if [ $RAMGB -gt 90 ]; then
       # apparently Niagara nodes have 93GB, but that should be enough
 			export RAMIN=${RAMIN:-1}
 			export RAMOUT=${RAMOUT:-1}
@@ -67,8 +69,7 @@ if [[ ${RUNPYWPS} == 1 ]] && [[ ${RUNREAL} == 1 ]]
     export RAMIN=${RAMIN:-0}
     export RAMOUT=${RAMOUT:-0}
 fi # if WPS
-echo
-echo "RAMIN=${RAMIN} and RAMOUT=${RAMOUT}"
+echo "Setting RAMIN=${RAMIN} and RAMOUT=${RAMOUT}"
 echo
 
 # RAM disk folder (cleared and recreated if needed)
