@@ -20,8 +20,6 @@ uname
 echo
 date
 echo
-module list
-echo
 
 ## general settings
 INIDIR="${SLURM_SUBMIT_DIR}"
@@ -34,6 +32,12 @@ DOMAINS='1234' # string of single-digit domain indices
 ADDVAR=${ADDVAR:-"FALSE"}
 #ADDVARIABLE="addVariable.sh" # an NCKS script
 ADDVARIABLE="" # won't work at the moment
+
+
+## load machine setup
+export RUNPYWPS=1 # to set Python path
+source "$SCRIPTDIR/setup_WPS.sh"
+
 
 # return to original working directory
 cd "${INIDIR}"
