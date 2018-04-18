@@ -45,6 +45,7 @@ if [[ ${RUNPYWPS} == 1 ]]
   then
     if [ -e "${CODE_ROOT}/WRF Tools/Python/" ]; then export PYTHONPATH="${CODE_ROOT}/WRF Tools/Python:${PYTHONPATH}";
     elif [ -e "${CODE_ROOT}/WRF-Tools/Python/" ]; then export PYTHONPATH="${CODE_ROOT}/WRF-Tools/Python:${PYTHONPATH}"; fi
+    if [ -e "${CODE_ROOT}/GeoPy/src/" ]; then export PYTHONPATH="${CODE_ROOT}/GeoPy/src:${PYTHONPATH}"; fi
     echo "PYTHONPATH: $PYTHONPATH"
 fi # if RUNPYWPS
 
