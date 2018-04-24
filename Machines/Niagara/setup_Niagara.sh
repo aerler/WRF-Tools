@@ -20,6 +20,7 @@ if [ -z $SYSTEM ] || [[ "$SYSTEM" == "$MAC" ]]; then
 	module purge
   #module load NiaEnv/2018a python/2.7.14-anaconda5.1.0 intel/2018.2 openmpi/3.1.0rc4 hdf5/1.8.20 netcdf/4.6.1
   module load NiaEnv/2018a python/2.7.14-anaconda5.1.0 intel/2018.2 intelmpi/2018.2 hdf5/1.8.20 netcdf/4.6.1
+  module load python/.experimental-2.7.14-anaconda-5.1.0 ncl/.experimental-6.4.0
 	module list
 	echo
 
