@@ -199,21 +199,32 @@ if [[ ${RUNREAL} == 1 ]]
     ## run and time hybrid (mpi/openmp) job
     cd "${REALDIR}" # so that output is written here
     export OMP_NUM_THREADS=${THREADS} # set OpenMP environment
-    echo
-    echo "OMP_NUM_THREADS=${OMP_NUM_THREADS}"
-    echo
-    echo "${HYBRIDRUN} ./real.exe"
-    echo
-    echo "Writing output to ${REALDIR}"
-    echo
-    eval "time -p ${HYBRIDRUN} ./real.exe"
-    wait # wait for all threads to finish
-    echo
-    # check REAL exit status
-    if [[ -n $(grep 'SUCCESS COMPLETE REAL_EM INIT' rsl.error.0000) ]];
-	    then REALERR=0
-	    else REALERR=1
-    fi
+    LOOPACTIVE=true
+    LOOPCOUNTER=0
+    while $LOOPACTIVE; do
+        echo "Number of loop is $LOOPCOUNTER"
+        echo "Wait 1m before real.exe starts"
+        sleep 1m
+        echo
+        echo "OMP_NUM_THREADS=${OMP_NUM_THREADS}"
+        echo
+        echo "${HYBRIDRUN} ./real.exe"
+        echo
+        echo "Writing output to ${REALDIR}"
+        echo
+        eval "time -p ${HYBRIDRUN} ./real.exe"
+        wait # wait for all threads to finish
+        echo
+        # check REAL exit status
+        if [[ -n $(grep 'SUCCESS COMPLETE REAL_EM INIT' rsl.error.0000) ]];
+    	    then REALERR=0; LOOPACTIVE=false;
+    	    else REALERR=1; let "LOOPCOUNTER=LOOPCOUNTER+1"; echo "real.exe failed, restarting...";
+        fi
+        if [[ "$LOOPCOUNTER" -gt 10 ]]; then
+                LOOPACTIVE=false
+                echo " real.exe loop exceed maximum trial of 10, aborting. "
+        fi
+    done
 
     # clean-up and move output to hard disk
     if [[ ${RAMIN} != 1 ]]; then rm "${REALTMP}"; fi # remove temporary link to metgrid data
