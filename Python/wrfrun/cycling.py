@@ -41,6 +41,7 @@ else: IniDir = os.getcwd() + '/' # current directory
 if os.environ.has_key('DATATYPE'):
   if os.environ['DATATYPE'][:4] == 'CESM': lly = False # CESMx does not have leap-years
   elif os.environ['DATATYPE'][:4] == 'CCSM': lly = False # CCSMx does not have leap-years
+  elif os.environ['DATATYPE'][:5] == 'CMIP5': lly = False # CCSMx does not have leap-years
   else: lly = True # reanalysis have leap-years
 else: lly = False # GCMs like CESM/CCSM generally don't have leap-years
 if os.environ.has_key('RSTINT'):
