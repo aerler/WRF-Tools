@@ -7,12 +7,12 @@ GHG='RCP8.5' # CAMtr_volume_mixing_ratio.* file to be used
 CYCLING="1979:2009:1M" # stepfile to be used (leave empty if not cycling)
 # I/O and archiving
 IO='fineIO' # this is used for executables and archiving
-ARSYS='' # not available
-ARSCRIPT='' # no archiving available on Bugaboo yet
-ARINTERVAL='' # default is yearly
-AVGSYS='Niagara' # post-processign on Bugaboo
+ARSYS='HPSS' # archiving on Niagara
+ARSCRIPT='DEFAULT' # default archiving script
+ARINTERVAL='YEARLY' # default is yearly
+AVGSYS='Niagara' # post-processign on Niagara
 AVGSCRIPT='DEFAULT' # default post-processing
-AVGINTERVAL='MONTHLY' # default is yearly
+AVGINTERVAL='YEARLY' # default is yearly
 
 ## configure data sources
 RUNDIR="${PWD}" # must not contain spaces!
@@ -20,7 +20,7 @@ RUNDIR="${PWD}" # must not contain spaces!
 DATATYPE='ERA-I'
 DATADIR="/scratch/p/peltier/aerler/${DATATYPE}/"
 # other WPS configuration files
-GEODATA="/project/p/peltier/WRF/geog_v3.6/"
+GEODATA="/project/p/peltier/WRF/geog_v3.9/"
 
 ## namelist definition section
 # list of namelist groups and used snippets
@@ -54,7 +54,7 @@ FLAKE=0 # don't use FLake (doesn't work with FLake in V3.6)
 
 ## system settings
 WRFTOOLS="${HOME}/WRF Tools/"
-WRFROOT="${HOME}/WRFV3.6/"
+WRFROOT="${HOME}/WRFV3.9/"
 # WRF and WPS wallclock  time limits (no way to query from queue system)
 # WRF and WPS wallclock  time limits (no way to query from queue system)
 MAXWCT='24:00:00' # WRF wallclock hard limit

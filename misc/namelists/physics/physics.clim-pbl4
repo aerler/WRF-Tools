@@ -1,16 +1,16 @@
  &physics
  mp_physics                          = 6,   6,   10, 
- ra_lw_physics                       = 3,   3,   4, 
- ra_sw_physics                       = 3,   3,   4,  
+ ra_lw_physics                       = 4,   4,   4, 
+ ra_sw_physics                       = 4,   4,   4,  
  radt                                = 30,  30,  30,
- sf_sfclay_physics                   = 4,   4,   5, 
+ sf_sfclay_physics                   = 4,   4,   4, 
  sf_surface_physics                  = 2,   2,   2, 
  sf_urban_physics                    = 0,   0,   0, 
- bl_pbl_physics                      = 4,   4,   5, 
+ bl_pbl_physics                      = 4,   4,   4, 
  bldt                                = 0,   0,   0, 
- cu_physics                          = 1,   1,   5, 
+ cu_physics                          = 1,   1,   1, 
  cudt                                = 0,   0,   0,
- shcu_physics                        = 1,   1,   0, ! shallow cumulus scheme from CESM
+ shcu_physics                        = 0,   0,   0, ! shallow cumulus scheme from CESM
  ishallow                            = 0 ! shallow convection (G3)
  grav_settling                       = 0, 0, 0, ! gravitational settling for pbl=5,6
  surface_input_source                = 1, ! could use CESM input

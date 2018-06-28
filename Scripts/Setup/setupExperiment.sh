@@ -154,8 +154,8 @@ DELT='DEFAULT' # time decrement for auto restart (DEFAULT: select according to t
 DATADIR='' # root directory for data
 DATATYPE='CESM' # boundary forcing type
 ## run configuration
-WRFROOT="${CODE_ROOT}/WRFV3.4/"
-WRFTOOLS="${CODE_ROOT}/WRF Tools/"
+WRFROOT="${CODE_ROOT}/WRFV3.9/"
+WRFTOOLS="${CODE_ROOT}/WRF-Tools/"
 # I/O, archiving, and averaging 
 IO='fineIO' # this is used for namelist construction and archiving
 ARSYS='' # archive - define in xconfig.sh
