@@ -1,1 +1,9 @@
-../geogrid/geogrid.wc3-7km-grid
+This is the grid definition that's shared between the WPS and WRF namelist
+&geogrid
+ parent_id         =   1,   1,
+ parent_grid_ratio =   1,   7,
+ i_parent_start    =   1, 160,
+ j_parent_start    =   1,  95,
+ e_we              = 250, 267,
+ e_sn              = 200, 561,
+/

@@ -1,1 +1,8 @@
-../geogrid/geogrid.columbia-brian-25km-grid
+&geogrid
+ parent_id         = 1,1,2,
+ parent_grid_ratio = 1,5,5,
+ i_parent_start    = 1,65,110,
+ j_parent_start    = 1,18,78,
+ e_we          = 155,231,376,
+ e_sn          = 140,251,506,
+/
