@@ -6,7 +6,7 @@
  parent_id                           =      0,     1, 
  dx                                  = 120000, 40000,
  dy                                  = 120000, 40000,
- e_vert                              =     28,    28,
+ e_vert                              =     38,    38,
  p_top_requested                     =   5000,
  feedback                            = 0,
  smooth_option                       = 0,
