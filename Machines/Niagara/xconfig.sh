@@ -38,7 +38,7 @@ NOAH_MP='new-v36'
 DOMAINS="${DATATYPE,,}-${RES},${DOM}-grid" # lower-case dataset name
 DOMAINS_MOD=' time_step   = 150 ! for more stability: e_vert   = 42, 42, 42, ! increase vertical resolution for V3.6'
 FDDA='spectral'
-DYNAMICS='default'
+DYNAMICS='default-v39'
 DYNAMICS_MOD=' epssm = 0.5, 0.5, 0.5 ! necessary over the Rocky Mountains'
 BDY_CONTROL='clim'
 NAMELIST_QUILT=''

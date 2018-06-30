@@ -19,8 +19,8 @@ if [ -z $SYSTEM ] || [[ "$SYSTEM" == "$MAC" ]]; then
 	echo
 	module purge
   #module load NiaEnv/2018a python/2.7.14-anaconda5.1.0 intel/2018.2 openmpi/3.1.0rc4 hdf5/1.8.20 netcdf/4.6.1
-  module load NiaEnv/2018a intel/2018.2 intelmpi/2018.2 pnetcdf/1.9.0 python/2.7.14-anaconda5.1.0 ncl/6.4.0
-  module load hdf5/1.8.20 netcdf/4.6.1
+  module load NiaEnv/2018a intel/2018.2 intelmpi/2018.2 python/2.7.14-anaconda5.1.0
+  module load hdf5/1.8.20 netcdf/4.6.1 ncl/6.4.0 pnetcdf/1.9.0
 	module list
 	echo
 
@@ -113,10 +113,10 @@ export SUBMITWPS=${SUBMITWPS:-'ssh nia-login07 "cd \"${INIDIR}\"; sbatch --expor
 export WAITFORWPS=${WAITFORWPS:-'NO'} # stay on compute node until WPS for next step finished, in order to submit next WRF job
 
 # archive submission command (for last step in the interval)
-#export SUBMITAR=${SUBMITAR:-'ssh nia-login07 "cd \"${INIDIR}\"; sbatch --export=TAGS=${ARTAG},MODE=BACKUP,INTERVAL=${ARINTERVAL} ./${ARSCRIPT}"'} # evaluated by launchPostP
+export SUBMITAR=${SUBMITAR:-'ssh nia-login07 "cd \"${INIDIR}\"; sbatch --export=TAGS=${ARTAG},MODE=BACKUP,INTERVAL=${ARINTERVAL} ./${ARSCRIPT}"'} # evaluated by launchPostP
 # N.B.: requires $ARTAG to be set in the launch script
-# until HPSS is operational, log archive backlog
-export SUBMITAR=${SUBMITAR:-'ssh nia-login07 "cd \"${INIDIR}\"; echo \"${ARTAG}\" >> HPSS_backlog.txt"; echo "Logging archive tag \"${ARTAG}\" in 'HPSS_backlog.txt' for later archiving."'} # evaluated by launchPostP
+# if HPSS is not working or full, log archive backlog
+#export SUBMITAR=${SUBMITAR:-'ssh nia-login07 "cd \"${INIDIR}\"; echo \"${ARTAG}\" >> HPSS_backlog.txt"; echo "Logging archive tag \"${ARTAG}\" in 'HPSS_backlog.txt' for later archiving."'} # evaluated by launchPostP
 # N.B.: instead of archiving, just log the year to be archived; this is temporarily necessary,  because HPSS is full
 
 # averaging submission command (for last step in the interval)

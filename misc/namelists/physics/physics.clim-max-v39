@@ -1,0 +1,49 @@
+&physics
+ mp_physics                          = 10,  10,  10,! Morrison 2-moment
+ ra_lw_physics                       = 4,   4,   4, ! RRTMG
+ ra_sw_physics                       = 4,   4,   4, ! RRTMG
+ radt                                = 15,  15,  15,! every 15 min.
+ sf_sfclay_physics                   = 5,   5,   5, ! MYNN
+ sf_surface_physics                  = 2,   2,   2, ! Noah LSM
+ sf_urban_physics                    = 1,   1,   1, ! single layer UCM
+ bl_pbl_physics                      = 5,   5,   5, ! MYNN 2.5 TKE
+ bldt                                = 0,   0,   0, ! every time-step
+ cu_physics                          = 5,   5,   0, ! New Grell 3D scheme (G3)
+ cudt                                = 0,   0,   0, ! every time-step
+ cugd_avedx                          = 1, ! G3 subsidence spreading
+ ishallow                            = 1 ! shallow convection (G3)
+ slope_rad                           = 1, 1, 1, ! slope effects in SW radiation
+ topo_shading                        = 1, 1, 1, ! shadows (shadlen = 25000m)
+ grav_settling                       = 1, 1, 1,! gravitational settling for pbl=5,6
+ surface_input_source                = 1, ! from WPS/geogrid (#1); could use CESM input for VEGCAT & SOILCAT (#2)
+ num_soil_layers                     = 4, ! for Noah LSM
+ num_land_cat                        = 28, ! USGS+lake
+ num_soil_cat                        = 16, ! only option?
+ usemonalb                           = .false., ! from geogrid
+ rdmaxalb                            = .false., ! from geogrid
+ rdlai2d                             = .false., ! CESM data could be used
+ fractional_seaice                   = 1, ! from CESM; XICE in Vtable
+ seaice_albedo_opt                   = 1, ! varies with temperature etc.
+ sst_update                          = 1, ! applies to all lower input variables
+ sst_skin                            = 1, ! compute diurnal cycle for SST
+ tmn_update                          = 1, ! deep soil temperature update
+ lagday                              = 150, ! time-scale for tmn
+ bucket_mm                           = 100.0, ! precip
+ bucket_J                            = 1.e9, ! rad flx
+ prec_acc_dt                         = 1440 ! accumulation period in minutes: daily 
+ ! CLM lake model
+ sf_lake_physics                     = 1,   1,   1, ! lake model does not seem to work
+ use_lakedepth                       = 1 ! lake depth from geogrid
+ lakedepth_default                   = 50 ! default depth if data is missin (50m)
+! ! FLake lake model (not implemented yet)
+! flake_update                        = 1, ! use FLake online
+! tsk_flake                           = 1, ! use skin temperature in FLake
+! transparent                         = 0, ! optical properties of lake water: 0=opaque, 1=transparent
+! lake_depth_limit                    = 70, ! maximum lake depth
+ ! some V3.9 options that have to be switched off
+ swint_opt                           = 0 ! interpolate solar zenit angle (unstable)
+ o3input                             = 0 ! CAM ozone data (2D) for RRTMG
+ aer_opt                             = 0 ! Tegen climatology for RRTMG
+ icloud                              = 0 ! cloud effects on radiation (RRTMG)
+ cu_rad_feedback                     = .false., .false., .false. ! sub-grid cloud effect on radiation
+/ 
