@@ -212,6 +212,8 @@ if [[ ${RUNREAL} == 1 ]]
         echo
         echo "Writing output to ${REALDIR}"
         echo
+        echo "Slurm Job ID: $SLURM_JOB_ID"
+        echo
         eval "time -p ${HYBRIDRUN} ./real.exe"
         wait # wait for all threads to finish
         echo

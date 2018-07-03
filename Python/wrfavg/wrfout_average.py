@@ -579,7 +579,10 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
   # handling of time intervals for accumulated variables
   if wrfxtime in wrfout.variables: 
     lxtime = True # simply compute differences from XTIME (assuming minutes)
-    assert wrfout.variables[wrfxtime].description == "minutes since simulation start"
+    time_desc = wrfout.variables[wrfxtime].description
+    assert time_desc.startswith("minutes since "), time_desc 
+    assert "simulation start" in time_desc or begindate in time_desc or '**' in time_desc, time_desc 
+    # N.B.: the last check (**) is for cases where the date in WRF is garbled...
     if t0 == 1 and not wrfout.variables[wrfxtime][0] == 0:
       raise ValueError, ( 'XTIME in first input file does not start with 0!\n'+
                           '(this can happen, when the first input file is missing)' )
