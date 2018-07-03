@@ -1,25 +1,25 @@
 #!/bin/bash
-## queue/SLURM settings
-#SBATCH --nodes=1
-#SBATCH --ntasks-per-node=40
-# 72h is maximum for long queue, 1h for short
-#SBATCH --time=72:00:00
-# archive queue (long or short)
-#SBATCH -p archivelong
-# std and error output
-#SBATCH --output=cycling_avg.%j.out
-# send email if abort (nbae)
-#SBATCH --mail-user="$EMAIL"
-#SBATCH --mail-type=END,FAIL
-# job name
-#SBATCH -J cycling_ar
+#MOAB/Torque archiving script for SciNet HPSS
 
+## queue/PBS settings
+# 72h is maximum for long queue, 1h for short
+#PBS -l walltime=03:00:00
+# merge standard error and output stream
+#PBS -j oe
+#PBS -W umask=0002
+#PBS -o $PBS_JOBNAME.$PBS_JOBID.out
+##PBS -e $PBS_JOBNAME.$PBS_JOBID.err
+# send email if abort (nbae)
+#PBS -M "$EMAIL"
+#PBS -m ae
+# job name
+#PBS -N ar_test
+## submit to queue (NB: this has to be the last PBS line!)
+#PBS -q archive
 
 #set -o pipefail # through error (in exit code) if pipe fails
 trap "echo 'Job script not completed';exit 129" TERM INT
-
-# if the $ARCHIVE environment variable does not exist anymore, we create it,
-ARCHIVE=${ARCHIVE:-"${HOME/home/archive}"} # because we need it later
+# Note that your initial directory in HPSS will be /archive/$(id -gn)/$(whoami)/
 
 ## definitions
 # set $TAGS to determine, which file sets to archive
