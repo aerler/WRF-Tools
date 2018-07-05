@@ -296,7 +296,7 @@ WRFEXE=${WRFEXE:-"${WRFSRC}/${WRFSYS}-MPI/${WRFBLD}/Default/wrf.exe"}
 # N.B.: the folder 'Default' can be a symlink to the default directory for executables 
 
 # default archive script name (no $ARSCRIPT means no archiving)
-if [[ "${ARSCRIPT}" == 'DEFAULT' ]] && [[ -n "${IO}" ]]; then ARSCRIPT="ar_wrfout_${IO}.pbs"; fi
+if [[ "${ARSCRIPT}" == 'DEFAULT' ]] && [[ -n "${IO}" ]]; then ARSCRIPT="ar_wrfout_${IO}.${WPSQ}"; fi
 # default averaging script name (no $AVGSCRIPT means no averaging)
 if [[ "${AVGSCRIPT}" == 'DEFAULT' ]]; then AVGSCRIPT="run_wrf_avg.${WPSQ}"; fi
 # string of single-digit dimensions for archvie and averaging script
