@@ -1,0 +1,109 @@
+#!/bin/bash
+# SLURM submission script for SciNet Niagara
+
+## queue/SLURM settings
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=10
+#SBATCH --time=2:00:00
+# std and error output
+#SBATCH --output=compress_WRF.%j.out
+# send email if abort (nbae)
+#SBATCH --mail-user="$EMAIL"
+#SBATCH --mail-type=FAIL
+# job name
+#SBATCH -J cycling_WRF
+### job dependency (doesn't seem to work
+###SBATCH --dependency=afterok:cycling_WPS
+
+
+## SAMPLE COMMAND LINE INPUT:
+## qsub run_compressor.pbs -v BEGIN=1979,END=1994,MODE=WRF,FILET=moist3d,DOM=1,FOLDER=/scratch/p/peltier/fengyi/GLakes/t-ctrl/,N=2,D=1
+## sbatch --export=BEGIN=1980,END=1981,MODE=WRF,FILET=all,FOLDER=/scratch/p/peltier/fengyi/NiagaraTests/WRFV3.9test_ghhpnetcdf_WesternCanada_t-v39/,N=2,D=1 ./run_compressor_Niagara.sb
+
+# load some modules
+echo
+hostname
+uname
+echo
+date
+echo
+module purge
+module load intel/2018.2 hdf5/1.8.20 netcdf/4.6.1 python/2.7.14-anaconda5.1.0
+module list
+echo
+
+# general settings
+INIDIR="${INIDIR:-${PBS_O_WORKDIR}}" # original working directory
+COMPRESSOR="${COMPRESSOR:-${HOME}/WRF-Tools/Python/compress/netCDFcompressor.py}" # Python compressor script
+
+# go to working directory
+cd "${INIDIR}"
+
+## assemble command line arguments
+# mandatory arguments
+if [[ -z ${BEGIN} ]] || [[ -z ${END} ]]; then
+    echo 'Arguments $BEGIN and $END are mandatory. Aborting.'
+    exit 2
+fi # BEGIN & END
+# N.B.: Flags for arguments are automatically added, if the variable is set,
+#       boolean flags are set if the associated environment variable is set;
+#       if the environment variable is not set, the argument/flag is omitted.
+# case/experiment name (CESM only)
+if [[ -n ${CASE} ]]; then
+    CASE="--case ${CASE}"
+fi # $CASE
+# mode argument (CESM or WRF)
+if [[ -n ${MODE} ]]; then
+    MODE="--mode ${MODE}"
+fi # $MODE
+# filetypes argument (CESM or WRF)
+if [[ -n ${FILET} ]]; then
+    FILET="--filetypes ${FILET}"
+fi # $FILET
+# domain argument (WRF only)
+if [[ -n ${DOM} ]]; then
+    DOM="--domain ${DOM}"
+fi # $DOM
+# monthly history flag (CESM only)
+if [[ -n ${H0} ]]; then
+    H0="-h0"
+fi # $H0
+# 6-hourly history flag (CESM only)
+if [[ -n ${H1} ]]; then
+    H1="-h1"
+fi # $H1
+# data folder argument
+if [[ -n ${FOLDER} ]]; then
+    FOLDER="--folder ${FOLDER}" # FOLDER still needs to be escaped
+fi # $FOLDER
+# no-skip flag
+if [[ -n ${NOSKIP} ]]; then
+    NOSKIP="--noskip"
+fi # $NOSKIP
+# number of processors
+if [[ -n ${N} ]]; then
+    N="-n ${N}"
+fi # $N
+# compression level
+if [[ -n ${D} ]]; then
+    D="-d ${D}"
+fi # $D
+# debug mode flag
+if [[ -n ${DEBUG} ]]; then
+    DEBUG="--debug"
+fi # $DEBUG
+
+
+## execute compressor script with command line arguments
+# print command
+echo "python ${COMPRESSOR} ${BEGIN} ${END} ${CASE} ${MODE} ${FILET} ${DOM}"
+echo "                     ${H0} ${H1} ${FOLDER} ${NOSKIP} ${N} ${D} ${DEBUG}"
+echo
+echo
+# execute and print to stdout
+python "${COMPRESSOR}" ${BEGIN} ${END} ${CASE} ${MODE} ${FILET} ${DOM} \
+                       ${H0} ${H1} ${FOLDER} ${NOSKIP} ${N} ${D} ${DEBUG}
+ERR=$? # capture exit code
+
+# exit with exit code from python script
+exit ${ERR}
