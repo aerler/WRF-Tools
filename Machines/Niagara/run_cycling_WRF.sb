@@ -1,0 +1,32 @@
+#!/bin/bash
+# SLURM submission script for SciNet Niagara
+
+## queue/SLURM settings
+#SBATCH --nodes=4
+#SBATCH --ntasks-per-node=80
+#SBATCH --time=24:00:00
+# std and error output
+#SBATCH --output=cycling_WRF.%j.out
+# send email if abort (nbae)
+#SBATCH --mail-user="$EMAIL"
+#SBATCH --mail-type=FAIL
+# job name
+#SBATCH -J cycling_WRF
+### job dependency (doesn't seem to work
+###SBATCH --dependency=afterok:cycling_WPS
+
+
+## machine specific job settings
+# WRF resource requirements (read by setup scripts)
+export WRFNODES=${SLURM_JOB_NUM_NODES:-4} # PBS setting will override default (default is needed for setup)
+# get PBS names (needed for folder names)
+export JOBNAME="${SLURM_JOB_NAME}" # not the $RUNNAME
+export INIDIR="${SLURM_SUBMIT_DIR}" # experiment root (launch directory)
+# important scripts
+export WRFSCRIPT="run_cycling_WRF.sb" # WRF suffix assumed
+export WPSSCRIPT="run_cycling_WPS.sb" # WRF suffix assumed, WPS suffix substituted: ${JOBNAME%_WRF}_WPS
+# WRF and WPS wallclock  time limits (no way to query from queue system)
+export WRFWCT='10:00:00' # WRF wallclock time limit
+export WPSWCT='01:00:00' # WPS wallclock time limit
+
+

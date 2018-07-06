@@ -177,7 +177,7 @@ if [[ ${RUNWRF} == 1 ]]
       	WRFERR=1
       	echo '   >>>   WRF FAILED:   SEGMENTATION FAULT   <<<   '
     else 
-      	WRFERR=1
+      	WRFERR=10
       	echo '   >>>   WRF FAILED! (UNKNOWN ERROR)   <<<   '
     fi
     echo

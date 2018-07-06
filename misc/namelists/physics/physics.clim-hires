@@ -10,8 +10,8 @@
  bldt                                = 0,   0,   0,   0, ! every time-step
  cu_physics                          = 5,   5,   0,   0, ! New Grell 3D scheme (G3)
  cudt                                = 0,   0,   0,   0, ! every time-step
- cugd_avedx                          = 3, ! G3 subsidence spreading
- ishallow                            = 1 ! shallow convection (G3)
+ cugd_avedx                          = 1, ! G3 subsidence spreading
+ ishallow                            = 0 ! shallow convection (G3)
  slope_rad                           = 1, 1, 1, 1, ! slope effects in SW radiation
  topo_shading                        = 1, 1, 1, 1, ! shadows (shadlen = 25000m)
  grav_settling                       = 1, 1, 1, 1, ! gravitational settling for pbl=5,6
