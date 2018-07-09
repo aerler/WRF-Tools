@@ -30,8 +30,8 @@ module list
 echo
 
 # general settings
-INIDIR="${INIDIR:-${PBS_O_WORKDIR}}" # original working directory
-COMPRESSOR="${COMPRESSOR:-${HOME}/WRF-Tools/Python/compress/netCDFcompressor.py}" # Python compressor script
+INIDIR="${INIDIR:-${SLURM_SUBMIT_DIR}}" # original working directory
+COMPRESSOR="${COMPRESSOR:-${CODE_ROOT}/WRF-Tools/Python/compress/netCDFcompressor.py}" # Python compressor script
 
 # go to working directory
 cd "${INIDIR}"
