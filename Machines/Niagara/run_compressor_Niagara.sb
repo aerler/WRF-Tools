@@ -3,7 +3,7 @@
 
 ## queue/SLURM settings
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=10
+#SBATCH --ntasks-per-node=40
 #SBATCH --time=24:00:00
 # std and error output
 #SBATCH --output=compress_WRF.%j.out
@@ -15,7 +15,7 @@
 
 
 # SAMPLE COMMAND LINE INPUT:
-# sbatch --export=BEGIN=1980,END=1981,MODE=WRF,FILET=all,FOLDER=$PWD,N=2,D=1 ./run_compressor_Niagara.sb
+# sbatch --export=BEGIN=1980,END=1981,MODE=WRF,FILET=all,DOM=1,FOLDER=$PWD,N=40,D=1 ./run_compressor_Niagara.sb
 
 # load some modules
 echo
