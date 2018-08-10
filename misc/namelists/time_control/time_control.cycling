@@ -23,7 +23,7 @@
  fine_input_stream                   = 0, 2, 2, 2,
  history_interval                    = 360, 360, 360,, 360,
  frames_per_outfile                  = 1000, 1000, 1000,, 1000,
- write_hist_at_0h_rst                = .false.,
+ write_hist_at_0h_rst                = .true.,
  io_form_history                     = 2,
  io_form_restart                     = 2,
  io_form_input                       = 2,

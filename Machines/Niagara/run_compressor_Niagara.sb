@@ -3,22 +3,19 @@
 
 ## queue/SLURM settings
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=10
-#SBATCH --time=2:00:00
+#SBATCH --ntasks-per-node=40
+#SBATCH --time=24:00:00
 # std and error output
 #SBATCH --output=compress_WRF.%j.out
 # send email if abort (nbae)
 #SBATCH --mail-user="$EMAIL"
-#SBATCH --mail-type=FAIL
+#SBATCH --mail-type=END,FAIL
 # job name
-#SBATCH -J cycling_WRF
-### job dependency (doesn't seem to work
-###SBATCH --dependency=afterok:cycling_WPS
+#SBATCH -J compressor
 
 
-## SAMPLE COMMAND LINE INPUT:
-## qsub run_compressor.pbs -v BEGIN=1979,END=1994,MODE=WRF,FILET=moist3d,DOM=1,FOLDER=/scratch/p/peltier/fengyi/GLakes/t-ctrl/,N=2,D=1
-## sbatch --export=BEGIN=1980,END=1981,MODE=WRF,FILET=all,FOLDER=/scratch/p/peltier/fengyi/NiagaraTests/WRFV3.9test_ghhpnetcdf_WesternCanada_t-v39/,N=2,D=1 ./run_compressor_Niagara.sb
+# SAMPLE COMMAND LINE INPUT:
+# sbatch --export=BEGIN=1980,END=1981,MODE=WRF,FILET=all,DOM=1,FOLDER=$PWD,N=40,D=1 ./run_compressor_Niagara.sb
 
 # load some modules
 echo
@@ -33,8 +30,8 @@ module list
 echo
 
 # general settings
-INIDIR="${INIDIR:-${PBS_O_WORKDIR}}" # original working directory
-COMPRESSOR="${COMPRESSOR:-${HOME}/WRF-Tools/Python/compress/netCDFcompressor.py}" # Python compressor script
+INIDIR="${INIDIR:-${SLURM_SUBMIT_DIR}}" # original working directory
+COMPRESSOR="${COMPRESSOR:-${CODE_ROOT}/WRF-Tools/Python/compress/netCDFcompressor.py}" # Python compressor script
 
 # go to working directory
 cd "${INIDIR}"
