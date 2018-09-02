@@ -19,13 +19,19 @@ if [ -z $SYSTEM ] || [[ "$SYSTEM" == "$MAC" ]]; then
 	echo
 	module purge
   #module load NiaEnv/2018a python/2.7.14-anaconda5.1.0 intel/2018.2 openmpi/3.1.0rc4 hdf5/1.8.20 netcdf/4.6.1
-  module load NiaEnv/2018a intel/2018.2 intelmpi/2018.2 python/2.7.14-anaconda5.1.0
-  module load hdf5/1.8.20 netcdf/4.6.1 ncl/6.4.0 pnetcdf/1.9.0
+  # modules for PyWPS
+  if [[ ${RUNPYWPS} == 1 ]]; then
+    # Anaconda has a different HDF5 version, so if another load-order is required, we need this:
+    export HDF5_DISABLE_VERSION_CHECK=1
+    module load NiaEnv/2018a intel/2018.2 intelmpi/2018.2 python/2.7.14-anaconda5.1.0
+    module load hdf5/1.8.20 netcdf/4.6.1 ncl/6.4.0 ncl/6.4.0
+  else
+    module load NiaEnv/2018a intel/2018.2 intelmpi/2018.2 #python/2.7.14-anaconda5.1.0
+    module load hdf5/1.8.20 netcdf/4.6.1 #ncl/6.4.0 
+  fi # if RUNPYWPS
+  module load pnetcdf/1.9.0
 	module list
 	echo
-
-  # Anaconda has a different HDF5 version, so if another load-order is required, we need this:
-  #export HDF5_DISABLE_VERSION_CHECK=1
 
   # unlimit stack size (unfortunately necessary with WRF to prevent segmentation faults)
   ulimit -s unlimited
@@ -45,6 +51,7 @@ fi # if on Niagara
 # set Python path for PyWPS
 if [[ ${RUNPYWPS} == 1 ]]
   then
+    module load python/2.7.14-anaconda5.1.0 ncl/6.4.0
     if [ -e "${CODE_ROOT}/WRF Tools/Python/" ]; then export PYTHONPATH="${CODE_ROOT}/WRF Tools/Python:${PYTHONPATH}";
     elif [ -e "${CODE_ROOT}/WRF-Tools/Python/" ]; then export PYTHONPATH="${CODE_ROOT}/WRF-Tools/Python:${PYTHONPATH}"; fi
     if [ -e "${CODE_ROOT}/GeoPy/src/" ]; then export PYTHONPATH="${CODE_ROOT}/GeoPy/src:${PYTHONPATH}"; fi
@@ -101,7 +108,7 @@ export THREADS=${THREADS:-1} # number of OpenMP threads
 export I_MPI_DEBUG=1 # less output (currently no problems)
 # Intel hybrid (mpi/openmp) job launch command
 #export HYBRIDRUN=${HYBRIDRUN:-'mpirun -ppn ${TASKS} -np $((NODES*TASKS))'} # evaluated by execWRF and execWPS
-export HYBRIDRUN=${HYBRIDRUN:-'mpirun '} # evaluated by execWRF and execWPS
+export HYBRIDRUN=${HYBRIDRUN:-'mpiexec '} # evaluated by execWRF and execWPS
 
 # geogrid command (executed during machine-independent setup)
 #export RUNGEO=${RUNGEO:-"ssh nia-login08 \"cd ${INIDIR}; source ${SCRIPTDIR}/setup_WPS.sh; mpirun -n 4 ${BINDIR}/geogrid.exe\""} # run on GPC via ssh
