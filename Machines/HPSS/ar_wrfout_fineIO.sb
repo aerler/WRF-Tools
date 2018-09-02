@@ -6,8 +6,8 @@
 #SBATCH --time=72:00:00
 # archive queue (long or short)
 #SBATCH -p archivelong
-# std and error output
-#SBATCH --output=cycling_avg.%j.out
+# std and error output (job_name.job_id.out)
+#SBATCH --output=%x.%j.out
 # send email if abort (nbae)
 #SBATCH --mail-user="$EMAIL"
 #SBATCH --mail-type=END,FAIL
