@@ -23,17 +23,24 @@ trap "echo 'Job script not completed';exit 129" TERM INT
  
 ## list of experiments, valid periods, and file types
 #EXPS="htbrcp85cn1x1 htbrcp85cn1x1b zbrcp85cn1x1 hcbrcp85cn1x1 seaice-5r seaice-5r-hf"
-EXPS=${EXPS:-'habrcp85cn1x1d hbbrcp85cn1x1d hcbrcp85cn1x1d'}
-echo "Experiments: $EXPS"
 #PERIODS: 2006-2019 2045-2059 2045-2049 2055-2060 2055-2064 2060-2085 2095-2104
-PERIOD=${PERIOD:-'2085-2100'}
-echo "Period: $PERIOD"
+EXPS=${EXPS:-'habrcp85cn1x1d hbbrcp85cn1x1d hcbrcp85cn1x1d'}
+PERIODS=${PERIODS:-'2085-2100'}
+#EXPS=${EXPS:-'habrcp85cn1x1 hbbrcp85cn1x1 hcbrcp85cn1x1'}
+#PERIODS=${PERIODS:-'2045-2049 2050-2052 2053-2054 2055-2059'}
+#EXPS=${EXPS:-'hab20trcn1x1 hbb20trcn1x1 hcb20trcn1x1'}
+#PERIODS=${PERIODS:-'1979-1994'}
 #FILES="atm  cpl  dart	glc  ice  lnd  ocn  rest"
 FILES=${FILES:-"atm  ice  lnd"}
+echo "Experiments: $EXPS"
+echo "Period: $PERIOD"
 echo "Filetypes: $FILES"
 echo
 # regex definingwhat should be retrieved
-REGEX=${REGEX:-"*/*/hist/????/*.nc"}
+#REGEX=${REGEX:-"*/*/hist/????/*.nc"} # for 2100 simulations
+REGEX=${REGEX:-""} 
+# N.B.:  Marc's simulations use absolute path; it is easier to just extract everything and then move the files we need to the destination folder; 
+# due to the absolute-to-relative path conversion, everything extracts into a local folder called 'scratch/' etc.
 echo "Search Term: $REGEX"
 echo
 # folder pattern: $run_name/$filetype/hist/$year/file.nc
@@ -50,40 +57,50 @@ for EXP in $EXPS
     echo
 	  echo $EXP
 	
-		for FILE in $FILES
-			do
-			
-				SRC=$ARCHIVE/CESM/${EXP}/${FILE}_${PERIOD}.tar
-				echo "Source: $SRC"
-				
-				hsi ls $SRC
-				EC=$?
-				
-				if [ $EC != 0 ]; then
-				  echo "HSI returned non-zero code. $SRC does not exist. Nothing to do."
-				   exit 999    
-				else
-				   echo '   starting transfer...'
-				fi
-				
-		    # EXP HTAR (extract)
-				htar -xpf "$SRC" "$REGEX"
-				EC=$?
-				
-				
-				if [ ! $EC == 0 ]; then
-				   echo 'HTAR returned non-zero code.'
-				   /scinet/gpc/bin/exit2msg $EC
-				   exit $EC
-				else
-				   echo '   TRANSFER SUCCESSFUL'
-				fi
-				echo
-			
-		done # FILES
+    for PERIOD in $PERIODS
+      do
+       
+        echo
+        echo $PERIOD
+
+    		for FILE in $FILES
+    			do
+    			
+    				SRC=$ARCHIVE/CESM/${EXP}/${FILE}_${PERIOD}.tar
+    				echo "Source: $SRC"
+    				
+    				hsi -q ls $SRC
+    				EC=$?
+    				
+    				if [ $EC != 0 ]; then
+    				  echo "HSI returned non-zero code. $SRC does not exist. Nothing to do."
+    				   exit 999    
+    				else
+    				   echo '   starting transfer...'
+    				fi
+    				
+    		    # EXP HTAR (extract)
+    				echo htar -xpf "$SRC" "$REGEX"
+    				htar -xpf "$SRC" "$REGEX"
+    				EC=$?
+    				
+    				
+    				if [ ! $EC == 0 ]; then
+    				   echo 'HTAR returned non-zero code.'
+    				   /scinet/gpc/bin/exit2msg $EC
+    				   exit $EC
+    				else
+    				   echo '   TRANSFER SUCCESSFUL'
+    				fi
+    				echo
+    			
+    		done # FILES
+        echo
+
+    done # PERIODS
     echo
-    
-done # EXPS EXP
+
+done # EXPS
 echo "All Transfers Completed"
 
 trap - TERM INT
