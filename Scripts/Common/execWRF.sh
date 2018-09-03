@@ -161,6 +161,7 @@ if [[ ${RUNWRF} == 1 ]]
     echo "TASKS=${TASKS}"
     echo "${HYBRIDRUN} ./wrf.exe"
     echo
+    sleep 1m
     # launch
     eval "time -p ${HYBRIDRUN} ./wrf.exe"
     wait # wait for all threads to finish
