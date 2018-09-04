@@ -51,6 +51,8 @@ echo "Destination: $WDIR"
 cd $WDIR
 echo
 
+ECC=0 # error counter
+
 for EXP in $EXPS
   do
     
@@ -86,9 +88,8 @@ for EXP in $EXPS
     				
     				
     				if [ ! $EC == 0 ]; then
-    				   echo 'HTAR returned non-zero code.'
-    				   /scinet/gpc/bin/exit2msg $EC
-    				   exit $EC
+    				   echo "HTAR returned non-zero code: $EC"
+               ECC=$(( $ECC + 1 ))
     				else
     				   echo '   TRANSFER SUCCESSFUL'
     				fi
@@ -101,7 +102,14 @@ for EXP in $EXPS
     echo
 
 done # EXPS
-echo "All Transfers Completed"
 
-trap - TERM INT
+echo
+if [ ! $EC == 0 ]; then
+    echo "Not all Transfers completed successfully; cumulative exit code: $ECC"
+else
+    echo "All Transfers Completed"
+fi # $ECC
+echo
+
+exit $ECC
 
