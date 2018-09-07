@@ -1,0 +1,66 @@
+&time_control
+ ! output configuration
+ output_diagnostics                  = 1, ! 36 srfc diags (max/min/mean/std)
+ diag_print                          = 0,
+ debug_level                         = 0,
+ ! iofields_filename                   = '', ! commment out if not used,
+ ! ignore_iofields_warning             = .true., ! otherwise WRF crashes!
+ ! default stream (basically stuff I don't know)
+ history_interval                    = 527040, 527040, 527040, 527040,
+ frames_per_outfile                  = 1, 1, 1, 1,
+ ! dry dynamics (3D)
+ auxhist1_outname                    = "wrfdrydyn3d_d<domain>_<date>.nc",
+ io_form_auxhist1                    = 2,
+ auxhist1_interval                   = 360, 360, 360, 360,
+ frames_per_auxhist1                 = 1000, 1000, 1000, 1000,
+ ! moist variables (3D)
+ auxhist2_outname                    = "wrfmoist3d_d<domain>_<date>.nc",
+ io_form_auxhist2                    = 2,
+ auxhist2_interval                   = 360, 360, 360, 360,
+ frames_per_auxhist2                 = 1000, 1000, 1000, 1000,
+ ! extreme values and stats (daily)
+ auxhist3_outname                    = "wrfxtrm_d<domain>_<date>.nc",
+ io_form_auxhist3                    = 2,
+ auxhist3_interval                   = 1440, 1440, 1440, 1440,
+ frames_per_auxhist3                 = 1000, 1000, 1000, 1000,
+ ! surface and precip data (and some FLake)
+ auxhist4_outname                    = "wrfsrfc_d<domain>_<date>.nc",
+ io_form_auxhist4                    = 2,
+ auxhist4_interval                   = 360, 360, 360, 360,
+ frames_per_auxhist4                 = 1000, 1000, 1000, 1000,
+ ! static fields and constants
+ auxhist5_outname                    = "wrfconst_d<domain>.nc",
+ io_form_auxhist5                    = 2,
+ auxhist5_interval                   = 527040, 527040, 527040, 527040,
+ frames_per_auxhist5                 = 1, 1, 1, 1,
+ ! radiation budget (daily)
+ auxhist6_outname                    = "wrfrad_d<domain>_<date>.nc",
+ io_form_auxhist6                    = 2,
+ auxhist6_interval                   = 1440, 1440, 1440, 1440,
+ frames_per_auxhist6                 = 1000, 1000, 1000, 1000,
+ ! land-surface data (daily)
+ auxhist7_outname                    = "wrflsm_d<domain>_<date>.nc",
+ io_form_auxhist7                    = 2,
+ auxhist7_interval                   = 1440, 1440, 1440, 1440,
+ frames_per_auxhist7                 = 1000, 1000, 1000, 1000,
+ ! hydrology data (for hydrogeosphere)
+ auxhist8_outname                    = "wrfhydro_d<domain>_<date>.nc",
+ io_form_auxhist8                    = 2,
+ auxhist8_interval                   = 1440, 1440, 1440, 1440,
+ frames_per_auxhist8                 = 1000, 1000, 1000, 1000,
+ ! nudging increments
+ auxhist9_outname                    = "wrffdda_d<domain>_<date>.nc",
+ io_form_auxhist9                    = 2,
+ auxhist9_interval                   = 1440, 1440, 1440, 1440,
+ frames_per_auxhist9                 = 1000, 1000, 1000, 1000,
+! snow, energy & mass balance diagnostics (hourly)
+ auxhist10_outname                   = "wrfsnow_d<domain>_<date>.nc",
+ io_form_auxhist10                   = 0, ! needs to be switched on
+ auxhist10_interval                  =   60,   60,   60,   60,
+ frames_per_auxhist10                = 1000, 1000, 1000, 1000, 
+! pressure level diagnostics
+ auxhist23_outname                   = "wrfplev3d_d<domain>_<date>.nc",
+ io_form_auxhist23                   = 2,
+ auxhist23_interval                  = 360, 360, 360, 360,
+ frames_per_auxhist23                = 1000, 1000, 1000, 1000,
+/
