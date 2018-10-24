@@ -1,0 +1,41 @@
+&physics
+ mp_physics                          =  8,     8,     8, 
+ ra_lw_physics                       =  4,     4,     4, 
+ ra_sw_physics                       =  4,     4,     4, 
+ radt                                = 15,    15,    15, ! increased from 10
+ sf_sfclay_physics                   =  1,     1,     1, 
+ sf_surface_physics                  =  4,     4,     4, 
+ bl_pbl_physics                      =  1,     1,     1, 
+ bldt                                =  0,     0,     0, 
+ cu_physics                          =  11,   11,    11, ! multi-scale KF
+ cudt                                =  5,     5,     5, 
+ cu_rad_feedback                     = .true.,
+ isfflx                              = 1,
+ ifsnow                              = 1,
+ icloud                              = 1,
+ surface_input_source                = 3,
+ num_soil_layers                     = 4,
+ num_land_cat                        = 21,
+ sf_urban_physics                    = 0,     0,     0,
+ rdmaxalb                            = .false.,
+ mp_zero_out                         = 0,
+ iz0tlnd                             = 1,
+ sst_update                          = 1,
+ tmn_update                          = 1,
+ lagday                              = 150,
+ sst_skin                            = 1,
+ slope_rad                           = 1,
+ topo_shading                        = 0,
+ topo_wind                           = 1,
+ bucket_mm                           = 100.0,
+ bucket_J                            = 1.e9,
+ prec_acc_dt                         = 60.,
+ do_radar_ref                        = 1,
+ fractional_seaice                   = 1,
+ seaice_threshold                    = 0.
+ aer_opt                             = 1
+ ! CLM lake model
+ sf_lake_physics                     = 1,   1,   1, ! lake model does not seem to work
+ use_lakedepth                       = 1 ! lake depth from geogrid
+ lakedepth_default                   = 50 ! default depth if data is missin (50m)
+/

@@ -1,0 +1,18 @@
+&noah_mp
+ dveg                                = 4,
+ opt_crs                             = 1,
+ opt_btr                             = 2,
+ opt_run                             = 5,
+ opt_sfc                             = 1,
+ opt_frz                             = 1,
+ opt_inf                             = 1,
+ opt_rad                             = 3,
+ opt_alb                             = 2,
+ opt_snf                             = 4,
+ opt_tbot                            = 1,
+ opt_stc                             = 3,
+ opt_gla                             = 1,
+ opt_rsf                             = 1,
+ noahmp_acc_dt                       = 60.0
+ noahmp_output                       = 3
+/

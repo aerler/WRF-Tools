@@ -1,0 +1,8 @@
+&bdy_control
+ spec_bdy_width                      = 15,
+ spec_zone                           = 1,
+ relax_zone                          = 14,
+ spec_exp                            = 0.22
+ specified                           = .true., .false.,.false.,
+ nested                              = .false., .true., .true.,
+/
