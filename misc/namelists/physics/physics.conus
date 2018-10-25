@@ -13,7 +13,7 @@
  isfflx                              = 1,
  ifsnow                              = 1,
  icloud                              = 1,
- surface_input_source                = 3,
+ surface_input_source                = 1, ! changed from 3, because errors with ERA-Interim
  num_soil_layers                     = 4,
  num_land_cat                        = 21,
  sf_urban_physics                    = 0,     0,     0,

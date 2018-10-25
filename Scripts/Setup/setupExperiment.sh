@@ -587,8 +587,9 @@ elif [[ ${RAD} == 4 ]]; then
     if [[ -n $AER ]] && [ $AER -eq 1 ]; then # add aerosol climatology of Tegen
       RADTAB="${RADTAB} aerosol.formatted aerosol_plev.formatted aerosol_lat.formatted aerosol_lon.formatted"; fi
     O3=$(sed -n '/o3input/ s/^\ *o3input\ *=\ *\(.\).*$/\1/p' namelist.input) # \  = space
-    if [[ -n $O3 ]] && [ $O3 -eq 2 ]; then # add ozone climatology from CAM
+    if [[ -z $O3 ]] || [ $O3 -eq 2 ]; then # add ozone climatology from CAM
       RADTAB="${RADTAB} ozone.formatted ozone_plev.formatted ozone_lat.formatted"; fi
+      # N.B.: the default changed in V3.8 from o3input=0 to o3input=2, which means the input files are required by default
 else
     echo 'WARNING: no radiation scheme selected, or selection not supported!'
 fi

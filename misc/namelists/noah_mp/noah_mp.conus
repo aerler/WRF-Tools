@@ -2,7 +2,7 @@
  dveg                                = 4,
  opt_crs                             = 1,
  opt_btr                             = 2,
- opt_run                             = 5,
+ opt_run                             = 1, ! changed to 1, since 5 does not exists
  opt_sfc                             = 1,
  opt_frz                             = 1,
  opt_inf                             = 1,
@@ -13,6 +13,6 @@
  opt_stc                             = 3,
  opt_gla                             = 1,
  opt_rsf                             = 1,
- noahmp_acc_dt                       = 60.0
- noahmp_output                       = 3
+ !noahmp_acc_dt                       = 60.0
+ !noahmp_output                       = 3
 /

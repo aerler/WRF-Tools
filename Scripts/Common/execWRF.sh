@@ -71,8 +71,9 @@ if [[ ${RUNWRF} == 1 ]]
 	    if [[ -n $SEDAER ]] && [ $SEDAER -eq 1 ]; then # add aerosol climatology of Tegen
 	      RADTAB="${RADTAB} aerosol.formatted aerosol_plev.formatted aerosol_lat.formatted aerosol_lon.formatted"; fi
 	    SEDO3=$(sed -n '/o3input/ s/^\ *o3input\ *=\ *\(.\).*$/\1/p' namelist.input) # \  = space
-	    if [[ -n $SEDO3 ]] && [ $SEDO3 -eq 2 ]; then # add ozone climatology from CAM
+	    if [[ -z $SEDO3 ]] || [ $SEDO3 -eq 2 ]; then # add ozone climatology from CAM
 	      RADTAB="${RADTAB} ozone.formatted ozone_plev.formatted ozone_lat.formatted"; fi
+        # N.B.: the default changed in V3.8 from o3input=0 to o3input=2, which means the input files are required by default
     else
 	    echo 'WARNING: no radiation scheme selected!'
       # this will only happen if no defaults are set and inferring from namelist via 'sed' failed
