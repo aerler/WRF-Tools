@@ -428,7 +428,7 @@ function PROCESSDATASET () {
 	    done # $DOMAINS
     ## select domain-wise datasets
     # misc 3D fields (one file per domain)
-    fi; if [[ "${DATASET}" == 'MISC3D' ]] || [[ "${DATASET}" == 'MISCDIAG' ]] || [[ "${DATASET}" == 'DEL3D' ]] || [[ "${DATASET}" == 'FULL' ]]; then
+    fi; if [[ "${DATASET}" == 'MISC3D' ]] || [[ "${DATASET}" == 'DEL3D' ]] || [[ "${DATASET}" == 'FULL' ]]; then
       local MISC_D1="wrfmoist3d_d01_${DATESTR}_??[:_]??[:_]??* wrffdda_d01_${DATESTR}_??[:_]??[:_]??*"
       local MISC_D2="wrfmoist3d_d02_${DATESTR}_??[:_]??[:_]??*" #  wrfrad_d0?_${DATESTR}_??[:_]??[:_]??*
       local MISC_D3="wrfmoist3d_d03_${DATESTR}_??[:_]??[:_]??*"
