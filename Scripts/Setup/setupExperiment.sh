@@ -551,7 +551,7 @@ fi # $ARSCRIPT
 if [[ -n "${AVGSCRIPT}" ]] && [[ -n "${AVGSYS}" ]]; then
     # copy script and change job name
     ln -s "${WRFTOOLS}/Python/wrfavg/wrfout_average.py" "./scripts/"
-    ln -s "${WRFTOOLS}/Scripts/WRF/addVariable.sh" "./scripts/"
+    ln -s "${WRFTOOLS}/Machines/${AVGSYS}/addVariable.sh" "./scripts/"
     cp -f "${WRFTOOLS}/Machines/${AVGSYS}/${AVGSCRIPT}" .
     mkdir -p 'wrfavg' # folder for averaged output    
     echo "Setting up averaging: ${AVGSCRIPT}"

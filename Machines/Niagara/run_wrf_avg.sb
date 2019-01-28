@@ -28,10 +28,9 @@ AVGSCRIPT='run_wrf_avg.sb' # name of this script...
 PYAVG='wrfout_average.py' # name of Python averaging script
 DOMAINS='1234' # string of single-digit domain indices
 ## fix some legacy stuff...
-# default (run AddVar or not) based on $PERIOD
+# this should only necessary for old data from HPSS
 ADDVAR=${ADDVAR:-"FALSE"}
-#ADDVARIABLE="addVariable.sh" # an NCKS script
-ADDVARIABLE="" # won't work at the moment
+ADDVARIABLE="addVariable.sh" # an NCKS script
 
 
 ## load machine setup
