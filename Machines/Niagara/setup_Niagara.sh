@@ -11,6 +11,9 @@ fi # if previously not PBS
 export MAC='Niagara' # machine name
 export QSYS='SB' # queue system
 
+# Python Version
+export PYTHONVERSION=${PYTHONVERSION:-2} # default Python version is 2, but can be 3
+
 if [ -z $SYSTEM ] || [[ "$SYSTEM" == "$MAC" ]]; then 
 # N.B.: this script may be sourced from other systems, to set certain variables...
 #       basically, everything that would cause errors on another machine, goes here
@@ -23,8 +26,12 @@ if [ -z $SYSTEM ] || [[ "$SYSTEM" == "$MAC" ]]; then
   if [[ ${RUNPYWPS} == 1 ]]; then
     # Anaconda has a different HDF5 version, so if another load-order is required, we need this:
     export HDF5_DISABLE_VERSION_CHECK=1
-    module load NiaEnv/2018a intel/2018.2 intelmpi/2018.2 python/2.7.14-anaconda5.1.0
+    module load NiaEnv/2018a intel/2018.2 intelmpi/2018.2
     module load hdf5/1.8.20 netcdf/4.6.1 ncl/6.4.0 ncl/6.4.0
+    if [ $PYTHONVERSION -eq 2 ]; then module load python/2.7.14-anaconda5.1.0
+    elif [ $PYTHONVERSION -eq 3 ]; then module load python/3.6.4-anaconda5.1.0
+    else echo "Warning: Python Version '$PYTHONVERSION' not found."
+    fi # $PYTHONVERSION
   else
     module load NiaEnv/2018a intel/2018.2 intelmpi/2018.2 #python/2.7.14-anaconda5.1.0
     module load hdf5/1.8.20 netcdf/4.6.1 #ncl/6.4.0 

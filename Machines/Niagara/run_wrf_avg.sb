@@ -35,6 +35,7 @@ ADDVARIABLE="addVariable.sh" # an NCKS script
 
 ## load machine setup
 export RUNPYWPS=1 # to set Python path
+export PYTHONVERSION=3 # wrfavg is now converted to Python 3
 source "$SCRIPTDIR/setup_WPS.sh"
 
 
