@@ -50,7 +50,7 @@ GEOGRID="${DOM},${DOM}-grid"
 
 ## custom environment section (will be inserted in run script)
 # --- begin custom environment ---
-export TEST='this is a test variable' # just to test custom environment snippets
+export WRFWAIT='15m' # wait 15 min. before launching WRF executable
 # ---  end custom environment  ---
 
 ## system settings

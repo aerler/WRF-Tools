@@ -24,6 +24,8 @@ TABLES=${TABLES:-"${INIDIR}/tables/"} # folder for WRF data tables
 WRFLOG="wrf" # log folder for wrf.exe
 WRFTGZ="${RUNNAME}_${WRFLOG}.tgz" # archive for log folder
 # N.B.: tgz-extension also used later in cp *.tgz $WRFOUT
+# optional delay for file system to settle down before launching WRF
+WRFWAIT="${WRFWAIT:-'1m'}" # by default, just wait one minute
 
 # assuming working directory is already present
 cp "${SCRIPTDIR}/execWRF.sh" "${WORKDIR}"
@@ -146,13 +148,13 @@ if [[ ${RUNWRF} == 1 ]]
     # link to input data, if necessary
     cd "${WRFDIR}"
     if [[ "${WRFIN}" != "${WRFDIR}" ]]; then
-	echo
-	echo "Linking input data from location:"
-	echo "${WRFIN}"
-	for INPUT in "${WRFIN}"/wrf*_d??; do
-		ln -s "${INPUT}"
-	done
-	echo
+      	echo
+      	echo "Linking input data from location:"
+      	echo "${WRFIN}"
+      	for INPUT in "${WRFIN}"/wrf*_d??; do
+      		ln -s "${INPUT}"
+      	done
+      	echo
     fi
     ## run and time hybrid (mpi/openmp) job
     export OMP_NUM_THREADS=${THREADS} # set OpenMP environment
@@ -162,8 +164,11 @@ if [[ ${RUNWRF} == 1 ]]
     echo "TASKS=${TASKS}"
     echo "${HYBRIDRUN} ./wrf.exe"
     echo
-    sleep 1m
+    echo "Waiting ${WRFWAIT} to allow file system to adjust..."
+    date
+    sleep "${WRFWAIT}"
     # launch
+    echo "Launching WRF executable"
     eval "time -p ${HYBRIDRUN} ./wrf.exe"
     wait # wait for all threads to finish
     echo

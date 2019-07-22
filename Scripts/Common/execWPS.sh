@@ -222,7 +222,7 @@ if [[ ${RUNREAL} == 1 ]]
     	    then REALERR=0; LOOPACTIVE=false;
     	    else REALERR=1; let "LOOPCOUNTER=LOOPCOUNTER+1"; echo "real.exe failed, restarting...";
         fi
-        if [[ "$LOOPCOUNTER" -gt 10 ]]; then
+        if [[ "$LOOPCOUNTER" -gt 3 ]]; then
                 LOOPACTIVE=false
                 echo " real.exe loop exceed maximum trial of 10, aborting. "
         fi

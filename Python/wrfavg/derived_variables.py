@@ -203,7 +203,7 @@ class DerivedVariable(object):
     ''' Create a NetCDF Variable for this variable. '''
     if not isinstance(target, nc.Dataset): raise TypeError    
     if not self.checked: # check prerequisites
-      raise DerivedVariableError, "Prerequisites for variable '%s' are not satisfied."%(self.name)
+      raise DerivedVariableError("Prerequisites for variable '%s' are not satisfied."%(self.name))
     # create netcdf variable; some parameters were omitted: zlib, fillValue
     ncvar = add_var(target, name=self.name, dims=self.axes, data=None, atts=self.atts, dtype=self.dtype )
     return ncvar
@@ -217,11 +217,11 @@ class DerivedVariable(object):
     if not (delta is None or isinstance(delta,(float,np.inexact))): raise TypeError # output interval period 
     # N.B.: the const dictionary makes pre-loaded constant fields available for computations 
     if not self.checked: # check prerequisites
-      raise DerivedVariableError, "Prerequisites for variable '%s' are not satisfied."%(self.name)
+      raise DerivedVariableError("Prerequisites for variable '%s' are not satisfied."%(self.name))
     # if this variable requires constants, check that
     if self.constants is not None and len(self.constants) > 0: 
       if const is None or len(const) == 0: 
-        raise ValueError, 'The variable \'{:s}\' requires a constants dictionary!'.format(self.name)
+        raise ValueError('The variable \'{:s}\' requires a constants dictionary!'.format(self.name))
     return NotImplemented
   
   def aggregateValues(self, comdata, aggdata=None, aggax=0):
@@ -232,11 +232,11 @@ class DerivedVariable(object):
     # the default implementation is just a simple sum that will be normalized to an average
     if comdata is not None and comdata.size > 0:
       if aggdata is None: 
-        if self.normalize: raise DerivedVariableError, 'The one-pass aggregation automatically normalizes.'
+        if self.normalize: raise DerivedVariableError('The one-pass aggregation automatically normalizes.')
         if self.ignoreNaN: aggdata = np.nanmean(comdata, axis=aggax) # ignore NaN's
         else: aggdata = np.mean(comdata, axis=aggax) # don't use in-place addition, because it destroys masks
       else:
-        if not self.normalize: raise DerivedVariableError, 'The default aggregation requires normalization.'
+        if not self.normalize: raise DerivedVariableError('The default aggregation requires normalization.')
         if not isinstance(aggdata,np.ndarray): raise TypeError # aggregate variable
         if self.ignoreNaN: aggdata = aggdata + np.nansum(comdata, axis=aggax) # ignore NaN's
         else: aggdata = aggdata + np.sum(comdata, axis=aggax) # don't use in-place addition, because it destroys masks
@@ -262,7 +262,7 @@ class Rain(DerivedVariable):
   def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
     ''' Compute total precipitation as the sum of convective  and non-convective precipitation. '''
     super(Rain,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
-    if delta == 0: raise ValueError, 'RAIN depends on accumulated variables; differences can not be computed from single time steps. (delta=0)'    
+    if delta == 0: raise ValueError('RAIN depends on accumulated variables; differences can not be computed from single time steps. (delta=0)')    
     outdata = evaluate('RAINNC + RAINC', local_dict=indata) # compute
     return outdata
 
@@ -334,7 +334,7 @@ class TimeOfConvection(DerivedVariable):
     deltas = np.asarray([(datetime.strptime(time, '%Y-%m-%d_%H:%M:%S') - toss).total_seconds()//60 for time in times], dtype='int')
     deltas = deltas.reshape((len(deltas),1,1)) # add singleton spatial dimensions for broadcasting
     if not np.all( np.diff(deltas) == 1440 ):
-      raise NotImplementedError, 'TimeOfConvection only works with daily output intervals!'
+      raise NotImplementedError('TimeOfConvection only works with daily output intervals!')
     deltas -= 1440 # go back one day (convection happened during the previous day)
     # isolate time of day and remove days that didn't rain
     tod = tcv - deltas
@@ -525,7 +525,7 @@ class WetDays(DerivedVariable):
     if tmp is not None:
       if 'WETDAYS_DELTA' in tmp: 
         if delta != tmp['WETDAYS_DELTA']: 
-          raise NotImplementedError, 'Output interval is assumed to be constant for conversion to days. (delta={:f})'.format(delta)
+          raise NotImplementedError('Output interval is assumed to be constant for conversion to days. (delta={:f})'.format(delta))
       else: tmp['WETDAYS_DELTA'] = delta # save and check next time
     # sampling does not have to be daily
     if self.ignoreNaN:
@@ -610,7 +610,7 @@ class FrostDays(DerivedVariable):
     ''' Count the number of events below a threshold (0 Celsius) '''
     super(FrostDays,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks    
     if delta != 86400. and self.temp != 'T2': 
-      raise ValueError, 'WRF extreme values are suppposed to be daily; encountered delta={:f}'.format(delta)
+      raise ValueError('WRF extreme values are suppposed to be daily; encountered delta={:f}'.format(delta))
     if self.ignoreNaN:
       outdata = np.where(indata[self.temp] < self.threshold, 1,0) # comparisons with NaN always yield False
       outdata = np.where(np.isnan(indata[self.temp]), np.NaN,outdata)     
@@ -639,7 +639,7 @@ class SummerDays(DerivedVariable):
     ''' Count the number of events above a threshold (25 Celsius) '''
     super(SummerDays,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks    
     if delta != 86400. and self.temp != 'T2': 
-      raise ValueError, 'WRF extreme values are suppposed to be daily; encountered delta={:f}'.format(delta)
+      raise ValueError('WRF extreme values are suppposed to be daily; encountered delta={:f}'.format(delta))
     if self.ignoreNaN:
       outdata = np.where(indata[self.temp] > self.threshold, 1,0) # comparisons with NaN always yield False
       outdata = np.where(np.isnan(indata[self.temp]), np.NaN,outdata)     
@@ -1089,7 +1089,7 @@ class Extrema(DerivedVariable):
     if not isinstance(comdata,np.ndarray) and comdata is not None: raise TypeError # newly computed values
     if not isinstance(aggax,(int,np.integer)): raise TypeError # the aggregation axis (needed for extrema)
     # the default implementation is just a simple sum that will be normalized to an average
-    if self.normalize: raise DerivedVariableError, 'Aggregated extrema should not be normalized!'
+    if self.normalize: raise DerivedVariableError('Aggregated extrema should not be normalized!')
     #print self.name, comdata.shape
     if comdata is not None and comdata.size > 0:
       # N.B.: comdata can be None if the record was not long enough to compute this variable
@@ -1125,7 +1125,7 @@ class ConsecutiveExtrema(Extrema):
     elif mode.lower() == 'below':      
       atts['Aggregation'] = 'Maximum Monthly Consecutive Days Below Threshold'
       name_prefix = 'ConBe'; exmode = 0; prefix = '<'
-    else: raise ValueError, "Only 'above' and 'below' are valid modes."
+    else: raise ValueError("Only 'above' and 'below' are valid modes.")
     atts['Variable'] = '{0:s} {1:s} {2:s} {3:s}'.format(varname,prefix,str(threshold),var.units) 
     atts['ThresholdValue'] = str(threshold); atts['ThresholdVariable'] = varname 
     if long_name is not None: atts['long_name'] = long_name 
@@ -1148,7 +1148,7 @@ class ConsecutiveExtrema(Extrema):
     # check that delta does not change!
     if 'COX_DELTA' in tmp: 
       if delta != tmp['COX_DELTA']: 
-        raise NotImplementedError, 'Consecutive extrema currently only work, if the output interval is constant.'
+        raise NotImplementedError('Consecutive extrema currently only work, if the output interval is constant.')
     else: 
       tmp['COX_DELTA'] = delta # save and check next time
     if self.period == 0.: 
@@ -1165,7 +1165,7 @@ class ConsecutiveExtrema(Extrema):
     # initialize output array
     maxdata = np.zeros(xshape, dtype=np.dtype('int16')) # record of maximum consecutive days in computation period 
     # march along aggregation axis
-    for t in xrange(tlen):
+    for t in range(tlen):
       # detect threshold changes
       if self.thresmode == 1: xmask = ( data[t,:] > self.threshold ) # above
       elif self.thresmode == 0: xmask = ( data[t,:] < self.threshold ) # below
@@ -1193,7 +1193,7 @@ class MeanExtrema(Extrema):
     ''' Constructor; takes variable object as argument and infers meta data. '''
     # infer attributes of Maximum variable
     super(MeanExtrema,self).__init__(var, mode, name=name, long_name=long_name, dimmap=dimmap, ignoreNaN=ignoreNaN)
-    if len(self.prerequisites) > 1: raise ValueError, "Extrema can only have one Prerquisite"
+    if len(self.prerequisites) > 1: raise ValueError("Extrema can only have one Prerquisite")
     self.atts['name'] = self.name = '{0:s}_{1:d}d'.format(self.name,interval)
     self.atts['Aggregation'] = 'Averaged ' + self.atts['Aggregation']
     self.atts['AverageInterval'] = '{0:d} days'.format(interval) # interval in days
@@ -1204,7 +1204,7 @@ class MeanExtrema(Extrema):
   def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
     ''' Compute field of maxima '''
     #if aggax != 0: raise NotImplementedError, 'Currently, interval averaging only works on the innermost dimension.'
-    if delta == 0: raise ValueError, 'No interval to average over...'
+    if delta == 0: raise ValueError('No interval to average over...')
     # assemble data
     data = indata[self.prerequisites[0]]
     # if axis is not 0 (outermost), roll axis until it is
