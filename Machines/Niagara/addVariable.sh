@@ -4,7 +4,7 @@
 
 # load module
 module purge
-module load intel/2018.2 udunits/2.2.26 nco/4.7.6
+module load intel/2018.2 hdf5/1.8.20 netcdf/4.6.1 udunits/2.2.26 nco/4.7.6
 module list
 # NCO only works with the older versions of NetCDF4/HDF5
 

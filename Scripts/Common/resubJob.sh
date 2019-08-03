@@ -79,6 +79,11 @@ if [[ -n "${NEXTSTEP}" ]]
 				    echo
 				    echo "   ***   Launching WRF for next step: ${NEXTSTEP}   ***   "
 				    echo
+            # waiting to allow filesystem to update
+            echo
+            echo "   ---   Waiting 30 min. to allow file system to update   ---   "
+            echo 
+            sleep 1800 # wait 30 min.
 				    # execute submission command (set in setup-script; machine-specific)
 				    #eval "echo ${RESUBJOB}" # print command; now done with set -x
 				    set -x

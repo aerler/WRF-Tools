@@ -107,7 +107,7 @@ function RENAME () {
     # output folder
     sed -i '/WRFOUT=/ s+WRFOUT=[^$][^$].*$+WRFOUT="${INIDIR}/wrfout/"  # WRF output folder+' "${FILE}"
     # metdata folder
-    sed -i '/METDATA=/ s+METDATA=[^$][^$].*$+METDATA=""  # WRF output folder+' "${FILE}"
+    #sed -i '/METDATA=/ s+METDATA=[^$][^$].*$+METDATA=""  # WRF output folder+' "${FILE}"
     # WRF wallclock time limit
     sed -i "/WRFWCT=/ s/WRFWCT=[^$][^$].*$/WRFWCT=\'${WRFWCT}\' # WRF wallclock time/" "${FILE}" # used for queue time estimate
     # number of WPS & WRF nodes on given system
@@ -441,6 +441,13 @@ cd "${RUNDIR}"
 # WPS run script (concatenate machine specific and common components)
 cat "${WRFTOOLS}/Machines/${WPSSYS}/run_${CASETYPE}_WPS.${WPSQ}" > "run_${CASETYPE}_WPS.${WPSQ}"
 cat "${WRFTOOLS}/Scripts/Common/run_${CASETYPE}.environment" >> "run_${CASETYPE}_WPS.${WPSQ}"
+if [ $( grep -c 'custom environment' xconfig.sh ) -gt 0 ]; then
+  RUNSCRIPT="run_${CASETYPE}_WPS.${WPSQ}"
+  echo "Adding custom environment section from xconfig.sh to run-script '${RUNSCRIPT}'"
+  echo '' >> "${RUNSCRIPT}" # add line break
+  sed -n '/begin\ custom\ environment/,/end\ custom\ environment/p' xconfig.sh >>  "${RUNSCRIPT}"
+  echo '' >> "${RUNSCRIPT}" # add line break
+fi # if custom environment
 cat "${WRFTOOLS}/Scripts/Common/run_${CASETYPE}_WPS.common" >> "run_${CASETYPE}_WPS.${WPSQ}"
 RENAME "run_${CASETYPE}_WPS.${WPSQ}"
 if [[ "${WPSQ}" == "sh" ]]; then # make executable in shell
@@ -507,10 +514,11 @@ fi # if cycling
 cat "${WRFTOOLS}/Machines/${WRFSYS}/run_${CASETYPE}_WRF.${WRFQ}" > "run_${CASETYPE}_WRF.${WRFQ}"
 cat "${WRFTOOLS}/Scripts/Common/run_${CASETYPE}.environment" >> "run_${CASETYPE}_WRF.${WRFQ}"
 if [ $( grep -c 'custom environment' xconfig.sh ) -gt 0 ]; then
-  echo 'Adding custom environment section from xconfig.sh to run-script'
-  echo '' >> "run_${CASETYPE}_WRF.${WRFQ}" # add line break
-  sed -n '/begin\ custom\ environment/,/end\ custom\ environment/p' xconfig.sh >>  "run_${CASETYPE}_WRF.${WRFQ}"
-  echo '' >> "run_${CASETYPE}_WRF.${WRFQ}" # add line break
+  RUNSCRIPT="run_${CASETYPE}_WRF.${WRFQ}"
+  echo "Adding custom environment section from xconfig.sh to run-script '${RUNSCRIPT}'"
+  echo '' >> "${RUNSCRIPT}" # add line break
+  sed -n '/begin\ custom\ environment/,/end\ custom\ environment/p' xconfig.sh >>  "${RUNSCRIPT}"
+  echo '' >> "${RUNSCRIPT}" # add line break
 fi # if custom environment
 cat "${WRFTOOLS}/Scripts/Common/run_${CASETYPE}_WRF.common" >> "run_${CASETYPE}_WRF.${WRFQ}"
 RENAME "run_${CASETYPE}_WRF.${WRFQ}"

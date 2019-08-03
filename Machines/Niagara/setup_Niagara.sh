@@ -11,6 +11,8 @@ fi # if previously not PBS
 export MAC='Niagara' # machine name
 export QSYS='SB' # queue system
 
+# default WRF environment version
+export WRFVERSION=${WRFVERSION:-3} # 3 for default WRF V3.4 and V3.9 env, 4 for experimental WRF V4.1 env
 # Python Version
 export PYTHONVERSION=${PYTHONVERSION:-2} # default Python version is 2, but can be 3
 
@@ -21,22 +23,38 @@ if [ -z $SYSTEM ] || [[ "$SYSTEM" == "$MAC" ]]; then
   # load modules
 	echo
 	module purge
-  #module load NiaEnv/2018a python/2.7.14-anaconda5.1.0 intel/2018.2 openmpi/3.1.0rc4 hdf5/1.8.20 netcdf/4.6.1
-  # modules for PyWPS
-  if [[ ${RUNPYWPS} == 1 ]]; then
-    # Anaconda has a different HDF5 version, so if another load-order is required, we need this:
-    export HDF5_DISABLE_VERSION_CHECK=1
-    module load NiaEnv/2018a intel/2018.2 intelmpi/2018.2
-    module load hdf5/1.8.20 netcdf/4.6.1 ncl/6.4.0 ncl/6.4.0
-    if [ $PYTHONVERSION -eq 2 ]; then module load python/2.7.14-anaconda5.1.0
-    elif [ $PYTHONVERSION -eq 3 ]; then module load python/3.6.4-anaconda5.1.0
-    else echo "Warning: Python Version '$PYTHONVERSION' not found."
-    fi # $PYTHONVERSION
-  else
+  # module for WRF
+  if [ ${WRFVERSION} -eq 3 ]; then
     module load NiaEnv/2018a intel/2018.2 intelmpi/2018.2 #python/2.7.14-anaconda5.1.0
     module load hdf5/1.8.20 netcdf/4.6.1 #ncl/6.4.0 
-  fi # if RUNPYWPS
-  module load pnetcdf/1.9.0
+    module load pnetcdf/1.9.0
+    # modules for PyWPS
+    if [[ ${RUNPYWPS} == 1 ]]; then
+      # Anaconda has a different HDF5 version, so if another load-order is required, we need this:
+      export HDF5_DISABLE_VERSION_CHECK=1 # has to be set after NCL
+      module load ncl/6.4.0
+      if [ $PYTHONVERSION -eq 2 ]; then module load python/2.7.14-anaconda5.1.0
+      elif [ $PYTHONVERSION -eq 3 ]; then module load python/3.6.4-anaconda5.1.0
+      else echo "Warning: Python Version '$PYTHONVERSION' not found."
+      fi # $PYTHONVERSION
+    fi # if RUNPYWPS
+  elif [ ${WRFVERSION} -eq 4 ]; then
+    module load NiaEnv/2019b openjpeg/2.3.1 jasper/.experimental-2.0.14 
+    module load intel/2019u4 intelmpi/2019u4 hdf5/1.8.21 netcdf/4.6.3
+    module list
+    # modules for PyWPS
+    if [[ ${RUNPYWPS} == 1 ]]; then
+      # Anaconda has a different HDF5 version, so if another load-order is required, we need this:
+      #export HDF5_DISABLE_VERSION_CHECK=1
+      #module ncl/6.4.0
+      #module list
+      if [ $PYTHONVERSION -eq 2 ]; then module load python/2.7.15 #intelpython2/2019u4
+      elif [ $PYTHONVERSION -eq 3 ]; then module load intelpython3/2019u4
+      else echo "Warning: Python Version '$PYTHONVERSION' not found."
+      fi # $PYTHONVERSION
+    fi # if RUNPYWPS
+  else echo "Warning: WRF Environment Version '$WRFVERSION' not found."
+  fi # if $WRFVERSION
 	module list
 	echo
 
@@ -58,7 +76,6 @@ fi # if on Niagara
 # set Python path for PyWPS
 if [[ ${RUNPYWPS} == 1 ]]
   then
-    module load python/2.7.14-anaconda5.1.0 ncl/6.4.0
     if [ -e "${CODE_ROOT}/WRF Tools/Python/" ]; then export PYTHONPATH="${CODE_ROOT}/WRF Tools/Python:${PYTHONPATH}";
     elif [ -e "${CODE_ROOT}/WRF-Tools/Python/" ]; then export PYTHONPATH="${CODE_ROOT}/WRF-Tools/Python:${PYTHONPATH}"; fi
     if [ -e "${CODE_ROOT}/GeoPy/src/" ]; then export PYTHONPATH="${CODE_ROOT}/GeoPy/src:${PYTHONPATH}"; fi
