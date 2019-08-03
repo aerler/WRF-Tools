@@ -29,8 +29,8 @@
  prec_acc_dt                         = 1440 ! daily accumulation
  ! CLM lake model
  sf_lake_physics                     = 1,   1,   1, ! lake model does not seem to work
- use_lakedepth                       = 1 ! lake depth from geogrid
- lakedepth_default                   = 50 ! default depth if data is missin (50m)
+ use_lakedepth                       = 1, 1, 1, ! lake depth from geogrid
+ lakedepth_default                   = 50, 50, 50, ! default depth if data is missin (50m)
 ! ! FLake lake model (not implemented yet)
 ! flake_update                        = 1, ! use FLake online
 ! tsk_flake                           = 1, ! use skin temperature in FLake
