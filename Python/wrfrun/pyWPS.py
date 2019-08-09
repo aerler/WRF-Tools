@@ -820,7 +820,8 @@ def processTimesteps(myid, dates):
     # run metgrid_exe.exe
     print('\n  * '+mytag+' interpolating to WRF grid (metgrid.exe)')
     fmetgrid = open(metgrid_log, 'a') # metgrid.exe standard out and error log    
-    subprocess.call([METGRID], stdout=fmetgrid, stderr=fmetgrid) # metgrid.exe writes a fairly detailed log file
+    subprocess.call(['mpirun', '-n', '1', METGRID], stdout=fmetgrid, stderr=fmetgrid) # metgrid.exe writes a fairly detailed log file
+    # N.B.: for some reason, in this contect it is necessary to execute metgrid.exe with the MPI call
     fmetgrid.close()
     
     ## finish time-step

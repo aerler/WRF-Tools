@@ -20,7 +20,7 @@ DATATYPE=${DATATYPE:-'CESM'} # data source also see $PYWPS_DATA_SOURCE
 PYDATA="${WORKDIR}/data/" # data folder used by Python script
 PYLOG="pyWPS" # log folder for Python script (use relative path for tar)
 PYTGZ="${RUNNAME}_${PYLOG}.tgz" # archive for log folder
-METDATA=${METDATA:-''} # folder to store metgrid data on disk, if desired
+METDATA=${METDATA:-''} # folder to store metgrid data on disk (has to be absolute path!)
 # N.B.: leave undefined to skip disk storage; defining $METDATA will set "ldisk = True" in pyWPS
 # real.exe
 RUNREAL=${RUNREAL:-1} # whether to run real.exe

@@ -105,9 +105,11 @@ function RENAME () {
     # WPS script
     sed -i "/WPSSCRIPT=/ s/WPSSCRIPT=[^$][^$].*$/WPSSCRIPT=\'run_${CASETYPE}_WPS.${WPSQ}\' # WPS run-scripts/" "${FILE}" # WPS run-script
     # output folder
-    sed -i '/WRFOUT=/ s+WRFOUT=[^$][^$].*$+WRFOUT="${INIDIR}/wrfout/"  # WRF output folder+' "${FILE}"
+    sed -i '/WRFOUT=/ s+WRFOUT=[^$][^$].*$+WRFOUT="${INIDIR}/wrfout/" # WRF output folder+' "${FILE}"
     # metdata folder
-    #sed -i '/METDATA=/ s+METDATA=[^$][^$].*$+METDATA=""  # WRF output folder+' "${FILE}"
+    [[ -n $METDATA ]] && sed -i "/METDATA=/ s+METDATA=[^$][^$].*$+METDATA=\'${METDATA}\' # optional WPS/metgrid output folder+" "${FILE}"
+    # WRF version
+    [[ -n $WRFVERSION ]] && sed -i "/WRFVERSION=/ s/WRFVERSION=[^$].*$/WRFVERSION=${WRFVERSION} # optional WRF version parameter (default: 3) /" "${FILE}"
     # WRF wallclock time limit
     sed -i "/WRFWCT=/ s/WRFWCT=[^$][^$].*$/WRFWCT=\'${WRFWCT}\' # WRF wallclock time/" "${FILE}" # used for queue time estimate
     # number of WPS & WRF nodes on given system

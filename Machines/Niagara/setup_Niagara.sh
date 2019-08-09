@@ -131,8 +131,8 @@ export THREADS=${THREADS:-1} # number of OpenMP threads
 #export I_MPI_PIN_DOMAIN=omp
 export I_MPI_DEBUG=1 # less output (currently no problems)
 # Intel hybrid (mpi/openmp) job launch command
-#export HYBRIDRUN=${HYBRIDRUN:-'mpirun -ppn ${TASKS} -np $((NODES*TASKS))'} # evaluated by execWRF and execWPS
-export HYBRIDRUN=${HYBRIDRUN:-'mpiexec '} # evaluated by execWRF and execWPS
+export HYBRIDRUN=${HYBRIDRUN:-'mpirun -ppn ${TASKS} -np $((NODES*TASKS))'} # evaluated by execWRF and execWPS
+#export HYBRIDRUN=${HYBRIDRUN:-'mpiexec '} # evaluated by execWRF and execWPS
 
 # geogrid command (executed during machine-independent setup)
 #export RUNGEO=${RUNGEO:-"ssh nia-login08 \"cd ${INIDIR}; source ${SCRIPTDIR}/setup_WPS.sh; mpirun -n 4 ${BINDIR}/geogrid.exe\""} # run on GPC via ssh

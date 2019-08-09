@@ -72,6 +72,7 @@ export METDATA='' # folder to collect output data from metgrid
 export DATATYPE='' # needed to handle leap years
 export WPSSCRIPT='run_cycling_WPS.pbs' # WPS run-scripts
 export WRFSCRIPT='run_cycling_WRF.pbs' # WRF run-scripts
+export WRFVERSION='' # WRF version; default set in setup_WRF.sh
 WRFWCT='00:15:00' # wait time for queue selector; only temporary; default set above ($DEFWCT)
 
 # source machine setup
