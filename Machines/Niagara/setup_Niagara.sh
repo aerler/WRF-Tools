@@ -41,13 +41,10 @@ if [ -z $SYSTEM ] || [[ "$SYSTEM" == "$MAC" ]]; then
   elif [ ${WRFVERSION} -eq 4 ]; then
     module load NiaEnv/2019b openjpeg/2.3.1 jasper/.experimental-2.0.14 
     module load intel/2019u4 intelmpi/2019u4 hdf5/1.8.21 netcdf/4.6.3
-    module list
     # modules for PyWPS
     if [[ ${RUNPYWPS} == 1 ]]; then
       # Anaconda has a different HDF5 version, so if another load-order is required, we need this:
-      #export HDF5_DISABLE_VERSION_CHECK=1
-      #module ncl/6.4.0
-      #module list
+      module load ncl/6.6.2
       if [ $PYTHONVERSION -eq 2 ]; then module load python/2.7.15 #intelpython2/2019u4
       elif [ $PYTHONVERSION -eq 3 ]; then module load intelpython3/2019u4
       else echo "Warning: Python Version '$PYTHONVERSION' not found."
