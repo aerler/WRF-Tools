@@ -29,6 +29,7 @@ export CURRENTSTEP
 export NODES=${WRFNODES} # number of nodes or processes (depending on system)
 export RUNWRF=1 # more options: $WRFIN, $WRFOUT, $TABLES
 export RUNREAL=0 # more options: $RUNREAL, $RAMIN, $RAMOUT, $REALIN, $REALOUT
+export PYTHONVERSION=3 # pyWPS et al. are now converted to Python 3
 
 # setup job environment
 cd "${INIDIR}"

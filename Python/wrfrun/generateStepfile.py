@@ -21,16 +21,16 @@ for arg in sys.argv[1:]:
   elif arg == '-e' or arg == '--echo': 
     lecho = True
   elif arg == '-h' or arg == '--help':
-    print ''
-    print "Usage: "+sys.argv[0]+" [-e] [-h] [--interval=interval] [--steps=steps] begin-date [end-date]"
-    print "       Interval, begin-date and end-date or steps must be specified."
-    print ""
-    print "  --interval=    step spacing / interval (D=days, W=weeks, M=month)"
-    print "  --steps=       number of steps in stepfile"
-    print "  -l | --noleap  omit leap days (to accomodate some GCM calendars)"
-    print "  -e | --echo    print steps to stdout instead of writing to stepfile"
-    print "  -h | --help    print this message"
-    print ''
+    print('')
+    print("Usage: "+sys.argv[0]+" [-e] [-h] [--interval=interval] [--steps=steps] begin-date [end-date]")
+    print("       Interval, begin-date and end-date or steps must be specified.")
+    print("")
+    print("  --interval=    step spacing / interval (D=days, W=weeks, M=month)")
+    print("  --steps=       number of steps in stepfile")
+    print("  -l | --noleap  omit leap days (to accomodate some GCM calendars)")
+    print("  -e | --echo    print steps to stdout instead of writing to stepfile")
+    print("  -h | --help    print this message")
+    print('')
     sys.exit(1)    
   else: 
     dateargs.append(arg)
@@ -54,10 +54,10 @@ elif 'm' in freq:
 begindate = pandas.to_datetime(dateargs[0]) - offset 
 # check input and generate datelist
 if lperiod:
-  if len(dateargs) != 1: raise ValueError, 'Can only specify begin-date, if the number of periods is given.'
+  if len(dateargs) != 1: raise ValueError('Can only specify begin-date, if the number of periods is given.')
   datelist = pandas.date_range(begindate, periods=periods, freq=freq) # generate datelist
 else:
-  if len(dateargs) != 2: raise ValueError, 'Specify begin-date and end-date, if no number of periods is given.'
+  if len(dateargs) != 2: raise ValueError('Specify begin-date and end-date, if no number of periods is given.')
   enddate = pandas.to_datetime(dateargs[1]) - offset
   datelist = pandas.date_range(begindate, enddate, freq=freq) # generate datelist
 

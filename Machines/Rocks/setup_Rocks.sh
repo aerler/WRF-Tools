@@ -14,6 +14,7 @@ export IBHOSTS="${HOME}/ibhosts"
 export CODE_ROOT="$HOME/"
 
 # Python path
+if [[ -n $PYTHONVERSION ]] && [ $PYTHONVERSION -ne 2 ]; then echo "WARNING: cannot load Python version ${PYTHONVERSION}"; fi
 export PYTHONPATH=$HOME/WRF\ Tools/Python/:$HOME/PyGeoDat/src/:$PYTHONPATH
 # use Anaconda Python distribution
 export PATH=/pub/home_local/wrf/anaconda/bin:$PATH

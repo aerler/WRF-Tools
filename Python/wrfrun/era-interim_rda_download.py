@@ -6,8 +6,8 @@
 #
 import sys
 import os
-import urllib2
-import cookielib
+import urllib.request, urllib.error, urllib.parse
+import http.cookiejar
 import pandas
 #
 lverbose=True
@@ -17,12 +17,12 @@ for arg in sys.argv[1:]:
   if arg == '-q': lverbose = False
   elif arg == '-n': lnoclobber = True
   elif arg == '-h' or arg == '--help':
-    print('''
+    print(('''
 usage: {:s} [-q] [-n] [-h] password_on_RDA_webserver begin-date end-date\n
        -q   suppresses the progress message for each file that is downloaded
        -n   skips existing files (no-clobber)
        -h   print this message
-       '''.format(sys.argv[0]))
+       '''.format(sys.argv[0])))
     sys.exit(1)    
   else: args.append(arg)
 # assign arguments
@@ -33,8 +33,8 @@ if (len(sys.argv) == 3 and sys.argv[1] == "-q"):
   passwd_idx=2
   verbose=False
 #
-cj = cookielib.MozillaCookieJar()
-opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
+cj = http.cookiejar.MozillaCookieJar()
+opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cj))
 #
 # check for existing cookies file and authenticate if necessary
 do_authentication=False
@@ -66,13 +66,13 @@ files['sc'] = "ei.oper.an.pl.regn128sc.{0:s}" # YYYYMMDDHH
 files['uv'] = "ei.oper.an.pl.regn128uv.{0:s}" # YYYYMMDDHH
 files['sfc'] = "ei.oper.an.sfc.regn128sc.{0:s}" # YYYYMMDDHH
 # check
-for key in folders.keys(): 
+for key in list(folders.keys()): 
   if key not in filetypes: raise ValueError
-for key in files.keys(): 
+for key in list(files.keys()): 
   if key not in filetypes: raise ValueError
 # make local folders
 localfolders = {filetype:'/{0:s}/{1:s}/'.format(localtrunk,filetype) for filetype in filetypes}
-for localfolder in localfolders.itervalues():
+for localfolder in localfolders.values():
   if not os.path.exists(localfolder): os.mkdir(localfolder)
 
 # date settings

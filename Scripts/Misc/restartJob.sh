@@ -81,6 +81,7 @@ fi
 # N.B.: single brackets are essential, otherwise the globbing expression is not recognized
 
 # source machine setup
+export PYTHONVERSION=3 # pyWPS et al. are now converted to Python 3
 source "${SCRIPTDIR}/setup_WRF.sh" > /dev/null # suppress output (not errors, though)
 # needed to define $MAC, $QSYS, and $RESUBJOB
 # guess run script name, bases on queue system

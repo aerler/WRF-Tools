@@ -73,36 +73,36 @@ weight_file = 'ocn2atmweight_file.nc'
 ## read environment variables (overrides defaults)
 # defaults are set above (some machine specific)
 # code root folder (instalation folder of 'WRF Tools'
-if os.environ.has_key('CODE_ROOT'): Model = os.environ['CODE_ROOT']
-else: raise ValueError, 'Environment variable $CODE_ROOT not defined'
+if 'CODE_ROOT' in os.environ: Model = os.environ['CODE_ROOT']
+else: raise ValueError('Environment variable $CODE_ROOT not defined')
 # NCARG installation folder (for NCL)
-if os.environ.has_key('NCARG_ROOT'): 
+if 'NCARG_ROOT' in os.environ: 
   NCARG = os.environ['NCARG_ROOT']
   if NCARG[-1] != '/': NCARG += '/' # local convention is that directories already have a slash
   NCL = NCARG + 'bin/ncl'
 # RAM disk
-if os.environ.has_key('RAMDISK'): Ram = os.environ['RAMDISK']
+if 'RAMDISK' in os.environ: Ram = os.environ['RAMDISK']
 # keep data in memory (for real.exe)
-if os.environ.has_key('PYWPS_KEEP_DATA'):
+if 'PYWPS_KEEP_DATA' in os.environ:
   ldata = bool(int(os.environ['PYWPS_KEEP_DATA'])) # expects 0 or 1
 else: ldata = True
 # discover data based on available files
-if os.environ.has_key('PYWPS_DISCOVER'):
+if 'PYWPS_DISCOVER' in os.environ:
   ldiscover = bool(int(os.environ['PYWPS_DISCOVER'])) # expects 0 or 1
 else: ldiscover = False
 # save metgrid data
-if os.environ.has_key('PYWPS_MET_DATA') and os.environ['PYWPS_MET_DATA']:
+if 'PYWPS_MET_DATA' in os.environ and os.environ['PYWPS_MET_DATA']:
   Disk = os.environ['PYWPS_MET_DATA']
   if Disk[-1] != '/': Disk += '/' # local convention is that directories already have a slash
   ldisk = True
 else: ldisk = False
 # number of processes NP 
-if os.environ.has_key('PYWPS_THREADS'): NP = int(os.environ['PYWPS_THREADS'])
+if 'PYWPS_THREADS' in os.environ: NP = int(os.environ['PYWPS_THREADS'])
 # dataset specific stuff
-if os.environ.has_key('PYWPS_DATA_TYPE'): 
+if 'PYWPS_DATA_TYPE' in os.environ: 
   dataset = os.environ['PYWPS_DATA_TYPE']
 else: 
-  raise ValueError, 'Unknown dataset type ($PYWPS_DATA_TYPE not defined)'
+  raise ValueError('Unknown dataset type ($PYWPS_DATA_TYPE not defined)')
 
 
 ## dataset manager parent class
@@ -126,20 +126,20 @@ class Dataset():
   ## these functions are dataset specific and may have to be implemented in the child class
   def __init__(self, folder=None):
     # type checking
-    if not isinstance(self.grbdirs,(list,tuple)): raise TypeError, 'Need to define a list of grib folders.'
-    if not isinstance(self.grbstrs,(list,tuple)): raise TypeError, 'Need to define a list of grib file names.'
-    if len(self.grbstrs) != len(self.grbdirs): raise ValueError, 'Grid file types and folders need to be of the same number.'
-    if len(self.grbstrs) > len(Alphabet): raise ValueError, 'Currently only {0:d} file types are supported.'.format(len(Alphabet))
+    if not isinstance(self.grbdirs,(list,tuple)): raise TypeError('Need to define a list of grib folders.')
+    if not isinstance(self.grbstrs,(list,tuple)): raise TypeError('Need to define a list of grib file names.')
+    if len(self.grbstrs) != len(self.grbdirs): raise ValueError('Grid file types and folders need to be of the same number.')
+    if len(self.grbstrs) > len(Alphabet): raise ValueError('Currently only {0:d} file types are supported.'.format(len(Alphabet)))
     # some general assignments
     # N.B.: self.MainDir and self.mainrgx need to be assigned as well!
     # files and folders
-    if not isinstance(folder,basestring): raise IOError, 'Warning: need to specify root folder!'
+    if not isinstance(folder,str): raise IOError('Warning: need to specify root folder!')
     self.folder = folder # needs to be set externally for different applications
     self.GrbDirs = ['{0:s}/{1:s}'.format(folder,grbdir) for grbdir in self.grbdirs]
     self.UNGRIB = './' + self.ungrib_exe
     # generate required ungrib names
     gribnames = []
-    for i in xrange(len(self.grbstrs)):
+    for i in range(len(self.grbstrs)):
       gribname = '{0:s}.AA{1:s}'.format(self.gribname,Alphabet[i])
       gribnames.append(gribname)
     self.gribnames = gribnames
@@ -226,14 +226,14 @@ class Dataset():
       grbfile = grbstr.format(datestr) # insert current date
       Grbfile = '{0:s}/{1:s}'.format(GrbDir,grbfile) # absolute path
       if not os.path.exists(Grbfile): 
-        raise IOError, "Input file '{0:s}' not found!".format(Grbfile)     
+        raise IOError("Input file '{0:s}' not found!".format(Grbfile))     
       else:
         msg += '\n    '+grbfile # add to output
         Grbfiles.append(Grbfile) # append to file list
     # print feedback
-    print('\n '+mytag+' Processing time-step:  '+msg)    
+    print(('\n '+mytag+' Processing time-step:  '+msg))    
     for Gribfile,gribname in zip(Grbfiles,self.gribnames): os.symlink(Gribfile,gribname) # link current file      
-    print('\n  * '+mytag+' converting Grib to WRF IM format (ungrib.exe)')
+    print(('\n  * '+mytag+' converting Grib to WRF IM format (ungrib.exe)'))
     # N.B.: binary mode 'b' is not really necessary on Unix
     # run ungrib.exe
     fungrib = open(self.ungrib_log, 'a') # ungrib.exe output and error log
@@ -286,7 +286,7 @@ class CFSR(Dataset):
 
   def __init__(self, folder=None):
 
-    if not isinstance(folder,basestring): raise IOError, 'Warning: need to specify root folder!'
+    if not isinstance(folder,str): raise IOError('Warning: need to specify root folder!')
     ## CESM specific files and folders (only necessary for file operations)
     self.folder = folder # needs to be set externally for different applications
     self.PlevDir = os.readlink(folder + self.plevdir)
@@ -327,12 +327,12 @@ class CFSR(Dataset):
     # create links to relevant source data (requires full path for linked files)
     plevfile = datestr+self.plevstr; Plevfile = self.PlevDir+plevfile
     if not os.path.exists(Plevfile): 
-      raise IOError, "Pressure level input file '{:s}' not found!".format(Plevfile)     
+      raise IOError("Pressure level input file '{:s}' not found!".format(Plevfile))     
     srfcfile = datestr+self.srfcstr; Srfcfile = self.SrfcDir+srfcfile
     if not os.path.exists(Srfcfile): 
-      raise IOError, "Surface input file '{:s}' not found!".format(Srfcfile)     
+      raise IOError("Surface input file '{:s}' not found!".format(Srfcfile))     
     # print feedback
-    print('\n '+mytag+' Processing time-step:  '+datestr+'\n    '+plevfile+'\n    '+srfcfile)
+    print(('\n '+mytag+' Processing time-step:  '+datestr+'\n    '+plevfile+'\n    '+srfcfile))
     gribfiles = (Plevfile, Srfcfile)
     vtables = (self.plevvtable, self.srfcvtable)
 #     else:
@@ -341,12 +341,12 @@ class CFSR(Dataset):
 #       gribfiles = (Plevfile,)
 #       vtables = (self.plevvtable,)      
     ## loop: process grib files and concatenate resulting IM files     
-    print('\n  * '+mytag+' converting Grib2 to WRF IM format (ungrib.exe)')
+    print(('\n  * '+mytag+' converting Grib2 to WRF IM format (ungrib.exe)'))
     ungribout = self.ungribout.format(*date) # ungrib.exe names output files in a specific format
     preimfile = open(self.preimfile,'wb') # open final (combined) WRF IM file 
     # N.B.: binary mode 'b' is not really necessary on Unix
     fungrib = open(self.ungrib_log, 'a') # ungrib.exe output and error log
-    for i in xrange(len(gribfiles)):
+    for i in range(len(gribfiles)):
       os.symlink(gribfiles[i],self.gribname) # link current file
       os.symlink(Meta+vtables[i],self.vtable) # link VTable
       # run ungrib.exe
@@ -396,7 +396,7 @@ class CESM(Dataset):
 
   def __init__(self, folder=None, prefix=None):
     
-    if not isinstance(folder,basestring): raise IOError, 'Warning: need to specify root folder!'    
+    if not isinstance(folder,str): raise IOError('Warning: need to specify root folder!')    
     ## CESM specific files and folders (only necessary for file operations)
     self.folder = folder # needs to be set externally for different applications
     self.AtmDir = os.readlink(folder + self.atmdir[:-1])
@@ -430,8 +430,8 @@ class CESM(Dataset):
       # find valid file name in atmosphere directory
       prefix = searchValidName(self.AtmDir)
       # print prefix
-      print('\n No data prefix defined; inferring prefix from valid data files in directory '+self.AtmDir)
-      print('  prefix = '+prefix)
+      print(('\n No data prefix defined; inferring prefix from valid data files in directory '+self.AtmDir))
+      print(('  prefix = '+prefix))
     if prefix: self.atmpfx = prefix+self.atmpfx
     if prefix: self.lndpfx = prefix+self.lndpfx
     if prefix: self.icepfx = prefix+self.icepfx
@@ -520,25 +520,25 @@ class CESM(Dataset):
     atmfile = self.atmpfx+datestr+self.ncext
     if self.yearlyfolders: atmfile = '{:04d}/{:s}'.format(date[0],atmfile) 
     if not os.path.exists(self.AtmDir+atmfile): 
-      raise IOError, "Atmosphere input file '{:s}' not found!".format(self.AtmDir+atmfile)
+      raise IOError("Atmosphere input file '{:s}' not found!".format(self.AtmDir+atmfile))
     os.symlink(self.AtmDir+atmfile,self.atmlnk)
     lndfile = self.lndpfx+datestr+self.ncext
     if self.yearlyfolders: lndfile = '{:04d}/{:s}'.format(date[0],lndfile)
     if not os.path.exists(self.LndDir+lndfile): 
-      raise IOError, "Land surface input file '{:s}' not found!".format(self.LndDir+lndfile)
+      raise IOError("Land surface input file '{:s}' not found!".format(self.LndDir+lndfile))
     os.symlink(self.LndDir+lndfile,self.lndlnk)
     icefile = self.icepfx+datestr+self.ncext
     if self.yearlyfolders: icefile = '{:04d}/{:s}'.format(date[0],icefile)
     if not os.path.exists(self.IceDir+icefile): 
-      raise IOError, "Seaice input file '{:s}' not found!".format(self.IceDir+icefile)
+      raise IOError("Seaice input file '{:s}' not found!".format(self.IceDir+icefile))
     os.symlink(self.IceDir+icefile,self.icelnk)
     # print feedback
-    print('\n '+mytag+' Processing time-step:  '+datestr+'\n    '+atmfile+'\n    '+lndfile+'\n    '+icefile)
+    print(('\n '+mytag+' Processing time-step:  '+datestr+'\n    '+atmfile+'\n    '+lndfile+'\n    '+icefile))
     #else: print('\n '+mytag+' Processing time-step:  '+datestr+'\n    '+atmfile+'\n    '+lndfile)
     
     ##  convert data to intermediate files (run unccsm tool chain)
     # run NCL script (suppressing output)
-    print('\n  * '+mytag+' interpolating to pressure levels (eta2p.ncl)')
+    print(('\n  * '+mytag+' interpolating to pressure levels (eta2p.ncl)'))
     fncl = open(self.unncl_log, 'a') # NCL output and error log
     # on SciNet we have to pass this command through the shell, so that the NCL module is loaded.
     subprocess.call(self.NCL_ETA2P, shell=True, stdout=fncl, stderr=fncl)
@@ -546,7 +546,7 @@ class CESM(Dataset):
     #subprocess.call([NCL,self.unncl_ncl], stdout=fncl, stderr=fncl)
     fncl.close()
     # run unccsm.exe
-    print('\n  * '+mytag+' writing to WRF IM format (unccsm.exe)')
+    print(('\n  * '+mytag+' writing to WRF IM format (unccsm.exe)'))
     funccsm = open(self.unccsm_log, 'a') # unccsm.exe output and error log
     subprocess.call([self.UNCCSM], stdout=funccsm, stderr=funccsm)   
     funccsm.close()
@@ -588,7 +588,7 @@ class CMIP5(Dataset):
 
   def __init__(self, folder=None, prefix=None):
     
-    if not isinstance(folder,basestring): raise IOError, 'Warning: need to specify root folder!'    
+    if not isinstance(folder,str): raise IOError('Warning: need to specify root folder!')    
     ## CMIP5 specific files and folders (only necessary for file operations)
     self.folder = folder # needs to be set externally for different applications
     self.StepIDir = os.readlink(folder + self.stepIdir[:-1])
@@ -662,7 +662,7 @@ class CMIP5(Dataset):
     stepIfile = self.stepIpfx+str(date[0])+self.ncext
     #if self.yearlyfolders: atmfile = '{:04d}/{:s}'.format(date[0],atmfile) 
     if not os.path.exists(self.StepIDir+stepIfile): 
-      raise IOError, "Initial step input file '{:s}' not found!".format(self.StepIDir+stepIfile)
+      raise IOError("Initial step input file '{:s}' not found!".format(self.StepIDir+stepIfile))
     os.symlink(self.StepIDir+stepIfile,self.stepIlnk)
     os.system('ls -l')
     # the date list would work directly as input to call_cdb_query
@@ -671,7 +671,7 @@ class CMIP5(Dataset):
     #else: print('\n '+mytag+' Processing time-step:  '+datestr+'\n    '+atmfile+'\n    '+lndfile)
     ##  convert data to intermediate files (run unccsm tool chain)
     # run NCL script (suppressing output)
-    print('\n  * '+mytag+' interpolating to pressure levels (eta2p.ncl)')
+    print(('\n  * '+mytag+' interpolating to pressure levels (eta2p.ncl)'))
     fncl = open(self.unncl_log, 'a') # NCL output and error log
     # on SciNet we have to pass this command through the shell, so that the NCL module is loaded.
     subprocess.call(self.NCL_ETA2P, shell=True, stdout=fncl, stderr=fncl)
@@ -679,7 +679,7 @@ class CMIP5(Dataset):
     #subprocess.call([NCL,self.unncl_ncl], stdout=fncl, stderr=fncl)
     fncl.close()
     # run unccsm.exe
-    print('\n  * '+mytag+' writing to WRF IM format (unccsm.exe)')
+    print(('\n  * '+mytag+' writing to WRF IM format (unccsm.exe)'))
     funccsm = open(self.unccsm_log, 'a') # unccsm.exe output and error log
     subprocess.call([self.UNCCSM], stdout=funccsm, stderr=funccsm)   
     funccsm.close()
@@ -716,7 +716,7 @@ def divideList(genericlist, n):
   rem = nlist - items*n
   # distribute list items
   listoflists = []; ihi = 0 # initialize
-  for i in xrange(n):
+  for i in range(n):
     ilo = ihi; ihi += items # next interval
     if i < rem: ihi += 1 # these intervals get one more
     listoflists.append(genericlist[ilo:ihi]) # append interval to list of lists
@@ -788,14 +788,14 @@ def processTimesteps(myid, dates):
     os.symlink(Tmp+geoname, geoname)
   
   ## loop over (atmospheric) time steps
-  if dates: print('\n '+mytag+' Looping over Time-steps:')
-  else: print('\n '+mytag+' Nothing to do!')
+  if dates: print(('\n '+mytag+' Looping over Time-steps:'))
+  else: print(('\n '+mytag+' Nothing to do!'))
   # loop over date-tuples
   for date in dates:
     
     # figure out sub-domains
     ldoms = [True,]*maxdom # first domain is always computed
-    for i in xrange(1,maxdom): # check sub-domains
+    for i in range(1,maxdom): # check sub-domains
       ldoms[i] = nlt.checkDate(date, starts[i], ends[i])
     # update date string in namelist.wps
     #print imform,date
@@ -818,7 +818,7 @@ def processTimesteps(myid, dates):
     
     ## run WPS' metgrid.exe on intermediate file
     # run metgrid_exe.exe
-    print('\n  * '+mytag+' interpolating to WRF grid (metgrid.exe)')
+    print(('\n  * '+mytag+' interpolating to WRF grid (metgrid.exe)'))
     fmetgrid = open(metgrid_log, 'a') # metgrid.exe standard out and error log    
     subprocess.call(['mpirun', '-n', '1', METGRID], stdout=fmetgrid, stderr=fmetgrid) # metgrid.exe writes a fairly detailed log file
     # N.B.: for some reason, in this contect it is necessary to execute metgrid.exe with the MPI call
@@ -828,7 +828,7 @@ def processTimesteps(myid, dates):
     os.remove(MyDir+imfile) # remove intermediate file after metgrid.exe completes
     # copy/move data back to disk (one per domain) and/or keep in memory
     tmpstr = '\n '+mytag+' Writing output to disk: ' # gather output for later display
-    for i in xrange(maxdom):
+    for i in range(maxdom):
       metfile = metpfx.format(i+1)+nmldate+ncext
       if ldoms[i]:
         tmpstr += '\n                           '+metfile
@@ -900,7 +900,7 @@ if __name__ == '__main__':
     starts = [nlt.splitDateWRF(sd) for sd in startdates]
     ends = [nlt.splitDateWRF(ed) for ed in enddates]
     # figure out domains
-    doms = range(1,maxdom+1) # list of domain indices
+    doms = list(range(1,maxdom+1)) # list of domain indices
         
     # copy meta data to temporary folder
     shutil.copytree(meta,Meta)
@@ -931,7 +931,7 @@ if __name__ == '__main__':
     elif dataset  == 'NARR': 
       dataset = NARR(folder=Root)    
     else:
-      raise ValueError, 'Unknown dataset type: {}'.format(dataset)
+      raise ValueError('Unknown dataset type: {}'.format(dataset))
       #dataset = CESM(folder=Root) # for backwards compatibility
     # setup working directory with dataset specific stuff
     dataset.setup(src=Root, dst=Tmp) #
@@ -946,7 +946,7 @@ if __name__ == '__main__':
       listoffilelists = divideList(os.listdir(DataDir), NP)
       # divide file processing among processes
       procs = []; queues = []
-      for n in xrange(NP):
+      for n in range(NP):
         pid = n + 1 # start from 1, not 0!
         q = multiprocessing.Queue()
         queues.append(q)
@@ -955,7 +955,7 @@ if __name__ == '__main__':
         p.start() 
       # terminate sub-processes and collect results    
       dates = [] # new date list with valid dates only
-      for n in xrange(NP):
+      for n in range(NP):
         dates += queues[n].get()
         procs[n].join()
     else:
@@ -963,14 +963,14 @@ if __name__ == '__main__':
       dates = dataset.constructDateList(starts[0],ends[0])
       
     # report suspicious behaviour
-    if len(dates) == 0: raise IOError, "No matching input files found for regex '{:s}' ".format(dataset.mainfiles)
+    if len(dates) == 0: raise IOError("No matching input files found for regex '{:s}' ".format(dataset.mainfiles))
     #print dates
     
     # divide up dates and process time-steps
     listofdates = divideList(dates, NP)
     # create processes
     procs = []
-    for n in xrange(NP):
+    for n in range(NP):
       pid = n + 1 # start from 1, not 0!
       p = multiprocessing.Process(name=pname.format(pid), target=processTimesteps, args=(pid, listofdates[n]))
       procs.append(p)

@@ -14,7 +14,7 @@ export QSYS='SB' # queue system
 # default WRF environment version
 export WRFVERSION=${WRFVERSION:-3} # 3 for default WRF V3.4 and V3.9 env, 4 for experimental WRF V4.1 env
 # Python Version
-export PYTHONVERSION=${PYTHONVERSION:-2} # default Python version is 2, but can be 3
+export PYTHONVERSION=${PYTHONVERSION:-3} # default Python version is 3 (most scripts are converted now)
 
 if [ -z $SYSTEM ] || [[ "$SYSTEM" == "$MAC" ]]; then 
 # N.B.: this script may be sourced from other systems, to set certain variables...
@@ -37,6 +37,7 @@ if [ -z $SYSTEM ] || [[ "$SYSTEM" == "$MAC" ]]; then
       elif [ $PYTHONVERSION -eq 3 ]; then module load python/3.6.4-anaconda5.1.0
       else echo "Warning: Python Version '$PYTHONVERSION' not found."
       fi # $PYTHONVERSION
+      python --version
     fi # if RUNPYWPS
   elif [ ${WRFVERSION} -eq 4 ]; then
     module load NiaEnv/2019b openjpeg/2.3.1 jasper/.experimental-2.0.14 
@@ -45,10 +46,11 @@ if [ -z $SYSTEM ] || [[ "$SYSTEM" == "$MAC" ]]; then
     if [[ ${RUNPYWPS} == 1 ]]; then
       # Anaconda has a different HDF5 version, so if another load-order is required, we need this:
       module load ncl/6.6.2
-      if [ $PYTHONVERSION -eq 2 ]; then module load python/2.7.15 #intelpython2/2019u4
+      if [ $PYTHONVERSION -eq 2 ]; then module load intelpython2/2019u4
       elif [ $PYTHONVERSION -eq 3 ]; then module load intelpython3/2019u4
       else echo "Warning: Python Version '$PYTHONVERSION' not found."
       fi # $PYTHONVERSION
+      python --version
     fi # if RUNPYWPS
   else echo "Warning: WRF Environment Version '$WRFVERSION' not found."
   fi # if $WRFVERSION

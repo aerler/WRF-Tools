@@ -16,7 +16,7 @@ import sys # writing to stdout
 import datetime # to compute run time
 import calendar # to locate leap years
 # my modules
-import namelist_time as nlt
+from . import namelist_time as nlt
 
 ## setup
 # pass current/last step name as argument
@@ -29,22 +29,22 @@ elif len(sys.argv) == 3 :
   currentstep = sys.argv[2]
   if sys.argv[1].lower() == 'last': lcurrent = False # process next step
   elif sys.argv[1].lower() == 'next': lcurrent = True # process input step
-  else: raise ValueError, "First argument has to be 'last' or 'next'"
-else: raise ValueError, "Only two arguments are supported."
+  else: raise ValueError("First argument has to be 'last' or 'next'")
+else: raise ValueError("Only two arguments are supported.")
 # environment variables
-if os.environ.has_key('STEPFILE'):
+if 'STEPFILE' in os.environ:
   stepfile = os.environ['STEPFILE'] # name of file with step listing
 else: stepfile = 'stepfile' # default name
-if os.environ.has_key('INIDIR'):
+if 'INIDIR' in os.environ:
   IniDir = os.environ['INIDIR'] # where the step file is found
 else: IniDir = os.getcwd() + '/' # current directory
-if os.environ.has_key('DATATYPE'):
+if 'DATATYPE' in os.environ:
   if os.environ['DATATYPE'][:4] == 'CESM': lly = False # CESMx does not have leap-years
   elif os.environ['DATATYPE'][:4] == 'CCSM': lly = False # CCSMx does not have leap-years
   elif os.environ['DATATYPE'][:5] == 'CMIP5': lly = False # CCSMx does not have leap-years
   else: lly = True # reanalysis have leap-years
 else: lly = False # GCMs like CESM/CCSM generally don't have leap-years
-if os.environ.has_key('RSTINT'):
+if 'RSTINT' in os.environ:
   rstint = int(os.environ['RSTINT']) # number of restart files per step
 else: rstint = 1
 # standard names for namelists
@@ -126,7 +126,7 @@ if __name__ == '__main__':
     # WPS namelist
     # construct date strings
     startstr = ' start_date = '; endstr = ' end_date   = '
-    for i in xrange(maxdom):
+    for i in range(maxdom):
       startstr = startstr + startdatestr + ','
       endstr = endstr + enddatestr + ','
     startstr = startstr + '\n'; endstr = endstr + '\n'
@@ -181,20 +181,20 @@ if __name__ == '__main__':
     # make restart interval a integer fraction of run time
     runmins = rtdays*1440 + rthours*60 + rtmins # restart interval in minutes
     rstmins = int(runmins/rstint)
-    if rstmins*rstint != runmins: raise ValueError, "Runtime is not an integer multiple of the restart interval (RSTINT={:d})!".format(rstint) 
+    if rstmins*rstint != runmins: raise ValueError("Runtime is not an integer multiple of the restart interval (RSTINT={:d})!".format(rstint)) 
     rststr = ' restart_interval = '+str(rstmins)+',\n'
     # construct run time strings
     timecats = ('days', 'hours', 'minutes', 'seconds')
     ltc = len(timecats); runcats = ['',]*ltc
-    for i in xrange(ltc):
+    for i in range(ltc):
       runcats[i] = ' run_'+timecats[i]+' = '+str(runtime[i])+',\n'
     # construct date strings
     datecats = ('year', 'month', 'day', 'hour')
     ldc = len(datecats); startcats = ['',]*ldc; endcats = ['',]*ldc
-    for i in xrange(ldc):
+    for i in range(ldc):
       # startcat, endcat, datecat, start, end 
       startcat = ' start_'+datecats[i]+' ='; endcat = ' end_'+datecats[i]+'   ='
-      for j in xrange(maxdom):
+      for j in range(maxdom):
         startcat = startcat + ' ' + str(startdate[i]) + ','
         endcat = endcat + ' ' + str(enddate[i]) + ','
       startcats[i] = startcat + '\n'; endcats[i] = endcat + '\n'

@@ -38,7 +38,7 @@ def call_cdb_query_download_month(validate_file, output_file, year, month):
 def merge_files_from_reduce_nco(reduce_directory,file_outname):
     subprocess.call(['mv ./{0:}/*/*/*/*/*/*/*/*/*/*.nc {1:}/'.format(reduce_directory, reduce_directory)], shell=True)
     for filename in glob.glob('./{0:}/*.nc'.format(reduce_directory)):
-        print filename
+        print(filename)
         subprocess.call(['ncks -A {0:} ./{1:}.nc'.format(filename, file_outname)], shell=True)
 
 def merge_files_from_reduce_cdo(reduce_directory,file_outname):
@@ -51,13 +51,13 @@ def clean_reduce_directory(reduce_directory):
 
 def apply_cdb_query_singleWPSstep(Vfile,inputdate):
     #Break up the namelist date string into individual components
-    print 'calling cdb_query for step {0:}'.format(inputdate)
-    print Vfile
+    print('calling cdb_query for step {0:}'.format(inputdate))
+    print(Vfile)
     stepyear = inputdate[0]
     stepmonth = inputdate[1]
     stepday = inputdate[2]
     stephour = inputdate[3]
-    print stepyear,stepmonth,stepday,stephour
+    print(stepyear,stepmonth,stepday,stephour)
     
     
     #Validate filename
@@ -70,8 +70,8 @@ def apply_cdb_query_singleWPSstep(Vfile,inputdate):
     #Execute the cdb_query_CMIP5_reduce functions here for monthly/daily/6hourly files
     if stepmonth == '1' and stepday == '1' and stephour == '0':
       # Here copy the initial 6hr step file for each year into the folder. The file name is made after pyWPS.py glob the file with the right year. Therefore the file name is hard coded.
-      print stepyear,stepmonth,stepday,stephour
-      print 'copying initial timestep file for year {0:}'.format(stepyear)
+      print(stepyear,stepmonth,stepday,stephour)
+      print('copying initial timestep file for year {0:}'.format(stepyear))
       subprocess.call(['cp initialstepfile.nc merged_6hourly.nc'], shell=True)
     else:
       call_cdb_query_download_6hour(source_validate_file, temp_output_file, stepyear, stepmonth, stepday, stephour)
@@ -99,7 +99,7 @@ def apply_cdb_query_singleWPSstep(Vfile,inputdate):
     merge_files_from_reduce_cdo(temp_reduce_directory,merged_filename)
     clean_reduce_directory(temp_reduce_directory)
     
-    print(inputdate, 'completed cdb_query operation')
+    print((inputdate, 'completed cdb_query operation'))
     
 #name='__main__'
 #if name == '__main__':

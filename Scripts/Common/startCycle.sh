@@ -74,6 +74,7 @@ export WPSSCRIPT='run_cycling_WPS.pbs' # WPS run-scripts
 export WRFSCRIPT='run_cycling_WRF.pbs' # WRF run-scripts
 export WRFVERSION='' # WRF version; default set in setup_WRF.sh
 WRFWCT='00:15:00' # wait time for queue selector; only temporary; default set above ($DEFWCT)
+export PYTHONVERSION=3 # pyWPS et al. are now converted to Python 3
 
 # source machine setup
 source "${SCRIPTDIR}/setup_WRF.sh" > /dev/null # suppress output (not errors, though)

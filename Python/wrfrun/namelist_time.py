@@ -119,13 +119,13 @@ def writeNamelist(nmlstwps, ldoms, imdate, imd, isd, ied):
   for line in file:
     if file.filelineno()==imd:
       # write maximum number of domains
-      print(' max_dom = %2.0f,'%ndoms)
+      print((' max_dom = %2.0f,'%ndoms))
     elif file.filelineno()==isd:
       # write new start date
-      print(' start_date = '+datestr)
+      print((' start_date = '+datestr))
     elif file.filelineno()==ied:
       # write new end date
-      print(' end_date = '+datestr)
+      print((' end_date = '+datestr))
     else:
       # just write original file contents
       sys.stdout.write(line)

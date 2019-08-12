@@ -35,7 +35,7 @@ def getDateRegX(period):
   elif period == '2085-2095': prdrgx = '20(8[5-9]|9[0-4])-\d\d' # 10 year future period
   elif period == '2085-2100': prdrgx = '20(8[5-9]|9[0-9])-\d\d' # 15 year future period
   else: #prdrgx = '\d\d\d\d-\d\d'
-    raise ValueError, 'Unknown period definition: \'%s\''%period
+    raise ValueError('Unknown period definition: \'%s\''%period)
   return prdrgx 
 
 def checkList(varlist, statlist, dimlist, ignorelist):
@@ -44,26 +44,26 @@ def checkList(varlist, statlist, dimlist, ignorelist):
   if statlist is None: 
     statlist = []
   else:
-    for i in xrange(len(statlist)-1,-1,-1): # avoid problems with deletions, hence go backwards
+    for i in range(len(statlist)-1,-1,-1): # avoid problems with deletions, hence go backwards
       if statlist[i] not in cesmout.variables:
-        print('\nWARNING: variable %s not found in source file!\n'%(statlist[i],))
+        print(('\nWARNING: variable %s not found in source file!\n'%(statlist[i],)))
         del statlist[i] # remove variable if not present in source file        
   # check varlist
   if varlist is None:
     varlist = []
-    for varname,ncvar in cesmout.variables.iteritems():
+    for varname,ncvar in cesmout.variables.items():
       if varname not in statlist and varname not in ignorelist and ncvar.dtype != '|S1':
         if 'time' in ncvar.dimensions: varlist.append(varname)
         elif varname not in dimlist: statlist.append(varname) # another static variable
       #varlist = [var for var in cesmout.variables.iterkeys() if var not in statlist]
   else:
-    for i in xrange(len(varlist)-1,-1,-1): # avoid problems with deletions
+    for i in range(len(varlist)-1,-1,-1): # avoid problems with deletions
       if varlist[i] not in cesmout.variables:
-        print('\nWARNING: variable %s not found in source file!\n'%(varlist[i],))
+        print(('\nWARNING: variable %s not found in source file!\n'%(varlist[i],)))
         del varlist[i] # remove variable if not present in soruce file
       else:
         if varlist[i] in statlist: 
-          print('\nWARNING: variable %s is also statlist!\n'%(varlist[i],))
+          print(('\nWARNING: variable %s is also statlist!\n'%(varlist[i],)))
           del varlist[i] # remove variable if not present in soruce file  
   # return checked lists
   return varlist, statlist    
@@ -71,7 +71,7 @@ def checkList(varlist, statlist, dimlist, ignorelist):
 
 ## read arguments
 # file types to process 
-if os.environ.has_key('PYAVG_FILETYPE'): 
+if 'PYAVG_FILETYPE' in os.environ: 
   filetype = os.environ['PYAVG_FILETYPE'] # currently only one at a time
 else: filetype = 'atm' # defaults are set below  
 # averaging period
@@ -97,7 +97,7 @@ cesmname = os.getcwd().split('/')[-1] # root folder name
 if filetype == 'atm': cesmpfx = cesmname + '.cam2.h0.' # use monthly means
 elif filetype == 'lnd': cesmpfx = cesmname + '.clm2.h0.' # use monthly means
 elif filetype == 'ice': cesmpfx = cesmname + '.cice.h.' # use monthly means
-else: raise ValueError, 'Unknown filetype \'%s\''%(filetype,)
+else: raise ValueError('Unknown filetype \'%s\''%(filetype,))
 cesmext = '.nc'
 # output files and folders
 if period: 
@@ -128,8 +128,8 @@ mons = arange(1,13, dtype='int16'); nmons = len(mons)
 if __name__ == '__main__':
     
   # announcement
-  print('\n\n   ***   Processing CESM %s   ***   '%(cesmname,))
-  print('Source folder: %s'%(srcdir,))
+  print(('\n\n   ***   Processing CESM %s   ***   '%(cesmname,)))
+  print(('Source folder: %s'%(srcdir,)))
 
   ## setup files and folders
   cesmfiles = cesmpfx + prdrgx + cesmext
@@ -140,7 +140,7 @@ if __name__ == '__main__':
   filelist = [cesmrgx.match(filename) for filename in os.listdir(srcdir)] # list folder and match
   filelist = [match.group() for match in filelist if match is not None] # assemble valid file list
   if len(filelist) == 0:
-    print('\nWARNING: no matching files found for %s   '%(cesmname,))
+    print(('\nWARNING: no matching files found for %s   '%(cesmname,)))
     import sys   
     sys.exit(1) # exit if there is no match
   filelist.sort() # sort alphabetically, so that files are in sequence (temporally)
@@ -152,7 +152,7 @@ if __name__ == '__main__':
   cesmout = Dataset(srcdir+filelist[0], 'r', format='NETCDF4')
   # create climatology output file  
   if os.path.exists(dstdir+climfile): 
-    print(' removing old climatology file \'%s\''%(dstdir+climfile,))
+    print((' removing old climatology file \'%s\''%(dstdir+climfile,)))
     os.remove(dstdir+climfile)
   clim = Dataset(dstdir+climfile, 'w', format='NETCDF4')
   add_coord(clim, 'time', data=mons, length=len(mons), dtype='i4', atts=dict(units='month of the year')) # month of the year
@@ -162,8 +162,8 @@ if __name__ == '__main__':
   # variable with proper names of the months
   clim.createDimension('tstrlen', size=9) 
   coord = clim.createVariable('month','S1',('time','tstrlen'))
-  for m in xrange(nmons): 
-    for n in xrange(9): coord[m,n] = months[m][n]
+  for m in range(nmons): 
+    for n in range(9): coord[m,n] = months[m][n]
   # global attributes
   copy_ncatts(clim, cesmout, prefix='CESM_') # copy all attributes and save with prefix WRF
   clim.description = 'climatology of CESM monthly means'
@@ -193,11 +193,11 @@ if __name__ == '__main__':
   # close sample input file
   cesmout.close()
   # loop over input files 
-  print('\n Starting computation: %i iterations (files)\n'%nfiles)
-  for n in xrange(nfiles):
+  print(('\n Starting computation: %i iterations (files)\n'%nfiles))
+  for n in range(nfiles):
     cesmout = Dataset(srcdir+filelist[n], 'r', format='NETCDF4')
-    print('  processing file #%3i of %3i:'%(n+1,nfiles))
-    print('    %s\n'%filelist[n])
+    print(('  processing file #%3i of %3i:'%(n+1,nfiles)))
+    print(('    %s\n'%filelist[n]))
     # compute monthly averages
     m = int(datergx.search(filelist[n]).group()[-2:])-1 # infer month from filename (for climatology)
     xtime[n] = n+1 # month since start 
@@ -205,7 +205,7 @@ if __name__ == '__main__':
     for var in varlist:
       #ncvar = varmap.get(var,var)
       # N.B.: these are already monthly means, but for some reason they still have a singleton time dimension
-      print var,climdata[var][m,...].shape, cesmout.variables[var][0,...].shape, cesmout.variables[var].dtype
+      print(var,climdata[var][m,...].shape, cesmout.variables[var][0,...].shape, cesmout.variables[var].dtype)
       climdata[var][m,...] = climdata[var][m,...] + cesmout.variables[var][0,...] # accumulate climatology
       # N.B.: in-place operations are not possible, otherwise array masks are not preserved
     # close file
@@ -214,15 +214,15 @@ if __name__ == '__main__':
   # normalize climatology
   if n < nmons: xmon[xmon==0] = 1 # avoid division by zero 
   for var in varlist:
-    for i in xrange(len(xmon)):
+    for i in range(len(xmon)):
       if xmon[i] > 0:
         climdata[var][i,...] = climdata[var][i,...] / xmon[i] # 'None" indicates a singleton dimension
     
   ## finish
   # save to files
-  print(' Done. Writing output to:\n  %s'%(dstdir,))
+  print((' Done. Writing output to:\n  %s'%(dstdir,)))
   for var in varlist:
     clim.variables[var][:] = climdata[var] 
   # close files
   clim.close()
-  print('    %s'%(climfile,))
+  print(('    %s'%(climfile,)))

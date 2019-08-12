@@ -79,7 +79,7 @@ def findMinimum(values):
   jmin = 0
   vmin = values[jmin]
   # search list
-  for j in xrange(1,len(values)):
+  for j in range(1,len(values)):
     if values[j] < vmin:
       vmin = values[j] # save smallest value
       jmin = j # index of smallest value
@@ -105,7 +105,7 @@ if __name__ == '__main__':
     if lrun or lidl:
       np =  float(linesplit[3]) # ensure floating point division below: np / ppm
       if np == 1 and lidl: np = 20 # if no specific number is requested, idle jobs just show '1'
-      if np not in ppn: print('WARNING: large number of processes: {0:d} --- possibly multi-node jobs.'.format(int(np)))
+      if np not in ppn: print(('WARNING: large number of processes: {0:d} --- possibly multi-node jobs.'.format(int(np))))
       nn = math.ceil(np / ppm) # next full multiple of ppm: number of nodes
       time = linesplit[4]
 #      # print times
@@ -122,14 +122,14 @@ if __name__ == '__main__':
   ## estimate total wait time
   # one time slot for each running process
   #slots = numpy.zeros(nodes,dtype=int) # integer seconds
-  slots = [int(0) for x in xrange(nodes)]
+  slots = [int(0) for x in range(nodes)]
   # distribute running jobs to nodes
   if len(running) > len(slots): warnings.warn('WARNING: number of nodes and number of running jobs not equal: {0:s} jobs on {1:d} nodes.'.format(len(running),nodes))
-  for i in xrange(min(len(running),len(slots))):
+  for i in range(min(len(running),len(slots))):
     slots[i] = running[i]
 #  print slots
   # distribute idle jobs to nodes
-  for i in xrange(len(idle)):
+  for i in range(len(idle)):
     # find smallest slots
     vmin, jmin = findMinimum(slots)
     # assign to smallest slot
@@ -142,7 +142,7 @@ if __name__ == '__main__':
   waittime = vmin
   #waittime = slots.min()
   #  print waittime
-  print('\nEstimated queue wait time is {0:3.2f} hours\n'.format(waittime/3600))
+  print(('\nEstimated queue wait time is {0:3.2f} hours\n'.format(waittime/3600)))
   # determine acceptable wait time
   if WRFWCT:
     timelimit = convertTime(WRFWCT) # basic time limit from WRF execution time

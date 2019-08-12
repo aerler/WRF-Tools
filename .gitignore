@@ -1,5 +1,6 @@
 *.orig
 *~
+*.bak
 *.o
 *.so
 *.mod

@@ -33,6 +33,7 @@ export NODES=${WPSNODES} # number of nodes or processes (depending on system)
 # optional arguments $RUNPYWPS, $RUNREAL, $RAMIN, $RAMOUT
 export RUNPYWPS=${RUNPYWPS:-1}
 export RUNREAL=${RUNREAL:-1}
+export PYTHONVERSION=3 # pyWPS et al. are now converted to Python 3
 # folders: $METDATA, $REALIN, $REALOUT
 # $METDATA is defined in the machine setup, if metgrid files need to be output to disk
 
