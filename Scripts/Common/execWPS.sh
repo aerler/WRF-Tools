@@ -31,6 +31,9 @@ REALOUT=${REALOUT:-"${WORKDIR}"} # output folder for WRF input data
 RAMOUT=${RAMOUT:-1} # write output data to ramdisk or directly to HD
 REALLOG="real" # log folder for real.exe
 REALTGZ="${RUNNAME}_${REALLOG}.tgz" # archive for log folder
+# optional delay for file system to settle down before launching WRF
+WRFWAIT="${WRFWAIT:-'10s'}" # by default, just wait 10 seconds
+
 
 # assuming working directory is already present
 cp "${SCRIPTDIR}/execWPS.sh" "${WORKDIR}"
@@ -199,34 +202,33 @@ if [[ ${RUNREAL} == 1 ]]
     ## run and time hybrid (mpi/openmp) job
     cd "${REALDIR}" # so that output is written here
     export OMP_NUM_THREADS=${THREADS} # set OpenMP environment
-    LOOPACTIVE=true
-    LOOPCOUNTER=0
-    while $LOOPACTIVE; do
-        echo "Number of loop is $LOOPCOUNTER"
-        echo "Wait 1m before real.exe starts"
-        sleep 1m
-        echo
-        echo "OMP_NUM_THREADS=${OMP_NUM_THREADS}"
-        echo
-        echo "${HYBRIDRUN} ./real.exe"
-        echo
-        echo "Writing output to ${REALDIR}"
-        echo
-        echo "Slurm Job ID: $SLURM_JOB_ID"
-        echo
-        eval "time -p ${HYBRIDRUN} ./real.exe"
-        wait # wait for all threads to finish
-        echo
-        # check REAL exit status
-        if [[ -n $(grep 'SUCCESS COMPLETE REAL_EM INIT' rsl.error.0000) ]];
-    	    then REALERR=0; LOOPACTIVE=false;
-    	    else REALERR=1; let "LOOPCOUNTER=LOOPCOUNTER+1"; echo "real.exe failed, restarting...";
-        fi
-        if [[ "$LOOPCOUNTER" -gt 3 ]]; then
-                LOOPACTIVE=false
-                echo " real.exe loop exceed maximum trial of 10, aborting. "
-        fi
-    done
+    echo "OMP_NUM_THREADS=${OMP_NUM_THREADS}"
+    echo
+    echo "${HYBRIDRUN} ./real.exe"
+    echo
+    echo "Writing output to ${REALDIR}"
+    echo
+    if [ -n "${WRFWAIT}" ]; then
+      echo "Waiting ${WRFWAIT} to allow file system to adjust..."
+      date
+      sleep "${WRFWAIT}"
+      echo
+    fi # WRFWAIT
+    # launch
+    echo "Launching real.exe executable"
+    eval "time -p ${HYBRIDRUN} ./real.exe"
+    wait # wait for all threads to finish
+    echo
+    # check REAL exit status
+    echo
+    if [[ -n $(grep 'SUCCESS COMPLETE REAL_EM INIT' rsl.error.0000) ]]; then 
+        REALERR=0
+        echo '   ***   WRF COMPLETED SUCCESSFULLY!!!   ***   '
+    else 
+        REALERR=1
+        echo '   >>>   WRF FAILED! (UNKNOWN ERROR)   <<<   '              
+    fi # real.exe 
+    echo
 
     # clean-up and move output to hard disk
     if [[ ${RAMIN} != 1 ]]; then rm "${REALTMP}"; fi # remove temporary link to metgrid data

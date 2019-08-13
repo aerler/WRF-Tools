@@ -25,7 +25,7 @@ WRFLOG="wrf" # log folder for wrf.exe
 WRFTGZ="${RUNNAME}_${WRFLOG}.tgz" # archive for log folder
 # N.B.: tgz-extension also used later in cp *.tgz $WRFOUT
 # optional delay for file system to settle down before launching WRF
-WRFWAIT="${WRFWAIT:-'1m'}" # by default, just wait one minute
+WRFWAIT="${WRFWAIT:-'10s'}" # by default, just wait 10 seconds
 
 # assuming working directory is already present
 cp "${SCRIPTDIR}/execWRF.sh" "${WORKDIR}"
@@ -164,9 +164,12 @@ if [[ ${RUNWRF} == 1 ]]
     echo "TASKS=${TASKS}"
     echo "${HYBRIDRUN} ./wrf.exe"
     echo
-    echo "Waiting ${WRFWAIT} to allow file system to adjust..."
-    date
-    sleep "${WRFWAIT}"
+    if [ -n "${WRFWAIT}" ]; then
+      echo "Waiting ${WRFWAIT} to allow file system to adjust..."
+      date
+      sleep "${WRFWAIT}"
+      echo
+    fi # WRFWAIT
     # launch
     echo "Launching WRF executable"
     eval "time -p ${HYBRIDRUN} ./wrf.exe"

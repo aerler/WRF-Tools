@@ -475,7 +475,7 @@ class CESM(Dataset):
 #      if year[0] == '0': year = int(year)+zero # start at year 2000 (=0000)
       year = int(year)
       month = int(month); day = int(day)
-      hour = int(second)/3600 
+      hour = int(second)//3600 
       return (year, month, day, hour)
     
   def constructDateList(self, start, end):
@@ -798,7 +798,7 @@ def processTimesteps(myid, dates):
     for i in range(1,maxdom): # check sub-domains
       ldoms[i] = nlt.checkDate(date, starts[i], ends[i])
     # update date string in namelist.wps
-    #print imform,date
+    #print(imform,date)
     imdate = imform.format(*date)    
     imfile = impfx+imdate
     nmldate = nmlform.format(*date) # also used by metgrid

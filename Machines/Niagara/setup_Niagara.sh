@@ -12,7 +12,7 @@ export MAC='Niagara' # machine name
 export QSYS='SB' # queue system
 
 # default WRF environment version
-export WRFVERSION=${WRFVERSION:-3} # 3 for default WRF V3.4 and V3.9 env, 4 for experimental WRF V4.1 env
+export ENVIRONMENT=${ENVIRONMENT:-'2018a'} # need to leave default at old envionrment
 # Python Version
 export PYTHONVERSION=${PYTHONVERSION:-3} # default Python version is 3 (most scripts are converted now)
 
@@ -24,7 +24,7 @@ if [ -z $SYSTEM ] || [[ "$SYSTEM" == "$MAC" ]]; then
 	echo
 	module purge
   # module for WRF
-  if [ ${WRFVERSION} -eq 3 ]; then
+  if [[ ${ENVIRONMENT} == '2018a' ]]; then
     module load NiaEnv/2018a intel/2018.2 intelmpi/2018.2 #python/2.7.14-anaconda5.1.0
     module load hdf5/1.8.20 netcdf/4.6.1 #ncl/6.4.0 
     module load pnetcdf/1.9.0
@@ -39,7 +39,7 @@ if [ -z $SYSTEM ] || [[ "$SYSTEM" == "$MAC" ]]; then
       fi # $PYTHONVERSION
       python --version
     fi # if RUNPYWPS
-  elif [ ${WRFVERSION} -eq 4 ]; then
+  elif [[ ${ENVIRONMENT} == '2019b' ]]; then
     module load NiaEnv/2019b openjpeg/2.3.1 jasper/.experimental-2.0.14 
     module load intel/2019u4 intelmpi/2019u4 hdf5/1.8.21 netcdf/4.6.3
     # modules for PyWPS
@@ -52,8 +52,8 @@ if [ -z $SYSTEM ] || [[ "$SYSTEM" == "$MAC" ]]; then
       fi # $PYTHONVERSION
       python --version
     fi # if RUNPYWPS
-  else echo "Warning: WRF Environment Version '$WRFVERSION' not found."
-  fi # if $WRFVERSION
+  else echo "Warning: WRF Environment Version '$ENVIRONMENT' not found."
+  fi # if $ENVIRONMENT
 	module list
 	echo
 
