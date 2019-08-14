@@ -12,7 +12,7 @@ export MAC='Niagara' # machine name
 export QSYS='SB' # queue system
 
 # default WRF environment version
-export ENVIRONMENT=${ENVIRONMENT:-'2018a'} # need to leave default at old envionrment
+export WRFENV=${WRFENV:-'2018a'} # need to leave default at old envionrment
 # Python Version
 export PYTHONVERSION=${PYTHONVERSION:-3} # default Python version is 3 (most scripts are converted now)
 
@@ -24,36 +24,37 @@ if [ -z $SYSTEM ] || [[ "$SYSTEM" == "$MAC" ]]; then
 	echo
 	module purge
   # module for WRF
-  if [[ ${ENVIRONMENT} == '2018a' ]]; then
+  if [[ ${WRFENV} == '2018a' ]]; then
     module load NiaEnv/2018a intel/2018.2 intelmpi/2018.2 #python/2.7.14-anaconda5.1.0
     module load hdf5/1.8.20 netcdf/4.6.1 #ncl/6.4.0 
     module load pnetcdf/1.9.0
     # modules for PyWPS
+    # Anaconda has a different HDF5 version, so if another load-order is required, we need this:
+    export HDF5_DISABLE_VERSION_CHECK=1 # has to be set after NCL
+    if [ $PYTHONVERSION -eq 2 ]; then module load python/2.7.14-anaconda5.1.0
+    elif [ $PYTHONVERSION -eq 3 ]; then module load python/3.6.4-anaconda5.1.0
+    else echo "Warning: Python Version '$PYTHONVERSION' not found."
+    fi # $PYTHONVERSION
+    python --version
     if [[ ${RUNPYWPS} == 1 ]]; then
-      # Anaconda has a different HDF5 version, so if another load-order is required, we need this:
-      export HDF5_DISABLE_VERSION_CHECK=1 # has to be set after NCL
+      # NCL is only necessary for preprocessing CESM
       module load ncl/6.4.0
-      if [ $PYTHONVERSION -eq 2 ]; then module load python/2.7.14-anaconda5.1.0
-      elif [ $PYTHONVERSION -eq 3 ]; then module load python/3.6.4-anaconda5.1.0
-      else echo "Warning: Python Version '$PYTHONVERSION' not found."
-      fi # $PYTHONVERSION
-      python --version
     fi # if RUNPYWPS
-  elif [[ ${ENVIRONMENT} == '2019b' ]]; then
+  elif [[ ${WRFENV} == '2019b' ]]; then
     module load NiaEnv/2019b openjpeg/2.3.1 jasper/.experimental-2.0.14 
     module load intel/2019u4 intelmpi/2019u4 hdf5/1.8.21 netcdf/4.6.3
     # modules for PyWPS
+    if [ $PYTHONVERSION -eq 2 ]; then module load intelpython2/2019u4
+    elif [ $PYTHONVERSION -eq 3 ]; then module load intelpython3/2019u4
+    else echo "Warning: Python Version '$PYTHONVERSION' not found."
+    fi # $PYTHONVERSION
+    python --version
     if [[ ${RUNPYWPS} == 1 ]]; then
-      # Anaconda has a different HDF5 version, so if another load-order is required, we need this:
+      # NCL is only necessary for preprocessing CESM
       module load ncl/6.6.2
-      if [ $PYTHONVERSION -eq 2 ]; then module load intelpython2/2019u4
-      elif [ $PYTHONVERSION -eq 3 ]; then module load intelpython3/2019u4
-      else echo "Warning: Python Version '$PYTHONVERSION' not found."
-      fi # $PYTHONVERSION
-      python --version
     fi # if RUNPYWPS
-  else echo "Warning: WRF Environment Version '$ENVIRONMENT' not found."
-  fi # if $ENVIRONMENT
+  else echo "Warning: WRF Environment Version '$WRFENV' not found."
+  fi # if $WRFENV
 	module list
 	echo
 
@@ -72,14 +73,13 @@ if [ -z $SYSTEM ] || [[ "$SYSTEM" == "$MAC" ]]; then
 fi # if on Niagara
 
 
-# set Python path for PyWPS
-if [[ ${RUNPYWPS} == 1 ]]
-  then
-    if [ -e "${CODE_ROOT}/WRF Tools/Python/" ]; then export PYTHONPATH="${CODE_ROOT}/WRF Tools/Python:${PYTHONPATH}";
-    elif [ -e "${CODE_ROOT}/WRF-Tools/Python/" ]; then export PYTHONPATH="${CODE_ROOT}/WRF-Tools/Python:${PYTHONPATH}"; fi
-    if [ -e "${CODE_ROOT}/GeoPy/src/" ]; then export PYTHONPATH="${CODE_ROOT}/GeoPy/src:${PYTHONPATH}"; fi
-    echo "PYTHONPATH: $PYTHONPATH"
-fi # if RUNPYWPS
+# set Python path for pyWPS.py and cycling.py
+if [ -e "${CODE_ROOT}/WRF Tools/Python/" ]; then export PYTHONPATH="${CODE_ROOT}/WRF Tools/Python:${PYTHONPATH}";
+elif [ -e "${CODE_ROOT}/WRF-Tools/Python/" ]; then export PYTHONPATH="${CODE_ROOT}/WRF-Tools/Python:${PYTHONPATH}"; fi
+# wrfout_average.py depends on some modules from GeoPy (nctools and processing)
+if [ -e "${CODE_ROOT}/GeoPy/src/" ]; then export PYTHONPATH="${CODE_ROOT}/GeoPy/src:${PYTHONPATH}"; fi
+# show Python path for debugging
+echo "PYTHONPATH: $PYTHONPATH"
 
 
 # RAM-disk settings: infer from queue

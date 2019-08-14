@@ -16,7 +16,7 @@ import sys # writing to stdout
 import datetime # to compute run time
 import calendar # to locate leap years
 # my modules
-from . import namelist_time as nlt
+import wrfrun.namelist_time as nlt
 
 ## setup
 # pass current/last step name as argument
