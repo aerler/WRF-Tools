@@ -43,9 +43,10 @@ if [ -z $SYSTEM ] || [[ "$SYSTEM" == "$MAC" ]]; then
   elif [[ ${WRFENV} == '2019b' ]]; then
     module load NiaEnv/2019b openjpeg/2.3.1 jasper/.experimental-2.0.14 
     module load intel/2019u4 intelmpi/2019u4 hdf5/1.8.21 netcdf/4.6.3
+    #module load intel/2019u4 openmpi/4.0.1 hdf5/1.8.21 netcdf/4.6.3
     # modules for PyWPS
-    if [ $PYTHONVERSION -eq 2 ]; then module load intelpython2/2019u4
-    elif [ $PYTHONVERSION -eq 3 ]; then module load intelpython3/2019u4
+    if [ $PYTHONVERSION -eq 2 ]; then module load python/2.7.15
+    elif [ $PYTHONVERSION -eq 3 ]; then module load python/3.6.8
     else echo "Warning: Python Version '$PYTHONVERSION' not found."
     fi # $PYTHONVERSION
     python --version
@@ -131,6 +132,7 @@ export THREADS=${THREADS:-1} # number of OpenMP threads
 export I_MPI_DEBUG=1 # less output (currently no problems)
 # Intel hybrid (mpi/openmp) job launch command
 export HYBRIDRUN=${HYBRIDRUN:-'mpirun -ppn ${TASKS} -np $((NODES*TASKS))'} # evaluated by execWRF and execWPS
+#export HYBRIDRUN=${HYBRIDRUN:-'mpirun --bind-to none'} # evaluated by execWRF and execWPS
 #export HYBRIDRUN=${HYBRIDRUN:-'mpiexec '} # evaluated by execWRF and execWPS
 
 # geogrid command (executed during machine-independent setup)

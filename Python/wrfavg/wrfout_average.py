@@ -345,7 +345,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
 
     
   # get some meta info and construct title string (printed after file creation)
-  begindate = str().join(wrfout.variables[wrftimestamp][0,:10]) # first timestamp in first file
+  begindate = str(nc.chartostring(wrfout.variables[wrftimestamp][0,:10])) # first timestamp in first file
   beginyear, beginmonth, beginday = [int(tmp) for tmp in begindate.split('-')]
   # always need to begin on the first of a month (discard incomplete data of first month)
   if beginday != 1:
@@ -357,7 +357,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
   logger.debug("{0:s} Opening last input file '{1:s}'.".format(pidstr,lastoutfile))
   lastout = nc.Dataset(lastoutfile, 'r', format='NETCDF4')
   lstidx = lastout.variables[wrftimestamp].shape[0]-1 # netcdf library has problems with negative indexing
-  enddate = str().join(lastout.variables[wrftimestamp][lstidx,:10]) # last timestamp in last file
+  enddate = str(nc.chartostring(lastout.variables[wrftimestamp][lstidx,:10])) # last timestamp in last file
   endyear, endmonth, endday = [int(tmp) for tmp in enddate.split('-')]; del endday # make warning go away...
   # the last timestamp should be the next month (i.e. that month is not included)
   if endmonth == 1: 
@@ -660,14 +660,14 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
       currentdate = '{0:04d}-{1:02d}'.format(currentyear,currentmonth)
       # determine appropriate start index
       wrfstartidx = 0    
-      while currentdate > str().join(wrfout.variables[wrftimestamp][wrfstartidx,0:7]):
+      while currentdate > str(nc.chartostring(wrfout.variables[wrftimestamp][wrfstartidx,0:7])):
         wrfstartidx += 1 # count forward
       if wrfstartidx != 0: logger.debug('\n{0:s} {1:s}: Starting month at index {2:d}.'.format(pidstr, currentdate, wrfstartidx))
       # save WRF time-stamp for beginning of month for the new file, for record
-      starttimestamp = wrfout.variables[wrftimestamp][wrfstartidx,:] # written to file later
-      #logger.debug('\n{0:s}{1:s}-01_00:00:00, {2:s}'.format(pidstr, currentdate, str().join(wrfout.variables[wrftimestamp][wrfstartidx,:])))
-      if '{0:s}-01_00:00:00'.format(currentdate,) == str().join(wrfout.variables[wrftimestamp][wrfstartidx,:]): pass # proper start of the month
-      elif meanidx == 0 and '{0:s}-01_06:00:00'.format(currentdate,) == str().join(wrfout.variables[wrftimestamp][wrfstartidx,:]): pass # for some reanalysis... but only at start of simulation 
+      starttimestamp = str(nc.chartostring(wrfout.variables[wrftimestamp][wrfstartidx,:])) # written to file later
+      #logger.debug('\n{0:s}{1:s}-01_00:00:00, {2:s}'.format(pidstr, currentdate, str(nc.chartostring(wrfout.variables[wrftimestamp][wrfstartidx,:])))
+      if '{0:s}-01_00:00:00'.format(currentdate,) == str(nc.chartostring(wrfout.variables[wrftimestamp][wrfstartidx,:])): pass # proper start of the month
+      elif meanidx == 0 and '{0:s}-01_06:00:00'.format(currentdate,) == str(nc.chartostring(wrfout.variables[wrftimestamp][wrfstartidx,:])): pass # for some reanalysis... but only at start of simulation 
       else: raise DateError("{0:s} Did not find first day of month to compute monthly average.".format(pidstr) +
                               "file: {0:s} date: {1:s}-01_00:00:00".format(filename,currentdate))
       
@@ -691,7 +691,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
         # N.B.: start index is determined above (if a new file was opened in the same month, 
         #       the start index is automatically set to 0 or 1 when the file is opened, below)
         wrfendidx = len(wrfout.dimensions[wrftime])-1
-        while wrfendidx >= 0 and currentdate < str().join(wrfout.variables[wrftimestamp][wrfendidx,0:7]):
+        while wrfendidx >= 0 and currentdate < str(nc.chartostring(wrfout.variables[wrftimestamp][wrfendidx,0:7])):
           if not lcomplete: lcomplete = True # break loop over file if next month is in this file (critical!)        
           wrfendidx -= 1 # count backwards
         #if wrfendidx < len(wrfout.dimensions[wrftime])-1: # check if count-down actually happened 
@@ -784,7 +784,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
           # assemble list of time stamps                        
           currenttimestamps = [] # relevant timestamps in this file            
           for i in range(wrfstartidx,tmpendidx+1):
-            timestamp = str().join(wrfout.variables[wrftimestamp][i,:])  
+            timestamp = str(nc.chartostring(wrfout.variables[wrftimestamp][i,:]))  
             currenttimestamps.append(timestamp)
           monthlytimestamps.extend(currenttimestamps) # add to monthly collection
           # normalize accumulated pqdata with output interval time
@@ -835,7 +835,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
         # if we reached the end of the file, open a new one and go again
         if not lcomplete:            
           # N.B.: here wrfendidx is not a valid time step, but the length of the file, i.e. wrfendidx-1 is the last valid time step
-          lasttimestamp = str().join(wrfout.variables[wrftimestamp][wrfendidx-1,:]) # needed to determine, if first timestep is the same as last
+          lasttimestamp = str(nc.chartostring(wrfout.variables[wrftimestamp][wrfendidx-1,:])) # needed to determine, if first timestep is the same as last
           assert lskip or lasttimestamp == monthlytimestamps[-1]
           # lasttimestep is also used for leap-year detection later on
           assert len(wrfout.dimensions[wrftime]) == wrfendidx, (len(wrfout.dimensions[wrftime]),wrfendidx) # wrfendidx should be the length of the file, not the last index!
@@ -859,9 +859,9 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
                 # check consistency of missing value flag
                 assert missing_value is None or missing_value == wrfout.P_LEV_MISSING
               else: break # this is not really tested...
-            tmptimestamp = str().join(wrfout.variables[wrftimestamp][wrfstartidx,:])
+            tmptimestamp = str(nc.chartostring(wrfout.variables[wrftimestamp][wrfstartidx,:]))
           # some checks
-          firsttimestamp = str().join(wrfout.variables[wrftimestamp][0,:])
+          firsttimestamp = str(nc.chartostring(wrfout.variables[wrftimestamp][0,:]))
           error_string = "Inconsistent time-stamps between files:\n lasttimestamp='{:s}', firsttimestamp='{:s}', wrfstartidx={:d}"
           if firsttimestamp == lasttimestamp: # skip the initialization step (was already processed in last step)
             if wrfstartidx != 1: raise DateError(error_string.format(lasttimestamp, firsttimestamp, wrfstartidx))
@@ -881,7 +881,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
                 if devar.tmpdata in tmpdata: del tmpdata[devar.tmpdata]
           else: tmpdata = dict() # reset entire temporary storage
           # N.B.: now wrfendidx is a valid timestep, but indicates the first of the next month
-          lasttimestamp = str().join(wrfout.variables[wrftimestamp][wrfendidx,:]) # this should be the first timestep of the next month
+          lasttimestamp = str(nc.chartostring(wrfout.variables[wrftimestamp][wrfendidx,:])) # this should be the first timestep of the next month
           assert lskip or lasttimestamp == monthlytimestamps[-1]                
           # open next file (if end of month and file coincide)
           if wrfendidx == len(wrfout.dimensions[wrftime])-1: # reach end of file
@@ -905,7 +905,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
                   # check consistency of missing value flag
                   assert missing_value is None or missing_value == wrfout.P_LEV_MISSING
                 else: break # this is not really tested...
-              tmptimestamp = str().join(wrfout.variables[wrftimestamp][wrfstartidx,:])
+              tmptimestamp = str(nc.chartostring(wrfout.variables[wrftimestamp][wrfstartidx,:]))
             # N.B.: same code as in "not complete" section
 #             wrfout.close() # close file
 #             #del wrfout; gc.collect() # doesn't seem to work here - strange error
@@ -913,7 +913,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
 #             if filecounter < len(filelist):    
 #               logger.debug("\n{0:s} Opening input file '{1:s}'.\n".format(pidstr,filelist[filecounter]))
 #               wrfout = nc.Dataset(infolder+filelist[filecounter], 'r', format='NETCDF4') # ... and open new one
-#               firsttimestamp = str().join(wrfout.variables[wrftimestamp][0,:]) # check first timestep (compare to last of previous file)
+#               firsttimestamp = str(nc.chartostring(wrfout.variables[wrftimestamp][0,:])) # check first timestep (compare to last of previous file)
 #               wrfstartidx = 0 # always use initialization step (but is reset above anyway)
 #               if firsttimestamp != lasttimestamp:
 #                 raise NotImplementedError, "If the first timestep of the next month is the last timestep in the file, it has to be duplicated in the next file."

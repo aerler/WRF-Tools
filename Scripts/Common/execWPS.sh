@@ -32,7 +32,7 @@ RAMOUT=${RAMOUT:-1} # write output data to ramdisk or directly to HD
 REALLOG="real" # log folder for real.exe
 REALTGZ="${RUNNAME}_${REALLOG}.tgz" # archive for log folder
 # optional delay for file system to settle down before launching WRF
-WRFWAIT="${WRFWAIT:-'10s'}" # by default, just wait 10 seconds
+#WRFWAIT="${WRFWAIT:-''}" # by default, don't wait
 
 
 # assuming working directory is already present

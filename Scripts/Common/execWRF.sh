@@ -25,7 +25,7 @@ WRFLOG="wrf" # log folder for wrf.exe
 WRFTGZ="${RUNNAME}_${WRFLOG}.tgz" # archive for log folder
 # N.B.: tgz-extension also used later in cp *.tgz $WRFOUT
 # optional delay for file system to settle down before launching WRF
-WRFWAIT="${WRFWAIT:-'10s'}" # by default, just wait 10 seconds
+#WRFWAIT="${WRFWAIT:-''}" # by default, don't wait
 
 # assuming working directory is already present
 cp "${SCRIPTDIR}/execWRF.sh" "${WORKDIR}"
