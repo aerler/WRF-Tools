@@ -169,7 +169,7 @@ inputpattern = '^wrf{0:s}_d{1:s}_{2:s}_\d\d[_:]\d\d[_:]\d\d(?:\.nc$|$)' # expand
 #       ?: just means that the group defined by () can not be retrieved (it is just to hold "|") 
 constpattern = 'wrfconst_d{0:02d}' # expanded with format(domain), also WRF output
 # N.B.: file extension is added automatically for constpattern and handled by regex for inputpattern 
-outputpattern = 'wrf{0:s}_d{1:02d}_monthly.nc' # expanded with format(type,domain)
+monthlypattern = 'wrf{0:s}_d{1:02d}_monthly.nc' # expanded with format(type,domain)
 # variable attributes
 wrftime = 'Time' # time dim in wrfout files
 wrfxtime = 'XTIME' # time in minutes since WRF simulation start
@@ -253,7 +253,7 @@ else:
     maximum_variables['srfc']   = ['T2', 'U10', 'V10', 'RAIN', 'RAINC', 'RAINNC', 'NetPrecip']
     maximum_variables['xtrm']   = ['T2MEAN', 'T2MAX', 'SPDUV10MEAN', 'SPDUV10MAX', 
                                    'RAINMEAN', 'RAINNCVMAX', 'RAINCVMAX']
-    maximum_variables['hydro']  = ['RAIN', 'RAINC', 'RAINNC', 'ACSNOW', 'ACSNOM', 'NetPrecip', 'NetWaterFlux']
+    maximum_variables['hydro']  = ['RAIN', 'RAINC', 'RAINNC', 'ACSNOW', 'ACSNOM', 'NetPrecip', 'NetWaterFlux', 'WaterForcing']
     maximum_variables['lsm']    = ['SFROFF', 'Runoff']
     maximum_variables['plev3d'] = ['S_PL', 'GHT_PL', 'Vorticity']
     # daily (smoothed) maxima
@@ -262,16 +262,16 @@ else:
     daymin_variables['srfc']  = ['T2']
     # weekly (smoothed) maxima
     weekmax_variables['xtrm']   = ['T2MEAN', 'T2MAX', 'SPDUV10MEAN'] 
-    weekmax_variables['hydro']  = ['RAIN', 'RAINC', 'RAINNC', 'ACSNOW', 'ACSNOM', 'NetPrecip', 'NetWaterFlux']
+    weekmax_variables['hydro']  = ['RAIN', 'RAINC', 'RAINNC', 'ACSNOW', 'ACSNOM', 'NetPrecip', 'NetWaterFlux', 'WaterForcing']
     weekmax_variables['lsm']    = ['SFROFF', 'UDROFF', 'Runoff']
     # Maxima (just list base variables; derived variables will be created later)
     minimum_variables['srfc']   = ['T2']
     minimum_variables['xtrm']   = ['T2MEAN', 'T2MIN', 'SPDUV10MEAN']
-    minimum_variables['hydro']  = ['RAIN', 'NetPrecip', 'NetWaterFlux']
+    minimum_variables['hydro']  = ['RAIN', 'NetPrecip', 'NetWaterFlux', 'WaterForcing']
     minimum_variables['plev3d'] = ['GHT_PL', 'Vorticity']
     # weekly (smoothed) minima
     weekmin_variables['xtrm']   = ['T2MEAN', 'T2MIN', 'SPDUV10MEAN']
-    weekmin_variables['hydro']  = ['RAIN', 'NetPrecip', 'NetWaterFlux']
+    weekmin_variables['hydro']  = ['RAIN', 'NetPrecip', 'NetWaterFlux', 'WaterForcing']
     weekmin_variables['lsm']    = ['SFROFF','UDROFF','Runoff']
 # N.B.: it is important that the derived variables are listed in order of dependency! 
 
@@ -280,6 +280,13 @@ prereq_vars = {key:set() for key in derived_variables.keys()} # pre-requisite va
 for key in prereq_vars.keys():
   prereq_vars[key].update(*[devar.prerequisites for devar in derived_variables[key] if not devar.linear])    
 
+
+## daily variables (can also be 6-hourly or hourly, depending on source file)
+daily_variables = {filetype:[] for filetype in filetypes} # daily variable lists by file type
+daily_variables['srfc']  = ['T2', 'Q2', 'U10', 'V10', 'RAIN', 'RAINC', 'LiquidPrecip'] # surface climate
+daily_variables['hydro'] = ['RAIN', 'RAINC', 'LiquidPrecip', 'ACSNOM', 'NetPrecip', 'NetWaterFlux','SFCEVP','POTEVP'] # water budget
+daily_variables['rad'] = [] # surface radiation budget
+daily_variables['lsm'] = [] # runoff and soil temperature
 
 ## main work function
 # N.B.: the loop iterations should be entirely independent, so that they can be run in parallel
@@ -368,141 +375,146 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
   assert 1 <= endday <= 31 and 1 <= endmonth <= 12 # this is kinda trivial...  
   enddate = '{0:04d}-{1:02d}-{2:02d}'.format(endyear, endmonth, endday) # rewrite begin date
       
-  # open/create monthly mean output file
-  filename = outputpattern.format(filetype,ndom)  
+  ## open/create monthly mean output file
+  monthly_file = monthlypattern.format(filetype,ndom)  
   if lparallel: tmppfx = 'tmp_wrfavg_{:s}_'.format(pidstr[1:-1])
-  else: tmppfx = 'tmp_wrfavg_'.format(pidstr[1:-1])
-  tmpfilename = tmppfx + filename 
-  meanfile = outfolder+filename
-  tmpmeanfile = outfolder+tmpfilename
-  if os.path.exists(meanfile):
-    if loverwrite or os.path.getsize(meanfile) < 1e6: os.remove(meanfile)
+  else: tmppfx = 'tmp_wrfavg_' 
+  monthly_filepath = outfolder + monthly_file
+  tmp_monthly_filepath = outfolder + tmppfx + monthly_file
+  if os.path.exists(monthly_filepath):
+    if loverwrite or os.path.getsize(monthly_filepath) < 1e6: os.remove(monthly_filepath)
     # N.B.: NetCDF files smaller than 1MB are usually incomplete header fragments from a previous crashed job
-  if os.path.exists(tmpmeanfile) and not lrecover: os.remove(tmpmeanfile) # remove old temp files
-  if os.path.exists(meanfile):
-    # make a temporary copy of the file to work on (except, if we are recovering a broken temp file)
-    if not ( lrecover and os.path.exists(tmpmeanfile) ): shutil.copy(meanfile,tmpmeanfile)
-    # open (temporary) file
-    logger.debug("{0:s} Opening existing output file '{1:s}'.\n".format(pidstr,meanfile))    
-    mean = nc.Dataset(tmpmeanfile, mode='a', format='NETCDF4') # open to append data (mode='a')
-    # infer start index
-    meanbeginyear, meanbeginmonth, meanbeginday = [int(tmp) for tmp in mean.begin_date.split('-')]
-    assert meanbeginday == 1, 'always have to begin on the first of a month'
-    t0 = (beginyear-meanbeginyear)*12 + (beginmonth-meanbeginmonth) + 1    
-    # check time-stamps in old datasets
-    if mean.end_date < begindate: assert t0 == len(mean.dimensions[time]) + 1 # another check
-    else: assert t0 <= len(mean.dimensions[time]) + 1 # get time index where we start; in month beginning 1979
-    # checks for new variables
-    if laddnew or lrecalc: 
-      if t0 != 1: raise DateError("Have to start at the beginning to add new or recompute old variables!") # t0 starts with 1, not 0
-      meanendyear, meanendmonth, meanendday = [int(tmp) for tmp in mean.end_date.split('-')]
-      assert meanendday == 1
-      endyear, endmonth = meanendyear, meanendmonth # just adding new, not extending!
-      enddate = mean.end_date # for printing...
-    # check base variables
-    if laddnew or lrecalc: newvars = []
-    for var in varlist:
-      if var not in mean.variables:
-        if laddnew: newvars.append(var)
-        else: varlist.remove(var) 
-        #raise IOError, "{0:s} variable '{1:s}' not found in file '{2:s}'".format(pidstr,var.name,filename)
-    # add new variables to netcdf file
-    if laddnew and len(newvars) > 0:
+  if os.path.exists(tmp_monthly_filepath) and not lrecover: os.remove(tmp_monthly_filepath) # remove old temp files
+  if os.path.exists(monthly_filepath):
+      # make a temporary copy of the file to work on (except, if we are recovering a broken temp file)
+      if not ( lrecover and os.path.exists(tmp_monthly_filepath) ): shutil.copy(monthly_filepath,tmp_monthly_filepath)
+      # open (temporary) file
+      logger.debug("{0:s} Opening existing output file '{1:s}'.\n".format(pidstr,monthly_filepath))    
+      mean = nc.Dataset(tmp_monthly_filepath, mode='a', format='NETCDF4') # open to append data (mode='a')
+      # infer start index
+      meanbeginyear, meanbeginmonth, meanbeginday = [int(tmp) for tmp in mean.begin_date.split('-')]
+      assert meanbeginday == 1, 'always have to begin on the first of a month'
+      t0 = (beginyear-meanbeginyear)*12 + (beginmonth-meanbeginmonth) + 1    
+      # check time-stamps in old datasets
+      if mean.end_date < begindate: assert t0 == len(mean.dimensions[time]) + 1 # another check
+      else: assert t0 <= len(mean.dimensions[time]) + 1 # get time index where we start; in month beginning 1979
+##
+##  ***  special functions like adding new and recalculating old variables could be added later for daily output  ***    
+##
+      # checks for new variables
+      if laddnew or lrecalc: 
+        if t0 != 1: raise DateError("Have to start at the beginning to add new or recompute old variables!") # t0 starts with 1, not 0
+        meanendyear, meanendmonth, meanendday = [int(tmp) for tmp in mean.end_date.split('-')]
+        assert meanendday == 1
+        endyear, endmonth = meanendyear, meanendmonth # just adding new, not extending!
+        enddate = mean.end_date # for printing...
+      # check base variables
+      if laddnew or lrecalc: newvars = []
+      for var in varlist:
+        if var not in mean.variables:
+          if laddnew: newvars.append(var)
+          else: varlist.remove(var) 
+          #raise IOError, "{0:s} variable '{1:s}' not found in file '{2:s}'".format(pidstr,var.name,monthly_file)
+      # add new variables to netcdf file
+      if laddnew and len(newvars) > 0:
+        # copy remaining dimensions to new datasets
+        if midmap is not None:
+          dimlist = [midmap.get(dim,dim) for dim in wrfout.dimensions.keys() if dim != wrftime]
+        else: dimlist = [dim for dim in wrfout.dimensions.keys() if dim != wrftime]
+        dimlist = [dim for dim in dimlist if dim not in mean.dimensions] # only the new ones!
+        copy_dims(mean, wrfout, dimlist=dimlist, namemap=dimmap, copy_coords=False) # don't have coordinate variables      
+        # create time-dependent variable in new datasets
+        copy_vars(mean, wrfout, varlist=newvars, dimmap=dimmap, copy_data=False) # do not copy data - need to average
+        # change units of accumulated variables (per second)
+        for varname in newvars: # only new vars
+          assert varname in mean.variables
+          if varname in acclist:
+            meanvar = mean.variables[varname]
+            meanvar.units = meanvar.units + '/s' # units per second!
+      # add variables that should be recalculated    
+      if lrecalc:
+        for var in recalcvars:
+          if var in mean.variables and var in wrfout.variables:
+            if var not in newvars: newvars.append(var)
+          #else: raise ArgumentError, "Variable '{:s}' scheduled for recalculation is not present in output file '{:s}'.".format(var,monthly_filepath)
+      # check derived variables
+      if laddnew or lrecalc: newdevars = []
+      for varname,var in derived_vars.items():
+        if varname in mean.variables:
+          var.checkPrerequisites(mean)
+          if not var.checked: raise ValueError("Prerequisits for derived variable '{:s}' not found.".format(varname))
+          if lrecalc:
+            if ( lderivedonly and len(recalcvars) == 0 ) or ( varname in recalcvars ): 
+              newdevars.append(varname)
+              var.checkPrerequisites(mean) # as long as they are sorted correctly...
+              #del mean.variables[varname]; mean.sync()
+              #var.createVariable(mean) # this does not seem to work...
+        else:
+          if laddnew: 
+            var.checkPrerequisites(mean) # as long as they are sorted correctly...
+            var.createVariable(mean)
+            newdevars.append(varname)
+          else: del derived_vars[varname] # don't bother
+          # N.B.: it is not possible that a previously computed variable depends on a missing variable,
+          #       unless it was purposefully deleted, in which case this will crash!
+          #raise (dv.DerivedVariableError, "{0:s} Derived variable '{1:s}' not found in file '{2:s}'".format(pidstr,var.name,monthly_file))
+      # now figure out effective variable list
+      if laddnew or lrecalc:
+        varset = set(newvars)
+        devarset = set(newdevars)
+        ndv = -1
+        # check prerequisites
+        while ndv != len(devarset):   
+          ndv = len(devarset)
+          for devar in list(devarset): # normal variables don't have prerequisites
+            for pq in derived_vars[devar].prerequisites:
+              if pq in derived_vars: devarset.add(pq)
+              else: varset.add(pq)
+        # N.B.: this algorithm for dependencies relies on the fact that derived_vars is already ordered correctly,
+        #       and unused variables can simply be removed (below), without changing the order;
+        #       a stand-alone dependency resolution would require soring the derived_vars in order of execution 
+        # consolidate lists
+        for devar in derived_vars.keys():
+          if devar not in devarset: del derived_vars[devar] # don't bother with this one...
+        varlist = list(varset) # order doesnt really matter... but whatever...
+        varlist.sort() # ... alphabetical order...
+  else:
+##
+##  ***  creation of daily output file should probably follow monthly mean file  ***    
+##
+      logger.debug("{0:s} Creating new output file '{1:s}'.\n".format(pidstr,monthly_filepath))
+      mean = nc.Dataset(tmp_monthly_filepath, 'w', format='NETCDF4') # open to start a new file (mode='w')
+      t0 = 1 # time index where we start (first month)
+      mean.createDimension(time, size=None) # make time dimension unlimited
+      add_coord(mean, time, data=None, dtype='i4', atts=dict(units='month since '+begindate)) # unlimited time dimension
       # copy remaining dimensions to new datasets
       if midmap is not None:
         dimlist = [midmap.get(dim,dim) for dim in wrfout.dimensions.keys() if dim != wrftime]
       else: dimlist = [dim for dim in wrfout.dimensions.keys() if dim != wrftime]
-      dimlist = [dim for dim in dimlist if dim not in mean.dimensions] # only the new ones!
-      copy_dims(mean, wrfout, dimlist=dimlist, namemap=dimmap, copy_coords=False) # don't have coordinate variables      
+      copy_dims(mean, wrfout, dimlist=dimlist, namemap=dimmap, copy_coords=False) # don't have coordinate variables
+      # copy time-less variable to new datasets
+      copy_vars(mean, wrfout, varlist=timeless, dimmap=dimmap, copy_data=True) # copy data
       # create time-dependent variable in new datasets
-      copy_vars(mean, wrfout, varlist=newvars, dimmap=dimmap, copy_data=False) # do not copy data - need to average
+      copy_vars(mean, wrfout, varlist=varlist, dimmap=dimmap, copy_data=False) # do not copy data - need to average
       # change units of accumulated variables (per second)
-      for varname in newvars: # only new vars
-        assert varname in mean.variables
-        if varname in acclist:
+      for varname in acclist:
+        if varname in mean.variables:
           meanvar = mean.variables[varname]
           meanvar.units = meanvar.units + '/s' # units per second!
-    # add variables that should be recalculated    
-    if lrecalc:
-      for var in recalcvars:
-        if var in mean.variables and var in wrfout.variables:
-          if var not in newvars: newvars.append(var)
-        #else: raise ArgumentError, "Variable '{:s}' scheduled for recalculation is not present in output file '{:s}'.".format(var,meanfile)
-    # check derived variables
-    if laddnew or lrecalc: newdevars = []
-    for varname,var in derived_vars.items():
-      if varname in mean.variables:
-        var.checkPrerequisites(mean)
-        if not var.checked: raise ValueError("Prerequisits for derived variable '{:s}' not found.".format(varname))
-        if lrecalc:
-          if ( lderivedonly and len(recalcvars) == 0 ) or ( varname in recalcvars ): 
-            newdevars.append(varname)
-            var.checkPrerequisites(mean) # as long as they are sorted correctly...
-            #del mean.variables[varname]; mean.sync()
-            #var.createVariable(mean) # this does not seem to work...
-      else:
-        if laddnew: 
-          var.checkPrerequisites(mean) # as long as they are sorted correctly...
-          var.createVariable(mean)
-          newdevars.append(varname)
-        else: del derived_vars[varname] # don't bother
-        # N.B.: it is not possible that a previously computed variable depends on a missing variable,
-        #       unless it was purposefully deleted, in which case this will crash!
-        #raise (dv.DerivedVariableError, "{0:s} Derived variable '{1:s}' not found in file '{2:s}'".format(pidstr,var.name,filename))
-    # now figure out effective variable list
-    if laddnew or lrecalc:
-      varset = set(newvars)
-      devarset = set(newdevars)
-      ndv = -1
-      # check prerequisites
-      while ndv != len(devarset):   
-        ndv = len(devarset)
-        for devar in list(devarset): # normal variables don't have prerequisites
-          for pq in derived_vars[devar].prerequisites:
-            if pq in derived_vars: devarset.add(pq)
-            else: varset.add(pq)
-      # N.B.: this algorithm for dependencies relies on the fact that derived_vars is already ordered correctly,
-      #       and unused variables can simply be removed (below), without changing the order;
-      #       a stand-alone dependency resolution would require soring the derived_vars in order of execution 
-      # consolidate lists
-      for devar in derived_vars.keys():
-        if devar not in devarset: del derived_vars[devar] # don't bother with this one...
-      varlist = list(varset) # order doesnt really matter... but whatever...
-      varlist.sort() # ... alphabetical order...
-  else:
-    logger.debug("{0:s} Creating new output file '{1:s}'.\n".format(pidstr,meanfile))
-    mean = nc.Dataset(tmpmeanfile, 'w', format='NETCDF4') # open to start a new file (mode='w')
-    t0 = 1 # time index where we start (first month)
-    mean.createDimension(time, size=None) # make time dimension unlimited
-    add_coord(mean, time, data=None, dtype='i4', atts=dict(units='month since '+begindate)) # unlimited time dimension
-    # copy remaining dimensions to new datasets
-    if midmap is not None:
-      dimlist = [midmap.get(dim,dim) for dim in wrfout.dimensions.keys() if dim != wrftime]
-    else: dimlist = [dim for dim in wrfout.dimensions.keys() if dim != wrftime]
-    copy_dims(mean, wrfout, dimlist=dimlist, namemap=dimmap, copy_coords=False) # don't have coordinate variables
-    # copy time-less variable to new datasets
-    copy_vars(mean, wrfout, varlist=timeless, dimmap=dimmap, copy_data=True) # copy data
-    # create time-dependent variable in new datasets
-    copy_vars(mean, wrfout, varlist=varlist, dimmap=dimmap, copy_data=False) # do not copy data - need to average
-    # change units of accumulated variables (per second)
-    for varname in acclist:
-      if varname in mean.variables:
-        meanvar = mean.variables[varname]
-        meanvar.units = meanvar.units + '/s' # units per second!
-    # also create variable for time-stamps in new datasets
-    if wrftimestamp in wrfout.variables:
-      copy_vars(mean, wrfout, varlist=[wrftimestamp], dimmap=dimmap, copy_data=False) # do nto copy data - need to average
-    # create derived variables
-    for var in derived_vars.values(): 
-      var.checkPrerequisites(mean) # as long as they are sorted correctly...
-      var.createVariable(mean) # derived variables need to be added in order of computation           
-    # copy global attributes
-    copy_ncatts(mean, wrfout, prefix='') # copy all attributes (no need for prefix; all upper case are original)
-    # some new attributes
-    mean.description = 'wrf{0:s}_d{1:02d} monthly means'.format(filetype,ndom)
-    mean.begin_date = begindate
-    mean.experiment = exp
-    mean.creator = 'Andre R. Erler'
+      # also create variable for time-stamps in new datasets
+      if wrftimestamp in wrfout.variables:
+        copy_vars(mean, wrfout, varlist=[wrftimestamp], dimmap=dimmap, copy_data=False) # do nto copy data - need to average
+      # create derived variables
+      for var in derived_vars.values(): 
+        var.checkPrerequisites(mean) # as long as they are sorted correctly...
+        var.createVariable(mean) # derived variables need to be added in order of computation           
+      # copy global attributes
+      copy_ncatts(mean, wrfout, prefix='') # copy all attributes (no need for prefix; all upper case are original)
+      # some new attributes
+      mean.description = 'wrf{0:s}_d{1:02d} monthly means'.format(filetype,ndom)
+      mean.begin_date = begindate
+      mean.experiment = exp
+      mean.creator = 'Andre R. Erler'
 #     mean.dryday_threshold = dv.dryday_threshold # threshold for dry days used in statistical computations
   # sync with file
   mean.sync()     
@@ -513,6 +525,9 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
   lagain = True
   # parse through dependencies until nothing changes anymore
   while lagain:
+##    
+##  ***  daily output variables should probably be treated as non-linear  ***
+##
     lagain = False
     for devar in derived_vars.values():
       if not devar.linear:
@@ -667,10 +682,12 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
       # save WRF time-stamp for beginning of month for the new file, for record
       starttimestamp = str(nc.chartostring(wrfout.variables[wrftimestamp][wrfstartidx,:])) # written to file later
       #logger.debug('\n{0:s}{1:s}-01_00:00:00, {2:s}'.format(pidstr, currentdate, str(nc.chartostring(wrfout.variables[wrftimestamp][wrfstartidx,:])))
-      if '{0:s}-01_00:00:00'.format(currentdate,) == str(nc.chartostring(wrfout.variables[wrftimestamp][wrfstartidx,:])): pass # proper start of the month
-      elif meanidx == 0 and '{0:s}-01_06:00:00'.format(currentdate,) == str(nc.chartostring(wrfout.variables[wrftimestamp][wrfstartidx,:])): pass # for some reanalysis... but only at start of simulation 
+      if '{0:s}-01_00:00:00'.format(currentdate,) == str(nc.chartostring(wrfout.variables[wrftimestamp][wrfstartidx,:])): 
+          pass # proper start of the month
+      elif meanidx == 0 and '{0:s}-01_06:00:00'.format(currentdate,) == str(nc.chartostring(wrfout.variables[wrftimestamp][wrfstartidx,:])): 
+          pass # for some reanalysis... but only at start of simulation 
       else: raise DateError("{0:s} Did not find first day of month to compute monthly average.".format(pidstr) +
-                              "file: {0:s} date: {1:s}-01_00:00:00".format(filename,currentdate))
+                              "file: {0:s} date: {1:s}-01_00:00:00".format(monthly_file,currentdate))
       
       # prepare summation of output time steps
       lcomplete = False # 
@@ -711,73 +728,79 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
           ## compute monthly averages
           # loop over variables
           for varname in varlist:
-            logger.debug('{0:s} {1:s}'.format(pidstr,varname))
-            if varname not in wrfout.variables:
-              logger.info("{:s} Variable {:s} missing in file '{:s}' - filling with NaN!".format(pidstr,varname,filelist[filecounter]))
-              data[varname] *= np.NaN # turn everything into NaN, if variable is missing  
-              # N.B.: this can happen, when an output stream was reconfigured between cycle steps
-            else:
-              var = wrfout.variables[varname]
-              tax = var.dimensions.index(wrftime) # index of time axis
-              slices = [slice(None)]*len(var.shape) 
-              # construct informative IOError message
-              ioerror = "An Error occcured in file '{:s}'; variable: '{:s}'\n('{:s}')".format(filelist[filecounter], varname, infolder)                  
-              # decide how to average
-              ## Accumulated Variables
-              if varname in acclist: 
-                if missing_value is not None: 
-                  raise NotImplementedError("Can't handle accumulated variables with missing values yet.")
-                # compute mean as difference between end points; normalize by time difference
-                if ntime == 0: # first time step of the month
-                  slices[tax] = wrfstartidx # relevant time interval
-                  try: tmp = var.__getitem__(slices) # get array
-                  except: raise IOError(ioerror) # informative IO Error 
-                  if acclist[varname] is not None: # add bucket level, if applicable
-                    bkt = wrfout.variables[bktpfx+varname]
-                    tmp += bkt.__getitem__(slices) * acclist[varname]
-                  # check that accumulated fields at the beginning of the simulation are zero  
-                  if meanidx == 0 and wrfstartidx == 0:
-                    # note  that if we are skipping the first step, there is no check
-                    if np.max(tmp) != 0 or np.min(tmp) != 0: 
-                      raise ValueError( 'Accumulated fields were not initialized with zero!\n' +
-                                          '(this can happen, when the first input file is missing)' ) 
-                  data[varname] = -1 * tmp # so we can do an in-place operation later 
-                # N.B.: both, begin and end, can be in the same file, hence elif is not appropriate! 
-                if lcomplete: # last step
-                  slices[tax] = wrfendidx # relevant time interval
-                  try: tmp = var.__getitem__(slices) # get array
-                  except: raise IOError(ioerror) # informative IO Error 
-                  if acclist[varname] is not None: # add bucket level, if applicable 
-                    bkt = wrfout.variables[bktpfx+varname]
-                    tmp += bkt.__getitem__(slices) * acclist[varname]   
-                  data[varname] +=  tmp # the starting data is already negative
-                # if variable is a prerequisit to others, compute instantaneous values
-                if varname in pqset:
-                  # compute mean via sum over all elements; normalize by number of time steps
-                  slices[tax] = slice(wrfstartidx,wrfendidx) # relevant time interval
-                  try: tmp = var.__getitem__(slices) # get array
-                  except: raise IOError(ioerror) # informative IO Error 
-                  if acclist[varname] is not None: # add bucket level, if applicable
-                    bkt = wrfout.variables[bktpfx+varname]
-                    tmp = tmp + bkt.__getitem__(slices) * acclist[varname]
-                  pqdata[varname] = dv.ctrDiff(tmp, axis=tax, delta=1) # normalization comes later                   
-              elif varname[0:len(bktpfx)] == bktpfx: pass # do not process buckets
-              ## Normal Variables
-              else: 
-                # skip "empty" steps (only needed to difference accumulated variables)
-                if wrfendidx > wrfstartidx:
-                  # compute mean via sum over all elements; normalize by number of time steps
-                  slices[tax] = slice(wrfstartidx,wrfendidx) # relevant time interval
-                  try: tmp = var.__getitem__(slices) # get array
-                  except: raise IOError(ioerror) # informative IO Error 
-                  if missing_value is not None:
-                    # N.B.: missing value handling is really only necessary when missing values are time-dependent
-                    tmp = np.where(tmp == missing_value, np.NaN, tmp) # set missing values to NaN
-                    #tmp = ma.masked_equal(tmp, missing_value, copy=False) # mask missing values
-                  data[varname] = data[varname] + tmp.sum(axis=tax) # add to sum
-                  # N.B.: in-place operations with non-masked array destroy the mask, hence need to use this
-                  # keep data in memory if used in computation of derived variables
-                  if varname in pqset: pqdata[varname] = tmp
+              logger.debug('{0:s} {1:s}'.format(pidstr,varname))
+              if varname not in wrfout.variables:
+                logger.info("{:s} Variable {:s} missing in file '{:s}' - filling with NaN!".format(pidstr,varname,filelist[filecounter]))
+                data[varname] *= np.NaN # turn everything into NaN, if variable is missing  
+                # N.B.: this can happen, when an output stream was reconfigured between cycle steps
+              else:
+                var = wrfout.variables[varname]
+                tax = var.dimensions.index(wrftime) # index of time axis
+                slices = [slice(None)]*len(var.shape) 
+                # construct informative IOError message
+                ioerror = "An Error occcured in file '{:s}'; variable: '{:s}'\n('{:s}')".format(filelist[filecounter], varname, infolder)                  
+                # decide how to average
+                ## Accumulated Variables
+                if varname in acclist: 
+                    if missing_value is not None: 
+                      raise NotImplementedError("Can't handle accumulated variables with missing values yet.")
+                    # compute mean as difference between end points; normalize by time difference
+                    if ntime == 0: # first time step of the month
+                      slices[tax] = wrfstartidx # relevant time interval
+                      try: tmp = var.__getitem__(slices) # get array
+                      except: raise IOError(ioerror) # informative IO Error 
+                      if acclist[varname] is not None: # add bucket level, if applicable
+                        bkt = wrfout.variables[bktpfx+varname]
+                        tmp += bkt.__getitem__(slices) * acclist[varname]
+                      # check that accumulated fields at the beginning of the simulation are zero  
+                      if meanidx == 0 and wrfstartidx == 0:
+                        # note  that if we are skipping the first step, there is no check
+                        if np.max(tmp) != 0 or np.min(tmp) != 0: 
+                          raise ValueError( 'Accumulated fields were not initialized with zero!\n' +
+                                              '(this can happen, when the first input file is missing)' ) 
+                      data[varname] = -1 * tmp # so we can do an in-place operation later 
+                    # N.B.: both, begin and end, can be in the same file, hence elif is not appropriate! 
+                    if lcomplete: # last step
+                      slices[tax] = wrfendidx # relevant time interval
+                      try: tmp = var.__getitem__(slices) # get array
+                      except: raise IOError(ioerror) # informative IO Error 
+                      if acclist[varname] is not None: # add bucket level, if applicable 
+                        bkt = wrfout.variables[bktpfx+varname]
+                        tmp += bkt.__getitem__(slices) * acclist[varname]   
+                      data[varname] +=  tmp # the starting data is already negative
+                    # if variable is a prerequisit to others, compute instantaneous values
+                    if varname in pqset:
+                      # compute mean via sum over all elements; normalize by number of time steps
+                      slices[tax] = slice(wrfstartidx,wrfendidx) # relevant time interval
+                      try: tmp = var.__getitem__(slices) # get array
+                      except: raise IOError(ioerror) # informative IO Error 
+                      if acclist[varname] is not None: # add bucket level, if applicable
+                        bkt = wrfout.variables[bktpfx+varname]
+                        tmp = tmp + bkt.__getitem__(slices) * acclist[varname]
+                      pqdata[varname] = dv.ctrDiff(tmp, axis=tax, delta=1) # normalization comes later                   
+##    
+##  ***  daily values for bucket variables are generated here,  ***
+##  ***  but should we really use *centered* differences???     ***
+##
+                elif varname[0:len(bktpfx)] == bktpfx:
+                    pass # do not process buckets
+                ## Normal Variables
+                else: 
+                    # skip "empty" steps (only needed to difference accumulated variables)
+                    if wrfendidx > wrfstartidx:
+                      # compute mean via sum over all elements; normalize by number of time steps
+                      slices[tax] = slice(wrfstartidx,wrfendidx) # relevant time interval
+                      try: tmp = var.__getitem__(slices) # get array
+                      except: raise IOError(ioerror) # informative IO Error 
+                      if missing_value is not None:
+                        # N.B.: missing value handling is really only necessary when missing values are time-dependent
+                        tmp = np.where(tmp == missing_value, np.NaN, tmp) # set missing values to NaN
+                        #tmp = ma.masked_equal(tmp, missing_value, copy=False) # mask missing values
+                      data[varname] = data[varname] + tmp.sum(axis=tax) # add to sum
+                      # N.B.: in-place operations with non-masked array destroy the mask, hence need to use this
+                      # keep data in memory if used in computation of derived variables
+                      if varname in pqset: pqdata[varname] = tmp
+          
           ## compute derived variables
           # but first generate a list of timestamps
           if lcomplete: tmpendidx = wrfendidx
@@ -788,6 +811,10 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
             timestamp = str(nc.chartostring(wrfout.variables[wrftimestamp][i,:]))  
             currenttimestamps.append(timestamp)
           monthlytimestamps.extend(currenttimestamps) # add to monthly collection
+##    
+##  ***  monthly timestamps should be saved in the in the daily output file  ***
+##  ***  (actually the complete time axis, minus overlaps...)                ***
+##          
           # normalize accumulated pqdata with output interval time
           if wrfendidx > wrfstartidx:
             assert tmpendidx > wrfstartidx, 'There should never be a single value in a file: wrfstartidx={:d}, wrfendidx={:d}, lcomplete={:s}'.format(wrfstartidx,wrfendidx,str(lcomplete))
@@ -969,7 +996,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
         del mean, ncvar, vardata # remove all other references to data
         gc.collect() # clean up memory
         # N.B.: the netCDF4 module keeps all data written to a netcdf file in memory; there is no flush command
-        mean = nc.Dataset(tmpmeanfile, mode='a', format='NETCDF4') # re-open to append more data (mode='a')
+        mean = nc.Dataset(tmp_monthly_filepath, mode='a', format='NETCDF4') # re-open to append more data (mode='a')
         # N.B.: flushing the mean file here prevents repeated close/re-open when no data was written (i.e. 
         #       the month was skiped); only flush memory when data was actually written. 
         
@@ -992,11 +1019,11 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
   if not lparallel: logger.info('') # terminate the line (of dates) 
   else: logger.info('\n{0:s} Processed dates: {1:s}'.format(pidstr, progressstr))   
   mean.sync()
-  logger.info("\n{0:s} Writing output to: {1:s}\n('{2:s}')\n".format(pidstr, filename, meanfile))
+  logger.info("\n{0:s} Writing output to: {1:s}\n('{2:s}')\n".format(pidstr, monthly_file, monthly_filepath))
   # close files        
   mean.close()  
   # rename file to proper name
-  os.rename(tmpmeanfile,meanfile)    
+  os.rename(tmp_monthly_filepath,monthly_filepath)    
   # clean up memory
   del mean, data  
   # return exit code
