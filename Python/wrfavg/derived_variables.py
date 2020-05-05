@@ -464,6 +464,24 @@ class NetWaterFlux(DerivedVariable):
     return outdata
 
 
+class WaterForcing(DerivedVariable):
+  ''' DerivedVariable child implementing computation of water flux/forcing at the surface for WRF output. '''
+  
+  def __init__(self):
+    ''' Initialize with fixed values; constructor takes no arguments. '''
+    super(WaterForcing,self).__init__(name='WaterForcing', # name of the variable
+                              units='kg/m^2/s', # not accumulated anymore! 
+                              prerequisites=['LiquidPrecip', 'ACSNOM'], #  
+                              axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
+                              dtype=dv_float, atts=None, linear=True) # this computation is actually linear
+
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
+    ''' Compute net water flux as the sum of liquid precipitation and snowmelt minus evapo-transpiration. '''
+    super(WaterForcing,self).computeValues(indata, const=None) # perform some type checks
+    outdata = evaluate('LiquidPrecip + ACSNOM', local_dict=indata)  # compute
+    return outdata
+
+
 class RunOff(DerivedVariable):
   ''' DerivedVariable child implementing computation of total run off for WRF output. '''
   

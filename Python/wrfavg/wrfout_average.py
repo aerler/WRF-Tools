@@ -1,5 +1,5 @@
 '''
-Created on 2013-09-28, revised 2014-06-17
+Created on 2013-09-28, revised 2014-06-17, added daily output 2020-05-04
 
 A script to average WRF output; the default settings are meant for my 'fineIO' output configuration and 
 process the smaller diagnostic files.
@@ -62,7 +62,7 @@ def getDateRegX(period):
   elif period == '2085-2099': prdrgx = '20(8[5-9]|9[0-9])' # 15 year future period  
   elif period == '2090-2094': prdrgx = '209[0-4]' # 5 year future period
   else: prdrgx = None
-  print(("\n  Loading regular expression for date string: '{:s}'\n".format(prdrgx)))
+  if prdrgx: print(("\nLoading regular expression for date string: '{:s}'".format(period)))
   return prdrgx 
 
 
@@ -135,35 +135,26 @@ outfolder = exproot + '/wrfavg/' # output folder
 
 
 # figure out time period
+# N.B.: values or regex' can be passed for year, month, and day as arguments in this order; alternatively,
+#       a single argument with the values/regex separated by commas (',') can be used
 if len(sys.argv) == 1 or not any(sys.argv[1:]): # treat empty arguments as no argument
-  prdarg = ''
   period = [] # means recompute everything
 elif len(sys.argv) == 2:
-  prdarg = sys.argv[1]
-  period = prdarg.split('-') # regular expression identifying 
-else: raise ArgumentError
+  period = sys.argv[1].split(',') # regular expression identifying
+else: 
+  period = sys.argv[1:]
 # prdarg = '1979'; period = prdarg.split('-') # for tests
 # default time intervals
 yearstr = '\d\d\d\d'; monthstr = '\d\d'; daystr = '\d\d'  
 # figure out time interval
 if len(period) >= 1:
-  if len(period[0]) < 4: raise ArgumentError
-  yearstr = period[0] 
-if len(period) >= 2:
-  if len(period[1]) == 4:
-    try: 
-      tmp = int(period[1])
-      yearstr = getDateRegX(prdarg)
-      if yearstr is None: raise ArgumentError
-    except ValueError: 
-      monthstr = period[1]
-  elif 2 <= len(period[1]) <= 4:
-    monthstr = period[1]
-if len(period) >= 3:
-  if len(period[2]) != 2: raise ArgumentError
-  daystr = period[2]
+    # first try some common expressions
+    yearstr = getDateRegX(period[0])
+    if yearstr is None: yearstr = period[0]
+if len(period) >= 2: monthstr = period[1]
+if len(period) >= 3: daystr = period[2]
 # N.B.: the timestr variables are interpreted as strings and support Python regex syntax
-
+if len(period) > 0 or ldebug: print('Date string interpretation:',yearstr,monthstr,daystr)
 
 ## definitions
 # input files and folders
@@ -205,7 +196,7 @@ derived_variables['srfc']   = [dv.Rain(), dv.LiquidPrecipSR(), dv.SolidPrecipSR(
 derived_variables['xtrm']   = [dv.RainMean(), dv.TimeOfConvection(),
                                dv.SummerDays(threshold=25., temp='T2MAX'), dv.FrostDays(threshold=0., temp='T2MIN')]
 derived_variables['hydro']  = [dv.Rain(), dv.LiquidPrecip(), dv.SolidPrecip(), 
-                               dv.NetPrecip(sfcevp='SFCEVP'), dv.NetWaterFlux()]
+                               dv.NetPrecip(sfcevp='SFCEVP'), dv.NetWaterFlux(), dv.WaterForcing()]
 derived_variables['lsm']    = [dv.RunOff()]
 derived_variables['plev3d'] = [dv.OrographicIndexPlev(), dv.Vorticity(), dv.WaterDensity(),
                                dv.WaterFlux_U(), dv.WaterFlux_V(), dv.ColumnWater(), 
@@ -222,58 +213,68 @@ for threshold in precip_thresholds:
     derived_variables['xtrm'].append(wetday_var(threshold=threshold, rain='RAINMEAN'))
                                
 # N.B.: derived variables need to be listed in order of computation
-consecutive_variables = {filetype:None for filetype in filetypes} # consecutive variable lists by file type
 # Consecutive exceedance variables
-consecutive_variables['srfc']  = {'CFD'  : ('T2', 'below', 273.14, 'Consecutive Frost Days (< 0C)'),
-                                  'CSD'  : ('T2', 'above', 273.14+25., 'Consecutive Summer Days (>25C)'), 
-                                  # N.B.: night temperatures >25C will rarely happen... so this will be very short
-                                  'CNWD' : ('NetPrecip', 'above', 0., 'Consecutive Net Wet Days'),
-                                  'CNDD' : ('NetPrecip', 'below', 0., 'Consecutive Net Dry Days'),}
-consecutive_variables['xtrm']  = {'CFD'  : ('T2MIN', 'below', 273.14, 'Consecutive Frost Days (< 0C)'),
-                                  'CSD'  : ('T2MAX', 'above', 273.14+25., 'Consecutive Summer Days (>25C)'),}
-consecutive_variables['hydro'] = {'CNWD' : ('NetPrecip', 'above', 0., 'Consecutive Net Wet Days'),
-                                  'CNDD' : ('NetPrecip', 'below', 0., 'Consecutive Net Dry Days'),
-                                  'CWGD' : ('NetWaterFlux', 'above', 0., 'Consecutive Water Gain Days'),
-                                  'CWLD' : ('NetWaterFlux', 'below', 0., 'Consecutive Water Loss Days'),}
-# add wet-day variables for different thresholds
-for threshold in precip_thresholds:
-  for filetype,rain_var in zip(['srfc','hydro','xtrm'],['RAIN','RAIN','RAINMEAN']):
-    suffix = '_{:03d}'.format(int(10*threshold)); name_suffix = '{:3.1f} mm/day)'.format(threshold)
-    consecutive_variables[filetype]['CWD'+suffix] = (rain_var, 'above', threshold/86400., 
-                                                     'Consecutive Wet Days (>'+name_suffix)
-    consecutive_variables[filetype]['CDD'+suffix] = (rain_var, 'below', threshold/86400. , 
-                                                     'Consecutive Dry Days (<'+name_suffix)
-# Maxima (just list base variables; derived variables will be created later)
+consecutive_variables = {filetype:None for filetype in filetypes} # consecutive variable lists by file type
+# skip in debug mode (only specific ones for debug)
+if ldebug:
+    print("Skipping 'Consecutive Days of Exceedance' Variables")
+else:
+    consecutive_variables['srfc']  = {'CFD'  : ('T2', 'below', 273.14, 'Consecutive Frost Days (< 0C)'),
+                                      'CSD'  : ('T2', 'above', 273.14+25., 'Consecutive Summer Days (>25C)'), 
+                                      # N.B.: night temperatures >25C will rarely happen... so this will be very short
+                                      'CNWD' : ('NetPrecip', 'above', 0., 'Consecutive Net Wet Days'),
+                                      'CNDD' : ('NetPrecip', 'below', 0., 'Consecutive Net Dry Days'),}
+    consecutive_variables['xtrm']  = {'CFD'  : ('T2MIN', 'below', 273.14, 'Consecutive Frost Days (< 0C)'),
+                                      'CSD'  : ('T2MAX', 'above', 273.14+25., 'Consecutive Summer Days (>25C)'),}
+    consecutive_variables['hydro'] = {'CNWD' : ('NetPrecip', 'above', 0., 'Consecutive Net Wet Days'),
+                                      'CNDD' : ('NetPrecip', 'below', 0., 'Consecutive Net Dry Days'),
+                                      'CWGD' : ('NetWaterFlux', 'above', 0., 'Consecutive Water Gain Days'),
+                                      'CWLD' : ('NetWaterFlux', 'below', 0., 'Consecutive Water Loss Days'),}
+    # add wet-day variables for different thresholds
+    for threshold in precip_thresholds:
+      for filetype,rain_var in zip(['srfc','hydro','xtrm'],['RAIN','RAIN','RAINMEAN']):
+        suffix = '_{:03d}'.format(int(10*threshold)); name_suffix = '{:3.1f} mm/day)'.format(threshold)
+        consecutive_variables[filetype]['CWD'+suffix] = (rain_var, 'above', threshold/86400., 
+                                                         'Consecutive Wet Days (>'+name_suffix)
+        consecutive_variables[filetype]['CDD'+suffix] = (rain_var, 'below', threshold/86400. , 
+                                                         'Consecutive Dry Days (<'+name_suffix)
+## single- and multi-step Extrema
 maximum_variables = {filetype:[] for filetype in filetypes} # maxima variable lists by file type
-maximum_variables['srfc']   = ['T2', 'U10', 'V10', 'RAIN', 'RAINC', 'RAINNC', 'NetPrecip']
-maximum_variables['xtrm']   = ['T2MEAN', 'T2MAX', 'SPDUV10MEAN', 'SPDUV10MAX', 
-                               'RAINMEAN', 'RAINNCVMAX', 'RAINCVMAX']
-maximum_variables['hydro']  = ['RAIN', 'RAINC', 'RAINNC', 'ACSNOW', 'ACSNOM', 'NetPrecip', 'NetWaterFlux']
-maximum_variables['lsm']    = ['SFROFF']
-maximum_variables['plev3d'] = ['S_PL', 'GHT_PL', 'Vorticity']
-# daily (smoothed) maxima
 daymax_variables  = {filetype:[] for filetype in filetypes} # maxima variable lists by file type
-daymax_variables['srfc']  = ['T2','RAIN', 'RAINC', 'RAINNC', 'NetPrecip']
-# daily (smoothed) minima
 daymin_variables  = {filetype:[] for filetype in filetypes} # mininma variable lists by file type
-daymin_variables['srfc']  = ['T2']
-# weekly (smoothed) maxima
 weekmax_variables  = {filetype:[] for filetype in filetypes} # maxima variable lists by file type
-weekmax_variables['xtrm']   = ['T2MEAN', 'T2MAX', 'SPDUV10MEAN'] 
-weekmax_variables['hydro']  = ['RAIN', 'RAINC', 'RAINNC', 'ACSNOW', 'ACSNOM', 'NetPrecip', 'NetWaterFlux']
-weekmax_variables['lsm']    = ['SFROFF','UDROFF','Runoff']
-# Maxima (just list base variables; derived variables will be created later)
 minimum_variables = {filetype:[] for filetype in filetypes} # minima variable lists by file type
-minimum_variables['srfc']   = ['T2']
-minimum_variables['xtrm']   = ['T2MEAN', 'T2MIN', 'SPDUV10MEAN']
-minimum_variables['hydro']  = ['RAIN', 'NetPrecip', 'NetWaterFlux']
-minimum_variables['plev3d'] = ['GHT_PL', 'Vorticity']
-# weekly (smoothed) minima
 weekmin_variables  = {filetype:[] for filetype in filetypes} # mininma variable lists by file type
-weekmin_variables['xtrm']   = ['T2MEAN', 'T2MIN', 'SPDUV10MEAN']
-weekmin_variables['hydro']  = ['RAIN', 'NetPrecip', 'NetWaterFlux']
-weekmin_variables['lsm']    = ['SFROFF','UDROFF','Runoff']
+# skip in debug mode (only specific ones for debug)
+if ldebug:
+    print("Skipping Single- and Multi-step Extrema")
+else:
+    # Maxima (just list base variables; derived variables will be created later)
+    maximum_variables['srfc']   = ['T2', 'U10', 'V10', 'RAIN', 'RAINC', 'RAINNC', 'NetPrecip']
+    maximum_variables['xtrm']   = ['T2MEAN', 'T2MAX', 'SPDUV10MEAN', 'SPDUV10MAX', 
+                                   'RAINMEAN', 'RAINNCVMAX', 'RAINCVMAX']
+    maximum_variables['hydro']  = ['RAIN', 'RAINC', 'RAINNC', 'ACSNOW', 'ACSNOM', 'NetPrecip', 'NetWaterFlux']
+    maximum_variables['lsm']    = ['SFROFF', 'Runoff']
+    maximum_variables['plev3d'] = ['S_PL', 'GHT_PL', 'Vorticity']
+    # daily (smoothed) maxima
+    daymax_variables['srfc']  = ['T2','RAIN', 'RAINC', 'RAINNC', 'NetPrecip']
+    # daily (smoothed) minima
+    daymin_variables['srfc']  = ['T2']
+    # weekly (smoothed) maxima
+    weekmax_variables['xtrm']   = ['T2MEAN', 'T2MAX', 'SPDUV10MEAN'] 
+    weekmax_variables['hydro']  = ['RAIN', 'RAINC', 'RAINNC', 'ACSNOW', 'ACSNOM', 'NetPrecip', 'NetWaterFlux']
+    weekmax_variables['lsm']    = ['SFROFF', 'UDROFF', 'Runoff']
+    # Maxima (just list base variables; derived variables will be created later)
+    minimum_variables['srfc']   = ['T2']
+    minimum_variables['xtrm']   = ['T2MEAN', 'T2MIN', 'SPDUV10MEAN']
+    minimum_variables['hydro']  = ['RAIN', 'NetPrecip', 'NetWaterFlux']
+    minimum_variables['plev3d'] = ['GHT_PL', 'Vorticity']
+    # weekly (smoothed) minima
+    weekmin_variables['xtrm']   = ['T2MEAN', 'T2MIN', 'SPDUV10MEAN']
+    weekmin_variables['hydro']  = ['RAIN', 'NetPrecip', 'NetWaterFlux']
+    weekmin_variables['lsm']    = ['SFROFF','UDROFF','Runoff']
 # N.B.: it is important that the derived variables are listed in order of dependency! 
+
 # set of pre-requisites
 prereq_vars = {key:set() for key in derived_variables.keys()} # pre-requisite variable set by file type
 for key in prereq_vars.keys():
@@ -806,7 +807,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
             logger.debug('\n{0:s} Available prerequisites: {1:s}'.format(pidstr, str(list(pqdata.keys()))))
             for dename,devar in derived_vars.items():
               if not devar.linear: # only non-linear ones here, linear one at the end
-                logger.debug('\n{0:s} {1:s} {2:s}'.format(pidstr, dename, str(devar.prerequisites)))
+                logger.debug('{0:s} {1:s} {2:s}'.format(pidstr, dename, str(devar.prerequisites)))
                 tmp = devar.computeValues(pqdata, aggax=tax, delta=delta, const=const, tmp=tmpdata) # possibly needed as pre-requisite  
                 dedata[dename] = devar.aggregateValues(tmp, aggdata=dedata[dename], aggax=tax)
                 # N.B.: in-place operations with non-masked array destroy the mask, hence need to use this
@@ -939,7 +940,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
           if ncvar.ndim > 1: ncvar[meanidx,:] = vardata # here time is always the outermost index
           else: ncvar[meanidx] = vardata
         # compute derived variables
-        logger.debug('\n{0:s}   Derived Variable Stats: (mean/min/max)'.format(pidstr))
+        #logger.debug('\n{0:s}   Derived Variable Stats: (mean/min/max)'.format(pidstr))
         for dename,devar in derived_vars.items():
           if devar.linear:           
             vardata = devar.computeValues(data) # compute derived variable now from averages
@@ -947,14 +948,9 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
             vardata = dedata[dename] / ntime # no accumulated variables here!
           else: vardata = dedata[dename] # just the data...
           # not all variables are normalized (e.g. extrema)
-          if ldebug:
-            if len(np.__version__) != 5: 
-              raise NotImplementedError("Numpy version string too long or short ('{:s}'); require np.__version__ >= '1.8.0'".format(np.__version__))
-            elif len(np.__version__) == 5 and np.__version__ >= '1.8.0':
-              mmm = (float(np.nanmean(vardata)),float(np.nanmin(vardata)),float(np.nanmax(vardata)),)
-            else:
-              mmm = (float(np.mean(vardata)),float(np.min(vardata)),float(np.max(vardata)),)
-            logger.debug('{0:s} {1:s}, {2:f}, {3:f}, {4:f}'.format(pidstr,dename,*mmm))
+          #if ldebug:
+          #  mmm = (float(np.nanmean(vardata)),float(np.nanmin(vardata)),float(np.nanmax(vardata)),)
+          #  logger.debug('{0:s} {1:s}, {2:f}, {3:f}, {4:f}'.format(pidstr,dename,*mmm))
           data[dename] = vardata # add to data array, so that it can be used to compute linear variables
           # save variable
           ncvar = mean.variables[dename] # this time the destination variable
@@ -1028,7 +1024,8 @@ if __name__ == '__main__':
   # regular expression to match the name pattern of WRF timestep output files
   masterlist = [wrfrgx.match(filename) for filename in os.listdir(infolder)] # list folder and match
   masterlist = [match.group() for match in masterlist if match is not None] # assemble valid file list
-  if len(masterlist) == 0: raise IOError('No matching WRF output files found for date: {0:s}'.format(datestr))
+  if len(masterlist) == 0: 
+      raise IOError('No matching WRF output files found for date: {0:s}'.format(datestr))
   
   ## loop over filetypes and domains to construct job list
   args = []
