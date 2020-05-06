@@ -29,6 +29,16 @@ dtype_float = dv_float # general floating point precision used for temporary arr
 # dryday_threshold = 0.2/86400. # precip treshold for a dry day 0.2 mm/day
 
 
+def getTimeStamp(dataset, idx, timestamp_var='Times'):
+  ''' read a timestamp and convert to pandas-readable format '''
+  # read timestamp
+  timestamp = str(nc.chartostring(dataset.variables[timestamp_var][idx,:]))
+  # remove underscore
+  timestamp = timestamp.split('_') 
+  assert len(timestamp)==2, timestamp  
+  timestamp = ' '.join(timestamp)
+  return timestamp
+
 def calcTimeDelta(timestamps, year=None, month=None):
   ''' function to calculate time deltas and subtract leap-days, if necessary '''
   # check dates
