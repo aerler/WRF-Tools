@@ -757,7 +757,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
           wrfstartidx += 1 # count forward
         if wrfstartidx != 0: logger.debug('\n{0:s} {1:s}: Starting month at index {2:d}.'.format(pidstr, currentdate, wrfstartidx))
         # save WRF time-stamp for beginning of month for the new file, for record
-        starttimestamp = str(nc.chartostring(wrfout.variables[wrftimestamp][wrfstartidx,:])) # written to file later
+        firsttimestamp_chars = wrfout.variables[wrftimestamp][wrfstartidx,:]
         #logger.debug('\n{0:s}{1:s}-01_00:00:00, {2:s}'.format(pidstr, currentdate, str(nc.chartostring(wrfout.variables[wrftimestamp][wrfstartidx,:])))
         if '{0:s}-01_00:00:00'.format(currentdate,) == str(nc.chartostring(wrfout.variables[wrftimestamp][wrfstartidx,:])): 
             pass # proper start of the month
@@ -1111,9 +1111,9 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
               if ncvar.ndim > 1: ncvar[meanidx,:] = vardata # here time is always the outermost index
               else: ncvar[meanidx] = vardata            
               #raise dv.DerivedVariableError, "%s Derived variable '%s' is not linear."%(pidstr,devar.name) 
-          # update current end date        
-          monthly_dataset.end_date = starttimestamp[:10] # the date of the first day of the last included month
-          monthly_dataset.variables[wrftimestamp][meanidx,:] = starttimestamp 
+          # update current end date   
+          monthly_dataset.end_date = str(nc.chartostring(firsttimestamp_chars[:10])) # the date of the first day of the last included month
+          monthly_dataset.variables[wrftimestamp][meanidx,:] = firsttimestamp_chars
           monthly_dataset.variables[time][meanidx] = meantime # update time axis (last action)
           # sync data and clear memory
           monthly_dataset.sync(); monthly_dataset.close() # sync and close dataset
