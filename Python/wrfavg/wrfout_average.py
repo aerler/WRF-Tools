@@ -293,8 +293,8 @@ for key in prereq_vars.keys():
 ## daily variables (can also be 6-hourly or hourly, depending on source file)
 if ldaily:
     daily_variables = {filetype:[] for filetype in filetypes} # daily variable lists by file type
-    daily_variables['srfc']  = ['T2', 'Q2', 'U10', 'V10', 'RAIN', 'RAINC', 'LiquidPrecip'] # surface climate
-    daily_variables['hydro'] = ['RAIN', 'RAINC', 'LiquidPrecip', 'ACSNOM', 'NetPrecip', 'NetWaterFlux', 'WaterForcing', 'SFCEVP', 'POTEVP'] # water budget
+    daily_variables['srfc']  = ['T2', 'Q2', 'U10', 'V10', 'RAIN', 'RAINC', 'LiquidPrecip_SR'] # surface climate
+    daily_variables['hydro'] = ['RAIN', 'RAINC', 'ACSNOM', 'LiquidPrecip', 'NetPrecip', 'NetWaterFlux', 'WaterForcing', 'SFCEVP', 'POTEVP'] # water budget
     daily_variables['rad'] = [] # surface radiation budget
     daily_variables['lsm'] = [] # runoff and soil temperature
 
@@ -365,7 +365,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
           if varname in wrfout.variables: daily_varlist.append(varname)
           elif varname in derived_vars: daily_derived_vars.append(varname)
           else: 
-            raise ArgumentError("Variable '{}' not found in wrfout or dervied variables; can only output derived variables that are already being computed for monthly output.".format(varname))
+            raise ArgumentError("Variable '{}' not found in wrfout or derived variables; can only output derived variables that are already being computed for monthly output.".format(varname))
 
   # if we are only computing derived variables, remove all non-prerequisites 
   prepq = set().union(*[devar.prerequisites for devar in derived_vars.values()])
