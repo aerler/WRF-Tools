@@ -568,7 +568,7 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
           # copy time-less variable to new datasets
           copy_vars(daily_dataset, wrfout, varlist=timeless, dimmap=dimmap, copy_data=True) # copy data
           # create time-dependent variable in new datasets
-          copy_vars(daily_dataset, wrfout, varlist=daily_varlist, dimmap=dimmap, copy_data=False) # do not copy data - need to average
+          copy_vars(daily_dataset, wrfout, varlist=daily_varlist, dimmap=dimmap, copy_data=False) # do not copy data - need to resolve buckets and straighten time
           # change units of accumulated variables (per second)
           for varname in acclist:
             if varname in daily_dataset.variables:
@@ -576,7 +576,9 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
               dayvar.units = dayvar.units + '/s' # units per second!
           # also create variable for time-stamps in new datasets
           if wrftimestamp in wrfout.variables:
-            copy_vars(daily_dataset, wrfout, varlist=[wrftimestamp], dimmap=dimmap, copy_data=False) # do not copy data - need to average
+            copy_vars(daily_dataset, wrfout, varlist=[wrftimestamp], dimmap=dimmap, copy_data=False) # do not copy data - need to straighten out time axis
+          if wrfxtime in wrfout.variables:
+            copy_vars(daily_dataset, wrfout, varlist=[wrfxtime], dimmap=dimmap, copy_data=False) # do not copy data - need to straighten out time axis
           # create derived variables
           for devarname in daily_derived_vars: 
             # don't need to check for prerequisites, since they are already being checked and computed for monthly output
