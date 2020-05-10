@@ -132,8 +132,8 @@ if 'PYAVG_SMPLDIFF' in os.environ:
 else: lsmplDiff = False # default mode: centered differences
 # generate formatted daily/sub-daily output files for selected variables
 if 'PYAVG_DAILY' in os.environ: 
-  ldaily =  os.environ['PYAVG_DAILY'] == 'DAILY'
-else: ldaily = False # operational mode
+  lglobaldaily =  os.environ['PYAVG_DAILY'] == 'DAILY'
+else: lglobaldaily = False # operational mode
 
 
 # working directories
@@ -291,7 +291,7 @@ for key in prereq_vars.keys():
   prereq_vars[key].update(*[devar.prerequisites for devar in derived_variables[key] if not devar.linear])    
 
 ## daily variables (can also be 6-hourly or hourly, depending on source file)
-if ldaily:
+if lglobaldaily:
     daily_variables = {filetype:[] for filetype in filetypes} # daily variable lists by file type
     daily_variables['srfc']  = ['T2', 'Q2', 'U10', 'V10', 'RAIN', 'RAINC', 'LiquidPrecip_SR'] # surface climate
     daily_variables['hydro'] = ['RAIN', 'RAINC', 'ACSNOM', 'LiquidPrecip', 'NetPrecip', 'NetWaterFlux', 'WaterForcing', 'SFCEVP', 'POTEVP'] # water budget
@@ -357,15 +357,20 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
   addExtrema(weekmax_variables, 'max', interval=5) # 5 days is the preferred interval, according to
   addExtrema(weekmin_variables, 'min', interval=5) # ETCCDI Climate Change Indices
 
-  if ldaily:
+  ldaily = False
+  if lglobaldaily:
       # get varlist (does not include dependencies)
       daily_varlist_full = daily_variables[filetype]
-      daily_varlist = []; daily_derived_vars = [] 
-      for varname in daily_varlist_full:
-          if varname in wrfout.variables: daily_varlist.append(varname)
-          elif varname in derived_vars: daily_derived_vars.append(varname)
-          else: 
-            raise ArgumentError("Variable '{}' not found in wrfout or derived variables; can only output derived variables that are already being computed for monthly output.".format(varname))
+      if len(daily_varlist_full)>0:
+          ldaily = True
+          daily_varlist = []; daily_derived_vars = [] 
+          for varname in daily_varlist_full:
+              if varname in wrfout.variables: daily_varlist.append(varname)
+              elif varname in derived_vars: daily_derived_vars.append(varname)
+              else: 
+                raise ArgumentError("Variable '{}' not found in wrfout or derived variables; can only output derived variables that are already being computed for monthly output.".format(varname))
+      else:
+          logger.info("\n{0:s} Skipping (sub-)daily output for filetype '{1:s}', since variable list is empty.\n".format(pidstr,filetype))
 
   # if we are only computing derived variables, remove all non-prerequisites 
   prepq = set().union(*[devar.prerequisites for devar in derived_vars.values()])
@@ -1172,7 +1177,7 @@ if __name__ == '__main__':
         str(loverwrite), str(lrecover), str(lcarryover), str(lsmplDiff))))
   print(('DERIVEDONLY: {:s}, ADDNEW: {:s}, RECALC: {:s}'.format(
         str(lderivedonly), str(laddnew), str(recalcvars) if lrecalc else str(lrecalc))))
-  print(('DAILY: {:s}, FILETYPES: {:s}, DOMAINS: {:s}'.format(str(ldaily),str(filetypes),str(domains))))
+  print(('DAILY: {:s}, FILETYPES: {:s}, DOMAINS: {:s}'.format(str(lglobaldaily),str(filetypes),str(domains))))
   print(('THREADS: {:s}, DEBUG: {:s}'.format(str(NP),str(ldebug))))
   print('')
   # compile regular expression, used to infer start and end dates and month (later, during computation)
