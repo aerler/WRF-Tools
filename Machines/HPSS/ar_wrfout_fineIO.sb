@@ -315,7 +315,7 @@ function RETRIEVEHTAR () {
     # get file list from table of contents (7th column, remove last two lines)
     FILELIST=$( htar -tf ${HTAR} | awk '{print $7}' | head -n -2 )
     # apply globbing expression to file list using fake files on RAM-disk
-    TMP="/dev/shm/${USER}_ar_tmp_${PBS_JOBID}/" # temporary working folder on RAM-disk
+    TMP="/dev/shm/${USER}_ar_tmp_${SLURM_JOBID}/" # temporary working folder on RAM-disk
     mkdir -p "${TMP}"; cd "${TMP}" # create temporary folder and go into it
     for F in $FILELIST; do touch "$F"; done # create dummy files from list
     FILES=$( ls -C ${FILES} ) # get formatted file list (entries as columns)

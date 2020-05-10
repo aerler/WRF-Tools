@@ -53,6 +53,10 @@ echo "Ensemble basename: $BASE "
 echo " xconfig template: $XCONFIG"
 echo
 
+# make sure the archive interval is correct, or things are not going to work...
+ARINT="$( grep 'ARINTERVAL' $XCONFIG )"
+if [[ "$ARINT" != *YEARLY* ]]; then echo -e "\033[0;31m$ARINT\033[0m\n"; fi
+
 ## create folders for ensemble members
 if [ $SETUP -gt 0 ]; then
     # loop over periods
