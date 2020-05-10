@@ -4,7 +4,7 @@
 
 # pre-process arguments using getopt
 if [ -z $( getopt -T ) ]; then
-  TMP=$( getopt -o sqe:doh --long root-folder:,ensemble:,no-setup,no-queue,dry-run,override,help -n "$0" -- "$@" ) # pre-process arguments
+  TMP=$( getopt -o sqe:dox:h --long root-folder:,ensemble:,no-setup,no-queue,dry-run,override,xconfig:,help -n "$0" -- "$@" ) # pre-process arguments
   [ $? != 0 ] && exit 1 # getopt already prints an error message
   eval set -- "$TMP" # reset positional parameters (arguments) to $TMP list
 fi # check if GNU getopt ("enhanced")
@@ -15,6 +15,7 @@ SETUP=1 # run experiment setup
 QUEUE=1 # submit jobs to queue
 DRYRUN=0 # don't actuall execute/submit
 OVERRIDE=0 # respect RETRIEVAL_OK indicator
+XCONFIG='xconfig.sh' # template xconfig file for ensemble
 # parse arguments
 #while getopts 'fs' OPTION; do # getopts version... supports only short options
 while true; do
@@ -25,6 +26,7 @@ while true; do
     -e | --ensemble    )   ENS="$2"; shift 2;;
     -d | --dry-run     )   DRYRUN=1; shift;;
     -o | --override    )   OVERRIDE=1; shift;;
+    -x | --xconfig     )   XCONFIG="$2"; shift 2;;
     -h | --help        )   echo -e " \
                             \n\
     -s | --no-setup      do not run setupExperiment script (skip setup) \n\
@@ -33,6 +35,7 @@ while true; do
     -e | --ensemble      name of the ensemble (default: 'max') \n\
     -d | --dry-run       do not actually execute setup or submit jobs \n\
     -o | --override      ignore indicator files and execute all \n\
+    -x | --xconfig       xconfig template file (default: '\$ROOT/xconfig.sh')  \n\
     -h | --help          print this help \n\
                              "; exit 0;; # \n\ == 'line break, next line'; for syntax highlighting
     -- ) shift; break;; # this terminates the argument list, if GNU getopt is used
@@ -47,6 +50,7 @@ if [[ "$ENS" == 'ctrl' ]]; then CX=''
 else CX="-ctrl"; fi
 BASE="$ENS$CX" # assemble ensemble control base name
 echo "Ensemble basename: $BASE "
+echo " xconfig template: $XCONFIG"
 echo
 
 ## create folders for ensemble members
@@ -57,7 +61,8 @@ if [ $SETUP -gt 0 ]; then
         CTRL="$BASE$P" # control/master experiment of ensemble
         echo "$CTRL"
         mkdir -p "$CTRL/"
-        cp -P setupExperiment.sh xconfig.sh "$CTRL/"    
+        cp -P setupExperiment.sh "$CTRL/"    
+        cp "$XCONFIG" "$CTRL/xconfig.sh" # the name 'xconfig.sh' is hard-coded anyway
         cd "$CTRL/"
         # change name of experiment
         sed -i "/NAME/ s/$BASE/$CTRL/" xconfig.sh
