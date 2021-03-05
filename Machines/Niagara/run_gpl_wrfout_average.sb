@@ -1,0 +1,190 @@
+#!/bin/bash
+# SLURM submission script for SciNet Niagara
+
+## queue/SLURM settings
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=40
+#SBATCH --time=1:00:00
+# std and error output
+#SBATCH --output=gpl_avg.%j.out
+# send email if abort (nbae)
+#SBATCH --mail-user=aerler@atmosp.physics.utoronto.ca
+#SBATCH --mail-type=END,FAIL
+# job name
+#SBATCH -J gpl_avg
+
+
+#shopt -s extglob
+
+# default settings
+JOBNAME=${SLURM_JOB_NAME:-'test'}
+WORKDIR="${SLURM_SUBMIT_DIR}"
+CMDFILE=${CMDFILE:-"${WORKDIR}/cmdfile.${JOBNAME}"}
+LOGFILE=${LOGFILE:-"${WORKDIR}/logfile.${JOBNAME}"}
+WC=${WC:-'/scratch/p/peltier/aerler/WesternCanada/'}
+GL=${GL:-'/scratch/p/peltier/aerler/GreatLakes/'}
+NCOADD=${NCOADD:-"${HOME}/WRF-Tools/Scripts/WRF/addVariable.sh"} # NCO script to add variables (usually not in run folder)
+THREADS=${THREADS:-40} # GNU Parallel threads
+
+# options
+TEST=${TEST:-'FALSE'} # use TEST=DRYRUN to only generate command file
+ADDVAR=${ADDVAR:-'ACSNOW SNOWNC SR T2MEAN TSLB PBLH'} # add potentially missing variables from other files
+AVERAGE=${AVERAGE:-'AVERAGE'} # run python averaging script
+
+# environment variables for the averaging script
+export PYTHON_EGG_CACHE="${WORKDIR}" # not sure why this is necessary
+export PYAVG_THREADS=${PYAVG_THREADS:-1} # serial execution
+export PYAVG_RECALC=${PYAVG_RECALC:-''} # ;-separated list of variables to recompute
+# N.B.: to recompute all derived variables, set PYAVG_RECALC=DERIVEDONLY
+export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'} # append (default) or recompute everything
+export PYAVG_ADDNEW=${PYAVG_ADDNEW:-'ADDNEW'} # default: add new variables 
+export PYAVG_RECOVER=${PYAVG_RECOVER:-'FALSE'} # recover after a crash (recompute last step and continue)
+export PYAVG_FILETYPES=${PYAVG_FILETYPES:-'srfc plev3d xtrm hydro lsm'} # all diags: 'srfc plev3d xtrm hydro lsm rad'
+export PYAVG_DOMAINS=${PYAVG_DOMAINS:-'1 2 3'} # default: 1234; unfortunately not experiment-specific...
+export PYAVG_DEBUG=${PYAVG_DEBUG:-'FALSE'} # add more debug output
+#export PYAVG_DRYDAY=${PYAVG_DRYDAY:-''} # dry-day correction factor (for experimental use only)
+
+
+## load machine setup
+echo
+module purge
+#module load NiaEnv/2019b openjpeg/2.3.1 jasper/.experimental-2.0.14
+#module load intel/2019u4 intelmpi/2019u4 hdf5/1.8.21 netcdf/4.6.3
+#module load intelpython3/2019u4 ncl/6.6.2         
+#module load gnu-parallel/20191122
+module load NiaEnv/2018a intel/2018.2 anaconda3/2018.12 ncl/6.4.0 gnu-parallel/20180322
+module list
+echo
+export HDF5_DISABLE_VERSION_CHECK=1 # has to be set after NCL
+ulimit -s unlimited
+
+# set Python path for pyWPS.py and cycling.py
+if [ -e "${CODE_ROOT}/WRF Tools/Python/" ]; then export PYTHONPATH="${CODE_ROOT}/WRF Tools/Python:${PYTHONPATH}";
+elif [ -e "${CODE_ROOT}/WRF-Tools/Python/" ]; then export PYTHONPATH="${CODE_ROOT}/WRF-Tools/Python:${PYTHONPATH}"; fi
+# wrfout_average.py depends on some modules from GeoPy (nctools and processing)
+if [ -e "${CODE_ROOT}/GeoPy/src/" ]; then export PYTHONPATH="${CODE_ROOT}/GeoPy/src:${PYTHONPATH}"; fi
+# show Python path for debugging
+echo "PYTHONPATH: $PYTHONPATH"
+
+# user settings
+#PERIOD='1979-1981' # extension to command and output files
+DATASRC=${DATASRC:-"$WC/*-*/"}
+#DATASRC=${DATASRC:-"$WC/*-*/ $GL/*-*/"}
+#DATASRC=${DATASRC:-"$GL/*-*/"}
+
+# more settings
+if [[ -n "${PERIOD}" ]]
+  then 
+    AVGPRD="_${PERIOD}"
+    FIRST="wrfout/wrfrst_d01_${PERIOD%%-*}-02-01_00:00:00" # use first restart file as indicator
+    LAST="wrfout/wrfrst_d01_${PERIOD##*-}-12-01_00:00:00" # use last restart file as indicator
+  else 
+    AVGPRD=""
+    FIRST=""
+    LAST=""
+fi # if $PERIOD
+
+# root directory
+cd "${WORKDIR}"
+
+# generate command file
+rm -f "${CMDFILE}" "${LOGFILE}"
+echo
+echo 'Generating command file; working folders:'
+for D in ${DATASRC}
+  do
+    # check if files are available (otherwise skip!)
+    if [[ -z "$PERIOD"  ]] || [[ -e "${D}/${FIRST}" && -e "${D}/${LAST}" ]]; then
+
+			echo "$D"
+	    COMMAND="cd ${D}" # full command is printed below
+
+	    # add potentially missing variables (this has to come first!)
+	    if [[ -n "$ADDVAR" ]] && [[ "$ADDVAR" != 'FALSE' ]]; then
+				for VAR in $ADDVAR; do
+				  # write command file entry
+				  COMMAND="${COMMAND}; ${NCOADD} ${VAR} &> ${D}/wrfavg/addVariable_${VAR}.log"
+				done # for $VAR  
+	    fi # if $ADDVAR
+    
+	    # run Python averaging script
+	    if [[ "$AVERAGE" == 'AVERAGE' ]]; then
+        # make sure folder is set up
+        mkdir -p "${D}/wrfavg/"
+        # remove degenerate files (i.e. less than about 1MB; will be recomputed)
+        ls ${D}/wrfavg/wrf*.nc &> /dev/null
+        if [ $? -eq 0 ]; then
+          for FILE in ${D}/wrfavg/wrf*.nc; do 
+            [ $( ls -la ${FILE} | awk '{ print $5}' ) -lt 1000000 ] && rm ${FILE} 
+          done
+        fi # if there are any files
+        # append to command
+        COMMAND="${COMMAND}; python scripts/wrfout_average.py ${PERIOD} &> ${D}/wrfavg/wrfout_average${AVGPRD}.log; EC=\$?; echo \"${D}:\"; ls -lh wrfavg/wrf*.nc; echo; exit \$EC"
+	    fi # if $AVERAGE
+
+    # print full command
+    echo "$COMMAND" >> "${CMDFILE}"
+    
+    fi # file check    
+done
+
+## execute GNU Parallel commands
+echo # print command
+echo "parallel  --workdir \"$PWD\" "
+#echo "          --sshloginfile \"$SLURM_JOB_NODELIST\" " # not the node file I need
+echo "          --env PYTHON_EGG_CACHE   = $PYTHON_EGG_CACHE"
+echo "          --env PYAVG_THREADS      = $PYAVG_THREADS   "
+echo "          --env PYAVG_RECALC       = $PYAVG_RECALC    "
+echo "          --env PYAVG_OVERWRITE    = $PYAVG_OVERWRITE "
+echo "          --env PYAVG_ADDNEW       = $PYAVG_ADDNEW    "
+echo "          --env PYAVG_RECOVER      = $PYAVG_RECOVER   "
+echo "          --env PYAVG_FILETYPES    = $PYAVG_FILETYPES "
+echo "          --env PYAVG_DOMAINS      = $PYAVG_DOMAINS   "
+echo "          --env PYAVG_DEBUG        = $PYAVG_DEBUG     "
+echo "          --env PYAVG_DRYDAY       = $PYAVG_DRYDAY    "
+echo "          --env PYAVG_DAILY        = $PYAVG_DAILY     "
+echo "         -j ${THREADS} --joblog \"${LOGFILE}\" < \"${CMDFILE}\" "
+if [[ "$TEST" != 'DRYRUN' ]]
+  then
+             #--sshloginfile "$SLURM_JOB_NODELIST" # not the node file I need
+		parallel  --workdir "$PWD" \
+							--env PYTHON_EGG_CACHE \
+							--env PYAVG_THREADS \
+							--env PYAVG_RECALC \
+							--env PYAVG_OVERWRITE \
+							--env PYAVG_ADDNEW \
+							--env PYAVG_RECOVER \
+							--env PYAVG_FILETYPES \
+							--env PYAVG_DOMAINS \
+							--env PYAVG_DEBUG \
+							--env PYAVG_DRYDAY \
+							--env PYAVG_DAILY \
+		         -j ${THREADS} --joblog "${LOGFILE}" < "${CMDFILE}"
+		ERR=$? # capture exit code
+else
+    ERR=1
+fi # if DRYRUN
+echo
+
+# clean up
+echo
+if [[ 0 == ${ERR} ]]
+  then
+    echo '   ***   All Jobs Completed Successfully!!!   ***   '
+    rm "${CMDFILE}" "${LOGFILE}"
+elif [[ "$TEST" == 'DRYRUN' ]]
+  then
+    echo '   ===   This was a dry-run --- inspect the command file   ===   '
+    echo "   '${CMDFILE}'"
+else
+    echo "  >>>   ERRORS DETECTED - EXIT CODE ${ERR}   <<<   " 
+    echo "Inspect command and log files:"
+    echo "   '${CMDFILE}'"
+    echo "   '${LOGFILE}'"
+    echo 
+    cat "${LOGFILE}"
+fi # if $ERR
+echo
+
+# exit with gnuparallel exit code
+exit ${ERR}
