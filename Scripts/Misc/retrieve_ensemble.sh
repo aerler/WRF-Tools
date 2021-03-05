@@ -125,7 +125,7 @@ if [ $QUEUE -gt 0 ]; then
                 echo "$S"
                 # launch post-processing, dependent on retrieval
                 IDT=$(echo $T | cut -d \  -f4); IDS=$(echo $S | cut -d \  -f4)
-                sbatch  --time=03:00:00 --export=ADDVAR=ADDVAR --dependency=afterok:$IDT:$IDS run_wrf_avg.sb
+                sbatch  --time=08:00:00 --export=ADDVAR=ADDVAR,PYAVG_DAILY=DAILY --dependency=afterok:$IDT:$IDS run_wrf_avg.sb
             else
                 # print queue submittion commands
                 echo "DRYRUN: sbatch --export=DATASET=MISCDIAG,MODE=RETRIEVE,TAGS="$TAGS" ar_wrfout_fineIO.sb"
