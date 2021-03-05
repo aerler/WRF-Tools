@@ -200,16 +200,17 @@ bktpfx = 'I_' # prefix for bucket variables; these are processed together with t
 # derived variables
 derived_variables = {filetype:[] for filetype in filetypes} # derived variable lists by file type
 derived_variables['srfc']   = [dv.Rain(), dv.LiquidPrecipSR(), dv.SolidPrecipSR(), dv.NetPrecip(sfcevp='QFX'),  
-                               dv.WaterVapor(), dv.OrographicIndex(), dv.CovOIP(),
+                               dv.WaterVapor(), dv.OrographicIndex(), dv.CovOIP(), dv.WindSpeed(),
                                dv.SummerDays(threshold=25., temp='T2'), dv.FrostDays(threshold=0., temp='T2')]
                               # N.B.: measures the fraction of 6-hourly samples above/below the threshold (day and night)
 derived_variables['xtrm']   = [dv.RainMean(), dv.TimeOfConvection(),
                                dv.SummerDays(threshold=25., temp='T2MAX'), dv.FrostDays(threshold=0., temp='T2MIN')]
 derived_variables['hydro']  = [dv.Rain(), dv.LiquidPrecip(), dv.SolidPrecip(), 
                                dv.NetPrecip(sfcevp='SFCEVP'), dv.NetWaterFlux(), dv.WaterForcing()]
+derived_variables['rad']    = [dv.NetRadiation(), dv.NetLWRadiation()]
 derived_variables['lsm']    = [dv.RunOff()]
-derived_variables['plev3d'] = [dv.OrographicIndexPlev(), dv.Vorticity(), dv.WaterDensity(),
-                               dv.WaterFlux_U(), dv.WaterFlux_V(), dv.ColumnWater(), 
+derived_variables['plev3d'] = [dv.OrographicIndexPlev(), dv.Vorticity(), dv.WindSpeed(),
+                               dv.WaterDensity(), dv.WaterFlux_U(), dv.WaterFlux_V(), dv.ColumnWater(), 
                                dv.WaterTransport_U(), dv.WaterTransport_V(),
                                dv.HeatFlux_U(), dv.HeatFlux_V(), dv.ColumnHeat(), 
                                dv.HeatTransport_U(),dv.HeatTransport_V(),
@@ -260,14 +261,14 @@ if ldebug:
     print("Skipping Single- and Multi-step Extrema")
 else:
     # Maxima (just list base variables; derived variables will be created later)
-    maximum_variables['srfc']   = ['T2', 'U10', 'V10', 'RAIN', 'RAINC', 'RAINNC', 'NetPrecip']
+    maximum_variables['srfc']   = ['T2', 'U10', 'V10', 'RAIN', 'RAINC', 'RAINNC', 'NetPrecip', 'WindSpeed']
     maximum_variables['xtrm']   = ['T2MEAN', 'T2MAX', 'SPDUV10MEAN', 'SPDUV10MAX', 
                                    'RAINMEAN', 'RAINNCVMAX', 'RAINCVMAX']
     maximum_variables['hydro']  = ['RAIN', 'RAINC', 'RAINNC', 'ACSNOW', 'ACSNOM', 'NetPrecip', 'NetWaterFlux', 'WaterForcing']
     maximum_variables['lsm']    = ['SFROFF', 'Runoff']
     maximum_variables['plev3d'] = ['S_PL', 'GHT_PL', 'Vorticity']
     # daily (smoothed) maxima
-    daymax_variables['srfc']  = ['T2','RAIN', 'RAINC', 'RAINNC', 'NetPrecip']
+    daymax_variables['srfc']  = ['T2','RAIN', 'RAINC', 'RAINNC', 'NetPrecip', 'WindSpeed']
     # daily (smoothed) minima
     daymin_variables['srfc']  = ['T2']
     # weekly (smoothed) maxima
@@ -293,10 +294,11 @@ for key in prereq_vars.keys():
 ## daily variables (can also be 6-hourly or hourly, depending on source file)
 if lglobaldaily:
     daily_variables = {filetype:[] for filetype in filetypes} # daily variable lists by file type
-    daily_variables['srfc']  = ['T2', 'Q2', 'U10', 'V10', 'RAIN', 'RAINC', 'LiquidPrecip_SR'] # surface climate
-    daily_variables['hydro'] = ['RAIN', 'RAINC', 'ACSNOM', 'LiquidPrecip', 'NetPrecip', 'NetWaterFlux', 'WaterForcing', 'SFCEVP', 'POTEVP'] # water budget
-    daily_variables['rad'] = [] # surface radiation budget
-    daily_variables['lsm'] = [] # runoff and soil temperature
+    daily_variables['srfc']  = ['T2', 'PSFC', 'WaterVapor', 'WindSpeed',] # surface climate
+    daily_variables['xtrm']  = ['T2MIN', 'T2MAX'] # min/max T2
+    daily_variables['hydro'] = ['RAIN', 'RAINC', 'LiquidPrecip', 'WaterForcing', 'SFCEVP', 'POTEVP'] # water budget
+    daily_variables['rad'] = ['NetRadiation','ACSWDNB','ACLWDNB','NetLWRadiation',] # surface radiation budget
+    #daily_variables['lsm'] = [] # runoff and soil temperature
 
 ## main work function
 # N.B.: the loop iterations should be entirely independent, so that they can be run in parallel

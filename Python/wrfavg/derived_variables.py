@@ -676,6 +676,69 @@ class SummerDays(DerivedVariable):
     return outdata
 
 
+class WindSpeed(DerivedVariable):
+  ''' DerivedVariable child for computing total wind speedi at 10m. '''
+  
+  def __init__(self):
+    ''' Initialize with fixed values; constructor takes no arguments. '''
+    super(WindSpeed,self).__init__(name='WindSpeed', # name of the variable
+                              units='m/s', # fraction of days 
+                              prerequisites=['U10','V10'], # it's the vector sum of these two
+                              axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
+                              dtype=dv_float, atts=None, linear=False) 
+
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
+    ''' Surface wind speed at 10m. '''
+    super(WindSpeed,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
+    U = indata['U10']; V = indata['V10']
+    # compute length of wind vector
+    outdata = evaluate('sqrt( U**2 + V**2 )')
+    # N.B.: outer dimensions (i.e. the first) are broadcast automatically, which is what we want here 
+    return outdata
+
+
+class NetRadiation(DerivedVariable):
+  ''' DerivedVariable child for computing total net radiation at the surface (downward). '''
+  
+  def __init__(self):
+    ''' Initialize with fixed values; constructor takes no arguments. '''
+    super(NetRadiation,self).__init__(name='NetRadiation', # name of the variable
+                              units='J m-2/s', # fraction of days 
+                              prerequisites=['ACSWDNB','ACSWUPB','ACLWDNB','ACLWUPB'], # it's the sum of these four
+                              axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
+                              dtype=dv_float, atts=None, linear=False) 
+
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
+    ''' Downward net radiation at the surface. '''
+    super(NetRadiation,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
+    SWDN = indata['ACSWDNB']; SWUP= indata['ACSWUPB']; LWDN = indata['ACLWDNB']; LWUP = indata['ACLWUPB']
+    # compute downward net radiation at the surface
+    outdata = evaluate('SWDN - SWUP + LWDN - LWUP')
+    # N.B.: outer dimensions (i.e. the first) are broadcast automatically, which is what we want here 
+    return outdata
+
+
+class NetLWRadiation(DerivedVariable):
+  ''' DerivedVariable child for computing net long-wave radiation at the surface (downward). '''
+  
+  def __init__(self):
+    ''' Initialize with fixed values; constructor takes no arguments. '''
+    super(NetLWRadiation,self).__init__(name='NetLWRadiation', # name of the variable
+                              units='J m-2/s', # fraction of days 
+                              prerequisites=['ACLWDNB','ACLWUPB'], # it's the sum of these four
+                              axes=('time','south_north','west_east'), # dimensions of NetCDF variable 
+                              dtype=dv_float, atts=None, linear=False) 
+
+  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None, ignoreNaN=False):
+    ''' Downward LW net radiation at the surface. '''
+    super(NetLWRadiation,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
+    LWDN = indata['ACLWDNB']; LWUP = indata['ACLWUPB']
+    # compute downward net radiation at the surface
+    outdata = evaluate('LWDN - LWUP')
+    # N.B.: outer dimensions (i.e. the first) are broadcast automatically, which is what we want here 
+    return outdata
+
+
 class OrographicIndex(DerivedVariable):
   ''' DerivedVariable child for computing the correlation of (surface) winds with the topographic gradient. '''
   
