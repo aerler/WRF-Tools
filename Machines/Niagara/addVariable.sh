@@ -1,6 +1,7 @@
 #!/bin/bash
 # short script to add a variable from one netcdf file to another, using NCO
 # Andre R. Erler, 22/04/2013
+# updated 08/03/2021
 
 # load module
 module purge
@@ -98,7 +99,7 @@ for SRC in ${SRCPFX}*${NCSFX}
 			  if [[ "${SRCPFX}" == "${DSTPFX}" ]] && [[ -z "${DIM}" ]] && \
 			     [[ -n $( ncdump -h "${SRC}" | grep "${VARNM}(" ) ]]; then
             # REMOVE Variable        
-			      ncks -aO -x -v "${VARNM}" "${SRC}" "${DSTDIR}/${DST}" # this means remove the variable!
+			      ncks --no-abc -O -x -v "${VARNM}" "${SRC}" "${DSTDIR}/${DST}" # this means remove the variable!
         elif [[ "${SRCPFX}" != "${DSTPFX}" ]] && [[ -z $( ncdump -h "${DST}" | grep "${VARNM}(" ) ]]; then
             # ADD Variable
 					  if [[ -n "${DIM}" ]]; then 
