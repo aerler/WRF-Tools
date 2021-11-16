@@ -149,20 +149,23 @@ outfolder = exproot + '/wrfavg/' # output folder
 if len(sys.argv) == 1 or not any(sys.argv[1:]): # treat empty arguments as no argument
   period = [] # means recompute everything
 elif len(sys.argv) == 2:
-  period = sys.argv[1].split(',') # regular expression identifying
+  period = sys.argv[1].split('-') # this can be a range (YYYY-YYYY) or a date tag (YYYY-MM-DD)
 else: 
   period = sys.argv[1:]
-# prdarg = '1979'; period = prdarg.split('-') # for tests
+
 # default time intervals
 yearstr = '\d\d\d\d'; monthstr = '\d\d'; daystr = '\d\d'  
-# figure out time interval
-if len(period) >= 1:
-    # first try some common expressions
-    yearstr = getDateRegX(period[0])
-    if yearstr is None: yearstr = period[0]
-if len(period) >= 2: monthstr = period[1]
-if len(period) >= 3: daystr = period[2]
-# N.B.: the timestr variables are interpreted as strings and support Python regex syntax
+# first try some common date ranges
+if len(period) == 2 and len(period[1]) == 4:
+    assert len(period[0]) == 4, period
+    yearstr = getDateRegX( '{}-{}'.format(*period) ) # reassemble and get corresponding regex
+else:
+    # or figure out date strings from period argument
+    if len(period) >= 1: yearstr = period[0]
+    if len(period) >= 2: monthstr = period[1]
+    if len(period) >= 3: daystr = period[2]
+    # N.B.: the timestr variables are interpreted as strings and support Python regex syntax
+    
 if len(period) > 0 or ldebug: print('Date string interpretation:',yearstr,monthstr,daystr)
 
 ## definitions
@@ -679,9 +682,9 @@ def processFileList(filelist, filetype, ndom, lparallel=False, pidstr='', logger
   if wrfxtime in wrfout.variables: 
     lxtime = True # simply compute differences from XTIME (assuming minutes)
     time_desc = wrfout.variables[wrfxtime].description
-    assert time_desc.startswith("minutes since "), time_desc 
-    assert "simulation start" in time_desc or begindate in time_desc or '**' in time_desc, time_desc 
-    # N.B.: the last check (**) is for cases where the date in WRF is garbled...
+    assert time_desc.startswith("minutes since "), time_desc # just check units; date strings are garbled
+    #assert "simulation start" in time_desc or begindate in time_desc or '**' in time_desc, time_desc 
+    # N.B.: garbled date strings seem to be too common for this assertion to be useful...
     if t0 == 1 and not wrfout.variables[wrfxtime][0] == 0:
       raise ValueError( 'XTIME in first input file does not start with 0!\n'+
                         '(this can happen, when the first input file is missing)' )
