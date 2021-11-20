@@ -75,6 +75,8 @@ export WRFSCRIPT='run_cycling_WRF.pbs' # WRF run-scripts
 export WRFVERSION='' # WRF version; default set in setup_WRF.sh
 WRFWCT='00:15:00' # wait time for queue selector; only temporary; default set above ($DEFWCT)
 export PYTHONVERSION=3 # pyWPS et al. are now converted to Python 3
+export GEOTASKS=4 # Number of geogrid procceses
+export WRFENV='2019b' # WRF environment version
 
 # source machine setup
 source "${SCRIPTDIR}/setup_WRF.sh" > /dev/null # suppress output (not errors, though)
@@ -98,6 +100,8 @@ export NEXTSTEP
 # run (machine-independent) setup:
 export MODE
 export VERBOSITY
+export GEOTASKS
+export WRFENV 
 eval "${SCRIPTDIR}/setup_cycle.sh" # requires geogrid command
 
 

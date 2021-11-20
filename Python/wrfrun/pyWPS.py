@@ -766,7 +766,6 @@ def processFiles(qfilelist, qListDir, queue):
 def processTimesteps(myid, dates):
   
   # create process sub-folder
-  os.system('pwd')
   mydir = pdir.format(myid)
   MyDir = Tmp + mydir
   mytag = '['+pname.format(myid)+']'

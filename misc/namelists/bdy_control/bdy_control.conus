@@ -1,5 +1,5 @@
 &bdy_control
- spec_bdy_width                      = 15,
+ spec_bdy_width                      = 10,
  spec_zone                           = 1,
  relax_zone                          = 14,
  spec_exp                            = 0.22

@@ -12,7 +12,7 @@ export MAC='Niagara' # machine name
 export QSYS='SB' # queue system
 
 # default WRF environment version
-export WRFENV=${WRFENV:-'2018a'} # need to leave default at old envionrment
+export WRFENV=${WRFENV:-'2019b'} # need to leave default at old envionrment
 # Python Version
 export PYTHONVERSION=${PYTHONVERSION:-3} # default Python version is 3 (most scripts are converted now)
 
@@ -39,6 +39,12 @@ if [ -z $SYSTEM ] || [[ "$SYSTEM" == "$MAC" ]]; then
     if [[ ${RUNPYWPS} == 1 ]]; then
       # NCL is only necessary for preprocessing CESM
       module load ncl/6.4.0
+      source "${PYTHONENV}/bin/activate"
+      # N.B.: PYTHONENV is a variable that needs to be set beforehand (possibly in user's
+      #   .bashrc or .bash_profile). It contains the path to the folder of a virtual
+      #   python environment that has netcdf4 and numexpr installed in it. These 
+      #   modules are required within the averaging part of the code and are not
+      #   accessible using simple python Niagara modules.
     fi # if RUNPYWPS
   elif [[ ${WRFENV} == '2019b' ]]; then
     module load NiaEnv/2019b openjpeg/2.3.1 jasper/.experimental-2.0.14 
@@ -53,6 +59,12 @@ if [ -z $SYSTEM ] || [[ "$SYSTEM" == "$MAC" ]]; then
     if [[ ${RUNPYWPS} == 1 ]]; then
       # NCL is only necessary for preprocessing CESM
       module load ncl/6.6.2
+      source "${PYTHONENV}/bin/activate"
+      # N.B.: PYTHONENV is a variable that needs to be set beforehand (possibly in user's
+      #   .bashrc or .bash_profile). It contains the path to the folder of a virtual
+      #   python environment that has netcdf4 and numexpr installed in it. These 
+      #   modules are required within the averaging part of the code and are not
+      #   accessible using simple python Niagara modules.
     fi # if RUNPYWPS
   else echo "Warning: WRF Environment Version '$WRFENV' not found."
   fi # if $WRFENV
@@ -136,8 +148,9 @@ export HYBRIDRUN=${HYBRIDRUN:-'mpirun -ppn ${TASKS} -np $((NODES*TASKS))'} # eva
 #export HYBRIDRUN=${HYBRIDRUN:-'mpiexec '} # evaluated by execWRF and execWPS
 
 # geogrid command (executed during machine-independent setup)
-#export RUNGEO=${RUNGEO:-"ssh nia-login08 \"cd ${INIDIR}; source ${SCRIPTDIR}/setup_WPS.sh; mpirun -n 4 ${BINDIR}/geogrid.exe\""} # run on GPC via ssh
-export RUNGEO=${RUNGEO:-"mpirun -n 4 ${BINDIR}/geogrid.exe"}
+export GEOTASKS=${GEOTASKS:-4} 
+#export RUNGEO=${RUNGEO:-"ssh nia-login08 \"cd ${INIDIR}; source ${SCRIPTDIR}/setup_WPS.sh; mpirun -n ${GEOTASKS} ${BINDIR}/geogrid.exe\""} # run on GPC via ssh
+export RUNGEO=${RUNGEO:-"mpirun -n ${GEOTASKS} ${BINDIR}/geogrid.exe"}
 
 # WPS/preprocessing submission command (for next step)
 export SUBMITWPS=${SUBMITWPS:-'ssh nia-login07 "cd \"${INIDIR}\"; sbatch --export=NEXTSTEP=${NEXTSTEP} ./${WPSSCRIPT}"'} # evaluated by launchPreP
@@ -159,4 +172,4 @@ export SUBMITAVG=${SUBMITAVG:-'ssh nia-login07 "cd \"${INIDIR}\"; sbatch --expor
 export RESUBJOB=${RESUBJOB-'ssh nia-login07 "cd \"${INIDIR}\"; sbatch --export=NOWPS=${NOWPS},NEXTSTEP=${NEXTSTEP},RSTCNT=${RSTCNT} ./${WRFSCRIPT}"'} # evaluated by resubJob
 
 # sleeper job submission (for next step when WPS is delayed)
-export SLEEPERJOB=${SLEEPERJOB-'ssh nia-login07 "cd \"${INIDIR}\"; nohup ./${STARTSCRIPT} --restart=${NEXTSTEP} --name=${JOBNAME} &> ${STARTSCRIPT%.sh}_${JOBNAME}_${NEXTSTEP}.log &"'} # evaluated by resubJob; relaunches WPS
+export SLEEPERJOB=${SLEEPERJOB-'ssh nia-login07 "cd \"${INIDIR}\"; nohup ./${STARTSCRIPT} --skipwps --restart=${NEXTSTEP} --name=${JOBNAME} &> ${STARTSCRIPT%.sh}_${JOBNAME}_${NEXTSTEP}.log &"'} # evaluated by resubJob; relaunches WPS

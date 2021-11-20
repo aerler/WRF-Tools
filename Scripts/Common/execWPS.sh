@@ -24,13 +24,29 @@ METDATA=${METDATA:-''} # folder to store metgrid data on disk (has to be absolut
 # N.B.: leave undefined to skip disk storage; defining $METDATA will set "ldisk = True" in pyWPS
 # real.exe
 RUNREAL=${RUNREAL:-1} # whether to run real.exe
-REALIN=${REALIN:-"${METDATA}"} # location of metgrid files
 REALTMP=${REALTMP:-"./metgrid"} # in case path to metgrid data is too long
 RAMIN=${RAMIN:-1} # copy input data to ramdisk or read from HD
 REALOUT=${REALOUT:-"${WORKDIR}"} # output folder for WRF input data
 RAMOUT=${RAMOUT:-1} # write output data to ramdisk or directly to HD
 REALLOG="real" # log folder for real.exe
 REALTGZ="${RUNNAME}_${REALLOG}.tgz" # archive for log folder
+if [[ "${RAMIN}" == 0 ]] && [[ -z  "${METDATA}" ]] 
+then
+  REALIN=${REALIN:-"${PYDATA}"}
+else
+  if [[ "${RAMIN}" == 1 ]]
+  then
+    REALIN=${REALIN:-"${PYDATA}"} # Location of metgrid files.
+  else
+    REALIN=${REALIN:-"${METDATA}"} # Location of metgrid files.
+  fi
+fi
+# N.B.: If RAMIN=0 and METDATA is not set, then the ${WORKDIR}/data/ folder will
+#   not be created in pyWPS.sh because ldata (or quivalantly PYWPS_KEEP_DATA or 
+#   equivalantly RAMIN) is set to false. Therefore PYDATA is not set and in the above
+#   REALIN would clearly be incorrect. As the Tmp folder is deleted in this script,
+#   after pyWPS, the data would be actually lost and real would not have an input.
+#   One solution to this would be to set METDATA, in case REALIN=0.
 # optional delay for file system to settle down before launching WRF
 #WRFWAIT="${WRFWAIT:-''}" # by default, don't wait
 
@@ -116,7 +132,7 @@ if [[ ${RUNPYWPS} == 1 ]]
     wait
 
     # copy log files to disk
-    rm "${RAMTMP}"/*.nc "${RAMTMP}"/*/*.nc # remove data files
+    rm -f "${RAMTMP}"/*.nc "${RAMTMP}"/*/*.nc # remove data files
     rm -rf "${WORKDIR}/${PYLOG}/" # remove existing logs, just in case
     cp -r "${RAMTMP}" "${WORKDIR}/${PYLOG}/" # copy entire folder and rename
     rm -rf "${RAMTMP}"
@@ -126,8 +142,6 @@ if [[ ${RUNPYWPS} == 1 ]]
     if [[ -n "${METDATA}" ]] && [[ "${METDATA}" != "${WORKDIR}" ]]; then
 		mkdir -p "${METDATA}"
 		cp ${PYTGZ} "${METDATA}"
-		mv "${PYDATA}"/* "${METDATA}"
-		rm -r "${PYDATA}"
     fi
     
     # finish
