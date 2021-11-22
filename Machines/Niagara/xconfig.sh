@@ -52,6 +52,11 @@ GEOGRID="${DOM},${DOM}-grid"
 #PHYSICS_MOD=' cu_physics = 3, 3, 3,: shcu_physics = 0, 0, 0,: sf_surface_physics = 4, 4, 4,'
 FLAKE=0 # don't use FLake (doesn't work with FLake in V3.6)
 
+## Custom environment section (will be inserted in run script)
+# --- begin custom environment ---
+export WRFENV='2019b' # WRF environment version (current options 2018a or 2019b).
+# ---  end custom environment  ---
+
 ## system settings
 WRFTOOLS="${HOME}/WRF Tools/"
 WRFROOT="${HOME}/WRFV3.9/"
@@ -67,3 +72,5 @@ WPSSYS="Niagara"
 # WRF executable
 WRFSYS="Niagara"
 # set path for geogrid.exe and wrf.exe eplicitly using GEOEXE and WRFEXE
+# Number of geogrid procceses
+GEOTASKS=10

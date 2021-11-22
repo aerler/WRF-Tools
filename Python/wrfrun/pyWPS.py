@@ -80,8 +80,18 @@ if 'NCARG_ROOT' in os.environ:
   NCARG = os.environ['NCARG_ROOT']
   if NCARG[-1] != '/': NCARG += '/' # local convention is that directories already have a slash
   NCL = NCARG + 'bin/ncl'
+# In case PYWPS_RAMDISK is defined by the caller (e.g. execWPS.sh)
+if 'PYWPS_RAMDISK' in os.environ:
+  lram = bool(int(os.environ['PYWPS_RAMDISK'])) 
+else: lram = True
 # RAM disk
-if 'RAMDISK' in os.environ: Ram = os.environ['RAMDISK']
+if lram:
+  if 'RAMDISK' in os.environ: 
+    Ram = os.environ['RAMDISK']
+  else: 
+    raise ValueError('Error: Need to define RAMDISK.')
+else:
+  Ram = None
 # keep data in memory (for real.exe)
 if 'PYWPS_KEEP_DATA' in os.environ:
   ldata = bool(int(os.environ['PYWPS_KEEP_DATA'])) # expects 0 or 1
@@ -766,7 +776,6 @@ def processFiles(qfilelist, qListDir, queue):
 def processTimesteps(myid, dates):
   
   # create process sub-folder
-  os.system('pwd')
   mydir = pdir.format(myid)
   MyDir = Tmp + mydir
   mytag = '['+pname.format(myid)+']'
