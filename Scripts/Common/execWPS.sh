@@ -1,6 +1,7 @@
 #!/bin/bash
 # driver script to run WRF pre-processing: runs pyWPS.py and real.exe on RAM disk
 # created 25/06/2012 by Andre R. Erler, GPL v3
+# updated 22/11/2021 by Mani Mahdinia
 
 # variable defined in driver script:
 # $TASKS, $THREADS, $HYBRIDRUN, $WORKDIR, $RAMDISK

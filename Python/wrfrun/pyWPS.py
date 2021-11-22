@@ -871,7 +871,7 @@ if __name__ == '__main__':
     # figure out root folder
     Root = os.getcwd() + '/' # use current directory
     # direct temporary storage
-    if Ram:       
+    if lram:       
       Tmp = Ram + tmp # direct temporary storage to ram disk
       if ldata: Data = Ram + data # temporary data storage (in memory)
 #      # provide link to ram disk directory for debugging      
