@@ -80,7 +80,7 @@ if 'NCARG_ROOT' in os.environ:
   NCARG = os.environ['NCARG_ROOT']
   if NCARG[-1] != '/': NCARG += '/' # local convention is that directories already have a slash
   NCL = NCARG + 'bin/ncl'
-# If RAMDISK should be defined in pyWPS
+# In case PYWPS_RAMDISK is defined by the caller (e.g. execWPS.sh)
 if 'PYWPS_RAMDISK' in os.environ:
   lram = bool(int(os.environ['PYWPS_RAMDISK'])) 
 else: lram = True
