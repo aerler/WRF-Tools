@@ -40,7 +40,7 @@ if [ -z $SYSTEM ] || [[ "$SYSTEM" == "$MAC" ]]; then
       # NCL is only necessary for preprocessing CESM
       module load ncl/6.4.0
       source "${PYTHONENV}/bin/activate"
-      # N.B.: PYTHONENV is a variable that needs to be set beforehand (possibly in user's
+      # NOTE_MM: PYTHONENV is a variable that needs to be set beforehand (possibly in user's
       #   .bashrc or .bash_profile). It contains the path to the folder of a virtual
       #   python environment that has netcdf4 and numexpr installed in it. These 
       #   modules are required within the averaging part of the code and are not
@@ -60,7 +60,7 @@ if [ -z $SYSTEM ] || [[ "$SYSTEM" == "$MAC" ]]; then
       # NCL is only necessary for preprocessing CESM
       module load ncl/6.6.2
       source "${PYTHONENV}/bin/activate"
-      # N.B.: PYTHONENV is a variable that needs to be set beforehand (possibly in user's
+      # NOTE_MM: PYTHONENV is a variable that needs to be set beforehand (possibly in user's
       #   .bashrc or .bash_profile). It contains the path to the folder of a virtual
       #   python environment that has netcdf4 and numexpr installed in it. These 
       #   modules are required within the averaging part of the code and are not

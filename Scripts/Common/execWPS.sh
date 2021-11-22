@@ -17,45 +17,27 @@ RAMTMP="${RAMDISK}/tmp/" # temporary folder used by Python script
 # pyWPS.py
 RUNPYWPS=${RUNPYWPS:-1} # whether to run runWPS.py
 DATATYPE=${DATATYPE:-'CESM'} # data source also see $PYWPS_DATA_SOURCE
-PYDATA="${WORKDIR}/data/" # data folder used by Python script
 PYLOG="pyWPS" # log folder for Python script (use relative path for tar)
 PYTGZ="${RUNNAME}_${PYLOG}.tgz" # archive for log folder
 METDATA=${METDATA:-''} # folder to store metgrid data on disk (has to be absolute path!)
 # N.B.: leave undefined to skip disk storage; defining $METDATA will set "ldisk = True" in pyWPS
 # real.exe
 RUNREAL=${RUNREAL:-1} # whether to run real.exe
+REALIN=${REALIN:-"${METDATA}"} # location of metgrid files
 REALTMP=${REALTMP:-"./metgrid"} # in case path to metgrid data is too long
 RAMIN=${RAMIN:-1} # copy input data to ramdisk or read from HD
 REALOUT=${REALOUT:-"${WORKDIR}"} # output folder for WRF input data
 RAMOUT=${RAMOUT:-1} # write output data to ramdisk or directly to HD
 REALLOG="real" # log folder for real.exe
 REALTGZ="${RUNNAME}_${REALLOG}.tgz" # archive for log folder
-if [[ "${RAMIN}" == 0 ]] && [[ -z  "${METDATA}" ]] 
-then
-  REALIN=${REALIN:-"${PYDATA}"}
-else
-  if [[ "${RAMIN}" == 1 ]]
-  then
-    REALIN=${REALIN:-"${PYDATA}"} # Location of metgrid files.
-  else
-    REALIN=${REALIN:-"${METDATA}"} # Location of metgrid files.
-  fi
-fi
-# N.B.: If RAMIN=0 and METDATA is not set, then the ${WORKDIR}/data/ folder will
-#   not be created in pyWPS.sh because ldata (or quivalantly PYWPS_KEEP_DATA or 
-#   equivalantly RAMIN) is set to false. Therefore PYDATA is not set and in the above
-#   REALIN would clearly be incorrect. As the Tmp folder is deleted in this script,
-#   after pyWPS, the data would be actually lost and real would not have an input.
-#   One solution to this would be to set METDATA, in case REALIN=0.
+RAMIN_CHANGED=${RAMIN_CHANGED:-0} # If RAMIN was changed.
+# NOTE_MM: RAMIN is changed artificially, if initally RAMIN=0 & METDATA is not set.
 # optional delay for file system to settle down before launching WRF
 #WRFWAIT="${WRFWAIT:-''}" # by default, don't wait
 
 
 # assuming working directory is already present
 cp "${SCRIPTDIR}/execWPS.sh" "${WORKDIR}"
-# remove and recreate temporary folder (ramdisk)
-rm -rf "${RAMDATA}"
-mkdir -p "${RAMDATA}" # create data folder on ramdisk
 
 
 ## run WPS driver script: pyWPS.py
@@ -67,6 +49,28 @@ if [[ ${RUNPYWPS} == 1 ]]
     echo
     echo ' >>> Running WPS <<< '
     echo
+    
+    # Handle a special case for WPS output data storage
+    if [[ "${RAMIN}" == 0 ]] && [[ -z  "${METDATA}" ]] 
+    then
+      RAMIN=1
+      export RAMDISK="$WORKDIR/ram_disk/"
+      RAMDATA="${RAMDISK}/data/" 
+      RAMTMP="${RAMDISK}/tmp/" 
+      RAMIN_CHANGED=1
+    fi 
+    # NOTE_MM: If RAMIN=0 and METDATA is not set, then the ${WORKDIR}/data/ folder will
+    #   not be created in pyWPS.sh because ldata (or quivalantly PYWPS_KEEP_DATA or 
+    #   equivalantly RAMIN) is set to false. As the Tmp folder is also deleted in 
+    #   this script before REAL is run, the data would be lost and real would not 
+    #   have an input. Therefore, for this case, we artifically change RAMIN to 1 and
+    #   set RAMDISK to an alternative disk path (and update RAMDATA and RAMTMP) above.
+    #   The variable RAMIN_CHANGED is to keep track of this artifical change and
+    #   reset the code at the end of this script.
+    
+    # remove and recreate temporary folder (ramdisk)
+    rm -rf "${RAMDATA}"
+    mkdir -p "${RAMDATA}" # create data folder on ramdisk
 
     # specific environment for pyWPS.py
     # N.B.: ´mkdir $RAMTMP´ is actually done by Python script
@@ -112,12 +116,14 @@ if [[ ${RUNPYWPS} == 1 ]]
     export PYWPS_DATA_TYPE="${DATATYPE}"
     export PYWPS_KEEP_DATA="${RAMIN}"
     export PYWPS_MET_DATA="${METDATA}"
+    export PYWPS_RAMDISK="${RAMIN}"
     echo
     echo "OMP_NUM_THREADS=${OMP_NUM_THREADS}"
     echo "PYWPS_THREADS=${PYWPS_THREADS}"
     echo "PYWPS_DATA_TYPE=${DATATYPE}"
     echo "PYWPS_KEEP_DATA=${RAMIN}"
     echo "PYWPS_MET_DATA=${METDATA}"
+    echo "PYWPS_RAMDISK=${RAMIN}"
     echo
     echo "python pyWPS.py"
     echo
@@ -144,6 +150,12 @@ if [[ ${RUNPYWPS} == 1 ]]
 		cp ${PYTGZ} "${METDATA}"
     fi
     
+    # NOTE_MM: When RAMIN is set to 0 by the user and -n METDATA, then in a few places, 
+    #   such as the above rm -f, we may get errors due to being unable to delete or make 
+    #   files or folders (e.g., if we do not have access to ram), etc. However, these
+    #   are minor errors and the code should work overall. These errors were not fixed 
+    #   at the moment, due to their lower priority.    
+    
     # finish
     
     echo
@@ -152,6 +164,10 @@ if [[ ${RUNPYWPS} == 1 ]]
 
 # if not running Python script, get data from disk
 elif [[ ${RAMIN} == 1 ]]; then
+
+    # remove and recreate temporary folder (ramdisk)
+    rm -rf "${RAMDATA}"
+    mkdir -p "${RAMDATA}" # create data folder on ramdisk
 
     echo
     echo ' Copying source data to ramdisk.'
@@ -277,6 +293,17 @@ fi # if RUNREAL
 
 # delete temporary data
 rm -rf "${RAMDATA}"
+
+# Revert changes, if RAMIN was changed before
+if [[ "${RAMIN_CHANGED}" == 1 ]]
+then
+  rm -rf "${RAMDISK}"
+  RAMIN=0  
+  export RAMDISK="/dev/shm/${USER}/"
+  RAMDATA="${RAMDISK}/data/"
+  RAMTMP="${RAMDISK}/tmp/"
+  RAM_CHANGED=0
+fi
 
 # exit code handling
 exit $(( PYERR + REALERR ))

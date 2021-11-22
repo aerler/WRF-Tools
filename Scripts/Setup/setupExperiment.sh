@@ -139,7 +139,7 @@ function RENAME () {
     sed -i "/DELT=/ s/DELT=[^$][^$].*$/DELT=\'${DELT}\' # time decrement for auto restart /" "${FILE}"
     ## Geogrid number of tasks 
     sed -i "/export GEOTASKS=/ s/export GEOTASKS=.*$/export GEOTASKS=${GEOTASKS} # Number of geogrid processes\./" "${FILE}"
-    ## Niagara Env
+    ## WRF Env
     sed -i "/export WRFENV=/ s/export WRFENV=.*$/export WRFENV=\'${WRFENV}\' # WRF environment version\./" "${FILE}"
 } # fct. RENAME
 
