@@ -238,6 +238,9 @@ elif [[ "${DATATYPE}" == 'CFSR' ]]; then
 elif [[ "${DATATYPE}" == 'ERA-I' ]]; then
   VTABLE=${VTABLE:-'Vtable.ERA-interim.pl'}
   METGRIDTBL=${METGRIDTBL:-'METGRID.TBL.ERAI'}
+elif [[ "${DATATYPE}" == 'ERA5' ]]; then
+  VTABLE=${VTABLE:-'Vtable.ERA5.pl'}
+  METGRIDTBL=${METGRIDTBL:-'METGRID.TBL.ERA5'}
 elif [[ "${DATATYPE}" == 'NARR' ]]; then
   VTABLE=${VTABLE:-'Vtable.NARR'}
   METGRIDTBL=${METGRIDTBL:-'METGRID.TBL.ARW'}
@@ -258,7 +261,7 @@ if [[ -z "$WRFBLD" ]]; then
   if [[ "${DATATYPE}" == 'CESM' ]] || [[ "${DATATYPE}" == 'CCSM' ]] || [[ "${DATATYPE}" == 'CMIP5' ]]; then
     WRFBLD="Clim-${IO}" # variable GHG scenarios and no leap-years
     LLEAP='--noleap' # option for Python script to omit leap days
-  elif [[ "${DATATYPE}" == 'ERA-I' ]] || [[ "${DATATYPE}" == 'CFSR' ]] || [[ "${DATATYPE}" == 'NARR' ]]; then
+  elif [[ "${DATATYPE}" == 'ERA-I' ]] || [[ "${DATATYPE}" == 'ERA5' ]] || [[ "${DATATYPE}" == 'CFSR' ]] || [[ "${DATATYPE}" == 'NARR' ]]; then
     WRFBLD="ReA-${IO}" # variable GHG scenarios with leap-years
   else
     WRFBLD="Default-${IO}" # standard WRF build with current I/O version
@@ -325,8 +328,8 @@ if [[ -e 'backup/xconfig.sh' && -e 'backup/setupExperiment.sh' ]]
   then # presumably everything went OK, if these two are in the backup folder
     eval $( rm -f *.sh *.pbs *.ll &> /dev/null ) # delete scripts
     eval $( rm -rf 'scripts' 'bin' 'meta' 'tables' &> /dev/null ) # delete script and table folders
-    eval $( rm -f 'atm' 'lnd' 'ice' 'plev' 'srfc' 'uv' 'sc' 'sfc' &> /dev/null ) # delete input data folders
-    eval $( rm -f 'GPC' 'TCS' 'P7' 'i7' 'Bugaboo' 'Rocks' &> /dev/null ) # delete machine markers
+    eval $( rm -f 'atm' 'lnd' 'ice' 'plev' 'srfc' 'uv' 'sc' 'sfc' 'pl' 'sl' &> /dev/null ) # delete input data folders
+    eval $( rm -f 'GPC' 'TCS' 'P7' 'i7' 'Bugaboo' 'Rocks' 'Niagara' &> /dev/null ) # delete machine markers
     # N.B.: don't append '/' so that links to folders are also removed
     cp -P 'backup/setupExperiment.sh' 'backup/xconfig.sh' .
     rm -rf 'backup_backup/' # remove backup of backup, because we have a new backup
@@ -404,7 +407,7 @@ if [[ "${DATATYPE}" == 'CESM' ]] || [[ "${DATATYPE}" == 'CCSM' ]] || [[ "${DATAT
 elif [[ "${DATATYPE}" == 'CFSR' ]]; then
   ln -sf "${WPSSRC}/ungrib/Variable_Tables/${VTABLE_PLEV}" 'Vtable.CFSR_plev'
   ln -sf "${WPSSRC}/ungrib/Variable_Tables/${VTABLE_SRFC}" 'Vtable.CFSR_srfc'
-elif [[ "${DATATYPE}" == 'ERA-I' ]]; then
+elif [[ "${DATATYPE}" == 'ERA-I' ]] || [[ "${DATATYPE}" == 'ERA5' ]]; then
   ln -sf "${WPSSRC}/ungrib/Variable_Tables/${VTABLE}" 'Vtable'
 fi # $DATATYPE
 # link boundary data
@@ -428,6 +431,10 @@ elif [[ "${DATATYPE}" == 'ERA-I' ]]; then
   ln -sf "${DATADIR}/uv/" 'uv' # pressure level date (3D, 0.7 deg)
   ln -sf "${DATADIR}/sc/" 'sc' # pressure level date (3D, 0.7 deg)
   ln -sf "${DATADIR}/sfc/" 'sfc' # surface data (2D, 0.7 deg)
+elif [[ "${DATATYPE}" == 'ERA5' ]]; then
+  rm -f 'pl' 'sl' 
+  ln -sf "${DATADIR}/pl/" 'pl' # Pressure level date (3D, 0.25 deg).
+  ln -sf "${DATADIR}/sl/" 'sl' # Surface data (2D, 0.25 deg).  
 fi # $DATATYPE
 # set correct path for geogrid data
 echo "Setting path for geogrid data"
@@ -479,6 +486,9 @@ if [[ "${DATATYPE}" == 'CESM' ]] || [[ "${DATATYPE}" == 'CCSM' ]]; then
 elif  [[ "${DATATYPE}" == 'CMIP5' ]]; then
   ln -sf "${WRFTOOLS}/NCL/unCMIP5.ncl"
   ln -sf "${WRFTOOLS}/bin/${WPSSYS}/unccsm.exe"
+elif  [[ "${DATATYPE}" == 'ERA5' ]]; then
+    ln -sf "${WRFTOOLS}/Python/wrfrun/fixIM.py"
+    ln -sf "${UNGRIBEXE}"
 else
   ln -sf "${UNGRIBEXE}"
 fi # $DATATYPE

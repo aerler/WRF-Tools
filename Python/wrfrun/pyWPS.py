@@ -202,7 +202,6 @@ class Dataset():
 
   def constructDateList(self, start, end):    
     ''' construct a list of dates where data should be available '''
-    import datetime as dt
 #     # Pandas implementation
 #     import pandas as pd
 #     dates = pd.date_range(dt.datetime(*start), 
@@ -263,6 +262,148 @@ class ERAI(Dataset):
   dateform = '\d\d\d\d\d\d\d\d\d\d' # YYYYMMDDHH (for matching regex)
   datestr = '{:04d}{:02d}{:02d}{:02d}' # year, month, day, hour (for printing)
   # all other variables have default values
+
+## ERA5 
+class ERA5(Dataset):   
+  
+  # ERA5 data info
+  grbdirs = ['pl','sl']
+  grbstrs = ['ERA5-{:s}-pl.grib','ERA5-{:s}-sl.grib']
+  dateform = '\d\d\d\d\d\d\d\d\d\d\d\d' # YYYYMMDDHHmm (for matching regex).
+  datestr = '{:04d}{:02d}{:02d}{:02d}' # Year, month, day, hour.
+  yearlyfolders = True # Use subfolders for every year.
+  subdform = '\d\d\d\d' # Subdirectories in calendar year format. 
+  interval = 3 # ERA5 has 3-hourly data.
+  ungribdateout = '{:04d}-{:02d}-{:02d}_{:02d}' # ungrib.exe date output format YYYY-MM-DD_HH.
+  # NOTE: Variables, etc not mentioned here have the default values/definitions.
+  
+  # ERA5 temprorary files
+  preimfile = 'FILEOUT' 
+    
+  # fixIM file and its log
+  fixIM = 'fixIM.py'
+  fixIM_log = 'fixIM.py.log'
+  
+  # ================================== __init__ function ==================================
+  def __init__(self, folder=None):
+    # Checking types, etc
+    if not isinstance(self.grbdirs,(list,tuple)): raise TypeError('   Need to define a list of grib folders.')
+    if not isinstance(self.grbstrs,(list,tuple)): raise TypeError('   Need to define a list of grib file names.')
+    if len(self.grbstrs) != len(self.grbdirs): raise ValueError('   Grid file types and folders need to be of the same number.')
+    if len(self.grbstrs) > len(Alphabet): raise ValueError('   Currently only {0:d} file types are supported.'.format(len(Alphabet)))
+    if not isinstance(folder,str): raise IOError('   Warning: Need to specify root folder!')    
+    # Files and folders    
+    self.folder = folder 
+    # NOTE: "folder" needs to be set externally for different applications.
+    self.GrbDirs = ['{0:s}/{1:s}'.format(folder,grbdir) for grbdir in self.grbdirs]
+    # NOTE: "0:" in the above is the first input (folder) and "1:" is the second
+    #   input (grbdir). 
+    self.UNGRIB = './' + self.ungrib_exe   
+    self.FIXIM = ['python',self.fixIM] 
+    # Generate required ungrib names
+    gribnames = []
+    for i in range(len(self.grbstrs)):
+      # NOTE: range(X) gives 0, 1, ..., X-1.
+      gribname = '{0:s}.AA{1:s}'.format(self.gribname,Alphabet[i])
+      gribnames.append(gribname)
+    self.gribnames = gribnames    
+    # Display that there's yearly subfolder structure
+    if self.yearlyfolders: print('\n   Data appears to be stored in yearly subfolders.')
+    # Compile regular expressions (needed to extract dates) 
+    self.MainDir = os.readlink(self.GrbDirs[0]) # Directory to be searched for dates.
+    # NOTE: Python method readlink() returns a string representing the path to which 
+    #   the symbolic link points. It may return an absolute or relative pathname.
+    self.mainfiles = self.grbstrs[0].format(self.dateform) # Regex definition for master list.
+    self.mainrgx = re.compile(self.mainfiles+'$') # Use as master list.  
+    self.dateregx = re.compile(self.dateform) # Regex to extract dates from filenames.
+    self.subdregx = re.compile(self.subdform+'$') # Subfolder format (at the moment just calendar years). 
+    # NOTE: re.compile(pattern) compiles a regular expression pattern into a regular 
+    #   expression object, which can be used for matching using its match(), search()
+    #   and other methods.   
+  
+  # ====================== Method to link/copy ungrib_exe, fixIM and vtable ======================   
+  def setup(self, src, dst, lsymlink=False):    
+    if lsymlink:
+      cwd = os.getcwd()
+      os.chdir(dst)
+      os.symlink(src+self.ungrib_exe, self.ungrib_exe)
+      os.symlink(src+self.fixIM, self.fixIM)
+      os.symlink(Meta+self.vtable,self.vtable) 
+      os.chdir(cwd)
+    else:
+      shutil.copy(src+self.ungrib_exe, dst)
+      shutil.copy(src+self.fixIM, dst)
+      shutil.copy(Meta+self.vtable, dst)   
+  
+  # ======================= Method to remove ungrib_exe, fixIM and vtable ========================  
+  def cleanup(self, tgt):
+    cwd = os.getcwd()
+    os.chdir(tgt)
+    os.remove(self.ungrib_exe)
+    os.remove(self.fixIM)
+    os.remove(self.vtable)
+    os.chdir(cwd)
+
+  # ======= Method to determine whether a subfolder contains valid data and can be processed =======
+  # ======= recursively. Checks that the subfolder name is a valid calendar year.            =======
+  def checkSubDir(self, subdir, start, end):     
+    match = self.subdregx.match(subdir)
+    if match:      
+      lmatch = ( start[0] <= int(subdir) <= end[0] )
+    else: lmatch = False 
+    return lmatch 
+
+  # ================= Method that generates the WRF IM file for metgrid.exe ===============
+  def ungrib(self, date, mytag):  
+    # Create formatted date string
+    datestr = self.datestr.format(*date) # (years, months, days, hours).
+    # Initilize status output message (message printed later)
+    msg = datestr+", with files:"    
+    # Create links to relevant source data
+    Grbfiles = [] # List of relevant source files.    
+    for GrbDir,grbstr in zip(self.GrbDirs,self.grbstrs):
+      # NOTE: The zip() function returns a zip object, which is an iterator of tuples 
+      #   where the first item in each passed iterator is paired together, and then 
+      #   the second item in each passed iterator are paired together, etc.
+      grbfile = grbstr.format(datestr+'00') # Insert current date.
+      Grbfile = '{0:s}/{1:04d}/{2:s}'.format(GrbDir,date[0],grbfile) # Absolute path.
+      if not os.path.exists(Grbfile): 
+        raise IOError("Input file '{0:s}' not found!".format(Grbfile))     
+      else:
+        msg += '\n     '+grbfile # Add to output message.
+        Grbfiles.append(Grbfile) # Append to file list.
+    # Prompt on screen
+    print(('\n   '+mytag+' Processing time-step: '+msg))
+    # Link    
+    for Gribfile,gribname in zip(Grbfiles,self.gribnames): os.symlink(Gribfile,gribname)
+    # NOTE: The format for os.symlink is os.symlink(src, dst).       
+    # Prompt on screen
+    print('\n   * '+mytag+' Converting grib to WRF IM format (ungrib.exe).')    
+    # Run ungrib.exe
+    fungrib = open(self.ungrib_log, 'a') # ungrib.exe output and error log.
+    # NOTE: "a" above means append - opens a file for appending, creates 
+    #   the file if it does not exist. 
+    subprocess.call([self.UNGRIB], stdout=fungrib, stderr=fungrib)
+    # NOTE: The subprocess module allows you to spawn new processes, connect to their 
+    #   input/output/error pipes, and obtain their return codes. With subprocess.call() 
+    #   you pass an array of commands and parameters. This expects input command and
+    #   its parameters inside [].
+    fungrib.close() # Close log file for ungrib.    
+    # Prompt on screen
+    print('\n   * '+mytag+' Fixing WRF IM file (fixIM.py).')    
+    # Run fixIM.py
+    ffixim = open(self.fixIM_log, 'a') # fixIM.py output and error log.
+    call_arg = self.FIXIM   
+    call_arg = call_arg + [self.ungribdateout.format(*date)] + Grbfiles + [os.getcwd()+'/'+self.ungribout.format(*date)] 
+    subprocess.call(call_arg, stdout=ffixim, stderr=ffixim)
+    ffixim.close() # Close log file for fixIM.    
+    # Remove links (to prepare for next step)
+    for gribname in self.gribnames: os.remove(gribname)    
+    # NOTE: os.remove() method is used to remove or delete a file path. This method can 
+    #   not remove or delete a directory. If the specified path is a directory then 
+    #   OSError will be raised by the method. os.rmdir() can be used to remove directories.    
+    return self.preimfile
+    # NOTE: Renaming happens outside, so we don't have to know about metgrid format. 
 
 ## NARR
 class NARR(Dataset):
@@ -937,6 +1078,8 @@ if __name__ == '__main__':
       dataset = CFSR(folder=Root)
     elif dataset  == 'ERA-I': 
       dataset = ERAI(folder=Root)    
+    elif dataset  == 'ERA5': 
+      dataset = ERA5(folder=Root)
     elif dataset  == 'NARR': 
       dataset = NARR(folder=Root)    
     else:
