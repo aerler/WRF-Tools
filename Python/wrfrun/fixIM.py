@@ -1,16 +1,18 @@
 #!/usr/bin/python
 
-# ===============================================================================
-# === Script to fix ERA5-jpeg-compressed-grib2-produced intermediate files,   ===
-# === by fixing the SEAICE missing values (originally +9999, corrected value  ===
-# === -1E30) and start lon and start lat values (values get slightly altered  ===
-# === during making of grib2 files from grib1 files. We replace the altered   ===
-# === values by the original ones).                                           === 
-# ===                                                                         ===
-# === Created on 2022-01-04.                                                  ===
-# ===                                                                         ===
-# === Author: Mani Mahdinia                                                   ===
-# ===============================================================================    
+'''
+Created on 2022-01-04
+ 
+Script to fix ERA5-jpeg-compressed-grib2-produced intermediate files,   
+by fixing the SEAICE missing values (originally +9999, corrected value  
+-1E30) and start lon and start lat values (values get slightly altered 
+during making of grib2 files from grib1 files. We replace the altered 
+values by the original ones. This last bit is optional). 
+
+NOTE: This file uses pywinter. This is an external, unofficial package.                                          
+                                                                         
+@author: Mani Mahdinia                                         
+'''   
 
 
 # =================================================================================
@@ -25,22 +27,25 @@ import pywinter.winter as pyw
 
 
 # =================================================================================
-# ================================ Pre-requisites =================================
+# ============================ Default variable values ============================
 # =================================================================================
 
-pfx_f = "FILE-F:"                                                              # Pywinter output IM file prefix.
-fileout = "FILEOUT"                                                            # Output file name ("FILEOUT"'s a convention in pyWPS).
-SEAICE_fill_missing = -1E30                                                    # Value to use to fill SEAICE missing points.
-[stlat_a, stlon_a] = [86.95000457763672,-199.20001220703125]                   # Correct (grib1) IM start lat and start lon. 
-sl_layers = ['000007','007028','028100','100289']                              # Soil layers (cm-cm).
-plevs = np.array([                                                             # Grib pressure levels (Pa).
+pfx_f = "FILE-F:" # Pywinter output IM file prefix.
+fileout = "FILEOUT" # Output file name ("FILEOUT"'s a convention in pyWPS).
+SEAICE_fill_missing = -1E30 # Value to use to fill SEAICE missing points.
+correct_stlatlon = False # Whether or not to correct the stlat and stlon values. 
+# NOTE: To get stlat and stlon correction, "REPLACE_IM_STLATSTLON" environment variable
+#   needs to be set beforehand.
+sl_layers = ['000007','007028','028100','100289'] # Soil layers (cm-cm).
+plevs = np.array([                                                             
   100000.0, 97500.0, 95000.0, 92500.0, 90000.0, 87500.0, 85000.0, 82500.0,               
   80000.0,  77500.0, 75000.0, 70000.0, 65000.0, 60000.0, 55000.0, 50000.0, 
   45000.0,  40000.0, 35000.0, 30000.0, 25000.0, 22500.0, 20000.0, 17500.0, 
   15000.0,  12500.0, 10000.0, 7000.0,  5000.0,  3000.0,  2000.0,  1000.0, 
-  700.0,    500.0,   300.0,   200.0,   100.0])          
-
-
+  700.0,    500.0,   300.0,   200.0,   100.0]) # Grib pressure levels (Pa).
+# NOTE: sl_layers and plevs are default values that come with ERA5.  
+  
+  
 # ===============================================================================
 # ================================= Main program ================================
 # ===============================================================================
@@ -52,6 +57,18 @@ if __name__ == '__main__':
   Grb_pl = argv[2]
   Grb_sl = argv[3]
   IMF = argv[4]
+  
+  # Check for "REPLACE_IM_STLATSTLON" environment variable  
+  if ('REPLACE_IM_STLATSTLON' in os.environ): 
+    stlatlon = os.environ['REPLACE_IM_STLATSTLON']  
+    sp = stlatlon.split(',')
+    if (len(sp) != 2):
+      raise ValueError('REPLACE_IM_STLATSTLON is not in the expected format')
+    stlat_a = float(sp[0]) 
+    stlon_a = float(sp[1])   
+    correct_stlatlon = True    
+  # NOTE: If present, "REPLACE_IM_SLATSLON" is expected to be of the form 'x,y', where  
+  #   x and y are the stlat_a and stlon_a values in degrees.  
   
   # Prompt on screen
   print('\n================================== Processing ' + IMDate + ' ==================================')
@@ -83,10 +100,13 @@ if __name__ == '__main__':
   # NOTE: Here we assume all fields have the same stlat, etc.
   
   # Fix stlat and stlon values, if needed 
-  if ((stlat!=stlat_a) or (stlon!=stlon_a)):
-    stlat = stlat_a
-    stlon = stlon_a
-    print('\nstlat,stlon != stlat_a.stlon_a, so fixed the values.') 
+  if (correct_stlatlon == True):
+    if ((stlat!=stlat_a) or (((np.abs(stlon-stlon_a))%360.0)!=0.0)):
+      print('\nstlat, stlon =',stlat,' ',stlon)
+      print('stlat_a, stlon_a =',stlat_a,' ',stlon_a)       
+      stlat = stlat_a
+      stlon = stlon_a      
+      print('Fixed the stlat and stlon values.')
     
   # Fix IM sea ice values
   SEAICE = np.array(IM_SEAICE,copy=True) 
@@ -129,44 +149,3 @@ if __name__ == '__main__':
   
   # Rename output file
   os.rename(pfx_f+IMDate,fileout) 
-  
-  
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-  
-  
-  
-  
-  
-  

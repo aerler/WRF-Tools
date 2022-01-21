@@ -393,8 +393,7 @@ class ERA5(Dataset):
     print('\n   * '+mytag+' Fixing WRF IM file (fixIM.py).')    
     # Run fixIM.py
     ffixim = open(self.fixIM_log, 'a') # fixIM.py output and error log.
-    call_arg = self.FIXIM   
-    call_arg = call_arg + [self.ungribdateout.format(*date)] + Grbfiles + [os.getcwd()+'/'+self.ungribout.format(*date)] 
+    call_arg = self.FIXIM + [self.ungribdateout.format(*date)] + Grbfiles + [os.getcwd()+'/'+self.ungribout.format(*date)] 
     subprocess.call(call_arg, stdout=ffixim, stderr=ffixim)
     ffixim.close() # Close log file for fixIM.    
     # Remove links (to prepare for next step)
