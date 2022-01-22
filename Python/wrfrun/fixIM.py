@@ -9,7 +9,8 @@ by fixing the SEAICE missing values (originally +9999, corrected value
 during making of grib2 files from grib1 files. We replace the altered 
 values by the original ones. This last bit is optional). 
 
-NOTE: This file uses pywinter. This is an external, unofficial package.                                          
+NOTE: This file uses pywinter version 2.0.5. This is an external, unofficial  
+  package. The webpage for pywinter is: https://pypi.org/project/pywinter/.                                           
                                                                          
 @author: Mani Mahdinia                                         
 '''   
@@ -100,7 +101,7 @@ if __name__ == '__main__':
   # NOTE: Here we assume all fields have the same stlat, etc.
   
   # Fix stlat and stlon values, if needed 
-  if (correct_stlatlon == True):
+  if correct_stlatlon:
     if ((stlat!=stlat_a) or (((np.abs(stlon-stlon_a))%360.0)!=0.0)):
       print('\nstlat, stlon =',stlat,' ',stlon)
       print('stlat_a, stlon_a =',stlat_a,' ',stlon_a)       
