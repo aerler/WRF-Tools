@@ -411,8 +411,7 @@ elif [[ -n "${VTABLE}" ]]; then
   ln -sf "${WPSSRC}/ungrib/Variable_Tables/${VTABLE}" 'Vtable'
 else 
   echo "VTABLE variable is needed but not defined. Aborting." 
-  exit 1
-fi  
+  exit 1  
 fi # $DATATYPE
 # link boundary data
 echo "Linking boundary data: ${DATADIR}"

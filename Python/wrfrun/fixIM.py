@@ -68,7 +68,7 @@ if __name__ == '__main__':
     stlat_a = float(sp[0]) 
     stlon_a = float(sp[1])   
     correct_stlatlon = True    
-  # NOTE: If present, "REPLACE_IM_SLATSLON" is expected to be of the form 'x,y', where  
+  # NOTE: If present, "REPLACE_IM_STLATSTLON" is expected to be of the form 'x,y', where  
   #   x and y are the stlat_a and stlon_a values in degrees.  
   
   # Prompt on screen
