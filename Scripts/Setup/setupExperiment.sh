@@ -165,7 +165,7 @@ WRFTOOLS="${CODE_ROOT}/WRF-Tools/"
 # I/O, archiving, and averaging 
 IO='fineIO' # this is used for namelist construction and archiving
 ARSYS='' # archive - define in xconfig.sh
-ARSCRIPT='DEFAULT' # this is a dummy name...
+ARSCRIPT='arconfig_wrfout_fineIO_2' # this is a dummy name...
 ARINTERVAL='YEARLY' # default
 AVGSYS='' # post-processing - define in xconfig.sh
 AVGSCRIPT='DEFAULT' # this is a dummy name...
@@ -304,8 +304,17 @@ REALEXE=${REALEXE:-"${WRFSRC}/${WPSSYS}-MPI/${WPSBLD}/Default/real.exe"}
 WRFEXE=${WRFEXE:-"${WRFSRC}/${WRFSYS}-MPI/${WRFBLD}/Default/wrf.exe"}
 # N.B.: the folder 'Default' can be a symlink to the default directory for executables 
 
-# default archive script name (no $ARSCRIPT means no archiving)
-if [[ "${ARSCRIPT}" == 'DEFAULT' ]] && [[ -n "${IO}" ]]; then ARSCRIPT="ar_wrfout_${IO}.${WPSQ}"; fi
+# archive script name (no $ARSCRIPT means no archiving)
+if [[ -n "${IO}" ]]; then
+  if [[ "${ARSCRIPT}" == 'arconfig_wrfout_fineIO_1' ]]; then 
+    ARSCRIPT="arconfig_wrfout_${IO}_1.${WPSQ}"  
+  elif [[ "${ARSCRIPT}" == 'arconfig_wrfout_fineIO_2' ]]; then 
+    ARSCRIPT="arconfig_wrfout_${IO}_2.${WPSQ}" 
+  else  
+    echo 'ERROR: Archive script not found!' 
+    exit 1  
+  fi   
+fi  
 # default averaging script name (no $AVGSCRIPT means no averaging)
 if [[ "${AVGSCRIPT}" == 'DEFAULT' ]]; then AVGSCRIPT="run_wrf_avg.${WPSQ}"; fi
 # string of single-digit dimensions for archvie and averaging script
