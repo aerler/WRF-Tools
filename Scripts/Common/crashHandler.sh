@@ -76,30 +76,44 @@ if [[ "${RTERR}" == 'RTERR' ]]
 					NEW_EPSS=$( echo "1.00 - ${MUL_EPSS}*(1.00 - ${CUR_EPSS})" | bc ) # increase epssm parameter
 	        NEW_SNDT=$( echo "${ENU_SNDT}*${CUR_SNDT}/${DEN_SNDT}" | bc ) # increase epssm parameter
 	
-			    # change namelist
-					cd "${WORKDIR}"
-					sed -i "/time_step/ s/^\s*time_step\s*=\s*[0-9]*.*$/ time_step = ${NEW_DELT}, ! edited by the auto-restart script; previous value: ${CUR_DELT}/" namelist.input
-					sed -i "/epssm/ s/^\s*epssm\s*=\s*[0-9]\?.[0-9]*.*$/ epssm = ${NEW_EPSS}, ${NEW_EPSS}, ${NEW_EPSS}, ${NEW_EPSS}, ! edited by the auto-restart script; previous value: ${CUR_EPSS}/" namelist.input    
-					sed -i "/time_step_sound/ s/^\s*time_step_sound\s*=\s*[0-9]*.*$/ time_step_sound = ${NEW_SNDT}, ${NEW_SNDT}, ${NEW_SNDT}, ${NEW_SNDT}, ! edited by the auto-restart script; previous value: ${CUR_SNDT}/" namelist.input
+			    # Check if new time step is less than or equal to zero
+                           if  [ ${NEW_DELT} -le 0 ]
+                           then
+                           
+                             echo
+                             echo "   ###   No auto-restart because new time step would become less than or equal to zero. "
+                             echo
+                             ERR=$(( ${ERR} + 1 )) # increase exit code                          
+                           
+                           # If new dt is positive
+                           else
+			    
+			      # change namelist
+					  cd "${WORKDIR}"
+					  sed -i "/time_step/ s/^\s*time_step\s*=\s*[0-9]*.*$/ time_step = ${NEW_DELT}, ! edited by the auto-restart script; previous value: ${CUR_DELT}/" namelist.input
+					  sed -i "/epssm/ s/^\s*epssm\s*=\s*[0-9]\?.[0-9]*.*$/ epssm = ${NEW_EPSS}, ${NEW_EPSS}, ${NEW_EPSS}, ${NEW_EPSS}, ! edited by the auto-restart script; previous value: ${CUR_EPSS}/" namelist.input    
+					  sed -i "/time_step_sound/ s/^\s*time_step_sound\s*=\s*[0-9]*.*$/ time_step_sound = ${NEW_SNDT}, ${NEW_SNDT}, ${NEW_SNDT}, ${NEW_SNDT}, ! edited by the auto-restart script; previous value: ${CUR_SNDT}/" namelist.input
 					
-			    ## resubmit job for next step
-					cd "${INIDIR}"
-					echo
-					echo "   ***   Modifying namelist parameters for auto-restart   ***   "    
-	        echo "            (this is restart attempt number ${RSTCNT} of ${MAXRST})"
-					echo
-					echo "         TIME_STEP = ${NEW_DELT}"
-					echo "             EPSSM = ${NEW_EPSS}"
-	        echo "   TIME_STEP_SOUND = ${NEW_SNDT}"
-					echo
-			    # reset job step
-	        export RSTDIR # set in job script; usually output dir
-					export NEXTSTEP="${CURRENTSTEP}"
-					export NOWPS='NOWPS' # do not submit another WPS job!
-	        export RSTCNT # restart counter, set above
-			    # launch restart
-					eval "${SCRIPTDIR}/resubJob.sh" # requires submission command from setup script
-					ERR=$(( ${ERR} + $? )) # capture exit code
+			      ## resubmit job for next step
+					  cd "${INIDIR}"
+					  echo
+					  echo "   ***   Modifying namelist parameters for auto-restart   ***   "    
+	          echo "            (this is restart attempt number ${RSTCNT} of ${MAXRST})"
+					  echo
+					  echo "         TIME_STEP = ${NEW_DELT}"
+					  echo "             EPSSM = ${NEW_EPSS}"
+	          echo "   TIME_STEP_SOUND = ${NEW_SNDT}"
+					  echo
+			      # reset job step
+	          export RSTDIR # set in job script; usually output dir
+					  export NEXTSTEP="${CURRENTSTEP}"
+					  export NOWPS='NOWPS' # do not submit another WPS job!
+	          export RSTCNT # restart counter, set above
+			      # launch restart
+					  eval "${SCRIPTDIR}/resubJob.sh" # requires submission command from setup script
+					  ERR=$(( ${ERR} + $? )) # capture exit code
+					  
+					fi  
 	      
 	    else # stability parameters have been changed
 	
