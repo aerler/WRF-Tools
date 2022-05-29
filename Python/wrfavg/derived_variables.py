@@ -700,8 +700,8 @@ class WindSpeed(DerivedVariable):
 class IceFrac_H(DerivedVariable):
   ''' DerivedVariable child for counting the fraction of days with ice cover of lakes from FLake ice thickness. '''
 
-  def __init__(self, threshold=0., H_Ice='H_ICE_LAKE', ignoreNaN=False):
-    ''' Initilize with fixed threshold for ice thickness (usually > 0) '''
+  def __init__(self, threshold=0.001, H_Ice='H_ICE_LAKE', ignoreNaN=False):
+    ''' Initilize with fixed threshold for ice thickness (usually > 1mm) '''
     name = 'IceFrac_H{:g}'.format(threshold)
     atts = dict(threshold=threshold, H_Ice=H_Ice) # save threshold value in SI/Variable units
     super(IceFrac_H,self).__init__(name=name, # name of the variable
@@ -711,15 +711,36 @@ class IceFrac_H(DerivedVariable):
                                    dtype=dv_float, atts=atts, linear=False, ignoreNaN=ignoreNaN)
     self.threshold = threshold
     self.H_Ice = H_Ice
+    self.shape_ref = None # used later, in case prerequisite is not met
+
+  def checkPrerequisites(self, target, const=None, varmap=None):
+    ''' Check if all required variables are in the source NetCDF dataset. '''
+    check = super(IceFrac_H,self).checkPrerequisites(target=target, const=const, varmap=varmap)
+    # override check - missing variable will be handled in computation
+    if not check:
+        self.H_Ice = None
+        self.checked = True
+        # infer shape
+        for varname, variable in target.variables.items():
+            if variable.dimensions == self.axes:
+                self.shape_ref = varname
+                self.prerequisites = [varname]
+                break # just need a reference variable with the same shape
+        # N.B.: this will be used to crease a dummy variable of the same shape filled with NaN
+    return True
 
   def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
     ''' Count the number of events with non-zero ice thickness '''
     super(IceFrac_H,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
-    if self.ignoreNaN:
-      outdata = np.where(indata[self.H_Ice] > self.threshold, 1, 0) # comparisons with NaN always yield False
-      outdata = np.where(np.isnan(indata[self.H_Ice]), np.NaN, outdata)
+    if self.H_Ice:
+        if self.ignoreNaN:
+          outdata = np.where(indata[self.H_Ice] > self.threshold, 1, 0) # comparisons with NaN always yield False
+          outdata = np.where(np.isnan(indata[self.H_Ice]), np.NaN, outdata)
+        else:
+          outdata = indata[self.H_Ice] > self.threshold # event above threshold (default 0m)
     else:
-      outdata = indata[self.H_Ice] > self.threshold # event above threshold (default 0m)
+        # create dummy variable
+        outdata = np.NaN * np.zeros(indata[self.shape_ref].shape)
     return outdata
 
 
