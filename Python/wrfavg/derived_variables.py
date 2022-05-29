@@ -698,101 +698,102 @@ class WindSpeed(DerivedVariable):
 
 
 class IceFrac_H(DerivedVariable):
-  ''' DerivedVariable child for counting the fraction of days with ice cover of lakes from FLake ice thickness. '''
+    ''' DerivedVariable child for counting the fraction of days with ice cover of lakes from FLake ice thickness. '''
 
-  def __init__(self, threshold=0.001, H_Ice='H_ICE_LAKE', ignoreNaN=False):
-    ''' Initilize with fixed threshold for ice thickness (usually > 1mm) '''
-    name = 'IceFrac_H{:g}'.format(threshold)
-    atts = dict(threshold=threshold, H_Ice=H_Ice) # save threshold value in SI/Variable units
-    super(IceFrac_H,self).__init__(name=name, # name of the variable
-                                   units='', # fraction of days/output time-steps with ice on lake
-                                   prerequisites=[H_Ice], # below threshold
-                                   axes=('time','south_north','west_east'), # dimensions of NetCDF variable
-                                   dtype=dv_float, atts=atts, linear=False, ignoreNaN=ignoreNaN)
-    self.threshold = threshold
-    self.H_Ice = H_Ice
-    self.shape_ref = None # used later, in case prerequisite is not met
+    def __init__(self, threshold=0.001, H_Ice='H_ICE_LAKE', ignoreNaN=False):
+        ''' Initilize with fixed threshold for ice thickness (usually > 1mm) '''
+        name = 'IceFrac_H{:g}'.format(threshold)
+        atts = dict(threshold=threshold, H_Ice=H_Ice)  # save threshold value in SI/Variable units
+        super(IceFrac_H, self).__init__(name=name,  # name of the variable
+                                        units='',  # fraction of days/output time-steps with ice on lake
+                                        prerequisites=[H_Ice],  # below threshold
+                                        axes=('time', 'south_north', 'west_east'),  # dimensions of NetCDF variable
+                                        dtype=dv_float, atts=atts, linear=False, ignoreNaN=ignoreNaN)
+        self.threshold = threshold
+        self.H_Ice = H_Ice
+        self.shape_ref = None  # used later, in case prerequisite is not met
 
-  def checkPrerequisites(self, target, const=None, varmap=None):
-    ''' Check if all required variables are in the source NetCDF dataset. '''
-    check = super(IceFrac_H,self).checkPrerequisites(target=target, const=const, varmap=varmap)
-    # override check - missing variable will be handled in computation
-    if not check:
-        self.H_Ice = None
-        self.checked = True
-        # infer shape
-        for varname, variable in target.variables.items():
-            if variable.dimensions == self.axes:
-                self.shape_ref = varname
-                self.prerequisites = [varname]
-                break # just need a reference variable with the same shape
-        # N.B.: this will be used to crease a dummy variable of the same shape filled with NaN
-    return True
+    def checkPrerequisites(self, target, const=None, varmap=None):
+        ''' Check if all required variables are in the source NetCDF dataset. '''
+        check = super(IceFrac_H, self).checkPrerequisites(target=target, const=const, varmap=varmap)
+        # override check - missing variable will be handled in computation
+        if not check:
+            self.H_Ice = None
+            self.checked = True
+            # infer shape
+            for varname, variable in target.variables.items():
+                if variable.dimensions == self.axes:
+                    self.shape_ref = varname
+                    self.prerequisites = [varname]
+                    break  # just need a reference variable with the same shape
+            # N.B.: this will be used to crease a dummy variable of the same shape filled with NaN
+        return True
 
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
-    ''' Count the number of events with non-zero ice thickness '''
-    super(IceFrac_H,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
-    if self.H_Ice:
-        if self.ignoreNaN:
-          outdata = np.where(indata[self.H_Ice] > self.threshold, 1, 0) # comparisons with NaN always yield False
-          outdata = np.where(np.isnan(indata[self.H_Ice]), np.NaN, outdata)
+    def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+        ''' Count the number of events with non-zero ice thickness '''
+        super(IceFrac_H, self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp)  # perform some type checks
+        if self.H_Ice:
+            if self.ignoreNaN:
+                outdata = np.where(indata[self.H_Ice] > self.threshold, 1, 0)  # comparisons with NaN always yield False
+                outdata = np.where(np.isnan(indata[self.H_Ice]), np.NaN, outdata)
+            else:
+                outdata = indata[self.H_Ice] > self.threshold  # event above threshold (default 0m)
         else:
-          outdata = indata[self.H_Ice] > self.threshold # event above threshold (default 0m)
-    else:
-        # create dummy variable
-        outdata = np.NaN * np.zeros(indata[self.shape_ref].shape)
-    return outdata
+            # create dummy variable
+            outdata = np.NaN * np.zeros(indata[self.shape_ref].shape)
+        return outdata
 
 
 class IceFrac_Tsk(DerivedVariable):
-  ''' DerivedVariable child for counting the fraction of days with lake skin temperture below threshold (proxy for ice). '''
+    ''' DerivedVariable child for counting the fraction of days with lake skin temperture below threshold (proxy for ice). '''
 
-  def __init__(self, threshold=0., Tsk='SSTSK', ignoreNaN=False):
-    ''' Initilize with fixed threshold for ice thickness (usually > 0) '''
-    name = 'IceFrac_Tsk{:g}'.format(threshold)
-    threshold += 273.15 # convert to SI units (argument assumed Celsius)
-    atts = dict(threshold=threshold, Tsk=Tsk) # save threshold value in SI/Variable units
-    super(IceFrac_Tsk,self).__init__(name=name, # name of the variable
-                                     units='', # fraction of days/output time-steps with ice on lake
-                                     prerequisites=[Tsk], # below threshold
-                                     axes=('time','south_north','west_east'), # dimensions of NetCDF variable
-                                     dtype=dv_float, atts=atts, linear=False, ignoreNaN=ignoreNaN)
-    self.threshold = threshold
-    self.Tsk = Tsk
+    def __init__(self, threshold=0., Tsk='SSTSK', ignoreNaN=False):
+        ''' Initilize with fixed threshold for ice thickness (usually > 0) '''
+        name = 'IceFrac_Tsk{:g}'.format(threshold)
+        threshold += 273.15  # convert to SI units (argument assumed Celsius)
+        atts = dict(threshold=threshold, Tsk=Tsk)  # save threshold value in SI/Variable units
+        super(IceFrac_Tsk, self).__init__(name=name,  # name of the variable
+                                          units='',  # fraction of days/output time-steps with ice on lake
+                                          prerequisites=[Tsk],  # below threshold
+                                          axes=('time', 'south_north', 'west_east'),  # dimensions of NetCDF variable
+                                          dtype=dv_float, atts=atts, linear=False, ignoreNaN=ignoreNaN)
+        self.threshold = threshold
+        self.Tsk = Tsk
 
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
-    ''' Count the number of events below a threshold (0 Celsius) '''
-    super(IceFrac_Tsk,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
-    if self.ignoreNaN:
-      outdata = np.where(indata[self.Tsk] < self.threshold, 1, 0) # comparisons with NaN always yield False
-      outdata = np.where(np.isnan(indata[self.Tsk]), np.NaN, outdata)
-    else:
-      outdata = indata[self.Tsk] < self.threshold # event below threshold (default 0 deg. C)
-    return outdata
+    def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+        ''' Count the number of events below a threshold (0 Celsius) '''
+        super(IceFrac_Tsk, self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp)  # perform some type checks
+        if self.ignoreNaN:
+            outdata = np.where(indata[self.Tsk] < self.threshold, 1, 0)  # comparisons with NaN always yield False
+            outdata = np.where(np.isnan(indata[self.Tsk]), np.NaN, outdata)
+        else:
+            outdata = indata[self.Tsk] < self.threshold  # event below threshold (default 0 deg. C)
+        return outdata
 
 
 class IceFrac_A(DerivedVariable):
-  ''' DerivedVariable child for estimating lake ice fraction from Albedo. '''
+    ''' DerivedVariable child for estimating lake ice fraction from Albedo. '''
 
-  def __init__(self, A_ice=0.6, A_water=0.08, Albedo='ALBEDO', ignoreNaN=False):
-    ''' Set average fixed values for water and ice Albedo for linear decomposition '''
-    name = 'IceFrac_A{:02d}'.format(int(A_ice * 100))
-    atts = dict(A_ice=A_ice, A_water=A_water, Albedo=Albedo) # save Albedo values used for calculation
-    super(IceFrac_A,self).__init__(name=name, # name of the variable
-                                   units='', # fraction of lake point covered with ice
-                                   prerequisites=[Albedo], # below threshold
-                                   axes=('time','south_north','west_east'), # dimensions of NetCDF variable
-                                   dtype=dv_float, atts=atts, linear=False, ignoreNaN=ignoreNaN)
-    self.A_ice = A_ice
-    self.A_water = A_water
-    self.Albedo = Albedo
+    def __init__(self, A_ice=0.6, A_water=0.08, Albedo='ALBEDO', ignoreNaN=False):
+        ''' Set average fixed values for water and ice Albedo for linear decomposition '''
+        name = 'IceFrac_A{:02d}'.format(int(A_ice * 100))
+        atts = dict(A_ice=A_ice, A_water=A_water, Albedo=Albedo)  # save Albedo values used for calculation
+        super(IceFrac_A, self).__init__(name=name,  # name of the variable
+                                        units='',  # fraction of lake point covered with ice
+                                        prerequisites=[Albedo],  # below threshold
+                                        axes=('time', 'south_north', 'west_east'),  # dimensions of NetCDF variable
+                                        dtype=dv_float, atts=atts, linear=True, ignoreNaN=ignoreNaN)
+        self.A_ice = A_ice
+        self.A_water = A_water
+        self.Albedo = Albedo
 
-  def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
-    ''' decompose Albedo into water and ice contributions to estimate ice fraction '''
-    super(IceFrac_A,self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp) # perform some type checks
-    Albedo = indata[self.Albedo]; A_ice = self.A_ice; A_water = self.A_water
-    outdata = evaluate('(Albedo - A_water) / (A_ice - A_water)') # estimate fraction of ice
-    return outdata
+    def computeValues(self, indata, aggax=0, delta=None, const=None, tmp=None):
+        ''' decompose Albedo into water and ice contributions to estimate ice fraction '''
+        super(IceFrac_A, self).computeValues(indata, aggax=aggax, delta=delta, const=const, tmp=tmp)  # perform some type checks
+        Albedo = indata[self.Albedo];  A_ice = self.A_ice;  A_water = self.A_water
+        outdata = evaluate('(Albedo - A_water) / (A_ice - A_water)')  # estimate fraction of ice
+        outdata = np.clip(outdata, 0, 1)  # relevan, if Albedo is higher than A_ice value...
+        return outdata
 
 
 class NetRadiation(DerivedVariable):
