@@ -10,7 +10,7 @@ CYCLING="1981-05-16:1981-05-21:1D" # run from May 16th to 21st 1981 in daily int
 # I/O and archiving
 IO='fineIO' # this is used for namelist construction and archiving
 ARSYS='' # not implemented by default
-ARSCRIPT='arconfig_wrfout_fineIO_2' # Options: arconfig_wrfout_fineIO_1 (old) and arconfig_wrfout_fineIO_2 (recent).
+ARSCRIPT='DEFAULT_V2' # Options: DEFAULT_V1 (old) and DEFAULT_V2 (recent).
 ARINTERVAL='' # after every step
 AVGSYS='Linux' # archiving on local machine
 AVGINTERVAL='' # after every step
