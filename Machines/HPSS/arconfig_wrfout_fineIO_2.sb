@@ -443,7 +443,7 @@ function PROCESSDATASET () {
       local TAR_FILES=$( htar -tf ${DST}"/wrffinal.tar" 2>/dev/null | awk '{print $7}' | head -n -2 )
     fi     
     for word in ${FINAL}; do
-      if [[ ${MODE} == 'BACKUP' ]]; then
+      if [[ ${MODE} == 'BACKUP' ]] || [[ ${MODE} == 'REMOVE' ]]; then
         local EXIST=$( ls ${word} 2>/dev/null )
       elif [[ ${MODE} == 'RETRIEVE' ]]; then
         unset EXIST
@@ -468,7 +468,7 @@ function PROCESSDATASET () {
       local TAR_FILES=$( htar -tf ${DST}"/wrfstatic.tar" 2>/dev/null | awk '{print $7}' | head -n -2 )
     fi     
     for word in ${STATIC}; do
-      if [[ ${MODE} == 'BACKUP' ]]; then
+      if [[ ${MODE} == 'BACKUP' ]] || [[ ${MODE} == 'REMOVE' ]]; then
         local EXIST=$( ls ${word} 2>/dev/null )
       elif [[ ${MODE} == 'RETRIEVE' ]]; then
         unset EXIST
@@ -493,7 +493,7 @@ function PROCESSDATASET () {
       local TAR_FILES=$( htar -tf ${DST}"/wrfdiags_d01_${DATENAME}.tar" 2>/dev/null | awk '{print $7}' | head -n -2 )
     fi     
     for word in ${LOGS}; do
-      if [[ ${MODE} == 'BACKUP' ]]; then
+      if [[ ${MODE} == 'BACKUP' ]] || [[ ${MODE} == 'REMOVE' ]]; then
         local EXIST=$( ls ${word} 2>/dev/null )
       elif [[ ${MODE} == 'RETRIEVE' ]]; then
         unset EXIST
@@ -518,7 +518,7 @@ function PROCESSDATASET () {
       local TAR_FILES=$( htar -tf ${DST}"/wrfdiags_d01_${DATENAME}.tar" 2>/dev/null | awk '{print $7}' | head -n -2 )
     fi     
     for word in ${DIAGS_D1}; do
-      if [[ ${MODE} == 'BACKUP' ]]; then
+      if [[ ${MODE} == 'BACKUP' ]] || [[ ${MODE} == 'REMOVE' ]]; then
         local EXIST=$( ls ${word} 2>/dev/null )
       elif [[ ${MODE} == 'RETRIEVE' ]]; then
         unset EXIST
@@ -543,7 +543,7 @@ function PROCESSDATASET () {
       local TAR_FILES=$( htar -tf ${DST}"/wrfdiags_d02_${DATENAME}.tar" 2>/dev/null | awk '{print $7}' | head -n -2 )
     fi     
     for word in ${DIAGS_D2}; do
-      if [[ ${MODE} == 'BACKUP' ]]; then
+      if [[ ${MODE} == 'BACKUP' ]] || [[ ${MODE} == 'REMOVE' ]]; then
         local EXIST=$( ls ${word} 2>/dev/null )
       elif [[ ${MODE} == 'RETRIEVE' ]]; then
         unset EXIST
@@ -568,7 +568,7 @@ function PROCESSDATASET () {
       local TAR_FILES=$( htar -tf ${DST}"/wrfdiags_d03_${DATENAME}.tar" 2>/dev/null | awk '{print $7}' | head -n -2 )
     fi     
     for word in ${DIAGS_D3}; do
-      if [[ ${MODE} == 'BACKUP' ]]; then
+      if [[ ${MODE} == 'BACKUP' ]] || [[ ${MODE} == 'REMOVE' ]]; then
         local EXIST=$( ls ${word} 2>/dev/null )
       elif [[ ${MODE} == 'RETRIEVE' ]]; then
         unset EXIST
@@ -593,7 +593,7 @@ function PROCESSDATASET () {
       local TAR_FILES=$( htar -tf ${DST}"/wrfdiags_d04_${DATENAME}.tar" 2>/dev/null | awk '{print $7}' | head -n -2 )
     fi     
     for word in ${DIAGS_D4}; do
-      if [[ ${MODE} == 'BACKUP' ]]; then
+      if [[ ${MODE} == 'BACKUP' ]] || [[ ${MODE} == 'REMOVE' ]]; then
         local EXIST=$( ls ${word} 2>/dev/null )
       elif [[ ${MODE} == 'RETRIEVE' ]]; then
         unset EXIST
@@ -618,7 +618,7 @@ function PROCESSDATASET () {
       local TAR_FILES=$( htar -tf ${DST}"/wrfatm_d01_${DATENAME}.tar" 2>/dev/null | awk '{print $7}' | head -n -2 )
     fi     
     for word in ${ATM3D_D1}; do
-      if [[ ${MODE} == 'BACKUP' ]]; then
+      if [[ ${MODE} == 'BACKUP' ]] || [[ ${MODE} == 'REMOVE' ]]; then
         local EXIST=$( ls ${word} 2>/dev/null )
       elif [[ ${MODE} == 'RETRIEVE' ]]; then
         unset EXIST
@@ -643,7 +643,7 @@ function PROCESSDATASET () {
       local TAR_FILES=$( htar -tf ${DST}"/wrfatm_d02_${DATENAME}.tar" 2>/dev/null | awk '{print $7}' | head -n -2 )
     fi     
     for word in ${ATM3D_D2}; do
-      if [[ ${MODE} == 'BACKUP' ]]; then
+      if [[ ${MODE} == 'BACKUP' ]] || [[ ${MODE} == 'REMOVE' ]]; then
         local EXIST=$( ls ${word} 2>/dev/null )
       elif [[ ${MODE} == 'RETRIEVE' ]]; then
         unset EXIST
@@ -668,7 +668,7 @@ function PROCESSDATASET () {
       local TAR_FILES=$( htar -tf ${DST}"/wrfatm_d03_${DATENAME}.tar" 2>/dev/null | awk '{print $7}' | head -n -2 )
     fi     
     for word in ${ATM3D_D3}; do
-      if [[ ${MODE} == 'BACKUP' ]]; then
+      if [[ ${MODE} == 'BACKUP' ]] || [[ ${MODE} == 'REMOVE' ]]; then
         local EXIST=$( ls ${word} 2>/dev/null )
       elif [[ ${MODE} == 'RETRIEVE' ]]; then
         unset EXIST
@@ -693,7 +693,7 @@ function PROCESSDATASET () {
       local TAR_FILES=$( htar -tf ${DST}"/wrfatm_d04_${DATENAME}.tar" 2>/dev/null | awk '{print $7}' | head -n -2 )
     fi     
     for word in ${ATM3D_D4}; do
-      if [[ ${MODE} == 'BACKUP' ]]; then
+      if [[ ${MODE} == 'BACKUP' ]] || [[ ${MODE} == 'REMOVE' ]]; then
         local EXIST=$( ls ${word} 2>/dev/null )
       elif [[ ${MODE} == 'RETRIEVE' ]]; then
         unset EXIST
@@ -718,7 +718,7 @@ function PROCESSDATASET () {
       local TAR_FILES=$( htar -tf ${DST}"/wrfsnow_d01_${DATENAME}.tar" 2>/dev/null | awk '{print $7}' | head -n -2 )
     fi     
     for word in ${SNOW_D1}; do
-      if [[ ${MODE} == 'BACKUP' ]]; then
+      if [[ ${MODE} == 'BACKUP' ]] || [[ ${MODE} == 'REMOVE' ]]; then
         local EXIST=$( ls ${word} 2>/dev/null )
       elif [[ ${MODE} == 'RETRIEVE' ]]; then
         unset EXIST
@@ -743,7 +743,7 @@ function PROCESSDATASET () {
       local TAR_FILES=$( htar -tf ${DST}"/wrfsnow_d02_${DATENAME}.tar" 2>/dev/null | awk '{print $7}' | head -n -2 )
     fi     
     for word in ${SNOW_D2}; do
-      if [[ ${MODE} == 'BACKUP' ]]; then
+      if [[ ${MODE} == 'BACKUP' ]] || [[ ${MODE} == 'REMOVE' ]]; then
         local EXIST=$( ls ${word} 2>/dev/null )
       elif [[ ${MODE} == 'RETRIEVE' ]]; then
         unset EXIST
@@ -768,7 +768,7 @@ function PROCESSDATASET () {
       local TAR_FILES=$( htar -tf ${DST}"/wrfsnow_d03_${DATENAME}.tar" 2>/dev/null | awk '{print $7}' | head -n -2 )
     fi     
     for word in ${SNOW_D3}; do
-      if [[ ${MODE} == 'BACKUP' ]]; then
+      if [[ ${MODE} == 'BACKUP' ]] || [[ ${MODE} == 'REMOVE' ]]; then
         local EXIST=$( ls ${word} 2>/dev/null )
       elif [[ ${MODE} == 'RETRIEVE' ]]; then
         unset EXIST
@@ -793,7 +793,7 @@ function PROCESSDATASET () {
       local TAR_FILES=$( htar -tf ${DST}"/wrfsnow_d04_${DATENAME}.tar" 2>/dev/null | awk '{print $7}' | head -n -2 )
     fi     
     for word in ${SNOW_D4}; do
-      if [[ ${MODE} == 'BACKUP' ]]; then
+      if [[ ${MODE} == 'BACKUP' ]] || [[ ${MODE} == 'REMOVE' ]]; then
         local EXIST=$( ls ${word} 2>/dev/null )
       elif [[ ${MODE} == 'RETRIEVE' ]]; then
         unset EXIST
