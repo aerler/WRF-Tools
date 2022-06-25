@@ -439,13 +439,13 @@ function PROCESSDATASET () {
     # Check if the contents of the variables exist    
     export IFS=$'\n '
     local FINAL_CHECKED=""
-    if [[ ${MODE} == 'RETRIEVE' ]]; then    
+    if [[ ${MODE} == 'RETRIEVE' ]] || [[ ${MODE} == 'LIST' ]] || [[ ${MODE} == 'VERIFY' ]]; then    
       local TAR_FILES=$( htar -tf ${DST}"/wrffinal.tar" 2>/dev/null | awk '{print $7}' | head -n -2 )
     fi     
     for word in ${FINAL}; do
       if [[ ${MODE} == 'BACKUP' ]] || [[ ${MODE} == 'REMOVE' ]]; then
         local EXIST=$( ls ${word} 2>/dev/null )
-      elif [[ ${MODE} == 'RETRIEVE' ]]; then
+      elif [[ ${MODE} == 'RETRIEVE' ]] || [[ ${MODE} == 'LIST' ]] || [[ ${MODE} == 'VERIFY' ]]; then
         unset EXIST
         for word_tf in ${TAR_FILES}; do
           if [[ ${word_tf} == ${word} ]]; then
@@ -464,13 +464,13 @@ function PROCESSDATASET () {
       echo 'FINAL assigned files did not exist. FINAL was unset.'
     fi   
     local STATIC_CHECKED=""
-    if [[ ${MODE} == 'RETRIEVE' ]]; then    
+    if [[ ${MODE} == 'RETRIEVE' ]] || [[ ${MODE} == 'LIST' ]] || [[ ${MODE} == 'VERIFY' ]]; then    
       local TAR_FILES=$( htar -tf ${DST}"/wrfstatic.tar" 2>/dev/null | awk '{print $7}' | head -n -2 )
     fi     
     for word in ${STATIC}; do
       if [[ ${MODE} == 'BACKUP' ]] || [[ ${MODE} == 'REMOVE' ]]; then
         local EXIST=$( ls ${word} 2>/dev/null )
-      elif [[ ${MODE} == 'RETRIEVE' ]]; then
+      elif [[ ${MODE} == 'RETRIEVE' ]] || [[ ${MODE} == 'LIST' ]] || [[ ${MODE} == 'VERIFY' ]]; then
         unset EXIST
         for word_tf in ${TAR_FILES}; do
           if [[ ${word_tf} == ${word} ]]; then
@@ -489,13 +489,13 @@ function PROCESSDATASET () {
       echo 'STATIC assigned files did not exist. STATIC was unset.'
     fi
     local LOGS_CHECKED=""
-    if [[ ${MODE} == 'RETRIEVE' ]]; then    
+    if [[ ${MODE} == 'RETRIEVE' ]] || [[ ${MODE} == 'LIST' ]] || [[ ${MODE} == 'VERIFY' ]]; then    
       local TAR_FILES=$( htar -tf ${DST}"/wrfdiags_d01_${DATENAME}.tar" 2>/dev/null | awk '{print $7}' | head -n -2 )
     fi     
     for word in ${LOGS}; do
       if [[ ${MODE} == 'BACKUP' ]] || [[ ${MODE} == 'REMOVE' ]]; then
         local EXIST=$( ls ${word} 2>/dev/null )
-      elif [[ ${MODE} == 'RETRIEVE' ]]; then
+      elif [[ ${MODE} == 'RETRIEVE' ]] || [[ ${MODE} == 'LIST' ]] || [[ ${MODE} == 'VERIFY' ]]; then
         unset EXIST
         for word_tf in ${TAR_FILES}; do
           if [[ ${word_tf} == ${word} ]]; then
@@ -514,13 +514,13 @@ function PROCESSDATASET () {
       echo 'LOGS assigned files did not exist. LOGS was unset.'
     fi
     local DIAGS_D1_CHECKED=""
-    if [[ ${MODE} == 'RETRIEVE' ]]; then    
+    if [[ ${MODE} == 'RETRIEVE' ]] || [[ ${MODE} == 'LIST' ]] || [[ ${MODE} == 'VERIFY' ]]; then    
       local TAR_FILES=$( htar -tf ${DST}"/wrfdiags_d01_${DATENAME}.tar" 2>/dev/null | awk '{print $7}' | head -n -2 )
     fi     
     for word in ${DIAGS_D1}; do
       if [[ ${MODE} == 'BACKUP' ]] || [[ ${MODE} == 'REMOVE' ]]; then
         local EXIST=$( ls ${word} 2>/dev/null )
-      elif [[ ${MODE} == 'RETRIEVE' ]]; then
+      elif [[ ${MODE} == 'RETRIEVE' ]] || [[ ${MODE} == 'LIST' ]] || [[ ${MODE} == 'VERIFY' ]]; then
         unset EXIST
         for word_tf in ${TAR_FILES}; do
           if [[ ${word_tf} == ${word} ]]; then
@@ -539,13 +539,13 @@ function PROCESSDATASET () {
       echo 'DIAGS_D1 assigned files did not exist. DIAGS_D1 was unset.'
     fi
     local DIAGS_D2_CHECKED=""
-    if [[ ${MODE} == 'RETRIEVE' ]]; then    
+    if [[ ${MODE} == 'RETRIEVE' ]] || [[ ${MODE} == 'LIST' ]] || [[ ${MODE} == 'VERIFY' ]]; then    
       local TAR_FILES=$( htar -tf ${DST}"/wrfdiags_d02_${DATENAME}.tar" 2>/dev/null | awk '{print $7}' | head -n -2 )
     fi     
     for word in ${DIAGS_D2}; do
       if [[ ${MODE} == 'BACKUP' ]] || [[ ${MODE} == 'REMOVE' ]]; then
         local EXIST=$( ls ${word} 2>/dev/null )
-      elif [[ ${MODE} == 'RETRIEVE' ]]; then
+      elif [[ ${MODE} == 'RETRIEVE' ]] || [[ ${MODE} == 'LIST' ]] || [[ ${MODE} == 'VERIFY' ]]; then
         unset EXIST
         for word_tf in ${TAR_FILES}; do
           if [[ ${word_tf} == ${word} ]]; then
@@ -564,13 +564,13 @@ function PROCESSDATASET () {
       echo 'DIAGS_D2 assigned files did not exist. DIAGS_D2 was unset.'
     fi
     local DIAGS_D3_CHECKED=""
-    if [[ ${MODE} == 'RETRIEVE' ]]; then    
+    if [[ ${MODE} == 'RETRIEVE' ]] || [[ ${MODE} == 'LIST' ]] || [[ ${MODE} == 'VERIFY' ]]; then    
       local TAR_FILES=$( htar -tf ${DST}"/wrfdiags_d03_${DATENAME}.tar" 2>/dev/null | awk '{print $7}' | head -n -2 )
     fi     
     for word in ${DIAGS_D3}; do
       if [[ ${MODE} == 'BACKUP' ]] || [[ ${MODE} == 'REMOVE' ]]; then
         local EXIST=$( ls ${word} 2>/dev/null )
-      elif [[ ${MODE} == 'RETRIEVE' ]]; then
+      elif [[ ${MODE} == 'RETRIEVE' ]] || [[ ${MODE} == 'LIST' ]] || [[ ${MODE} == 'VERIFY' ]]; then
         unset EXIST
         for word_tf in ${TAR_FILES}; do
           if [[ ${word_tf} == ${word} ]]; then
@@ -589,13 +589,13 @@ function PROCESSDATASET () {
       echo 'DIAGS_D3 assigned files did not exist. DIAGS_D3 was unset.'
     fi
     local DIAGS_D4_CHECKED=""
-    if [[ ${MODE} == 'RETRIEVE' ]]; then    
+    if [[ ${MODE} == 'RETRIEVE' ]] || [[ ${MODE} == 'LIST' ]] || [[ ${MODE} == 'VERIFY' ]]; then    
       local TAR_FILES=$( htar -tf ${DST}"/wrfdiags_d04_${DATENAME}.tar" 2>/dev/null | awk '{print $7}' | head -n -2 )
     fi     
     for word in ${DIAGS_D4}; do
       if [[ ${MODE} == 'BACKUP' ]] || [[ ${MODE} == 'REMOVE' ]]; then
         local EXIST=$( ls ${word} 2>/dev/null )
-      elif [[ ${MODE} == 'RETRIEVE' ]]; then
+      elif [[ ${MODE} == 'RETRIEVE' ]] || [[ ${MODE} == 'LIST' ]] || [[ ${MODE} == 'VERIFY' ]]; then
         unset EXIST
         for word_tf in ${TAR_FILES}; do
           if [[ ${word_tf} == ${word} ]]; then
@@ -614,13 +614,13 @@ function PROCESSDATASET () {
       echo 'DIAGS_D4 assigned files did not exist. DIAGS_D4 was unset.'
     fi    
     local ATM3D_D1_CHECKED=""
-    if [[ ${MODE} == 'RETRIEVE' ]]; then    
+    if [[ ${MODE} == 'RETRIEVE' ]] || [[ ${MODE} == 'LIST' ]] || [[ ${MODE} == 'VERIFY' ]]; then    
       local TAR_FILES=$( htar -tf ${DST}"/wrfatm_d01_${DATENAME}.tar" 2>/dev/null | awk '{print $7}' | head -n -2 )
     fi     
     for word in ${ATM3D_D1}; do
       if [[ ${MODE} == 'BACKUP' ]] || [[ ${MODE} == 'REMOVE' ]]; then
         local EXIST=$( ls ${word} 2>/dev/null )
-      elif [[ ${MODE} == 'RETRIEVE' ]]; then
+      elif [[ ${MODE} == 'RETRIEVE' ]] || [[ ${MODE} == 'LIST' ]] || [[ ${MODE} == 'VERIFY' ]]; then
         unset EXIST
         for word_tf in ${TAR_FILES}; do
           if [[ ${word_tf} == ${word} ]]; then
@@ -639,13 +639,13 @@ function PROCESSDATASET () {
       echo 'ATM3D_D1 assigned files did not exist. ATM3D_D1 was unset.'
     fi
     local ATM3D_D2_CHECKED=""
-    if [[ ${MODE} == 'RETRIEVE' ]]; then    
+    if [[ ${MODE} == 'RETRIEVE' ]] || [[ ${MODE} == 'LIST' ]] || [[ ${MODE} == 'VERIFY' ]]; then    
       local TAR_FILES=$( htar -tf ${DST}"/wrfatm_d02_${DATENAME}.tar" 2>/dev/null | awk '{print $7}' | head -n -2 )
     fi     
     for word in ${ATM3D_D2}; do
       if [[ ${MODE} == 'BACKUP' ]] || [[ ${MODE} == 'REMOVE' ]]; then
         local EXIST=$( ls ${word} 2>/dev/null )
-      elif [[ ${MODE} == 'RETRIEVE' ]]; then
+      elif [[ ${MODE} == 'RETRIEVE' ]] || [[ ${MODE} == 'LIST' ]] || [[ ${MODE} == 'VERIFY' ]]; then
         unset EXIST
         for word_tf in ${TAR_FILES}; do
           if [[ ${word_tf} == ${word} ]]; then
@@ -664,13 +664,13 @@ function PROCESSDATASET () {
       echo 'ATM3D_D2 assigned files did not exist. ATM3D_D2 was unset.'
     fi  
     local ATM3D_D3_CHECKED=""
-    if [[ ${MODE} == 'RETRIEVE' ]]; then    
+    if [[ ${MODE} == 'RETRIEVE' ]] || [[ ${MODE} == 'LIST' ]] || [[ ${MODE} == 'VERIFY' ]]; then    
       local TAR_FILES=$( htar -tf ${DST}"/wrfatm_d03_${DATENAME}.tar" 2>/dev/null | awk '{print $7}' | head -n -2 )
     fi     
     for word in ${ATM3D_D3}; do
       if [[ ${MODE} == 'BACKUP' ]] || [[ ${MODE} == 'REMOVE' ]]; then
         local EXIST=$( ls ${word} 2>/dev/null )
-      elif [[ ${MODE} == 'RETRIEVE' ]]; then
+      elif [[ ${MODE} == 'RETRIEVE' ]] || [[ ${MODE} == 'LIST' ]] || [[ ${MODE} == 'VERIFY' ]]; then
         unset EXIST
         for word_tf in ${TAR_FILES}; do
           if [[ ${word_tf} == ${word} ]]; then
@@ -689,13 +689,13 @@ function PROCESSDATASET () {
       echo 'ATM3D_D3 assigned files did not exist. ATM3D_D3 was unset.'
     fi 
     local ATM3D_D4_CHECKED=""
-    if [[ ${MODE} == 'RETRIEVE' ]]; then    
+    if [[ ${MODE} == 'RETRIEVE' ]] || [[ ${MODE} == 'LIST' ]] || [[ ${MODE} == 'VERIFY' ]]; then    
       local TAR_FILES=$( htar -tf ${DST}"/wrfatm_d04_${DATENAME}.tar" 2>/dev/null | awk '{print $7}' | head -n -2 )
     fi     
     for word in ${ATM3D_D4}; do
       if [[ ${MODE} == 'BACKUP' ]] || [[ ${MODE} == 'REMOVE' ]]; then
         local EXIST=$( ls ${word} 2>/dev/null )
-      elif [[ ${MODE} == 'RETRIEVE' ]]; then
+      elif [[ ${MODE} == 'RETRIEVE' ]] || [[ ${MODE} == 'LIST' ]] || [[ ${MODE} == 'VERIFY' ]]; then
         unset EXIST
         for word_tf in ${TAR_FILES}; do
           if [[ ${word_tf} == ${word} ]]; then
@@ -714,13 +714,13 @@ function PROCESSDATASET () {
       echo 'ATM3D_D4 assigned files did not exist. ATM3D_D4 was unset.'
     fi 
     local SNOW_D1_CHECKED=""
-    if [[ ${MODE} == 'RETRIEVE' ]]; then    
+    if [[ ${MODE} == 'RETRIEVE' ]] || [[ ${MODE} == 'LIST' ]] || [[ ${MODE} == 'VERIFY' ]]; then    
       local TAR_FILES=$( htar -tf ${DST}"/wrfsnow_d01_${DATENAME}.tar" 2>/dev/null | awk '{print $7}' | head -n -2 )
     fi     
     for word in ${SNOW_D1}; do
       if [[ ${MODE} == 'BACKUP' ]] || [[ ${MODE} == 'REMOVE' ]]; then
         local EXIST=$( ls ${word} 2>/dev/null )
-      elif [[ ${MODE} == 'RETRIEVE' ]]; then
+      elif [[ ${MODE} == 'RETRIEVE' ]] || [[ ${MODE} == 'LIST' ]] || [[ ${MODE} == 'VERIFY' ]]; then
         unset EXIST
         for word_tf in ${TAR_FILES}; do
           if [[ ${word_tf} == ${word} ]]; then
@@ -739,13 +739,13 @@ function PROCESSDATASET () {
       echo 'SNOW_D1 assigned files did not exist. SNOW_D1 was unset.'
     fi 
     local SNOW_D2_CHECKED=""
-    if [[ ${MODE} == 'RETRIEVE' ]]; then    
+    if [[ ${MODE} == 'RETRIEVE' ]] || [[ ${MODE} == 'LIST' ]] || [[ ${MODE} == 'VERIFY' ]]; then    
       local TAR_FILES=$( htar -tf ${DST}"/wrfsnow_d02_${DATENAME}.tar" 2>/dev/null | awk '{print $7}' | head -n -2 )
     fi     
     for word in ${SNOW_D2}; do
       if [[ ${MODE} == 'BACKUP' ]] || [[ ${MODE} == 'REMOVE' ]]; then
         local EXIST=$( ls ${word} 2>/dev/null )
-      elif [[ ${MODE} == 'RETRIEVE' ]]; then
+      elif [[ ${MODE} == 'RETRIEVE' ]] || [[ ${MODE} == 'LIST' ]] || [[ ${MODE} == 'VERIFY' ]]; then
         unset EXIST
         for word_tf in ${TAR_FILES}; do
           if [[ ${word_tf} == ${word} ]]; then
@@ -764,13 +764,13 @@ function PROCESSDATASET () {
       echo 'SNOW_D2 assigned files did not exist. SNOW_D2 was unset.'
     fi
     local SNOW_D3_CHECKED=""
-    if [[ ${MODE} == 'RETRIEVE' ]]; then    
+    if [[ ${MODE} == 'RETRIEVE' ]] || [[ ${MODE} == 'LIST' ]] || [[ ${MODE} == 'VERIFY' ]]; then    
       local TAR_FILES=$( htar -tf ${DST}"/wrfsnow_d03_${DATENAME}.tar" 2>/dev/null | awk '{print $7}' | head -n -2 )
     fi     
     for word in ${SNOW_D3}; do
       if [[ ${MODE} == 'BACKUP' ]] || [[ ${MODE} == 'REMOVE' ]]; then
         local EXIST=$( ls ${word} 2>/dev/null )
-      elif [[ ${MODE} == 'RETRIEVE' ]]; then
+      elif [[ ${MODE} == 'RETRIEVE' ]] || [[ ${MODE} == 'LIST' ]] || [[ ${MODE} == 'VERIFY' ]]; then
         unset EXIST
         for word_tf in ${TAR_FILES}; do
           if [[ ${word_tf} == ${word} ]]; then
@@ -789,13 +789,13 @@ function PROCESSDATASET () {
       echo 'SNOW_D3 assigned files did not exist. SNOW_D3 was unset.'
     fi
     local SNOW_D4_CHECKED=""
-    if [[ ${MODE} == 'RETRIEVE' ]]; then    
+    if [[ ${MODE} == 'RETRIEVE' ]] || [[ ${MODE} == 'LIST' ]] || [[ ${MODE} == 'VERIFY' ]]; then    
       local TAR_FILES=$( htar -tf ${DST}"/wrfsnow_d04_${DATENAME}.tar" 2>/dev/null | awk '{print $7}' | head -n -2 )
     fi     
     for word in ${SNOW_D4}; do
       if [[ ${MODE} == 'BACKUP' ]] || [[ ${MODE} == 'REMOVE' ]]; then
         local EXIST=$( ls ${word} 2>/dev/null )
-      elif [[ ${MODE} == 'RETRIEVE' ]]; then
+      elif [[ ${MODE} == 'RETRIEVE' ]] || [[ ${MODE} == 'LIST' ]] || [[ ${MODE} == 'VERIFY' ]]; then
         unset EXIST
         for word_tf in ${TAR_FILES}; do
           if [[ ${word_tf} == ${word} ]]; then
