@@ -297,11 +297,12 @@ for key in prereq_vars.keys():
 ## daily variables (can also be 6-hourly or hourly, depending on source file)
 if lglobaldaily:
     daily_variables = {filetype:[] for filetype in filetypes} # daily variable lists by file type
-    daily_variables['srfc']  = ['T2', 'PSFC', 'WaterVapor', 'WindSpeed',] # surface climate
+    daily_variables['srfc']  = ['T2', 'PSFC', 'WaterVapor', 'WindSpeed','IceFrac_Tsk0', 'IceFrac_Tsk0'] # surface climate
     daily_variables['xtrm']  = ['T2MIN', 'T2MAX'] # min/max T2
     daily_variables['hydro'] = ['RAIN', 'RAINC', 'LiquidPrecip', 'WaterForcing', 'SFCEVP', 'POTEVP'] # water budget
     daily_variables['rad'] = ['NetRadiation','ACSWDNB','ACLWDNB','NetLWRadiation',] # surface radiation budget
-    #daily_variables['lsm'] = [] # runoff and soil temperature
+    daily_variables['lsm'] = ['IceFrac_A60',] # lake ice fraction for default
+    # daily_variables['lsm'] = ['IceFrac_A60', 'LAKE_ICEFRAC3D'] # lake ice fraction for GL25
 
 ## main work function
 # N.B.: the loop iterations should be entirely independent, so that they can be run in parallel

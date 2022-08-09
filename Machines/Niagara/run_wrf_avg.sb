@@ -46,7 +46,7 @@ cd "${INIDIR}"
 export PYAVG_THREADS=${PYAVG_THREADS:-"$SLURM_NTASKS"}
 export PYAVG_DOMAINS=${PYAVG_DOMAINS:-"$DOMAINS"}
 export PYAVG_FILETYPES=${PYAVG_FILETYPES:-''} # use default
-export PYAVG_DAILY=${PYAVG_DAILY:-'TRUE'} # usually only monthly
+export PYAVG_DAILY=${PYAVG_DAILY:-'False'} # usually only monthly
 export PYAVG_SMPLDIFF=${PYAVG_SMPLDIFF:-'FALSE'} # usually use centered diff
 # options that would interfere with yearly updates
 export PYAVG_OVERWRITE=${PYAVG_OVERWRITE:-'FALSE'}
