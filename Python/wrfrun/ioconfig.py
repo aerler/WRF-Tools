@@ -28,10 +28,10 @@ WRFSRC = os.getcwd() # WRF source folder
 if len(sys.argv) > 1:
   ioconfigfile = WRFSRC + '/' + sys.argv[1]
 else:
-  ioconfigfile = WRFSRC + '/config/registry/ioconfig.fineIO'
+  raise ValueError("Please provide the path to an ioconfig file as an argument.")
 # full path to WRF registry file (destination)
 newregfolder = WRFSRC + '/Registry/'
-newregfiles = ['Registry.EM','Registry.EM_COMMON','registry.diags','registry.flake']
+newregfiles = ['Registry.EM','Registry.EM_COMMON','registry.diags','registry.clm','registry.lake','registry.flake']
 # full path to WRF registry file (source) 
 oldregfolder = WRFSRC + '/Registry/original/'
 oldregfiles = [] or newregfiles
@@ -142,7 +142,7 @@ if __name__ == '__main__':
       tmpdict['line'] = lineno # with line number as first parameter
       if ldebug:
         print('') 
-        print(('Reading I/O config Entry # '+str(entryno)))
+        print('Reading I/O config Entry # '+str(entryno))
         feedback = ' the following variables ' # tell the user what we are doing
       err = 0
       # split into tokens
@@ -245,12 +245,12 @@ if __name__ == '__main__':
     fileno += 1 # move up counter
     if not os.path.exists(oldregfolder+oldregfile):
       print('')
-      print(('   ***   Registry file '+oldregfile+' not found!  ***   '))
+      print('   ***   Registry file '+oldregfile+' not found!  ***   ')
       print('')
     else:
       # announce files
       print('')
-      print(('   ***   Processing Registry file: '+newregfile+'   ***   '))
+      print('   ***   Processing Registry file: '+newregfile+'   ***   ')
       if fileno > baseno: print('            (file was automatically included)')
       print('')
       # copy the original to the new destination (if given) 
@@ -333,16 +333,16 @@ if __name__ == '__main__':
         # print debugging info / change-log
         if ldebug:
           print('')
-          print(('Processed I/O config Entry #{:d} (line {:d})'.format(entryno,entryline)))
+          print('Processed I/O config Entry #{:d} (line {:d})'.format(entryno,entryline))
           print('  Log of changes:')
           if len(changelog) == 0:
             print('   no changes')
           else:
             for line in changelog:
-              print(('   '+line))
+              print('   '+line)
           print('')
-          for var,cnt in counts.items():
-              if cnt == 0: print(('    {:s} not found/used'.format(var)))
+          for var,cnt in counts.iteritems():
+              if cnt == 0: print('    {:s} not found/used'.format(var))
       
   # print summary
   print('')
@@ -352,8 +352,8 @@ if __name__ == '__main__':
     #print('')
     if entry['addrm']:
       # loop over variables
-      for var,cnt in entry['counts'].items():
-          if cnt == 0 : print(('\n    {:s} not found/used in entry #{:d}, line {:d}'.format(var,entryno,entry['line'])))
+      for var,cnt in entry['counts'].iteritems():
+          if cnt == 0 : print('\n    {:s} not found/used in entry #{:d}, line {:d}'.format(var,entryno,entry['line']))
   print('')
 
 
