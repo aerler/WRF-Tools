@@ -341,7 +341,7 @@ if __name__ == '__main__':
             for line in changelog:
               print('   '+line)
           print('')
-          for var,cnt in counts.iteritems():
+          for var,cnt in counts.items():
               if cnt == 0: print('    {:s} not found/used'.format(var))
       
   # print summary
@@ -352,7 +352,7 @@ if __name__ == '__main__':
     #print('')
     if entry['addrm']:
       # loop over variables
-      for var,cnt in entry['counts'].iteritems():
+      for var,cnt in entry['counts'].items():
           if cnt == 0 : print('\n    {:s} not found/used in entry #{:d}, line {:d}'.format(var,entryno,entry['line']))
   print('')
 
