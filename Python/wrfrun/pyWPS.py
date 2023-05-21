@@ -840,7 +840,79 @@ class CMIP5(Dataset):
     # renaming happens outside, so we don't have to know about metgrid format
     return self.preimfile
     
+## CMIP6 
+class CMIP6(Dataset):   
+  
+  # CMIP6 data info
+  datestr = '{:04d}{:02d}{:02d}{:02d}' # Year, month, day, hour.
+  
+  # ERA5 temprorary files
+  preimfile = 'CMIP6' 
+    
+  # uncmip6 and its log file
+  uncmip6 = 'unCMIP6.py'
+  uncmip6_log = 'unCMIP6.py.log'
+  
+  # ungrib output date format (uncmip6 uses the same format)
+  ungribdateout = '{:04d}-{:02d}-{:02d}_{:02d}' # uncmip6 output format YYYY-MM-DD_HH.
+  
+  # Data folder
+  cmip6_dir = 'cmip6_data/'
+  cmip6_dir_link = 'cmip6_data'
+  
+  # ================================== __init__ function ==================================
+  def __init__(self, folder=None):
+    # Checking folder
+    if not isinstance(folder,str): raise IOError('   Warning: Need to specify root folder!')    
+    # Files and folders    
+    self.folder = folder 
+    self.CMIP6_DIR = os.readlink(folder+self.cmip6_dir[:-1])
+    self.MainDir = None  # No directory needed.
+    # NOTE: "folder" needs to be set externally for different applications. 
+    self.UNCMIP6 = ['python3',self.uncmip6]          
+  
+  # ====================== Method to link/copy uncmip6 and vtable ======================   
+  def setup(self, src, dst, lsymlink=False):    
+    if lsymlink:
+      cwd = os.getcwd()
+      os.chdir(dst)
+      os.symlink(src+self.uncmip6,self.uncmip6)
+      os.symlink(Meta+self.vtable,self.vtable) 
+      os.chdir(cwd)
+    else:
+      shutil.copy(src+self.uncmip6,dst)
+      shutil.copy(Meta+self.vtable,dst)   
+  
+  # ======================= Method to remove uncmip6 and vtable ========================  
+  def cleanup(self, tgt):
+    cwd = os.getcwd()
+    os.chdir(tgt)
+    os.remove(self.uncmip6)
+    os.remove(self.vtable)
+    os.chdir(cwd)
 
+  # ================= Method that generates the WRF IM file for metgrid.exe ===============
+  def ungrib(self, date, mytag):  
+    # Link the data folder
+    if not os.path.exists(self.CMIP6_DIR): 
+      raise IOError("Data directory link not found!")
+    if not(os.path.exists(self.cmip6_dir_link)):
+        os.symlink(self.CMIP6_DIR,self.cmip6_dir_link)
+    # Create formatted date string
+    datestr = self.datestr.format(*date) # (years, months, days, hours).    
+    # Prompt on screen
+    print(('\n   '+mytag+' Processing time-step: '+datestr))       
+    # Prompt on screen
+    print('\n   * '+mytag+' Converting input files to WRF IM format (unCMIP6.py).')    
+    # Run unCMIP6.py
+    funcmip6 = open(self.uncmip6_log, 'a') # uncmip6 output and error log.
+    call_arg = self.UNCMIP6 + [datestr,self.cmip6_dir_link]
+    subprocess.call(call_arg, stdout=funcmip6, stderr=funcmip6)
+    funcmip6.close() # Close log file for uncmip6.        
+    return self.preimfile+':'+self.ungribdateout.format(*date)
+    # NOTE: Renaming happens outside, so we don't have to know about metgrid format.
+    
+    
 ## import local settings from file
 #sys.path.append(os.getcwd()+'/meta')
 #from namelist import *
@@ -1073,6 +1145,8 @@ if __name__ == '__main__':
       ldiscover = True # temporary, until the CESM part is implemented
     elif dataset == 'CMIP5':
       dataset = CMIP5(folder=Root)
+    elif dataset == 'CMIP6':
+      dataset = CMIP6(folder=Root)  
     elif dataset  == 'CFSR': 
       dataset = CFSR(folder=Root)
     elif dataset  == 'ERA-I': 

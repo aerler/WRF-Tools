@@ -1,0 +1,8 @@
+&geogrid
+ parent_id         =   1,  
+ parent_grid_ratio =   1, 
+ i_parent_start    =   1,
+ j_parent_start    =   1, 
+ e_we              =   73, 
+ e_sn              =   66, 
+/
