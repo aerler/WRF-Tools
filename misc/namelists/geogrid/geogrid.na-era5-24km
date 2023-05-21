@@ -1,0 +1,13 @@
+&geogrid
+ geog_data_res = 'default',
+ dx = 0.22,
+ dy = 0.22,
+ map_proj = 'lat-lon',
+ ref_lat   =  48.00,
+ ref_lon   = -100.2,
+ stand_lon = 100.2,
+ pole_lat = 42.00,
+ pole_lon = 180,
+ geog_data_path = '/project/p/peltier/WRF/geog_20210707/',
+ opt_geogrid_tbl_path = 'meta/'
+/
