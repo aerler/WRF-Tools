@@ -202,7 +202,7 @@ class CMIPHandler(object):
                     lvlmark = ''
                 # Make initial part of file name
                 fn_pre = input_root+'/'+varname+'_'+frq+lvlmark+'_'+self.model_name
-                fn_pre = fn_pre+'_'+self.exp_id+'_'+self.esm_flag+'_'+self.grid_flag  
+                fn_pre += '_'+self.exp_id+'_'+self.esm_flag+'_'+self.grid_flag  
                 # Search for files
                 filenames = sorted(glob.glob(fn_pre+'*.nc'))
                 dates = [ele[len(fn_pre):-3] for ele in filenames]
@@ -225,22 +225,19 @@ class CMIPHandler(object):
                     dlen = 6
                 else:
                     raise ValueError('Error: File date format not recognized.')
-                for ele in startdates_t:
-                    if len(ele)!=dlen:
+                for stdate, endate in zip(startdates_t, enddates_t):
+                    if ((len(stdate)!=dlen) or (len(endate)!=dlen)):
                         raise ValueError('Error: Files do not have a consistent date format.')
-                    startdates.append(datetime.datetime.strptime(ele,dformat))    
-                for ele in enddates_t:
-                    if len(ele)!=dlen:   
-                        raise ValueError('Error: Files do not have a consistent date format.')
-                    enddates.append(datetime.datetime.strptime(ele,dformat))        
+                    startdates.append(datetime.datetime.strptime(stdate,dformat))
+                    enddates.append(datetime.datetime.strptime(endate,dformat))        
                 ndatefound = 0
                 for i in range(len(startdates)):
                     if ((startdates[i]<=self.input_date) and (self.input_date<=enddates[i])):
-                        ndatefound = ndatefound+1
+                        ndatefound += 1
                         filestartdate = startdates[i]
                         fileenddate = enddates[i]
                 if ndatefound!=1:
-                    if not(itm['approx_dates']):
+                    if not itm['approx_dates']:
                         raise ValueError('Error: Item is needed at exact dates, but number of files found is not 1.')
                     else:
                         if ndatefound>1:
@@ -295,11 +292,11 @@ class CMIPHandler(object):
                 lvlmark = ''
             # File name
             fn = input_root+'/'+varname+'_'+frq+lvlmark+'_'+self.model_name
-            fn = fn+'_'+self.exp_id+'_'+self.esm_flag+'_'+self.grid_flag
+            fn += '_'+self.exp_id+'_'+self.esm_flag+'_'+self.grid_flag
             if self.filestrdates[c]!='':
-                fn = fn+'_'+self.filestrdates[c]+'.nc'
+                fn += '_'+self.filestrdates[c]+'.nc'
             else:    
-                fn = fn+'.nc'  
+                fn += '.nc'  
             # Open dataset
             ds = xr.open_dataset(fn)
             # lat and lon handeling
@@ -322,67 +319,31 @@ class CMIPHandler(object):
                 else:
                     if not(np.allclose(np.array(ds.plev.values),self.plev,rtol=0.0,atol=1.0e-12)):
                         raise ValueError("Error: Inconsistent pressure levels between 3D fields.")            
-            # Find the date to read
-            if (self.filestrdates[c]!=''):
-                avail_times_t = ds[varname].time.values
-                avail_times = [pd.to_datetime(ele) for ele in avail_times_t]
-                if itm['approx_dates']==False: 
-                    if self.input_date in avail_times:
-                        if avail_times.count(self.input_date)!=1:
-                            raise ValueError('Error: Number of times that date/time appears in file is not 1.')
-                        cdate = self.input_date
-                    else:
-                        raise ValueError('Error: Could not find the exact date and time in the file.')
-                else:
-                    if (not(sorted(avail_times)==avail_times)):
-                        raise ValueError('Error: File times are not sorted.')
-                    if self.input_date<pd.to_datetime(avail_times[0]):
-                        cdate = pd.to_datetime(avail_times[0])    
-                    elif pd.to_datetime(avail_times[-1])<self.input_date:
-                        cdate = pd.to_datetime(avail_times[-1])
-                    else:
-                        if self.input_date in avail_times:
-                            if avail_times.count(self.input_date)!=1:
-                                raise ValueError('Error: Number of times that date/time appears in file is not 1.')
-                            cdate = self.input_date
-                        else:
-                            ndatefound2 = 0
-                            for j in range(len(avail_times)-1):
-                                eledt1 = pd.to_datetime(avail_times[j])
-                                eledt2 = pd.to_datetime(avail_times[j+1])
-                                if ((eledt1<=self.input_date) and (self.input_date<=eledt2)):
-                                    delt1 = abs(self.input_date-eledt1)
-                                    delt2 = abs(eledt2-self.input_date)
-                                    if abs(delt1-delt2)<=pd.Timedelta(seconds=1):
-                                        cdate = eledt2
-                                        ndatefound2 = ndatefound2+1
-                                    elif delt1<delt2:
-                                        cdate = eledt1
-                                        ndatefound2 = ndatefound2+1    
-                                    elif delt2<delt1:
-                                        cdate = eledt2
-                                        ndatefound2 = ndatefound2+1
-                            if ndatefound2!=1:
-                                raise ValueError('Error: Could not find the closest date/time.')
-            else:
-                cdate = 'NA'
             # Read appropriate section of data
             if (varname=='mrsol' or varname=='tsl'):
                 n_found = 0
                 for i in range(len(self.outsoillayers)):                    
                     if outvarname[2:]==self.outsoillayers[i]:
                         slvl = i
-                        n_found = n_found+1
+                        n_found += 1
                 if not(n_found==1):
                     raise ValueError("Error: Difficulty finding the soil layer.")               
-                # NOTE: This code assumes the same layers for soil moisture and temperature.
-                if cdate!='NA':
-                    self.ds[varname+str(slvl)] = ds[varname].sel(time=cdate,depth=self.soildepths[slvl])
+                # NOTE: This code assumes the same layers for soil moisture and temperature.              
+                if (self.filestrdates[c]!=''):
+                    if itm['approx_dates']:
+                        seltol = '20D' 
+                    else:
+                        seltol = None  
+                    self.ds[varname+str(slvl)] = ds[varname].sel(depth=self.soildepths[slvl]).sel(time=self.input_date,method='nearest',tolerance=seltol)
                 else:
                     self.ds[varname+str(slvl)] = ds[varname].sel(depth=self.soildepths[slvl])
             else:
-                if (cdate!='NA'):
-                    self.ds[varname] = ds[varname].sel(time=cdate)
+                if (self.filestrdates[c]!=''):
+                    if itm['approx_dates']:
+                        seltol = '20D' 
+                    else:
+                        seltol = None
+                    self.ds[varname] = ds[varname].sel(time=self.input_date,method='nearest',tolerance=seltol)
                 else:
                     self.ds[varname] = ds[varname]
             # Close dataset
@@ -395,9 +356,22 @@ class CMIPHandler(object):
                 print('    - Available times: NA')
             print('    - Freq: '+frq)
             print('    - approx_dates:',itm['approx_dates'])
-            print('    - Chosen date:',cdate)
+            if (self.filestrdates[c]!=''):
+                if (varname=='mrsol' or varname=='tsl'):
+                    n_found = 0
+                    for i in range(len(self.outsoillayers)):                    
+                        if outvarname[2:]==self.outsoillayers[i]:
+                            slvl = i
+                            n_found += 1
+                    if not(n_found==1):
+                        raise ValueError("Error: Difficulty finding the soil layer.")
+                    print('    - Chosen date:',self.ds[varname+str(slvl)].time.values)
+                else:
+                    print('    - Chosen date:',self.ds[varname].time.values)
+            else:
+                print('    - Chosen date: NA')
             # Increment the counter
-            c = c+1             
+            c += 1             
         
         # Fix the lats not being uniform issue for the MPI model
         locs = 4 # From this index forwards, d_dlats is smaller than 0.0002 deg.
@@ -434,7 +408,7 @@ class CMIPHandler(object):
                 for i in range(len(self.outsoillayers)):                    
                     if outvarname[2:]==self.outsoillayers[i]:
                         slvl = i
-                        n_found = n_found+1
+                        n_found += 1
                 if not(n_found==1):
                     raise ValueError("Error: Difficulty finding the soil layer.")               
                 # NOTE: This code assumes the same layers for soil moisture and temperature.                    
@@ -585,7 +559,7 @@ class CMIPHandler(object):
                     for i in range(len(self.outsoillayers)):                    
                         if outvarname[2:]==self.outsoillayers[i]:
                             slvl = i
-                            n_found = n_found+1
+                            n_found += 1
                     if not(n_found==1):
                         raise ValueError("Error: Difficulty finding the soil layer.")               
                     # NOTE: This code assumes the same layers for soil moisture and temperature.

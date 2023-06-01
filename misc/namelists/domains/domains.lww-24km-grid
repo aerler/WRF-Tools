@@ -1,8 +1,1 @@
-&geogrid
- parent_id         =   1,  
- parent_grid_ratio =   1, 
- i_parent_start    =   1,
- j_parent_start    =   1, 
- e_we              =   45, 
- e_sn              =   63, 
-/
+../geogrid/geogrid.lww-24km-grid

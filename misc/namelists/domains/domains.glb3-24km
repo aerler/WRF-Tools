@@ -19,6 +19,4 @@
  lowest_lev_from_sfc                 = .false.,
  smooth_cg_topo                      = .false.,
  zap_close_levels                    = 0,
- nproc_x                             = 8,
- nproc_y                             = 5,
 /
