@@ -13,14 +13,14 @@ if [ -z $( getopt -T ) ]; then
 fi # check if GNU getopt ("enhanced")
 # default settings
 # translate arguments
-MODE='' # NOGEO*, RESTART, START, CLEAN, or None (i.e. ''; default)
-VERBOSITY=1 # level of output/feedback
-NEXTSTEP='' # next step to be processed (argument to --restart)
-SKIPWPS=0 # whether or not to run WPS before the first step
-NOWPS='FALSE' # passed to WRF
-RSTCNT=0 # restart counter
-WAITTIME=0 # minimum wait (sleep) time in seconds before WRF job is submitted
-DEFWCT="00:15:00" # another variable is necessary to prevent the setup script from changing the value
+MODE=${MODE:-''} # NOGEO*, RESTART, START, CLEAN, or None (i.e. ''; default)
+VERBOSITY=${VERBOSITY:-1} # level of output/feedback
+NEXTSTEP=${NEXTSTEP:-''} # next step to be processed (argument to --restart)
+SKIPWPS=${SKIPWPS:-0} # whether or not to run WPS before the first step
+NOWPS=${NOWPS:-'FALSE'} # passed to WRF
+RSTCNT=${RSTCNT:-0} # restart counter
+WAITTIME=${WAITTIME:-0} # minimum wait (sleep) time in seconds before WRF job is submitted
+DEFWCT=${DEFWCT:-"00:15:00"} # another variable is necessary to prevent the setup script from changing the value
 # parse arguments 
 while true; do
   case "$1" in
