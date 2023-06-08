@@ -319,7 +319,7 @@ class CMIPHandler(object):
                 else:
                     if not(np.allclose(np.array(ds.plev.values),self.plev,rtol=0.0,atol=1.0e-12)):
                         raise ValueError("Error: Inconsistent pressure levels between 3D fields.")            
-            # Read appropriate section of data
+            # Find the soil layer, if needed
             if (varname=='mrsol' or varname=='tsl'):
                 n_found = 0
                 for i in range(len(self.outsoillayers)):                    
@@ -328,22 +328,19 @@ class CMIPHandler(object):
                         n_found += 1
                 if not(n_found==1):
                     raise ValueError("Error: Difficulty finding the soil layer.")               
-                # NOTE: This code assumes the same layers for soil moisture and temperature.              
-                if (self.filestrdates[c]!=''):
-                    if itm['approx_dates']:
-                        seltol = '20D' 
-                    else:
-                        seltol = None  
-                    self.ds[varname+str(slvl)] = ds[varname].sel(depth=self.soildepths[slvl]).sel(time=self.input_date,method='nearest',tolerance=seltol)
+                # NOTE: This code assumes the same layers for soil moisture and temperature.            
+            # Read appropriate section of data
+            if (varname=='mrsol' or varname=='tsl'):            
+                ds[varname] = ds[varname].sel(depth=self.soildepths[slvl])
+            seltol = '20D' if itm['approx_dates'] else None
+            if (self.filestrdates[c]!=''):
+                if (varname=='mrsol' or varname=='tsl'):
+                    self.ds[varname+str(slvl)] = ds[varname].sel(time=self.input_date,method='nearest',tolerance=seltol)
                 else:
-                    self.ds[varname+str(slvl)] = ds[varname].sel(depth=self.soildepths[slvl])
-            else:
-                if (self.filestrdates[c]!=''):
-                    if itm['approx_dates']:
-                        seltol = '20D' 
-                    else:
-                        seltol = None
                     self.ds[varname] = ds[varname].sel(time=self.input_date,method='nearest',tolerance=seltol)
+            else:
+                if (varname=='mrsol' or varname=='tsl'):
+                    self.ds[varname+str(slvl)] = ds[varname]
                 else:
                     self.ds[varname] = ds[varname]
             # Close dataset
@@ -358,13 +355,6 @@ class CMIPHandler(object):
             print('    - approx_dates:',itm['approx_dates'])
             if (self.filestrdates[c]!=''):
                 if (varname=='mrsol' or varname=='tsl'):
-                    n_found = 0
-                    for i in range(len(self.outsoillayers)):                    
-                        if outvarname[2:]==self.outsoillayers[i]:
-                            slvl = i
-                            n_found += 1
-                    if not(n_found==1):
-                        raise ValueError("Error: Difficulty finding the soil layer.")
                     print('    - Chosen date:',self.ds[varname+str(slvl)].time.values)
                 else:
                     print('    - Chosen date:',self.ds[varname].time.values)
