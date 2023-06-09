@@ -34,8 +34,30 @@ if [[ -e 'wrf/rsl.error.0000' ]] && [[ -n $(grep 'Timing for main:' 'wrf/rsl.err
   else RTERR='NO'
 fi
 
-# only restart if error occurred at run-time, not if it is an initialization error!
-if [[ "${RTERR}" == 'RTERR' ]]
+# Check for known non-run-time errors
+if grep -q "Error in \`mpiexec.hydra': corrupted size vs. prev_size:" ${INIDIR}/${SLURM_JOB_NAME}.${SLURM_JOB_ID}.out; then
+
+  # Move into ${INIDIR}
+  cd "${INIDIR}"
+
+  # Prompt on screen
+  echo
+  echo "   The mpiexec.hydra corrupted size error has occured. Restarting."
+  echo
+
+  # Export parameters as needed
+  export RSTDIR # Set in job script; usually output dir.
+  export NEXTSTEP="${CURRENTSTEP}"
+  export NOWPS='NOWPS' # Do not submit another WPS job.
+  export RSTCNT # Restart counter, set above.
+
+  # Resubmit job for next step
+  export WAITTIME=120
+  eval "${SLEEPERJOB}" # This requires submission command from setup script.
+  ERR=$(( ${ERR} + $? )) # Update exit code.
+
+# Restart if error occurred at run-time, not if it is an initialization error!
+elif [[ "${RTERR}" == 'RTERR' ]]
   then
 
     if [ ${RSTCNT} -ge ${MAXRST} ]; then

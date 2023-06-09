@@ -20,6 +20,7 @@ RUNDIR="${PWD}" # must not contain spaces!
 # source data definition
 DATATYPE='CFSR'
 DATADIR='/data/CFSR/'
+#CMIP6MODEL='MPIESM12HR_hs' # Enable in case of using CMIP6 input data.
 # other WPS configuration files
 GEODATA='/data/WRF/geog_v3.6'
 

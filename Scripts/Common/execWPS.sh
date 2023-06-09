@@ -100,6 +100,11 @@ if [[ ${RUNPYWPS} == 1 ]]
 		#cp ${NOCLOBBER} -P "${INIDIR}/MIROC5_ocn2atm_linearweight.nc" "${WORKDIR}/ocn2atmweight_file.nc"      
     find ./meta -maxdepth 1 -name "*linearweight*" -exec cp ${NOCLOBBER} -P {} "${WORKDIR}/ocn2atmweight_file.nc" \;
 		
+	elif [[ "${DATATYPE}" == 'CMIP6' ]]; then
+    # CMIP6 projection data
+	cp ${NOCLOBBER} -P "${INIDIR}/cmip6_data" "${WORKDIR}"
+    cp ${NOCLOBBER} -P "${BINDIR}/unCMIP6.py" "${WORKDIR}"
+	
 	elif [[ "${DATATYPE}" == 'ERA-I' ]]; then
     # CFSR Reanalysis Data
     cp ${NOCLOBBER} -P "${INIDIR}/uv" "${INIDIR}/sc" "${INIDIR}/sfc" "${WORKDIR}"

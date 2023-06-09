@@ -1,0 +1,13 @@
+&geogrid
+ geog_data_res = 'default',
+ dx = 24459.04,
+ dy = 24459.04,
+ map_proj = 'lambert',
+ ref_lat   =  52.40,
+ ref_lon   = -99.90,
+ truelat1  =  52.40,
+ truelat2  =  52.40,
+ stand_lon = -99.90,
+ geog_data_path = '/project/p/peltier/WRF/geog_20210707/',
+ opt_geogrid_tbl_path = 'meta/'
+/
