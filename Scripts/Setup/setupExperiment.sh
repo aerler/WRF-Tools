@@ -159,7 +159,7 @@ DELT='DEFAULT' # time decrement for auto restart (DEFAULT: select according to t
 # boundary data
 DATADIR='' # root directory for data
 DATATYPE='CESM' # boundary forcing type
-CMIP6MODEL='MPI-ESM1-2-HR' # CMIP6 model.
+CMIP6MODEL='MPIESM12HR_hs' # CMIP6 model.
 ## run configuration
 WRFROOT="${CODE_ROOT}/WRFV3.9/"
 WRFTOOLS="${CODE_ROOT}/WRF-Tools/"
@@ -228,7 +228,7 @@ if [[ "${DATATYPE}" == 'CMIP5' ]]; then
   METGRIDTBL=${METGRIDTBL:-'METGRID.TBL.CESM'}
 elif [[ "${DATATYPE}" == 'CMIP6' ]]; then
   VTABLE=${VTABLE:-'Vtable.CMIP6.'${CMIP6MODEL}'.csv'}
-  METGRIDTBL=${METGRIDTBL:-'METGRID.TBL.CMIP6'}
+  METGRIDTBL=${METGRIDTBL:-'METGRID.TBL.CMIP6.'${CMIP6MODEL}}
 elif [[ "${DATATYPE}" == 'CESM' ]]; then
   POPMAP=${POPMAP:-'map_gx1v6_to_fv0.9x1.25_aave_da_090309.nc'} # ocean grid definition
   METGRIDTBL=${METGRIDTBL:-'METGRID.TBL.CESM'}

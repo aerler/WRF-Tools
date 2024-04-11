@@ -14,7 +14,7 @@ import os
 from sys import argv
 import numpy as np
 import pandas as pd
-import datetime
+import datetime, cftime
 import struct
 import glob
 import xarray as xr
@@ -131,9 +131,22 @@ class CMIPHandler(object):
         # NOTE: Here we assume that there are no other dots in the input_root other than those
         #   associated with the seperators for the CMIP6 name.
         
-        # The date to be handled 
-        self.input_date = datetime.datetime.strptime(inp_date,'%Y%m%d%H')
-        # NOTE: The strptime() method creates a datetime object from the given string.
+        # Load start and end dates and varnames
+        stL = np.load(input_root+'/startdates.npy',allow_pickle=True)
+        edL = np.load(input_root+'/enddates.npy',allow_pickle=True) 
+        vns = np.load(input_root+'/varnames.npy',allow_pickle=True)
+        
+        # Check the model 
+        if not(self.model_name in ['MPI-ESM1-2-HR','CESM2']):
+            raise ValueError('Model not implimented.')
+        
+        # The date to be handled
+        if self.model_name=='MPI-ESM1-2-HR':
+            self.input_date = datetime.datetime.strptime(inp_date,'%Y%m%d%H')
+            # NOTE: The strptime() method creates a datetime object from the given string.
+        elif self.model_name=='CESM2':
+            self.input_date = cftime.DatetimeNoLeap(int(inp_date[0:4]),int(inp_date[4:6]), \
+                int(inp_date[6:8]),int(inp_date[8:10]))
         
         # Display info about time
         print('\nHandeling time:',self.input_date)
@@ -227,12 +240,19 @@ class CMIPHandler(object):
                     raise ValueError('Error: File date format not recognized.')
                 for stdate, endate in zip(startdates_t, enddates_t):
                     if ((len(stdate)!=dlen) or (len(endate)!=dlen)):
+                        print('dformat: '+dformat)
+                        print('stdate: '+stdate)
+                        print('endate: '+endate)
                         raise ValueError('Error: Files do not have a consistent date format.')
                     startdates.append(datetime.datetime.strptime(stdate,dformat))
                     enddates.append(datetime.datetime.strptime(endate,dformat))        
+                # Actual start and end dates
+                locf = [i for i, x in enumerate(vns) if x==varname]
+                startdatesa = stL[locf][0]; enddatesa = edL[locf][0]    
+                # Find the file      
                 ndatefound = 0
-                for i in range(len(startdates)):
-                    if ((startdates[i]<=self.input_date) and (self.input_date<=enddates[i])):
+                for i in range(len(startdatesa)):
+                    if ((startdatesa[i]<=self.input_date) and (self.input_date<=enddatesa[i])):
                         ndatefound += 1
                         filestartdate = startdates[i]
                         fileenddate = enddates[i]
@@ -243,18 +263,18 @@ class CMIPHandler(object):
                         if ndatefound>1:
                             raise ValueError('Error: Number of files containing item is greater than 1.')
                         else:
-                            if self.input_date<startdates[0]:
+                            if self.input_date<startdatesa[0]:
                                 filestartdate = startdates[0]
                                 fileenddate = enddates[0]
-                            elif enddates[-1]<self.input_date:
+                            elif enddatesa[-1]<self.input_date:
                                 filestartdate = startdates[-1]
                                 fileenddate = enddates[-1]
                             else:
                                 ndatefound2 = 0
-                                for i in range(len(startdates)-1):
-                                    if ((enddates[i]<=self.input_date) and (self.input_date<=startdates[i+1])):
-                                        delt1 = abs(self.input_date-enddates[i])
-                                        delt2 = abs(startdates[i+1]-self.input_date)
+                                for i in range(len(startdatesa)-1):
+                                    if ((enddatesa[i]<=self.input_date) and (self.input_date<=startdatesa[i+1])):
+                                        delt1 = abs(self.input_date-enddatesa[i])
+                                        delt2 = abs(startdatesa[i+1]-self.input_date)
                                         if abs(delt1-delt2)<=pd.Timedelta(seconds=1):
                                             filestartdate = startdates[i+1]
                                             fileenddate = enddates[i+1]
@@ -272,6 +292,11 @@ class CMIPHandler(object):
                 self.filestrdates.append(filestartdate.strftime(dformat)+'-'+fileenddate.strftime(dformat))
             else:
                 self.filestrdates.append('')
+        # NOTE: For the CESM2 data, we did not include the surface fields, as those were not available. If we process
+        #   the data without surface fields, real.exe says e.g., "Missing surface temp, replaced with closest level, 
+        #   use_surface set to false.". This is acceptable because: The pressure formula for the model levels is 
+        #   p = a.p0+b.ps. At the lowest model level the pressure is only 7.5 hPa lower than surface pressure. Assuming
+        #   8m ~ 1hPa, then this is only ~60 meters or with a lapse rate of -6.5 K/km, it is a T diff of 0.4 K.         
         
         # plev and lat and lon variables
         self.plev = np.array(None)
@@ -307,9 +332,12 @@ class CMIPHandler(object):
                 self.lon = np.array(ds.lon.values)
             else:
                 if ((varname!='tos') and (varname!='sithick') and (varname!='siconc')):
-                    if not((np.allclose(np.array(ds.lat.values),self.lat,rtol=0.0,atol=1.0e-12)) and \
-                        (np.allclose(np.array(ds.lon.values),self.lon,rtol=0.0,atol=1.0e-12))):
+                    if not((np.allclose(np.array(ds.lat.values),self.lat,rtol=0.0,atol=1.0e-5)) and \
+                        (np.allclose(np.array(ds.lon.values),self.lon,rtol=0.0,atol=1.0e-5))):
                         raise ValueError("Error: Inconsistent lat/lon values between different fields.")
+                    # NOTE: For MPI model this tolerance can be set to 10^-12. For the CESM2 model, it is also
+                    #   the same for all fields other than the mrsol and tsl. For the soil vars, it needs to be 
+                    #   increased to a larger value of 10^-5.                    
             # plev handeling for 3D fields
             if lvltype=='3d':
                 if ((self.plev==None).all()):
@@ -322,22 +350,55 @@ class CMIPHandler(object):
             # Find the soil layer, if needed
             if (varname=='mrsol' or varname=='tsl'):
                 n_found = 0
-                for i in range(len(self.outsoillayers)):                    
+                for i in range(len(self.outsoillayers)):
                     if outvarname[2:]==self.outsoillayers[i]:
                         slvl = i
                         n_found += 1
                 if not(n_found==1):
-                    raise ValueError("Error: Difficulty finding the soil layer.")               
-                # NOTE: This code assumes the same layers for soil moisture and temperature.            
+                    raise ValueError("Error: Difficulty finding the soil layer.")
+                # NOTE: This code assumes the same layers for soil moisture and temperature.    
             # Read appropriate section of data
-            if (varname=='mrsol' or varname=='tsl'):            
-                ds[varname] = ds[varname].sel(depth=self.soildepths[slvl])
-            seltol = '20D' if itm['approx_dates'] else None
+            if (varname=='mrsol' or varname=='tsl'):
+                ds[varname] = ds[varname].sel(depth=self.soildepths[slvl],method='nearest',tolerance=1.0e-7)
+                # NOTE: We have to use the nearest method here, rather than direct selection, becuase, e.g., for CESM2,
+                #   the depths are specified as 0.00999999977648258, 0.0399999991059303, etc.
+                # NOTE: For the CESM2 data, we have removed the first layer [-0.005 to 0.025] m, and only kept the layers
+                #   up to 1.89 meters (10 layers total). This is because the LSM expects inputs up to 2 meters. Originally 
+                #   we had the first layer and the last layer to 2.29 meters, but we removed them due to the count (real 
+                #   can only accept maximum of 10 layers). This is done only through the Vtable and METGRID.TBL.                 
+            # Approx tol days
+            seltolapr_days = 20
+            # Tolerance
+            if self.model_name=='MPI-ESM1-2-HR':
+                seltol = str(seltolapr_days)+'D' if itm['approx_dates'] else '0'
+            elif self.model_name=='CESM2':
+                seltol = datetime.timedelta(days=seltolapr_days) if itm['approx_dates'] else datetime.timedelta(seconds=0)
             if (self.filestrdates[c]!=''):
-                if (varname=='mrsol' or varname=='tsl'):
-                    self.ds[varname+str(slvl)] = ds[varname].sel(time=self.input_date,method='nearest',tolerance=seltol)
+                if self.model_name=='MPI-ESM1-2-HR':
+                    ds_sel = ds[varname].sel(time=self.input_date,method='nearest',tolerance=seltol)
+                elif self.model_name=='CESM2':
+                    t_vals = ds['time'].values
+                    dmin = datetime.timedelta(days=1000000)
+                    selected = False
+                    for i in range(len(t_vals)):        
+                        if selected and (abs(abs(t_vals[i]-self.input_date)-dmin)<datetime.timedelta(seconds=1)):
+                            if t_vals[i]>t_select:
+                                dmin = abs(t_vals[i]-self.input_date)
+                                t_select = t_vals[i]
+                        elif abs(t_vals[i]-self.input_date)<dmin:
+                            dmin = abs(t_vals[i]-self.input_date)
+                            t_select = t_vals[i]
+                            selected = True
+                    if dmin>seltol:
+                        raise ValueError('Minimum difference bigger than tolerance!')  
+                    ds_sel = ds[varname].sel(time=t_select) 
+                # NOTE: The above two methods for the time selection is because CESM2 has time type of cftime.DatetimeNoLeap,
+                #   which does not work with the method='nearest' route (datetime.datetime does). So we externalize the 
+                #   selection of the time.                 
+                if (varname=='mrsol' or varname=='tsl'):	
+                    self.ds[varname+str(slvl)] = ds_sel
                 else:
-                    self.ds[varname] = ds[varname].sel(time=self.input_date,method='nearest',tolerance=seltol)
+                    self.ds[varname] = ds_sel  
             else:
                 if (varname=='mrsol' or varname=='tsl'):
                     self.ds[varname+str(slvl)] = ds[varname]
@@ -364,15 +425,16 @@ class CMIPHandler(object):
             c += 1             
         
         # Fix the lats not being uniform issue for the MPI model
-        locs = 4 # From this index forwards, d_dlats is smaller than 0.0002 deg.
-        loce = (len(self.lat)-2)-1-locs # From this index backwards, d_dlats is smaller than 0.0002 deg.
-        dlats = self.lat[1:]-self.lat[0:-1]               
-        dy = np.mean(dlats[locs+1:loce+1])
-        n_lats = len(self.lat)
-        if (n_lats%2)!=0:
-            raise ValueError("Number of lats must be even!")
-        nn_lats = round(n_lats/2)
-        self.lat = np.array(np.concatenate((-dy*range(nn_lats-1,-1,-1)-dy/2,dy/2+dy*range(0,nn_lats,1))))
+        if self.model_name=='MPI-ESM1-2-HR':
+            locs = 4 # From this index forwards, d_dlats is smaller than 0.0002 deg.
+            loce = (len(self.lat)-2)-1-locs # From this index backwards, d_dlats is smaller than 0.0002 deg.
+            dlats = self.lat[1:]-self.lat[0:-1]               
+            dy = np.mean(dlats[locs+1:loce+1])
+            n_lats = len(self.lat)
+            if (n_lats%2)!=0:
+                raise ValueError("Number of lats must be even!")
+            nn_lats = round(n_lats/2)
+            self.lat = np.array(np.concatenate((-dy*range(nn_lats-1,-1,-1)-dy/2,dy/2+dy*range(0,nn_lats,1))))
         
         # Handle self.out_slab
         self.out_slab['NX'] = len(self.lon)
@@ -409,7 +471,7 @@ class CMIPHandler(object):
                     Temp = ds.values 
                     Temp = Temp/997.0474/self.soillayerthicks[slvl]
                     ds.values = Temp
-                # NOTE: In MPI-ESM1-2-HR data soil moisture is in units of kg/m^2, so to convert that to m3 m-3, 
+                # NOTE: In some model data soil moisture is in units of kg/m^2, so to convert that to m3 m-3, 
                 #   which is what also, e.g., ERA5 uses, we divide by 997.0474 kg/m^3 and by the layer thickness (m).
                 #   Also we do not need to worry about missing values as xarray reads those as nans and they remain 
                 #     nans after the above operations.
@@ -437,7 +499,7 @@ class CMIPHandler(object):
                     Temp = ds.values
                     Temp = Temp+273.15
                     ds.values = Temp
-                # NOTE: This is because in MPI-ESM1-2-HR data tos is in degress C and WRF expects degrees K.
+                # NOTE: This is because in some model data tos is in degress C and WRF expects degrees K.
                 #   Also we do not need to worry about missing values as xarray reads those as nans and they  
                 #   remain nans after the above operations. 
                 # Handle sftlf variable, if needed
@@ -448,15 +510,15 @@ class CMIPHandler(object):
                     Temp = [[round(ii) for ii in nested] for nested in Temp]
                     Temp = np.array(Temp)                                       
                     ds.values = Temp
-                # NOTE: This is because in MPI-ESM1-2-HR data sftlf is in percentage (either 0 or 100, not 
-                #   in between) and WRF expects 0 or 1 values. Also we do not need to worry about missing values   
-                #   as I checked and there are none of those in the sftlf data.
+                # NOTE: This is because in some model data sftlf is in percentage and WRF expects 0-1 values. 
+                #   Also we do not need to worry about missing values as I checked and there are none of those 
+                #   in the sftlf data.
                 # Handle siconc variable, if needed  
                 if (varname=='siconc' and itm['units']=='%'):
                     Temp = ds.values
                     Temp = Temp/100.0
                     ds.values = Temp
-                # NOTE: This is because in MPI-ESM1-2-HR data siconc is in percentage and WRF expects 0-1 values.
+                # NOTE: This is because in some model data siconc is in percentage and WRF expects 0-1 values.
                 #   Also we do not need to worry about missing values as xarray reads those as nans and they  
                 #   remain nans after the above operations.    
                 # Perform the interpolation
@@ -470,8 +532,12 @@ class CMIPHandler(object):
                         raise ValueError("Error: There are nans or extremely large values in the 3D data.")                    
                 elif lvltype=='2d':
                     if ((varname=='tos') or (varname=='siconc') or (varname=='sithick')):                    
-                        lons_loc = ds['longitude'].values
-                        lats_loc = ds['latitude'].values
+                        if self.model_name=='MPI-ESM1-2-HR':
+                            lons_loc = ds['longitude'].values
+                            lats_loc = ds['latitude'].values
+                        elif self.model_name=='CESM2':
+                            lons_loc = ds['lon'].values
+                            lats_loc = ds['lat'].values
                         array = np.ma.masked_invalid(ds.values)                        
                         xx1 = lons_loc[~array.mask]
                         yy1 = lats_loc[~array.mask]
@@ -521,16 +587,16 @@ class CMIPHandler(object):
             out_dic['UNIT'] = itm['units']
             if (varname=='tos' and itm['units']=='degC'):
                 out_dic['UNIT'] = 'K'
-            # NOTE: This is because in MPI-ESM1-2-HR data tos is in degress C and WRF expects degrees K.
+            # NOTE: This is because in some model data tos is in degress C and WRF expects degrees K.
             if (varname=='mrsol' and itm['units']=="kg m-2"):
                 out_dic['UNIT'] = 'm3 m-3'                
-            # NOTE: This is because in MPI-ESM1-2-HR data mrsos is in kg/m^2 and WRF expects m^3/m^3.
+            # NOTE: This is because in some model data mrsos is in kg/m^2 and WRF expects m^3/m^3.
             if (varname=='sftlf' and itm['units']=='%'):
                 out_dic['UNIT'] = '0/1 Flag'
-            # NOTE: This is because in MPI-ESM1-2-HR data sftlf is in % and WRF expects 0/1 Flag. 
+            # NOTE: This is because in some model data sftlf is in % and WRF expects 0/1 Flag. 
             if (varname=='siconc' and itm['units']=='%'):
                 out_dic['UNIT'] = 'fraction'
-            # NOTE: This is because in MPI-ESM1-2-HR data siconc is in % and WRF expects 0-1 value.    
+            # NOTE: This is because in some model data siconc is in % and WRF expects 0-1 value.    
             out_dic['DESC'] = itm['desc']
             # Identify level and values and write record            
             out_dic['XLVL'] = 200100.0
