@@ -133,6 +133,8 @@ function RENAME () {
     sed -i "/DOMAINS=/ s/'1234'/'${DOMS}'/" "${FILE}" # just replace the default value
     # type of initial and boundary focing  data (mainly for WPS)
     sed -i "/DATATYPE=/ s/DATATYPE=[^$][^$].*$/DATATYPE=\'${DATATYPE}\' # type of initial and boundary focing  data /" "${FILE}"
+	# change the leap year treatment
+    sed -i "/LLEAP=/ s/LLEAP=[^$][^$].*$/LLEAP=\'${LLEAP}\' # How leap years are treated\./" "${FILE}"
     # whether or not to restart job after a numerical instability (used by crashHandler.sh)
     sed -i "/AUTORST=/ s/AUTORST=[^$][^$].*$/AUTORST=\'${AUTORST}\' # whether or not to restart job after a numerical instability /" "${FILE}"
     # time decrement to use in case of instability (used by crashHandler.sh)
@@ -264,9 +266,16 @@ if [[ -z "$WRFBLD" ]]; then
   # GCM or reanalysis with current I/O version
   if [[ "${DATATYPE}" == 'CESM' ]] || [[ "${DATATYPE}" == 'CCSM' ]] || [[ "${DATATYPE}" == 'CMIP5' ]]; then
     WRFBLD="Clim-${IO}" # variable GHG scenarios and no leap-years
-    LLEAP='--noleap' # option for Python script to omit leap days
-  elif [[ "${DATATYPE}" == 'ERA-I' ]] || [[ "${DATATYPE}" == 'ERA5' ]] || [[ "${DATATYPE}" == 'CMIP6' ]] || [[ "${DATATYPE}" == 'CFSR' ]] || [[ "${DATATYPE}" == 'NARR' ]]; then
+  elif [[ "${DATATYPE}" == 'ERA-I' ]] || [[ "${DATATYPE}" == 'ERA5' ]] || [[ "${DATATYPE}" == 'CFSR' ]] || [[ "${DATATYPE}" == 'NARR' ]]; then
     WRFBLD="ReA-${IO}" # variable GHG scenarios with leap-years
+  elif  [[ "${DATATYPE}" == 'CMIP6' ]]; then
+    if [[ ${DATADIR} = *MPI-ESM1-2-HR* ]]; then
+      WRFBLD="ReA-${IO}" # Variable GHG scenarios with leap-years.
+    elif [[ ${DATADIR} = *CESM2* ]]; then
+      WRFBLD="Clim-${IO}" # Variable GHG scenarios and no leap-years.
+    else
+      echo 'ERROR: Unknown CMIP6 model - aborting!'; exit 1
+    fi	
   else
     WRFBLD="Default-${IO}" # standard WRF build with current I/O version
   fi # $DATATYPE
@@ -274,6 +283,25 @@ if [[ -z "$WRFBLD" ]]; then
   if [ ${POLARWRF} == 1 ]; then WRFBLD="Polar-${WRFBLD}"; fi
 fi # if $WRFBLD
 WPSBLD=${WPSBLD:-"${WRFBLD}"} # should be analogous...
+
+# Figure out leap years
+if [[ "${DATATYPE}" == 'CESM' ]] || [[ "${DATATYPE}" == 'CCSM' ]] || [[ "${DATATYPE}" == 'CMIP5' ]]; then
+  LLEAP='--noleap' # Option for Python script to omit leap days.
+elif [[ "${DATATYPE}" == 'ERA-I' ]] || [[ "${DATATYPE}" == 'ERA5' ]] || [[ "${DATATYPE}" == 'CFSR' ]] || [[ "${DATATYPE}" == 'NARR' ]]; then
+  LLEAP=''
+elif [[ "${DATATYPE}" == 'CMIP6' ]]; then
+  if [[ ${DATADIR} = *MPI-ESM1-2-HR* ]]; then
+    LLEAP=''
+  elif [[ ${DATADIR} = *CESM2* ]]; then
+    LLEAP='--noleap' # Option for Python script to omit leap days.
+  else
+    echo 'ERROR: Unknown CMIP6 model - aborting!'; exit 1
+  fi
+else
+  LLEAP=''
+fi
+# Standard or PolarWRF
+if [ ${POLARWRF} == 1 ]; then LLEAP=''; fi
 
 # source folders (depending on $WRFROOT; can be set in xconfig.sh)
 WPSSRC=${WPSSRC:-"${WRFROOT}/WPS/"}

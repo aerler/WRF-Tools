@@ -70,6 +70,7 @@ export BINDIR="${INIDIR}/bin/"  # location of executables nd scripts (WPS and WR
 export WRFOUT="${INIDIR}/wrfout/" # output directory
 export METDATA='' # folder to collect output data from metgrid
 export DATATYPE='' # needed to handle leap years
+export LLEAP='' # How to handle leap years, options: '' and '--noleap'.
 export WPSSCRIPT='run_cycling_WPS.pbs' # WPS run-scripts
 export WRFSCRIPT='run_cycling_WRF.pbs' # WRF run-scripts
 export WRFVERSION='' # WRF version; default set in setup_WRF.sh
