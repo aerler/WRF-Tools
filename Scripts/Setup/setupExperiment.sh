@@ -286,22 +286,22 @@ WPSBLD=${WPSBLD:-"${WRFBLD}"} # should be analogous...
 
 # Figure out leap years
 if [[ "${DATATYPE}" == 'CESM' ]] || [[ "${DATATYPE}" == 'CCSM' ]] || [[ "${DATATYPE}" == 'CMIP5' ]]; then
-  LLEAP='--noleap' # Option for Python script to omit leap days.
+  LLEAP='' # Option for Python script to omit leap days.
 elif [[ "${DATATYPE}" == 'ERA-I' ]] || [[ "${DATATYPE}" == 'ERA5' ]] || [[ "${DATATYPE}" == 'CFSR' ]] || [[ "${DATATYPE}" == 'NARR' ]]; then
-  LLEAP=''
+  LLEAP='LLEAP'
 elif [[ "${DATATYPE}" == 'CMIP6' ]]; then
   if [[ ${DATADIR} = *MPI-ESM1-2-HR* ]]; then
-    LLEAP=''
+    LLEAP='LLEAP'
   elif [[ ${DATADIR} = *CESM2* ]]; then
-    LLEAP='--noleap' # Option for Python script to omit leap days.
+    LLEAP='' # Option for Python script to omit leap days.
   else
     echo 'ERROR: Unknown CMIP6 model - aborting!'; exit 1
   fi
 else
-  LLEAP=''
+  LLEAP='LLEAP'
 fi
 # Standard or PolarWRF
-if [ ${POLARWRF} == 1 ]; then LLEAP=''; fi
+if [ ${POLARWRF} == 1 ]; then LLEAP='LLEAP'; fi
 
 # source folders (depending on $WRFROOT; can be set in xconfig.sh)
 WPSSRC=${WPSSRC:-"${WRFROOT}/WPS/"}
@@ -561,7 +561,11 @@ if [[ -n "${CYCLING}" ]]; then
     # generate stepfile on-the-fly
     GENSTEPS=${GENSTEPS:-"${WRFTOOLS}/Python/wrfrun/generateStepfile.py"} # Python script to generate stepfiles
     echo "creating new stepfile: begin=${BEGIN}, end=${END}, interval=${INT}"    
-    python "${GENSTEPS}" ${LLEAP} --interval="${INT}" "${BEGIN}" "${END}" 
+    if [ ${LLEAP} == 'LLEAP' ]; then
+      python "${GENSTEPS}" --interval="${INT}" "${BEGIN}" "${END}"
+    else
+      python "${GENSTEPS}" --noleap --interval="${INT}" "${BEGIN}" "${END}"
+    fi  
     # LLEAP is defined above; don't quote option, because it may no be defined
   fi
   # concatenate start_cycle script
