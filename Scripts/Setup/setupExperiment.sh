@@ -561,7 +561,7 @@ if [[ -n "${CYCLING}" ]]; then
     # generate stepfile on-the-fly
     GENSTEPS=${GENSTEPS:-"${WRFTOOLS}/Python/wrfrun/generateStepfile.py"} # Python script to generate stepfiles
     echo "creating new stepfile: begin=${BEGIN}, end=${END}, interval=${INT}"    
-    if [ ${LLEAP} == 'LLEAP' ]; then
+    if [[ ${LLEAP} == 'LLEAP' ]]; then
       python "${GENSTEPS}" --interval="${INT}" "${BEGIN}" "${END}"
     else
       python "${GENSTEPS}" --noleap --interval="${INT}" "${BEGIN}" "${END}"
