@@ -38,10 +38,7 @@ else: stepfile = 'stepfile' # default name
 if 'INIDIR' in os.environ:
   IniDir = os.environ['INIDIR'] # where the step file is found
 else: IniDir = os.getcwd() + '/' # current directory
-if os.environ['LLEAP'] == 'LLEAP':
-  lly = True
-else:
-  lly = False
+lly = (os.getenv('LLEAP','') == 'LLEAP')
 if 'RSTINT' in os.environ:
   rstint = int(os.environ['RSTINT']) # number of restart files per step
 else: rstint = 1

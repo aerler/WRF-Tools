@@ -269,7 +269,7 @@ if [[ -z "$WRFBLD" ]]; then
   elif [[ "${DATATYPE}" == 'ERA-I' ]] || [[ "${DATATYPE}" == 'ERA5' ]] || [[ "${DATATYPE}" == 'CFSR' ]] || [[ "${DATATYPE}" == 'NARR' ]]; then
     WRFBLD="ReA-${IO}" # variable GHG scenarios with leap-years
   elif  [[ "${DATATYPE}" == 'CMIP6' ]]; then
-    if [[ ${DATADIR} = *MPI-ESM1-2-HR* ]]; then
+    if [[ ${DATADIR} = *MPI-ESM1-2-HR* ]] || [[ ${DATADIR} = *MRI-ESM2-0* ]]; then
       WRFBLD="ReA-${IO}" # Variable GHG scenarios with leap-years.
     elif [[ ${DATADIR} = *CESM2* ]]; then
       WRFBLD="Clim-${IO}" # Variable GHG scenarios and no leap-years.
@@ -290,7 +290,7 @@ if [[ "${DATATYPE}" == 'CESM' ]] || [[ "${DATATYPE}" == 'CCSM' ]] || [[ "${DATAT
 elif [[ "${DATATYPE}" == 'ERA-I' ]] || [[ "${DATATYPE}" == 'ERA5' ]] || [[ "${DATATYPE}" == 'CFSR' ]] || [[ "${DATATYPE}" == 'NARR' ]]; then
   LLEAP='LLEAP'
 elif [[ "${DATATYPE}" == 'CMIP6' ]]; then
-  if [[ ${DATADIR} = *MPI-ESM1-2-HR* ]]; then
+  if [[ ${DATADIR} = *MPI-ESM1-2-HR* ]] || [[ ${DATADIR} = *MRI-ESM2-0* ]]; then
     LLEAP='LLEAP'
   elif [[ ${DATADIR} = *CESM2* ]]; then
     LLEAP='' # Option for Python script to omit leap days.
