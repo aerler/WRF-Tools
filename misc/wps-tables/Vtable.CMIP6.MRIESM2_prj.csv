@@ -1,0 +1,31 @@
+src_v,aim_v,soil_depth,units,type,freq,lvlmark,sp_dates,approx_dates,desc
+ta,TT,-1,K,3d,6hr,PlevPt,1,False,3-d air temperature
+hus,SPECHUMD,-1,kg kg-1,3d,6hr,PlevPt,1,False,3-d specific humidity
+ua,UU,-1,m s-1,3d,6hr,PlevPt,1,False,3-d wind u-component
+va,VV,-1,m s-1,3d,6hr,PlevPt,1,False,3-d wind v-component
+ps,PSFC,-1,Pa,2d,3hr,None,1,False,Surface pressure
+psl,PMSL,-1,Pa,2d,6hr,PlevPt,1,False,Mean sea-level pressure
+tos,SST,-1,degC,2d,Oday,None,1,True,Sea surface temperature
+sftlf,LANDSEA,-1,%,2d,fx,None,-1,False,Land/Sea flag
+mrsol,SM000002,0.01,kg m-2,2d-soil,Emon,None,1,True,0-2 cm soil moisture
+mrsol,SM002005,0.035,kg m-2,2d-soil,Emon,None,1,True,2-5 cm soil moisture
+mrsol,SM005010,0.075,kg m-2,2d-soil,Emon,None,1,True,5-10 cm soil moisture
+mrsol,SM010020,0.15,kg m-2,2d-soil,Emon,None,1,True,10-20 cm soil moisture
+mrsol,SM020030,0.25,kg m-2,2d-soil,Emon,None,1,True,20-30 cm soil moisture
+mrsol,SM030050,0.40,kg m-2,2d-soil,Emon,None,1,True,30-50 cm soil moisture
+mrsol,SM050070,0.60,kg m-2,2d-soil,Emon,None,1,True,50-70 cm soil moisture
+mrsol,SM070100,0.85,kg m-2,2d-soil,Emon,None,1,True,70-100 cm soil moisture
+mrsol,SM100150,1.25,kg m-2,2d-soil,Emon,None,1,True,100-150 cm soil moisture
+mrsol,SM150250,2.00,kg m-2,2d-soil,Emon,None,1,True,150-250 cm soil moisture
+tsl,ST000002,0.01,K,2d-soil,Lmon,None,1,True,0-2 cm soil temp
+tsl,ST002005,0.035,K,2d-soil,Lmon,None,1,True,2-5 cm soil temp
+tsl,ST005010,0.075,K,2d-soil,Lmon,None,1,True,5-10 cm soil temp
+tsl,ST010020,0.15,K,2d-soil,Lmon,None,1,True,10-20 cm soil temp
+tsl,ST020030,0.25,K,2d-soil,Lmon,None,1,True,20-30 cm soil temp
+tsl,ST030050,0.40,K,2d-soil,Lmon,None,1,True,30-50 cm soil temp
+tsl,ST050070,0.60,K,2d-soil,Lmon,None,1,True,50-70 cm soil temp
+tsl,ST070100,0.85,K,2d-soil,Lmon,None,1,True,70-100 cm soil temp
+tsl,ST100150,1.25,K,2d-soil,Lmon,None,1,True,100-150 cm soil temp
+tsl,ST150250,2.00,K,2d-soil,Lmon,None,1,True,150-250 cm soil temp
+siconc,SEAICE,-1,%,2d,SIday,None,1,True,Sea-ice fraction
+sithick,ICEDEPTH,-1,m,2d,SIday,None,1,True,Sea-ice thickness

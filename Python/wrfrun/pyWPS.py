@@ -860,6 +860,13 @@ class CMIP6(Dataset):
   cmip6_dir = 'cmip6_data/'
   cmip6_dir_link = 'cmip6_data'
   
+  # Which models are leap and which are noleap
+  models_noleap = {
+    'MPI-ESM1-2-HR':False,
+    'CESM2':True,
+    'MRI-ESM2-0':False
+    }
+  
   # ================================== __init__ function ==================================
   def __init__(self, folder=None):
     # Checking folder
@@ -867,9 +874,28 @@ class CMIP6(Dataset):
     # Files and folders    
     self.folder = folder 
     self.CMIP6_DIR = os.readlink(folder+self.cmip6_dir[:-1])
+    self.modelname = self.CMIP6_DIR.split(".")[3]
+    # NOTE: Here we assume that there are no other dots in the dir name other than those
+    #   associated with the seperators for the CMIP6 name.
+    # Find if the model is leap or not
+    self.noleap = self.models_noleap[self.modelname]
     self.MainDir = None  # No directory needed.
     # NOTE: "folder" needs to be set externally for different applications. 
-    self.UNCMIP6 = ['python3',self.uncmip6]          
+    self.UNCMIP6 = ['python3',self.uncmip6]   
+
+  # ============= Construct a list of dates where data should be available ==============
+  def constructDateList(self, start, end):
+    # For some CMIP6 models calendar is leap and some have no leap calendar
+    curd = dt.datetime(*start); endd = dt.datetime(*end) # Datetime objects.
+    # NOTE: In a function call, * unpacks a list or tuple into position arguments,
+    #   whereas ** unpacks a dictionary into keyword arguments.
+    delta = dt.timedelta(hours=self.interval) # Usually an integer in hours.
+    dates = [] # Create date list.
+    while curd <= endd:
+        if not(curd.month == 2 and curd.day == 29 and self.noleap):
+            dates.append((curd.year, curd.month, curd.day, curd.hour)) # Format: year, month, day, hour.
+        curd += delta # Increment date by interval.
+    return dates # Return properly formated list.    
   
   # ====================== Method to link/copy uncmip6 and vtable ======================   
   def setup(self, src, dst, lsymlink=False):    

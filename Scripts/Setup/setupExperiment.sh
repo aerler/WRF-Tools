@@ -133,6 +133,8 @@ function RENAME () {
     sed -i "/DOMAINS=/ s/'1234'/'${DOMS}'/" "${FILE}" # just replace the default value
     # type of initial and boundary focing  data (mainly for WPS)
     sed -i "/DATATYPE=/ s/DATATYPE=[^$][^$].*$/DATATYPE=\'${DATATYPE}\' # type of initial and boundary focing  data /" "${FILE}"
+	# change the leap year treatment
+    sed -i "/LLEAP=/ s/LLEAP=[^$][^$].*$/LLEAP=\'${LLEAP}\' # How leap years are treated\./" "${FILE}"
     # whether or not to restart job after a numerical instability (used by crashHandler.sh)
     sed -i "/AUTORST=/ s/AUTORST=[^$][^$].*$/AUTORST=\'${AUTORST}\' # whether or not to restart job after a numerical instability /" "${FILE}"
     # time decrement to use in case of instability (used by crashHandler.sh)
@@ -159,7 +161,7 @@ DELT='DEFAULT' # time decrement for auto restart (DEFAULT: select according to t
 # boundary data
 DATADIR='' # root directory for data
 DATATYPE='CESM' # boundary forcing type
-CMIP6MODEL='MPI-ESM1-2-HR' # CMIP6 model.
+CMIP6MODEL='MPIESM12HR_hs' # CMIP6 model.
 ## run configuration
 WRFROOT="${CODE_ROOT}/WRFV3.9/"
 WRFTOOLS="${CODE_ROOT}/WRF-Tools/"
@@ -228,7 +230,7 @@ if [[ "${DATATYPE}" == 'CMIP5' ]]; then
   METGRIDTBL=${METGRIDTBL:-'METGRID.TBL.CESM'}
 elif [[ "${DATATYPE}" == 'CMIP6' ]]; then
   VTABLE=${VTABLE:-'Vtable.CMIP6.'${CMIP6MODEL}'.csv'}
-  METGRIDTBL=${METGRIDTBL:-'METGRID.TBL.CMIP6'}
+  METGRIDTBL=${METGRIDTBL:-'METGRID.TBL.CMIP6.'${CMIP6MODEL}}
 elif [[ "${DATATYPE}" == 'CESM' ]]; then
   POPMAP=${POPMAP:-'map_gx1v6_to_fv0.9x1.25_aave_da_090309.nc'} # ocean grid definition
   METGRIDTBL=${METGRIDTBL:-'METGRID.TBL.CESM'}
@@ -264,9 +266,16 @@ if [[ -z "$WRFBLD" ]]; then
   # GCM or reanalysis with current I/O version
   if [[ "${DATATYPE}" == 'CESM' ]] || [[ "${DATATYPE}" == 'CCSM' ]] || [[ "${DATATYPE}" == 'CMIP5' ]]; then
     WRFBLD="Clim-${IO}" # variable GHG scenarios and no leap-years
-    LLEAP='--noleap' # option for Python script to omit leap days
-  elif [[ "${DATATYPE}" == 'ERA-I' ]] || [[ "${DATATYPE}" == 'ERA5' ]] || [[ "${DATATYPE}" == 'CMIP6' ]] || [[ "${DATATYPE}" == 'CFSR' ]] || [[ "${DATATYPE}" == 'NARR' ]]; then
+  elif [[ "${DATATYPE}" == 'ERA-I' ]] || [[ "${DATATYPE}" == 'ERA5' ]] || [[ "${DATATYPE}" == 'CFSR' ]] || [[ "${DATATYPE}" == 'NARR' ]]; then
     WRFBLD="ReA-${IO}" # variable GHG scenarios with leap-years
+  elif  [[ "${DATATYPE}" == 'CMIP6' ]]; then
+    if [[ ${DATADIR} = *MPI-ESM1-2-HR* ]] || [[ ${DATADIR} = *MRI-ESM2-0* ]]; then
+      WRFBLD="ReA-${IO}" # Variable GHG scenarios with leap-years.
+    elif [[ ${DATADIR} = *CESM2* ]]; then
+      WRFBLD="Clim-${IO}" # Variable GHG scenarios and no leap-years.
+    else
+      echo 'ERROR: Unknown CMIP6 model - aborting!'; exit 1
+    fi	
   else
     WRFBLD="Default-${IO}" # standard WRF build with current I/O version
   fi # $DATATYPE
@@ -274,6 +283,25 @@ if [[ -z "$WRFBLD" ]]; then
   if [ ${POLARWRF} == 1 ]; then WRFBLD="Polar-${WRFBLD}"; fi
 fi # if $WRFBLD
 WPSBLD=${WPSBLD:-"${WRFBLD}"} # should be analogous...
+
+# Figure out leap years
+if [[ "${DATATYPE}" == 'CESM' ]] || [[ "${DATATYPE}" == 'CCSM' ]] || [[ "${DATATYPE}" == 'CMIP5' ]]; then
+  LLEAP='' # Option for Python script to omit leap days.
+elif [[ "${DATATYPE}" == 'ERA-I' ]] || [[ "${DATATYPE}" == 'ERA5' ]] || [[ "${DATATYPE}" == 'CFSR' ]] || [[ "${DATATYPE}" == 'NARR' ]]; then
+  LLEAP='LLEAP'
+elif [[ "${DATATYPE}" == 'CMIP6' ]]; then
+  if [[ ${DATADIR} = *MPI-ESM1-2-HR* ]] || [[ ${DATADIR} = *MRI-ESM2-0* ]]; then
+    LLEAP='LLEAP'
+  elif [[ ${DATADIR} = *CESM2* ]]; then
+    LLEAP='' # Option for Python script to omit leap days.
+  else
+    echo 'ERROR: Unknown CMIP6 model - aborting!'; exit 1
+  fi
+else
+  LLEAP='LLEAP'
+fi
+# Standard or PolarWRF
+if [ ${POLARWRF} == 1 ]; then LLEAP='LLEAP'; fi
 
 # source folders (depending on $WRFROOT; can be set in xconfig.sh)
 WPSSRC=${WPSSRC:-"${WRFROOT}/WPS/"}
@@ -533,7 +561,11 @@ if [[ -n "${CYCLING}" ]]; then
     # generate stepfile on-the-fly
     GENSTEPS=${GENSTEPS:-"${WRFTOOLS}/Python/wrfrun/generateStepfile.py"} # Python script to generate stepfiles
     echo "creating new stepfile: begin=${BEGIN}, end=${END}, interval=${INT}"    
-    python "${GENSTEPS}" ${LLEAP} --interval="${INT}" "${BEGIN}" "${END}" 
+    if [[ ${LLEAP} == 'LLEAP' ]]; then
+      python "${GENSTEPS}" --interval="${INT}" "${BEGIN}" "${END}"
+    else
+      python "${GENSTEPS}" --noleap --interval="${INT}" "${BEGIN}" "${END}"
+    fi  
     # LLEAP is defined above; don't quote option, because it may no be defined
   fi
   # concatenate start_cycle script
