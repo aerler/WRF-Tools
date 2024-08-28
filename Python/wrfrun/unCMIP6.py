@@ -99,106 +99,107 @@ class CMIPHandler(object):
 
     Methods
     -----------
+    _find_file_start_and_end_dates: Find the containing files' start and end dates.
     __init__: Initialize CMIP Handler with config and loading data.
     interp_data: Interpolate data to common mesh.
     write_wrfinterm: Write wrfinterm file.
     '''
     
+    # ================= Find the containing files' start and end dates ===============
+    def _find_file_start_and_end_dates(self, input_root, vns, stl, edl):
+    
+        # Find the file date list
+        self.filestrdates = []
+        for idx, itm in self.vtable.iterrows():
+            if itm['sp_dates']!=-1:
+                # Var name and other info
+                varname = itm['src_v']
+                lvlmark = itm['lvlmark']
+                frq = itm['freq']          
+                if pd.isna(lvlmark):
+                    lvlmark = ''
+                # Make initial part of file name
+                fn_pre = input_root+'/'+varname+'_'+frq+lvlmark+'_'+self.model_name
+                fn_pre += '_'+self.exp_id+'_'+self.esm_flag+'_'+self.grid_flag  
+                # Search for files
+                filenames = sorted(glob.glob(fn_pre+'*.nc'))
+                dates = [ele[len(fn_pre):-3] for ele in filenames]
+                startdates_t = []
+                enddates_t = []
+                for ele in dates:
+                    ele_split = ele.split("-")
+                    startdates_t.append(ele_split[0])
+                    enddates_t.append(ele_split[1])
+                startdates = []
+                enddates = []
+                if len(startdates_t[0])==12:
+                    dformat = '%Y%m%d%H%M'
+                    dlen = 12
+                elif len(startdates_t[0])==8:
+                    dformat = '%Y%m%d'
+                    dlen = 8
+                elif len(startdates_t[0])==6:
+                    dformat = '%Y%m'
+                    dlen = 6
+                else:
+                    raise ValueError('Error: File date format not recognized.')
+                for stdate, endate in zip(startdates_t, enddates_t):
+                    if ((len(stdate)!=dlen) or (len(endate)!=dlen)):
+                        print('dformat: '+dformat)
+                        print('stdate: '+stdate)
+                        print('endate: '+endate)
+                        raise ValueError('Error: Files do not have a consistent date format.')
+                    startdates.append(datetime.datetime.strptime(stdate,dformat))
+                    enddates.append(datetime.datetime.strptime(endate,dformat))        
+                # Actual start and end dates
+                locf = [i for i, x in enumerate(vns) if x==varname]
+                startdatesa = stl[locf][0]; enddatesa = edl[locf][0]    
+                # Find the file      
+                ndatefound = 0
+                for i in range(len(startdatesa)):
+                    if ((startdatesa[i]<=self.input_date) and (self.input_date<=enddatesa[i])):
+                        ndatefound += 1
+                        filestartdate = startdates[i]
+                        fileenddate = enddates[i]
+                if ndatefound!=1:
+                    if not itm['approx_dates']:
+                        raise ValueError('Error: Item is needed at exact dates, but number of files found is not 1.')
+                    else:
+                        if ndatefound>1:
+                            raise ValueError('Error: Number of files containing item is greater than 1.')
+                        else:
+                            if self.input_date<startdatesa[0]:
+                                filestartdate = startdates[0]
+                                fileenddate = enddates[0]
+                            elif enddatesa[-1]<self.input_date:
+                                filestartdate = startdates[-1]
+                                fileenddate = enddates[-1]
+                            else:
+                                ndatefound2 = 0
+                                for i in range(len(startdatesa)-1):
+                                    if ((enddatesa[i]<=self.input_date) and (self.input_date<=startdatesa[i+1])):
+                                        delt1 = abs(self.input_date-enddatesa[i])
+                                        delt2 = abs(startdatesa[i+1]-self.input_date)
+                                        if abs(delt1-delt2)<=pd.Timedelta(seconds=1):
+                                            filestartdate = startdates[i+1]
+                                            fileenddate = enddates[i+1]
+                                            ndatefound2 = ndatefound2+1
+                                        elif delt1<delt2:
+                                            filestartdate = startdates[i]
+                                            fileenddate = enddates[i]
+                                            ndatefound2 = ndatefound2+1    
+                                        elif delt2<delt1:
+                                            filestartdate = startdates[i+1]
+                                            fileenddate = enddates[i+1]
+                                            ndatefound2 = ndatefound2+1
+                                if ndatefound2!=1:
+                                    raise ValueError('Error: Could not find the file with the input data.')
+                self.filestrdates.append(filestartdate.strftime(dformat)+'-'+fileenddate.strftime(dformat))
+            else:
+                self.filestrdates.append('')
+    
     # ===================== Initialize CMIP Handler with config and loading data ===================
     def __init__(self, inp_date, datafolderlink):
-        
-        # ================= Find the containing files' start and end dates ===============
-        def find_file_start_and_end_dates(self, input_root, vns, stL, edL):
-    
-            # Find the file date list
-            self.filestrdates = []
-            for idx, itm in self.vtable.iterrows():
-                if itm['sp_dates']!=-1:
-                    # Var name and other info
-                    varname = itm['src_v']
-                    lvlmark = itm['lvlmark']
-                    frq = itm['freq']          
-                    if pd.isna(lvlmark):
-                        lvlmark = ''
-                    # Make initial part of file name
-                    fn_pre = input_root+'/'+varname+'_'+frq+lvlmark+'_'+self.model_name
-                    fn_pre += '_'+self.exp_id+'_'+self.esm_flag+'_'+self.grid_flag  
-                    # Search for files
-                    filenames = sorted(glob.glob(fn_pre+'*.nc'))
-                    dates = [ele[len(fn_pre):-3] for ele in filenames]
-                    startdates_t = []
-                    enddates_t = []
-                    for ele in dates:
-                        ele_split = ele.split("-")
-                        startdates_t.append(ele_split[0])
-                        enddates_t.append(ele_split[1])
-                    startdates = []
-                    enddates = []
-                    if len(startdates_t[0])==12:
-                        dformat = '%Y%m%d%H%M'
-                        dlen = 12
-                    elif len(startdates_t[0])==8:
-                        dformat = '%Y%m%d'
-                        dlen = 8
-                    elif len(startdates_t[0])==6:
-                        dformat = '%Y%m'
-                        dlen = 6
-                    else:
-                        raise ValueError('Error: File date format not recognized.')
-                    for stdate, endate in zip(startdates_t, enddates_t):
-                        if ((len(stdate)!=dlen) or (len(endate)!=dlen)):
-                            print('dformat: '+dformat)
-                            print('stdate: '+stdate)
-                            print('endate: '+endate)
-                            raise ValueError('Error: Files do not have a consistent date format.')
-                        startdates.append(datetime.datetime.strptime(stdate,dformat))
-                        enddates.append(datetime.datetime.strptime(endate,dformat))        
-                    # Actual start and end dates
-                    locf = [i for i, x in enumerate(vns) if x==varname]
-                    startdatesa = stL[locf][0]; enddatesa = edL[locf][0]    
-                    # Find the file      
-                    ndatefound = 0
-                    for i in range(len(startdatesa)):
-                        if ((startdatesa[i]<=self.input_date) and (self.input_date<=enddatesa[i])):
-                            ndatefound += 1
-                            filestartdate = startdates[i]
-                            fileenddate = enddates[i]
-                    if ndatefound!=1:
-                        if not itm['approx_dates']:
-                            raise ValueError('Error: Item is needed at exact dates, but number of files found is not 1.')
-                        else:
-                            if ndatefound>1:
-                                raise ValueError('Error: Number of files containing item is greater than 1.')
-                            else:
-                                if self.input_date<startdatesa[0]:
-                                    filestartdate = startdates[0]
-                                    fileenddate = enddates[0]
-                                elif enddatesa[-1]<self.input_date:
-                                    filestartdate = startdates[-1]
-                                    fileenddate = enddates[-1]
-                                else:
-                                    ndatefound2 = 0
-                                    for i in range(len(startdatesa)-1):
-                                        if ((enddatesa[i]<=self.input_date) and (self.input_date<=startdatesa[i+1])):
-                                            delt1 = abs(self.input_date-enddatesa[i])
-                                            delt2 = abs(startdatesa[i+1]-self.input_date)
-                                            if abs(delt1-delt2)<=pd.Timedelta(seconds=1):
-                                                filestartdate = startdates[i+1]
-                                                fileenddate = enddates[i+1]
-                                                ndatefound2 = ndatefound2+1
-                                            elif delt1<delt2:
-                                                filestartdate = startdates[i]
-                                                fileenddate = enddates[i]
-                                                ndatefound2 = ndatefound2+1    
-                                            elif delt2<delt1:
-                                                filestartdate = startdates[i+1]
-                                                fileenddate = enddates[i+1]
-                                                ndatefound2 = ndatefound2+1
-                                    if ndatefound2!=1:
-                                        raise ValueError('Error: Could not find the file with the input data.')
-                    self.filestrdates.append(filestartdate.strftime(dformat)+'-'+fileenddate.strftime(dformat))
-                else:
-                    self.filestrdates.append('')
                
         # Input data directory
         input_root = os.readlink(datafolderlink)
@@ -213,8 +214,8 @@ class CMIPHandler(object):
         #   associated with the seperators for the CMIP6 name.
         
         # Load start and end dates and varnames
-        stL = np.load(input_root+'/startdates.npy',allow_pickle=True)
-        edL = np.load(input_root+'/enddates.npy',allow_pickle=True) 
+        stl = np.load(input_root+'/startdates.npy',allow_pickle=True)
+        edl = np.load(input_root+'/enddates.npy',allow_pickle=True) 
         vns = np.load(input_root+'/varnames.npy',allow_pickle=True)
         
         # Check the model 
@@ -235,33 +236,33 @@ class CMIPHandler(object):
         self.vtable = pd.read_csv('./Vtable')
              
         # Soil information
-        SM_layers = []; ST_layers = []
-        SM_depths = []; ST_depths = []
+        sm_layers = []; st_layers = []
+        sm_depths = []; st_depths = []
         for idx, itm in self.vtable.iterrows():
             outname = itm['aim_v']
             if outname[0:2]=='SM':
-                SM_layers.append(outname[2:8])
-                SM_depths.append(itm['soil_depth'])
+                sm_layers.append(outname[2:8])
+                sm_depths.append(itm['soil_depth'])
             if outname[0:2]=='ST':
-                ST_layers.append(outname[2:8])
-                ST_depths.append(itm['soil_depth'])
-        if SM_layers!=sorted(SM_layers):
+                st_layers.append(outname[2:8])
+                st_depths.append(itm['soil_depth'])
+        if sm_layers!=sorted(sm_layers):
             raise ValueError('SM layers are not sorted in the table.')
-        if ST_layers!=sorted(ST_layers):
+        if st_layers!=sorted(st_layers):
             raise ValueError('ST layers are not sorted in the table.')
-        if SM_layers!=ST_layers:
+        if sm_layers!=st_layers:
             raise ValueError('ST and SM must have the same layers.')
-        if SM_depths!=sorted(SM_depths):
+        if sm_depths!=sorted(sm_depths):
             raise ValueError('SM depths are not sorted in the table.')
-        if ST_depths!=sorted(ST_depths):
+        if st_depths!=sorted(st_depths):
             raise ValueError('ST depths are not sorted in the table.')
-        if SM_depths!=ST_depths:
+        if sm_depths!=st_depths:
             raise ValueError('ST and SM must have the same depths.')    
-        self.outsoillayers = SM_layers
-        self.soildepths = SM_depths
+        self.outsoillayers = sm_layers
+        self.soildepths = sm_depths
         self.soillayerthicks = []
-        for i in range(len(SM_layers)):
-            strl = SM_layers[i]
+        for i in range(len(sm_layers)):
+            strl = sm_layers[i]
             d1 = float(strl[0:3])*0.01
             d2 = float(strl[3:6])*0.01
             self.soillayerthicks.append(round(d2-d1,2))        
@@ -284,7 +285,7 @@ class CMIPHandler(object):
         # NOTE: The out_slab is used to write the data into intermediate file one level at a time.
         
         # Find the containing files' start and end dates
-        find_file_start_and_end_dates(self, input_root, vns, stL, edL)  
+        self._find_file_start_and_end_dates(input_root, vns, stl, edl)  
 
         # NOTE: For the CESM2 data, we did not include the surface fields, as those were not available. If we process
         #   the data without surface fields, real.exe says e.g., "Missing surface temp, replaced with closest level, 
@@ -452,7 +453,7 @@ class CMIPHandler(object):
                 # Select variable
                 da = self.ds[varname+str(slvl)]
                 # Handle soil moisture, if needed
-                if ((varname=='mrsol') and (itm['units']=="kg m-2")): 
+                if varname=='mrsol' and itm['units']=="kg m-2": 
                     da /= 997.0474*self.soillayerthicks[slvl]
                 # NOTE: In some model data soil moisture is in units of kg/m^2, so to convert that to m3 m-3, 
                 #   which is what also, e.g., ERA5 uses, we divide by 997.0474 kg/m^3 and by the layer thickness (m).
@@ -468,9 +469,9 @@ class CMIPHandler(object):
                     self.outfrm[varname+str(slvl)].values = griddata((xx1,yy1),array1,(xx,yy),method='nearest')                       
                     # NOTE: This is to remove nan values (missing values that xarray replaces with nans).
                     if varname=='mrsol':
-                        Temp = self.outfrm[varname+str(slvl)].values
-                        Temp[Temp<0.05] = 0.05
-                        self.outfrm[varname+str(slvl)].values = Temp
+                        tmp = self.outfrm[varname+str(slvl)].values
+                        tmp[tmp<0.05] = 0.05
+                        self.outfrm[varname+str(slvl)].values = tmp
                     # NOTE: This prevents unphysically low soil moisture levels and potentially helps with spin-up.
                 else:
                     raise ValueError("Error: Incorrect level type for soil data.")
@@ -497,10 +498,10 @@ class CMIPHandler(object):
                 #   remain nans after the above operations.    
                 # Perform the interpolation
                 if lvltype=='3d':
-                    Temp = da.values
-                    largetemp = Temp[Temp>1.e10]
-                    n_nan = np.isnan(Temp).sum()
-                    n_large = largetemp.sum()
+                    tmp = da.values
+                    largetmp = tmp[tmp>1.e10]
+                    n_nan = np.isnan(tmp).sum()
+                    n_large = largetmp.sum()
                     n_nanorlarge = n_nan+n_large
                     if n_nanorlarge==0:                        
                         self.outfrm[varname] = da.copy(deep=True)                            
@@ -508,9 +509,9 @@ class CMIPHandler(object):
                         if n_large>0:
                             raise ValueError("Error: There are extremely large values in the 3D data.")
                         else:
-                            K = da.shape[0]
+                            ke = da.shape[0]
                             da_f = da.copy(deep=True)
-                            for k in range(K):
+                            for k in range(ke):
                                 da_l = da[k,:,:].copy(deep=True)
                                 n_nan_l = np.isnan(da_l).sum()
                                 if n_nan_l>0:
@@ -535,19 +536,19 @@ class CMIPHandler(object):
                         yy1 = lats_loc[~array.mask]
                         array1 = array[~array.mask]
                         xx,yy = np.meshgrid(self.lon,self.lat)                         
-                        interp_data_temp = griddata((xx1,yy1),array1,(xx,yy),method='linear')
+                        interp_data_tmp = griddata((xx1,yy1),array1,(xx,yy),method='linear')
                         # NOTE: This is because the grid of ocean is different than other vars' grid and we have to  
                         #   interpolate into the common grid for the ocean variables. 
-                        array = np.ma.masked_invalid(interp_data_temp)                        
+                        array = np.ma.masked_invalid(interp_data_tmp)                        
                         xx1 = xx[~array.mask]
                         yy1 = yy[~array.mask]
                         array1 = array[~array.mask]
-                        tos_temp2 = griddata((xx1,yy1),array1,(xx,yy),method='nearest')                       
+                        tos_tmp2 = griddata((xx1,yy1),array1,(xx,yy),method='nearest')                       
                         # NOTE: This is to remove nan values (missing values that xarray replaces with nans).
-                        self.outfrm[varname] = tos_temp2                        
-                        Temp = self.outfrm[varname]
-                        largetemp = Temp[Temp>1.e10]
-                        if (np.isnan(Temp).sum()+largetemp.sum())!=0:
+                        self.outfrm[varname] = tos_tmp2                        
+                        tmp = self.outfrm[varname]
+                        largetmp = tmp[tmp>1.e10]
+                        if (np.isnan(tmp).sum()+largetmp.sum())!=0:
                            raise ValueError('Error: There are nan or large values in the ocean data (after filling).')                        
                     else:                        
                         self.outfrm[varname] = da.copy(deep=True)                            
