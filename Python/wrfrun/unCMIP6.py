@@ -95,18 +95,14 @@ def write_record(out_file, slab_dic):
 class CMIPHandler(object):
 
     '''
-    Construct CMIP Handler 
-
-    Methods
-    -----------
-    _find_file_start_and_end_dates: Find the containing files' start and end dates.
-    __init__: Initialize CMIP Handler with config and loading data.
-    interp_data: Interpolate data to common mesh.
-    write_wrfinterm: Write wrfinterm file.
+    Construct CMIP Handler.
     '''
     
-    # ================= Find the containing files' start and end dates ===============
     def _find_file_start_and_end_dates(self, input_root, vns, stl, edl):
+        
+        '''
+        Find the containing files' start and end dates.
+        '''
     
         # Find the file date list
         self.filestrdates = []
@@ -116,7 +112,7 @@ class CMIPHandler(object):
                 varname = itm['src_v']
                 lvlmark = itm['lvlmark']
                 frq = itm['freq']          
-                if pd.isna(lvlmark):
+                if pd.isna(lvlmark) or lvlmark=='None':
                     lvlmark = ''
                 # Make initial part of file name
                 fn_pre = input_root+'/'+varname+'_'+frq+lvlmark+'_'+self.model_name
@@ -198,8 +194,11 @@ class CMIPHandler(object):
             else:
                 self.filestrdates.append('')
     
-    # ===================== Initialize CMIP Handler with config and loading data ===================
     def __init__(self, inp_date, datafolderlink):
+        
+        '''
+        Initialize CMIP Handler with config and loading data.
+        '''
                
         # Input data directory
         input_root = os.readlink(datafolderlink)
@@ -227,7 +226,8 @@ class CMIPHandler(object):
             self.input_date = datetime.datetime.strptime(inp_date,'%Y%m%d%H')
             # NOTE: The strptime() method creates a datetime object from the given string.
         elif self.model_name=='CESM2':
-            self.input_date = cftime.datetime.strptime(inp_date,"%Y%m%d%H",calendar='noleap')
+            self.input_date = cftime.DatetimeNoLeap(int(inp_date[0:4]),int(inp_date[4:6]),int(inp_date[6:8]), \
+                int(inp_date[8:10]))    
         
         # Display info about time
         print('\nHandeling time:',self.input_date)
@@ -308,7 +308,7 @@ class CMIPHandler(object):
             lvltype = itm['type']
             lvlmark = itm['lvlmark']
             frq = itm['freq']            
-            if pd.isna(lvlmark):
+            if pd.isna(lvlmark) or lvlmark=='None':
                 lvlmark = ''
             # File name
             fn = input_root+'/'+varname+'_'+frq+lvlmark+'_'+self.model_name
@@ -372,10 +372,11 @@ class CMIPHandler(object):
                 elif isinstance(t1,cftime.DatetimeNoLeap):
                     seltol = datetime.timedelta(days=seltolapr_days) if itm['approx_dates'] else datetime.timedelta(seconds=0)                    
                     t_vals = ds['time'].values
-                    t_select = t_vals[np.argmin((t_vals-self.input_date).abs())]
+                    t_select_loc = np.argmin(np.abs(t_vals-self.input_date))
+                    t_select = t_vals[t_select_loc]
                     if abs(t_select-self.input_date)>seltol:
                         raise ValueError('Minimum difference bigger than tolerance!')  
-                    ds_sel = ds[varname].sel(time=t_select)
+                    ds_sel = ds[varname].isel(time=t_select_loc)
                 else:
                     raise ValueError('Time dtype not recognized!')                    
                 # NOTE: The above two methods for the time selection is because CESM2 has time type of cftime.DatetimeNoLeap,
@@ -431,8 +432,11 @@ class CMIPHandler(object):
         self.out_slab['DELTLAT'] = self.lat[1]-self.lat[0]
         self.out_slab['DELTLON'] = self.lon[1]-self.lon[0]            
 
-    # ================================= Interpolate data to common mesh ===================================
     def interp_data(self):
+        
+        '''
+        Interpolate data to common mesh.
+        '''
 
         # Go over all vtable rows and alter values as needed
         for idx, itm in self.vtable.iterrows():
@@ -553,8 +557,11 @@ class CMIPHandler(object):
                     else:                        
                         self.outfrm[varname] = da.copy(deep=True)                            
 
-    # ================================= Write WRF Interim file ===================================
     def write_wrfinterm(self):
+        
+        '''
+        Write wrfinterm file.
+        '''
     
         # Output file path and name
         out_fn = './CMIP6:'+self.input_date.strftime('%Y-%m-%d_%H')
